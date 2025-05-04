@@ -2,6 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\View; // Importe View
+use App\Http\Controllers\GigController; // Importe o controlador GigController
+use App\Http\Controllers\ProfileController; // Importe o controlador ProfileController
+use App\Http\Controllers\ArtistController; // Importe o controlador ArtistController
+use App\Http\Controllers\BookerController; // Importe o controlador BookerController
 
 Route::get('/', function () {
     return view('welcome'); // Ou redirecione para o login/dashboard
@@ -16,42 +20,10 @@ Route::middleware('auth')->group(function () {
         return view('dashboard'); // Retorna a view dashboard.blade.php
     })->name('dashboard');
 
-    Route::get('/contratos', function (): View {
-        return view('contratos'); // Retorna a view contratos.blade.php
-    })->name('contratos');
-
-    Route::get('/artistas', function (): View {
-         return view('artistas'); // Retorna a view artistas.blade.php
-    })->name('artistas');
-
-     Route::get('/bookers', function (): View {
-         return view('bookers');
-     })->name('bookers');
-
-      Route::get('/locais', function (): View {
-          return view('locais');
-      })->name('locais');
-
-      Route::get('/eventos', function (): View {
-          return view('eventos');
-      })->name('eventos');
-
-      Route::get('/pagamentos', function (): View {
-          return view('pagamentos');
-      })->name('pagamentos');
-
-      Route::get('/relatorios', function (): View {
-          return view('relatorios');
-      })->name('relatorios');
-
-      Route::get('/projecoes', function (): View {
-          return view('projecoes');
-      })->name('projecoes');
-
-      Route::get('/usuarios', function (): View {
-          return view('usuarios');
-      })->name('usuarios');
-
-    // Adicione rotas para o CRUD das entidades (Artistas, Bookers, etc.)
-    // Exemplo: Route::resource('artistas', App\Http\Controllers\ArtistController::class);
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+   
+    // --- ROTAS PARA GIGS ---
+    Route::resource('gigs', GigController::class); // Cria index, create, store, show, edit, update, destroy
 });

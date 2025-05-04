@@ -2,47 +2,61 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\Artist; // Importe o modelo Artist
-use Illuminate\Support\Facades\DB; // Importar DB Facade para usar insert
+use App\Models\Artist;
+use Illuminate\Support\Facades\Log; // Para logs
 
 class ArtistSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Limpa a tabela antes de inserir para evitar duplicações em re-seed
-        // DB::table('artists')->truncate(); // Opcional: usar se for rodar o seeder isoladamente várias vezes
+        $csvFile = fopen(base_path("database/data/tabela.csv"), "r"); // Assume que o CSV está em database/data/
+        $firstline = true;
+        $artistsToCreate = [];
 
-        $artists = [
-            'BIGFETT', 'MISS NATÁLIA', 'NERY', 'MARY MESK', 'MOSER', 'DEEFT',
-            'SCHILLIST', 'GREG', 'NICOLAU MARINHO', 'CAROL FÁVERO', 'KVSH',
-            'TALBOT', 'MARIZ', 'SOUTH BIRDS', 'RAGIE BAN', 'SILVER PANDA',
-            'CAROL SEUBERT', 'PITHMAN', 'FANCY INC', 'DOT', 'BRUNO MARTINI',
-            'SCORZ', 'BINARYH', 'DRE GUAZZELLI', 'RYAN LOPES', 'RIKO & GUGGA',
-            'OWNBOSS', 'WADE', 'SILVIO SOUL', 'DROPACK', 'ETTA', 'BLURRYVISION',
-        ];
-
-        $dataToInsert = [];
-        $now = now(); // Pegar o timestamp atual uma vez
-
-        foreach ($artists as $name) {
-            $dataToInsert[] = [
-                'name' => $name,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
+        if ($csvFile === false) {
+            Log::error("Não foi possível abrir o arquivo CSV para Artistas.");
+            $this->command->error("Arquivo CSV não encontrado ou não pôde ser aberto.");
+            return;
         }
 
-        // Inserir todos os dados de uma vez para performance
-        Artist::insert($dataToInsert);
+        while (($data = fgetcsv($csvFile, 2000, ",")) !== false) {
+            if (!$firstline) {
+                $artistName = trim($data[5] ?? ''); // Coluna 6 (índice 5) é artist_name
+                if (!empty($artistName) && !isset($artistsToCreate[$artistName])) {
+                    // Adiciona à lista para criação única
+                    $artistsToCreate[$artistName] = ['name' => $artistName];
+                }
+            }
+            $firstline = false;
+        }
+        fclose($csvFile);
 
-        // Ou, se quiser usar a factory para preencher outros campos (se os tiver adicionado):
-        // foreach ($artists as $name) {
-        //     Artist::factory()->create(['name' => $name]);
-        // }
+        // Inserir artistas que ainda não existem
+        $existingArtists = Artist::pluck('name')->toArray();
+        $newArtistsData = [];
+        $now = now();
+
+        foreach ($artistsToCreate as $artistData) {
+            if (!in_array($artistData['name'], $existingArtists)) {
+                 $newArtistsData[] = [
+                    'name' => $artistData['name'],
+                    'contact_info' => null, // Pode adicionar se tiver no CSV
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                 ];
+                 $existingArtists[] = $artistData['name']; // Adiciona à lista para evitar duplicidade no loop
+            }
+        }
+
+        if (!empty($newArtistsData)) {
+            // Chunk insert para performance se forem muitos artistas novos
+            foreach (array_chunk($newArtistsData, 50) as $chunk) {
+                 Artist::insert($chunk);
+            }
+            $this->command->info(count($newArtistsData) . ' novos artistas inseridos do CSV.');
+        } else {
+            $this->command->info('Nenhum novo artista encontrado no CSV para inserir.');
+        }
     }
 }

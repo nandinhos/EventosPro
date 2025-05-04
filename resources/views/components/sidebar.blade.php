@@ -27,13 +27,14 @@
                 </a>
             </li>
             <li>
-                <a @click.prevent="currentPage = 'contratos'" href="#"
-                   :class="currentPage === 'contratos' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
-                   class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                    <i class="fas fa-file-contract w-6 text-center"></i>
-                    <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Contratos</span>
-                </a>
-            </li>
+    {{-- Link principal agora para Gigs --}}
+    <a href="{{ route('gigs.index') }}"
+       :class="window.location.pathname.startsWith('/gigs') ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
+       class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+        <i class="fas fa-calendar-check w-6 text-center"></i> {{-- Ícone pode ser de calendário/check --}}
+        <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Gigs/Datas</span> 
+    </a>
+</li>
             <li>
                 <a @click.prevent="currentPage = 'artistas'" href="#"
                    :class="currentPage === 'artistas' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"

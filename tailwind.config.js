@@ -1,20 +1,22 @@
-// tailwind.config.js
 import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
 
 /** @type {import('tailwindcss').Config} */
 export default {
-    darkMode: 'class', // Garanta que esta linha está aqui
+    darkMode: 'class', // Mantém o dark mode
     content: [
-        './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
-        './storage/framework/views/*.php',
-        './resources/views/**/*.blade.php',
+        // Caminhos onde o Tailwind deve procurar por classes para NÃO removê-las no build
+        './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php', // Paginação Laravel
+        './storage/framework/views/*.php', // Views cacheadas
+        './resources/views/**/*.blade.php', // SUAS VIEWS BLADE (IMPORTANTE!)
+        './resources/js/**/*.js', // Arquivos JS (se usar classes Tailwind no JS)
+        // Adicione outros caminhos se necessário (ex: para componentes Livewire)
     ],
 
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['Figtree', ...defaultTheme.fontFamily.sans], // Fonte padrão do Breeze
             },
             colors: { // Adicione sua paleta primary aqui
                 primary: {

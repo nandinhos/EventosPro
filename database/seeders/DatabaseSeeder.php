@@ -1,49 +1,35 @@
 <?php
-
 namespace Database\Seeders;
 
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\User; // Importar User
-use Illuminate\Support\Facades\Hash; // Importar Hash para a senha
-
-// Importar seus outros seeders específicos
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Database\Seeders\ArtistSeeder;
 use Database\Seeders\BookerSeeder;
-use Database\Seeders\ContractSeeder;
-use Database\Seeders\EventSeeder;
-use Database\Seeders\PaymentSeeder;
-use Database\Seeders\SettlementSeeder;
+use Database\Seeders\TagSeeder; // Mantém se quiser tags
+use Database\Seeders\GigSeeder; // << NOVO SEEDER PRINCIPAL
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // Criar o usuário Admin padrão
-        User::factory()->create([
-            'name' => 'Admin EventosPro',
-            'email' => 'admin@eventospro.com',
-            'password' => Hash::make('password'), // Use Hash::make() ou bcrypt()
-        ]);
+        // Criar usuários padrão
+        User::firstOrCreate(
+            ['email' => 'admin@eventospro.com'],
+            ['name' => 'Admin EventosPro', 'password' => Hash::make('password')]
+        );
+        User::firstOrCreate(
+            ['email' => 'nandinhos@gmail.com'],
+            ['name' => 'Nando DEV', 'password' => Hash::make('123456789')]
+        );
 
-        // Criar o seu usuário padrão Nando DEV
-        User::factory()->create([
-            'name' => 'Nando DEV',
-            'email' => 'nandinhos@gmail.com',
-            'password' => Hash::make('123456789'), // SEMPRE use Hash::make() ou bcrypt() para senhas!
-        ]);
-
-        // Chamar seus outros seeders na ordem correta de dependência
+        // Chamar seeders na ordem correta
         $this->call([
-            ArtistSeeder::class,      // Cria os artistas primeiro
-            BookerSeeder::class,      // Cria os bookers
-            ContractSeeder::class,    // Cria contratos
-            EventSeeder::class,       // Cria eventos (precisa de bookers, artists, e talvez contracts)
-            PaymentSeeder::class,     // Cria pagamentos (precisa de contracts)
-            SettlementSeeder::class,  // Cria acertos (precisa de events)
+            ArtistSeeder::class,  // Garante que artistas existem
+            BookerSeeder::class,  // Garante que bookers existem
+            TagSeeder::class,     // Cria tags
+            GigSeeder::class,     // << IMPORTA DADOS REAIS de Gigs e Payments
+            // SettlementSeeder::class, // Pode rodar depois se precisar criar acertos fake
         ]);
     }
 }
