@@ -99,66 +99,52 @@ class GigController extends Controller
         return view('gigs.create', compact('artists', 'bookers', 'tags'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(StoreGigRequest $request): RedirectResponse
     {
         $validated = $request->validated();
-
-        // Iniciar transação
         DB::beginTransaction();
         try {
-            // 1. Calcular valores dependentes (Câmbio, Comissões)
-            $cacheValueBrl = $validated['cache_value'];
-            if (strtoupper($validated['currency']) !== 'BRL' && !empty($validated['exchange_rate'])) {
-                $cacheValueBrl = $validated['cache_value'] * $validated['exchange_rate'];
-            }
-             $validated['cache_value_brl'] = $cacheValueBrl; // Adiciona ao array validado
+            // Prepara dados adicionais antes de criar
+            $preparedData = $this->prepareGigData($validated);
 
-            // Calcular comissões (Idealmente usar um Service)
-            // Exemplo simples (precisa refinar com Service depois):
-             $baseCommission = $cacheValueBrl - ($validated['expenses_value_brl'] ?? 0);
-             $agencyCommissionValue = null; // Assumindo que agência não tem comissão separada por enquanto
-             $bookerCommissionValue = null;
-
-             if ($validated['booker_commission_type'] === 'percent' && isset($validated['booker_commission_value'])) {
-                 $bookerCommissionValue = $baseCommission * ($validated['booker_commission_value'] / 100);
-             } elseif ($validated['booker_commission_type'] === 'fixed' && isset($validated['booker_commission_value'])) {
-                 $bookerCommissionValue = $validated['booker_commission_value']; // Valor já é o fixo
-             }
-             $validated['booker_commission_value'] = $bookerCommissionValue; // Sobrescreve/adiciona o valor calculado/fixo
-             // $validated['agency_commission_value'] = $agencyCommissionValue; // Adiciona se tiver
-
-             // Calcular Comissão Líquida (Agência - Booker)
-             // Neste modelo simplificado, comissão agência = comissão total (ex: 20%)
-             // Vamos assumir 20% padrão da agência por enquanto
-             $agencyRate = 20.00; // TODO: Tornar configurável
-             $totalAgencyCommission = $baseCommission * ($agencyRate / 100);
-             $validated['agency_commission_value'] = $totalAgencyCommission; // Salva comissão total da agência
-             $validated['liquid_commission_value'] = $totalAgencyCommission - ($bookerCommissionValue ?? 0);
-
-
-            // 2. Criar a Gig
-            $gig = Gig::create($validated);
-
-            // 3. Associar Tags (se enviadas)
+            $gig = Gig::create($preparedData);
             if ($request->filled('tags')) {
-                $gig->tags()->sync($request->input('tags')); // sync() anexa apenas os IDs enviados
+                $gig->tags()->sync($request->input('tags'));
             }
-
-            // 4. Commitar a transação
             DB::commit();
-
-            // 5. Redirecionar com sucesso
             return redirect()->route('gigs.index')->with('success', 'Gig criada com sucesso!');
-
         } catch (\Exception $e) {
-            // 6. Rollback em caso de erro
             DB::rollBack();
-            Log::error('Erro ao criar Gig: ' . $e->getMessage(), ['exception' => $e]); // Log completo
-            // 7. Redirecionar de volta com erro
-            return back()->withInput()->with('error', 'Erro ao criar a Gig. Verifique os dados e tente novamente.');
+            Log::error('Erro ao criar Gig: ' . $e->getMessage(), ['exception' => $e]);
+            return back()->withInput()->with('error', 'Erro ao criar a Gig.');
+        }
+    }
+
+    public function edit(Gig $gig): View
+    {
+        $artists = Artist::orderBy('name')->pluck('name', 'id');
+        $bookers = Booker::orderBy('name')->pluck('name', 'id');
+        $tags = Tag::orderBy('name')->get()->groupBy('type');
+        $selectedTags = $gig->tags()->pluck('id')->toArray();
+        return view('gigs.edit', compact('gig', 'artists', 'bookers', 'tags', 'selectedTags'));
+    }
+
+    public function update(UpdateGigRequest $request, Gig $gig): RedirectResponse
+    {
+        $validated = $request->validated();
+        DB::beginTransaction();
+        try {
+            // Prepara dados adicionais antes de atualizar
+            $preparedData = $this->prepareGigData($validated);
+
+            $gig->update($preparedData);
+            $gig->tags()->sync($request->input('tags', []));
+            DB::commit();
+            return redirect()->route('gigs.index')->with('success', 'Gig atualizada com sucesso!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao atualizar Gig: ' . $e->getMessage(), ['exception' => $e, 'gig_id' => $gig->id]);
+            return back()->withInput()->with('error', 'Erro ao atualizar a Gig.');
         }
     }
 
@@ -194,78 +180,7 @@ class GigController extends Controller
     }
 
     
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Gig $gig): View // Usa Route Model Binding
-    {
-        // Buscar dados para os selects
-        $artists = Artist::orderBy('name')->pluck('name', 'id');
-        $bookers = Booker::orderBy('name')->pluck('name', 'id');
-        $tags = Tag::orderBy('name')->get()->groupBy('type');
-
-        // Pegar os IDs das tags já associadas a esta Gig
-        $selectedTags = $gig->tags()->pluck('id')->toArray();
-
-        // Retorna a view de edição, passando a gig e os dados dos selects
-        return view('gigs.edit', compact('gig', 'artists', 'bookers', 'tags', 'selectedTags'));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateGigRequest $request, Gig $gig): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        DB::beginTransaction();
-        try {
-             // 1. Recalcular valores dependentes (igual ao store)
-            $cacheValueBrl = $validated['cache_value'];
-            if (strtoupper($validated['currency']) !== 'BRL' && !empty($validated['exchange_rate'])) {
-                $cacheValueBrl = $validated['cache_value'] * $validated['exchange_rate'];
-            }
-             $validated['cache_value_brl'] = $cacheValueBrl;
-
-             $baseCommission = $cacheValueBrl - ($validated['expenses_value_brl'] ?? 0);
-             $bookerCommissionValue = null;
-
-             if ($validated['booker_commission_type'] === 'percent' && isset($validated['booker_commission_value'])) {
-                 $bookerCommissionValue = $baseCommission * ($validated['booker_commission_value'] / 100);
-             } elseif ($validated['booker_commission_type'] === 'fixed' && isset($validated['booker_commission_value'])) {
-                 $bookerCommissionValue = $validated['booker_commission_value'];
-             }
-             $validated['booker_commission_value'] = $bookerCommissionValue;
-
-             // Assumindo comissão agência 20% (simplificado)
-             $agencyRate = 20.00; // TODO: Configurável
-             $totalAgencyCommission = $baseCommission * ($agencyRate / 100);
-             $validated['agency_commission_value'] = $totalAgencyCommission;
-             $validated['liquid_commission_value'] = $totalAgencyCommission - ($bookerCommissionValue ?? 0);
-
-            // 2. Atualizar a Gig com os dados validados e calculados
-            $gig->update($validated);
-
-            // 3. Sincronizar Tags (remove as não enviadas, adiciona as novas)
-            $gig->tags()->sync($request->input('tags', [])); // Passa array vazio se 'tags' não for enviado
-
-            // 4. Commitar
-            DB::commit();
-
-            // 5. Redirecionar para a lista ou para o show com sucesso
-            return redirect()->route('gigs.index')->with('success', 'Gig atualizada com sucesso!');
-            // Ou redirecionar para show: return redirect()->route('gigs.show', $gig)->with('success', ...);
-
-
-        } catch (\Exception $e) {
-             // 6. Rollback e Log
-            DB::rollBack();
-            Log::error('Erro ao atualizar Gig: ' . $e->getMessage(), ['exception' => $e, 'gig_id' => $gig->id]);
-             // 7. Redirecionar de volta com erro
-            return back()->withInput()->with('error', 'Erro ao atualizar a Gig. Verifique os dados e tente novamente.');
-        }
-    }
-
+    
     /**
      * Remove the specified resource from storage (Soft Delete).
      */
@@ -284,5 +199,59 @@ class GigController extends Controller
             return back()->with('error', 'Erro ao excluir a Gig.');
         }
     }
+
+    /**
+     * Método auxiliar para calcular e preparar os dados da Gig antes de salvar/atualizar.
+     */
+    private function prepareGigData(array $validatedData): array
+    {
+        // 1. Calcular cache_value_brl (sem alterações)
+        $cacheValueBrl = $validatedData['cache_value'];
+        if (strtoupper($validatedData['currency']) !== 'BRL' && !empty($validatedData['exchange_rate'])) {
+            $cacheValueBrl = $validatedData['cache_value'] * $validatedData['exchange_rate'];
+        }
+        $validatedData['cache_value_brl'] = $cacheValueBrl;
+
+        // 2. Calcular Comissões
+        $baseCommission = $cacheValueBrl - ($validatedData['expenses_value_brl'] ?? 0);
+
+        // Booker Commission (sem alterações)
+        $bookerRate = null;
+        $bookerValue = null;
+        // Acessar com null coalescing ou isset para segurança extra
+        $bookerCommissionType = $validatedData['booker_commission_type'] ?? null;
+        $bookerCommissionInputValue = $validatedData['booker_commission_value'] ?? null;
+
+        if ($bookerCommissionType === 'percent' && $bookerCommissionInputValue !== null) {
+            $bookerRate = $bookerCommissionInputValue;
+            $bookerValue = $baseCommission * ($bookerRate / 100);
+        } elseif ($bookerCommissionType === 'fixed' && $bookerCommissionInputValue !== null) {
+            $bookerRate = null;
+            $bookerValue = $bookerCommissionInputValue;
+        }
+        $validatedData['booker_commission_rate'] = $bookerRate;
+        $validatedData['booker_commission_value'] = $bookerValue;
+
+        // --- Lógica da Agência SIMPLIFICADA ---
+        // Define valores padrão ou nulos, já que não vêm do form
+        $agencyRate = 20.00; // <- DEFINIR AQUI a taxa padrão da agência (ou null)
+        $agencyValue = $baseCommission * ($agencyRate / 100); // Calcula o valor baseado na taxa padrão
+        // Ou deixe nulo se não for calcular/salvar agora:
+        // $agencyRate = null;
+        // $agencyValue = null;
+
+        $validatedData['agency_commission_rate'] = $agencyRate;
+        $validatedData['agency_commission_value'] = $agencyValue;
+        // Removemos a tentativa de ler agency_commission_type/value do $validatedData
+        // --- Fim da Simplificação ---
+
+        // 3. Calcular Comissão Líquida
+        $validatedData['liquid_commission_value'] = ($agencyValue ?? 0) - ($bookerValue ?? 0);
+
+        // Remover campos que não são colunas diretas, se houver (não temos neste caso)
+
+        return $validatedData;
+    }
+
 
 }
