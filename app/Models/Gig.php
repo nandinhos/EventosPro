@@ -27,12 +27,12 @@ class Gig extends Model
         'booker_id',
         'contract_number',
         'contract_date',
-        'gig_date', // Campo correto conforme migration final
-        'location_event_details', // Campo correto
-        'cache_value',
+        'gig_date',
+        'location_event_details',
+        'cache_value', // <-- Mudou de total_value
         'currency',
-        'exchange_rate',
-        'cache_value_brl',
+        // 'exchange_rate', // Removido
+        // 'cache_value_brl', // Removido
         'expenses_value_brl',
         'agency_commission_type',
         'agency_commission_rate',
@@ -44,7 +44,7 @@ class Gig extends Model
         'payment_status',
         'artist_payment_status',
         'booker_payment_status',
-        'contract_status', // Adicionado conforme migration
+        'contract_status',
         'notes',
         // 'file_path' // Removido conforme migration final
     ];
@@ -58,9 +58,9 @@ class Gig extends Model
         'contract_date' => 'date',
         'gig_date' => 'date',
         'cache_value' => 'decimal:2',
-        'cache_value_brl' => 'decimal:2',
+        //'cache_value_brl' => 'decimal:2',
         'expenses_value_brl' => 'decimal:2',
-        'exchange_rate' => 'decimal:6',
+        //'exchange_rate' => 'decimal:6',
         'agency_commission_value' => 'decimal:2',
         'booker_commission_value' => 'decimal:2',
         'liquid_commission_value' => 'decimal:2',

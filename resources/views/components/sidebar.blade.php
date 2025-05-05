@@ -51,22 +51,7 @@
                     <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Bookers</span>
                 </a>
             </li>
-            <li>
-                <a @click.prevent="currentPage = 'locais'" href="#"
-                   :class="currentPage === 'locais' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
-                   class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                    <i class="fas fa-map-marker-alt w-6 text-center"></i>
-                    <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Locais</span>
-                </a>
-            </li>
-            <li>
-                <a @click.prevent="currentPage = 'eventos'" href="#"
-                   :class="currentPage === 'eventos' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
-                   class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                    <i class="fas fa-calendar-alt w-6 text-center"></i>
-                    <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Eventos</span>
-                </a>
-            </li>
+            
             <li>
                 <a @click.prevent="currentPage = 'pagamentos'" href="#"
                    :class="currentPage === 'pagamentos' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"

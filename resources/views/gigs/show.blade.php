@@ -11,16 +11,23 @@
             </p>
         </div>
         <div class="flex space-x-2 items-center">
-             <a href="{{ route('gigs.index') }}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-sm">
-                <i class="fas fa-arrow-left mr-1"></i> Voltar
+        <a href="{{ route('gigs.index', $backUrlParams) }}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-sm">
+                <i class="fas fa-arrow-left mr-1"></i> Voltar para Lista
             </a>
-            <a href="{{ route('gigs.edit', $gig) }}" class="bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-md text-sm">
+            {{-- Botão Editar - Adiciona backUrlParams também --}}
+            <a href="{{ route('gigs.edit', ['gig' => $gig] + $backUrlParams) }}" class="bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-md text-sm">
                 <i class="fas fa-edit mr-1"></i> Editar
             </a>
-            {{-- Botão Excluir --}}
-             <form action="{{ route('gigs.destroy', $gig) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir esta Gig e todos os dados relacionados?');" class="inline">
+            {{-- Botão Excluir - Adiciona backUrlParams nos hiddens --}}
+             <form action="{{ route('gigs.destroy', $gig) }}" method="POST" onsubmit="return confirm('Tem certeza?');" class="inline">
                 @csrf
                 @method('DELETE')
+                {{-- Adiciona campos hidden para cada parâmetro de volta --}}
+                @foreach($backUrlParams as $key => $value)
+                     @if(!is_array($value))
+                         <input type="hidden" name="backParams[{{ $key }}]" value="{{ $value }}">
+                     @endif
+                @endforeach
                 <button type="submit" title="Excluir" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-md text-sm">
                     <i class="fas fa-trash-alt mr-1"></i> Excluir
                 </button>
@@ -65,42 +72,58 @@
                 </div>
             </div>
 
-             {{-- Card: Detalhes Financeiros --}}
+            {{-- ============================================= --}}
+             {{-- Card: Resumo Financeiro (SIMPLIFICADO FINAL) --}}
+             {{-- ============================================= --}}
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Financeiro</h3>
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Resumo Financeiro</h3>
                 </div>
-                 <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                    <div><strong class="text-gray-500 dark:text-gray-400">Cachê Bruto:</strong> {{ $gig->currency }} {{ number_format($gig->cache_value, 2, ',', '.') }}</div>
-                    @if($gig->currency !== 'BRL')
-                         <div><strong class="text-gray-500 dark:text-gray-400">Câmbio:</strong> {{ number_format($gig->exchange_rate ?? 0, 4, ',', '.') }}</div>
-                         <div><strong class="text-gray-500 dark:text-gray-400">Cachê (BRL):</strong> R$ {{ number_format($gig->cache_value_brl, 2, ',', '.') }}</div>
-                    @else
-                         <div class="md:col-span-2"></div> {{-- Ocupa espaço --}}
-                    @endif
+                 <div class="p-6 space-y-3 text-sm">
 
-                    <div><strong class="text-gray-500 dark:text-gray-400">Despesas (BRL):</strong> R$ {{ number_format($gig->expenses_value_brl ?? 0, 2, ',', '.') }}</div>
-                    <div><strong class="text-gray-500 dark:text-gray-400">Base Comissão (BRL):</strong> R$ {{ number_format($gig->cache_value_brl - ($gig->expenses_value_brl ?? 0), 2, ',', '.') }}</div>
-                     <div class="md:col-span-2"><hr class="my-2 border-gray-200 dark:border-gray-700"></div>
+                     {{-- Valor Total do Contrato (na Moeda Original) --}}
+                     <div>
+                        <span class="text-gray-500 dark:text-gray-400">Valor Contrato:</span>
+                        <span class="font-semibold text-gray-900 dark:text-white ml-2">
+                            {{ $gig->currency }} {{ number_format($gig->cache_value ?? 0, 2, ',', '.') }}
+                        </span>
+                     </div>
 
-                    <div><strong class="text-gray-500 dark:text-gray-400">Comissão Agência:</strong>
-                        R$ {{ number_format($gig->agency_commission_value ?? 0, 2, ',', '.') }}
-                        @if($gig->agency_commission_type === 'percent') ({{ number_format($gig->agency_commission_rate ?? 0, 2, ',', '.') }}%) @endif
+                     {{-- Valor Total Recebido (na Moeda Original) --}}
+                      <div>
+                        <span class="text-gray-500 dark:text-gray-400">Total Recebido:</span>
+                        <span class="font-semibold text-green-600 dark:text-green-400 ml-2">
+                            {{-- Usa a variável calculada no controller --}}
+                           {{ $gig->currency }} {{ number_format($totalReceivedOriginalCurrency, 2, ',', '.') }}
+                        </span>
+                         {{-- Nota: Pode haver pagamentos em outras moedas não somados aqui --}}
+                         @if($gig->payments->where('currency', '!=', $gig->currency)->count() > 0)
+                            <span class="text-xs text-gray-400 dark:text-gray-500 ml-1">(+ valores em outras moedas)</span>
+                         @endif
+                     </div>
+
+                    {{-- Valor Pendente (na Moeda Original) --}}
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Saldo Pendente:</span>
+                        <span class="font-semibold {{ $balanceOriginalCurrency <= 0.01 ? 'text-gray-500 dark:text-gray-400' : 'text-red-600 dark:text-red-400' }} ml-2">
+                            {{-- Usa a variável calculada no controller --}}
+                           {{ $gig->currency }} {{ number_format($balanceOriginalCurrency, 2, ',', '.') }}
+                        </span>
                     </div>
-                    <div><strong class="text-gray-500 dark:text-gray-400">Comissão Booker:</strong>
-                        R$ {{ number_format($gig->booker_commission_value ?? 0, 2, ',', '.') }}
-                         @if($gig->booker_commission_type === 'percent') ({{ number_format($gig->booker_commission_rate ?? 0, 2, ',', '.') }}%) @endif
-                    </div>
-                     <div><strong class="text-gray-500 dark:text-gray-400">Comissão Líquida:</strong> R$ {{ number_format($gig->liquid_commission_value ?? 0, 2, ',', '.') }}</div>
 
-                     <div class="md:col-span-2"><hr class="my-2 border-gray-200 dark:border-gray-700"></div>
+                    <hr class="my-3 border-gray-200 dark:border-gray-700">
 
-                     <div><strong class="text-gray-500 dark:text-gray-400">Status Pgto Cliente:</strong> <x-status-badge :status="$gig->payment_status" type="payment" /></div>
-                     <div><strong class="text-gray-500 dark:text-gray-400">Status Pgto Artista:</strong> <x-status-badge :status="$gig->artist_payment_status" type="payment-artist" /></div>
-                     <div><strong class="text-gray-500 dark:text-gray-400">Status Pgto Booker:</strong> <x-status-badge :status="$gig->booker_payment_status" type="payment-booker" /></div>
-
+                     {{-- Status Gerais --}}
+                     <div class="flex flex-wrap gap-x-6 gap-y-2">
+                         <div><strong class="text-gray-500 dark:text-gray-400">Pgto Cliente:</strong> <x-status-badge :status="$gig->payment_status" type="payment" class="ml-1"/></div>
+                         <div><strong class="text-gray-500 dark:text-gray-400">Pgto Artista:</strong> <x-status-badge :status="$gig->artist_payment_status" type="payment-artist" class="ml-1"/></div>
+                         <div><strong class="text-gray-500 dark:text-gray-400">Pgto Booker:</strong> <x-status-badge :status="$gig->booker_payment_status" type="payment-booker" class="ml-1"/></div>
+                     </div>
                 </div>
             </div>
+            {{-- ============================================= --}}
+            {{-- FIM Card Financeiro (SIMPLIFICADO FINAL)     --}}
+            {{-- ============================================= --}}
 
              {{-- Card: Pagamentos Recebidos --}}
              @include('gigs._show_payments', ['payments' => $gig->payments])

@@ -152,20 +152,20 @@
     </div>
 
     {{-- Linha 3: Financeiro (Cachê) --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    {{-- Linha 3: Financeiro (Cachê) - SEM CAMPO CÂMBIO --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"> {{-- Ajustado para 3 colunas --}}
         {{-- Cachê Bruto --}}
         <div>
-            <label for="cache_value" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cachê Bruto <span class="text-red-500">*</span></label>
+            <label for="cache_value" class="block text-sm...">Cachê Bruto <span class="text-red-500">*</span></label>
             <input type="number" step="0.01" id="cache_value" name="cache_value" required
-                   x-model.number="baseCacheValue" {{-- Vincula ao Alpine --}}
-                   class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('cache_value') border-red-500 dark:border-red-600 @enderror">
+                   x-model.number="baseCacheValue"
+                   class="w-full text-sm rounded-md ...">
             @error('cache_value') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
         </div>
         {{-- Moeda --}}
         <div>
-            <label for="currency" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Moeda <span class="text-red-500">*</span></label>
-            <select id="currency" name="currency" required
-                    class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('currency') border-red-500 dark:border-red-600 @enderror">
+            <label for="currency" class="block text-sm...">Moeda <span class="text-red-500">*</span></label>
+            <select id="currency" name="currency" required class="w-full text-sm rounded-md ...">
                 <option value="BRL" @selected(old('currency', $gig->currency ?? 'BRL') == 'BRL')>BRL</option>
                 <option value="USD" @selected(old('currency', $gig->currency) == 'USD')>USD</option>
                 <option value="EUR" @selected(old('currency', $gig->currency) == 'EUR')>EUR</option>
@@ -173,21 +173,12 @@
             </select>
              @error('currency') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
         </div>
-        {{-- Câmbio --}}
-        <div>
-            <label for="exchange_rate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Câmbio (se não BRL)</label>
-            <input type="number" step="0.000001" id="exchange_rate" name="exchange_rate"
-                   value="{{ old('exchange_rate', $gig->exchange_rate) }}"
-                   placeholder="Ex: 5.251234"
-                   class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('exchange_rate') border-red-500 dark:border-red-600 @enderror">
-             @error('exchange_rate') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
-        </div>
         {{-- Despesas (BRL) --}}
          <div>
-            <label for="expenses_value_brl" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Despesas (BRL)</label>
+            <label for="expenses_value_brl" class="block text-sm...">Despesas (BRL)</label>
             <input type="number" step="0.01" id="expenses_value_brl" name="expenses_value_brl"
-                   x-model.number="expensesValue" {{-- Vincula ao Alpine --}}
-                   class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('expenses_value_brl') border-red-500 dark:border-red-600 @enderror">
+                   x-model.number="expensesValue"
+                   class="w-full text-sm rounded-md ...">
              @error('expenses_value_brl') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
         </div>
     </div>
