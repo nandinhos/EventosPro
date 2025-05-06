@@ -27,8 +27,8 @@ class Gig extends Model
         'location_event_details',
         'cache_value', // Valor original na moeda original
         'currency',
-        'exchange_rate',           // Mantido (migration adiciona/remove)
-        'cache_value_brl',         // Mantido (migration adiciona/remove)
+        //'exchange_rate',           // Mantido (migration adiciona/remove)
+        //'cache_value_brl',         // Mantido (migration adiciona/remove)
         'agency_commission_type',
         'agency_commission_rate',
         'agency_commission_value',
@@ -51,8 +51,8 @@ class Gig extends Model
         'contract_date' => 'date',
         'gig_date' => 'date',
         'cache_value' => 'decimal:2',
-        'cache_value_brl' => 'decimal:2',    // Mantido
-        'exchange_rate' => 'decimal:6',      // Mantido
+        //'cache_value_brl' => 'decimal:2',    // Mantido
+        //'exchange_rate' => 'decimal:6',      // Mantido
         'agency_commission_value' => 'decimal:2',
         'booker_commission_value' => 'decimal:2',
         'liquid_commission_value' => 'decimal:2',
