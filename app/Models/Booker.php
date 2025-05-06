@@ -4,31 +4,29 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany; // Importar HasMany
+use Illuminate\Database\Eloquent\Relations\HasMany; // <-- Importar HasMany
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Booker extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     * (Quais colunas podem ser preenchidas via Booker::create([...]))
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
-        // 'contact_email', // Descomente se você manteve estes campos na migration
-        // 'contact_phone', // Descomente se você manteve estes campos na migration
+        'default_commission_rate',
+    ];
+
+    protected $casts = [
+        'default_commission_rate' => 'decimal:2',
     ];
 
     /**
-     * Get the events associated with the booker.
-     * (Um Booker pode ter muitos Eventos)
+     * Get all gigs associated with the booker.
+     * (Um booker pode ter muitas Gigs)
+     * Usa 'booker_id' como chave estrangeira padrão na tabela 'gigs'
      */
-    public function events(): HasMany
+    public function gigs(): HasMany // <-- Adicionar este método
     {
-        // O Laravel assume booker_id como chave estrangeira em 'events'
-        return $this->hasMany(Event::class);
+        return $this->hasMany(Gig::class);
     }
 }

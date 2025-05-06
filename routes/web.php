@@ -43,4 +43,9 @@ Route::middleware('auth')->group(function () {
     //desconfirma um pagamento específico de uma gig
     Route::patch('gigs/{gig}/payments/{payment}/unconfirm', [PaymentController::class, 'unconfirm'])->name('gigs.payments.unconfirm');
     
+    // --- ROTAS PARA ARTISTS ---
+    Route::resource('artists', ArtistController::class); // Cria index, create, store, show, edit, update, destroy
+    
+    // --- ROTAS PARA BOOKERS ---
+    Route::resource('bookers', BookerController::class); // Cria index, create, store, show, edit, update, destroy
 });

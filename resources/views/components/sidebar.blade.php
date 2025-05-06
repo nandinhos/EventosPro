@@ -35,22 +35,25 @@
         <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Gigs/Datas</span> 
     </a>
 </li>
-            <li>
-                <a @click.prevent="currentPage = 'artistas'" href="#"
-                   :class="currentPage === 'artistas' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
-                   class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                    <i class="fas fa-music w-6 text-center"></i>
-                    <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Artistas</span>
-                </a>
-            </li>
-            <li>
-                <a @click.prevent="currentPage = 'bookers'" href="#"
-                   :class="currentPage === 'bookers' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
-                   class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                    <i class="fas fa-user-tie w-6 text-center"></i>
-                    <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Bookers</span>
-                </a>
-            </li>
+                  
+<li>
+    <a href="{{ route('artists.index') }}"
+       :class="window.location.pathname.startsWith('/artists') ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
+       class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+        <i class="fas fa-music w-6 text-center"></i>
+        <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Artistas</span>
+    </a>
+</li>
+
+    
+<li>
+    <a href="{{ route('bookers.index') }}"
+       :class="window.location.pathname.startsWith('/bookers') ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
+       class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+        <i class="fas fa-user-tie w-6 text-center"></i>
+        <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Bookers</span>
+    </a>
+</li>
             
             <li>
                 <a @click.prevent="currentPage = 'pagamentos'" href="#"
