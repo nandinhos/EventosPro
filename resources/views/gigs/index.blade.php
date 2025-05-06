@@ -91,22 +91,26 @@
 
     {{-- Tabela de Gigs (Estrutura Atualizada) --}}
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-                <thead class="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                        {{-- Colunas Atualizadas --}}
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Artista / Booker</th> {{-- Coluna Combinada --}}
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Local / Evento</th>
-                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Moeda</th> {{-- Nova Coluna --}}
-                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cachê</th> {{-- Valor Original --}}
-                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="Status Pagamento Contratante">Pgto Cliente</th>
-                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="Status Pagamento Artista">Pgto Artista</th>
-                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" title="Status Pagamento Comissão Booker">Pgto Booker</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ações</th>
-                    </tr>
-                </thead>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                    {{-- Usa o componente para colunas ordenáveis --}}
+                    {{-- Passa o nome da coluna do DB, o sortBy e sortDirection atuais --}}
+                    <x-sortable-th column="gig_date" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Data" defaultDirection="desc" />
+                    {{-- Coluna Artista/Booker - Não ordenável diretamente por enquanto --}}
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Artista / Booker</th>
+                    {{-- Coluna Local/Evento - Não ordenável diretamente --}}
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Local / Evento</th>
+                    <x-sortable-th column="currency" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Moeda" />
+                    <x-sortable-th column="cache_value" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Cachê" class="text-right" defaultDirection="desc" /> {{-- Adiciona classe text-right --}}
+                    <x-sortable-th column="payment_status" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Pgto Cliente" class="text-center" />
+                    <x-sortable-th column="artist_payment_status" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Pgto Artista" class="text-center" />
+                    <x-sortable-th column="booker_payment_status" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Pgto Booker" class="text-center" />
+                    {{-- Coluna Ações - Não ordenável --}}
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ações</th>
+                </tr>
+            </thead>
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     @forelse ($gigs as $gig)
                         {{-- Classe de Destaque para Vencido e para Moeda Estrangeira --}}

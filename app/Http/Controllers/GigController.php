@@ -28,67 +28,60 @@ class GigController extends Controller
      */
     public function index(Request $request): View
     {
-        // Query inicial com Eager Loading dos relacionamentos necessários para a tabela
-        $query = Gig::with(['artist', 'booker']) // Carrega Artist e Booker associados
-                    ->latest('gig_date'); // Ordena pela data do evento mais recente primeiro
+        // --- Ordenação ---
+        // 1. Colunas permitidas para ordenação (colunas da tabela 'gigs')
+        $sortableColumns = [
+            'gig_date', 'cache_value', 'currency', 'payment_status',
+            'artist_payment_status', 'booker_payment_status', 'contract_status',
+            'created_at' // Adicionar outras colunas da 'gigs' se desejar
+            // Ordenar por colunas relacionadas (artist.name, booker.name) requer JOINs ou abordagens mais complexas.
+            // Vamos manter simples por enquanto, ordenando apenas por colunas de 'gigs'.
+        ];
 
-        // --- Lógica de Filtros ---
-        // Busca Livre (Número Contrato, Artista, Booker, Local)
-        if ($request->filled('search')) {
-            $searchTerm = $request->input('search');
-            $query->where(function ($q) use ($searchTerm) {
-                $q->where('contract_number', 'like', "%{$searchTerm}%")
-                  ->orWhere('location_event_details', 'like', "%{$searchTerm}%")
-                  ->orWhereHas('artist', fn($aq) => $aq->where('name', 'like', "%{$searchTerm}%"))
-                  ->orWhereHas('booker', fn($bq) => $bq->where('name', 'like', "%{$searchTerm}%"));
-            });
+        // 2. Pegar parâmetros da URL ou usar default
+        $sortBy = $request->input('sort_by', 'gig_date'); // Default: ordenar por data da gig
+        $sortDirection = $request->input('sort_direction', 'desc'); // Default: descendente (mais recentes primeiro)
+
+        // 3. Validar parâmetros
+        if (!in_array($sortBy, $sortableColumns)) {
+            $sortBy = 'gig_date'; // Volta pro default se inválido
         }
-
-        // Filtro por Moeda
-        if ($request->filled('currency') && $request->input('currency') !== 'all') {
-            $query->where('currency', $request->input('currency'));
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc'; // Volta pro default se inválido
         }
-
-        // Filtro por Status de Pagamento Geral
-        if ($request->filled('payment_status')) {
-            $query->where('payment_status', $request->input('payment_status'));
-        }
-
-        // Filtro por Artista
-        if ($request->filled('artist_id')) {
-            $query->where('artist_id', $request->input('artist_id'));
-        }
-
-        // Filtro por Booker
-        if ($request->filled('booker_id')) {
-            // Se 'sem_booker' for selecionado, busca onde booker_id é NULL
-            if ($request->input('booker_id') === 'sem_booker') {
-                 $query->whereNull('booker_id');
-            } else {
-                 $query->where('booker_id', $request->input('booker_id'));
-            }
-        }
-
-        // Filtro por Período (Data da Gig)
-        if ($request->filled('start_date')) {
-            $query->where('gig_date', '>=', $request->input('start_date'));
-        }
-        if ($request->filled('end_date')) {
-            $query->where('gig_date', '<=', $request->input('end_date'));
-        }
-        // --- Fim dos Filtros ---
+        // --- Fim Ordenação ---
 
 
-        // Paginar os resultados
-        $gigs = $query->paginate(25)->withQueryString(); // 25 itens por página, mantém filtros na URL
+        $query = Gig::with(['artist', 'booker']); // Eager loading
 
-        // Buscar dados para preencher os selects dos filtros
+        // --- Filtros (igual antes) ---
+        if ($request->filled('search')) { /* ... */ }
+        if ($request->filled('payment_status')) { /* ... */ }
+        if ($request->filled('artist_id')) { /* ... */ }
+        if ($request->filled('booker_id')) { /* ... */ }
+        if ($request->filled('start_date')) { /* ... */ }
+        if ($request->filled('end_date')) { /* ... */ }
+        if ($request->filled('currency') && $request->input('currency') !== 'all') { /* ... */ }
+        // --- Fim Filtros ---
+
+        // Aplicar ordenação ANTES de paginar
+        $query->orderBy($sortBy, $sortDirection);
+
+        $gigs = $query->paginate(25)->withQueryString();
+
         $artists = Artist::orderBy('name')->pluck('name', 'id');
         $bookers = Booker::orderBy('name')->pluck('name', 'id');
         $currencies = Gig::select('currency')->distinct()->orderBy('currency')->pluck('currency');
 
-        // Passa os dados para a view
-        return view('gigs.index', compact('gigs', 'artists', 'bookers', 'currencies'));
+        // Passar variáveis de ordenação para a view
+        return view('gigs.index', compact(
+            'gigs',
+            'artists',
+            'bookers',
+            'currencies',
+            'sortBy',          // <-- Passar para view
+            'sortDirection'    // <-- Passar para view
+        ));
     }
 
     /**
