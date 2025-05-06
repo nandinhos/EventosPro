@@ -6,9 +6,9 @@
             <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Editar Gig #{{ $gig->id }}: {{ $gig->artist->name ?? 'N/A' }}</h2>
             <p class="text-sm text-gray-500 dark:text-gray-400">Atualize as informações da data/evento.</p>
         </div>
-        <a href="{{ route('gigs.index', $backUrlParams) }}" class="bg-gray-200 ...">
-    <i class="fas fa-arrow-left mr-1"></i> Voltar para Lista
-</a>
+        <a href="{{ route('gigs.index', $backUrlParams) }}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-md text-sm">
+            <i class="fas fa-arrow-left mr-1"></i> Voltar para Lista
+        </a>
     </div>
 
     {{-- Formulário --}}

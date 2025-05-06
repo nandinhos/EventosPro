@@ -13,7 +13,7 @@
     {{-- TODO: Adicionar Filtros/Busca aqui se necessário --}}
 
     {{-- Tabela --}}
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+    <div class="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                 <thead class="bg-gray-50 dark:bg-gray-800">
@@ -42,9 +42,9 @@
                             <td class="px-4 py-2 whitespace-nowrap">
                                 <div class="flex items-center space-x-3">
                                     {{-- Botões Ver, Editar, Excluir --}}
-                                    <a href="{{ route('artists.show', $artist) }}" title="Ver Detalhes" class="text-blue-500 ..."><i class="fas fa-eye fa-fw"></i></a>
-                                    <a href="{{ route('artists.edit', $artist) }}" title="Editar" class="text-primary-500 ..."><i class="fas fa-edit fa-fw"></i></a>
-                                    <form action="{{ route('artists.destroy', $artist) }}" method="POST" onsubmit="return confirm('Tem certeza?');" class="inline"> @csrf @method('DELETE') <button type="submit" title="Excluir" class="text-red-500 ..."><i class="fas fa-trash-alt fa-fw"></i></button></form>
+                                    <a href="{{ route('artists.show', $artist) }}" title="Ver Detalhes" class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"><i class="fas fa-eye fa-fw"></i></a>
+                                    <a href="{{ route('artists.edit', $artist) }}" title="Editar" class="text-primary-500 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"><i class="fas fa-edit fa-fw"></i></a>
+                                    <form action="{{ route('artists.destroy', $artist) }}" method="POST" onsubmit="return confirm('Tem certeza?');" class="inline"> @csrf @method('DELETE') <button type="submit" title="Excluir" class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"><i class="fas fa-trash-alt fa-fw"></i></button></form>
                                 </div>
                             </td>
                         </tr>

@@ -159,8 +159,8 @@
             {{-- Inclui os campos do formulário --}}
             @include('gigs._payment_form_fields', ['payment' => $payment, 'gig' => $gig, 'prefix' => 'edit_'.$payment->id])
             <div class="flex justify-end space-x-2">
-                <button type="button" @click="cancelEdit()" class="bg-gray-200 dark:bg-gray-600 ... text-xs">Cancelar</button>
-                <button type="submit" class="bg-primary-600 hover:bg-primary-700 ... text-xs">Salvar Edição</button> {{-- ESTE É O BOTÃO QUE DEVE APARECER --}}
+                <button type="button" @click="cancelEdit()" class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors duration-150 text-xs">Cancelar</button>
+                <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded-md transition-colors duration-150 text-xs">Salvar Edição</button>
             </div>
                                      {{-- Exibe erros de validação específicos deste form --}}
                                      @if($errors->paymentUpdate && session('error_payment_id') == $payment->id)
@@ -188,12 +188,12 @@
                                             <input type="number" step="0.01" min="0" name="received_value_actual" id="confirm_received_value_actual_{{ $payment->id }}" required
                                                    x-model="confirmFormData.received_value_actual"
                                                    x-ref="confirmValueInput{{ $payment->id }}"
-                                                   class="w-full text-sm rounded-md border-gray-300 ... @error('received_value_actual', 'paymentConfirm'.$payment->id) border-red-500 @enderror">
+                                                   class="w-full text-sm rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 focus:border-primary-500 focus:ring-primary-500 shadow-sm @error('received_value_actual', 'paymentConfirm'.$payment->id) border-red-500 @enderror">
                                              @error('received_value_actual', 'paymentConfirm'.$payment->id) <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                                         </div>
                                          <div>
                                             <label for="confirm_currency_{{ $payment->id }}" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Moeda Receb.*</label>
-                                            <select name="currency" id="confirm_currency_{{ $payment->id }}" required x-model="confirmFormData.currency" class="w-full text-sm rounded-md ... @error('currency', 'paymentConfirm'.$payment->id) border-red-500 @enderror">
+                                            <select name="currency" id="confirm_currency_{{ $payment->id }}" required x-model="confirmFormData.currency" class="w-full text-sm rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 focus:border-primary-500 focus:ring-primary-500 shadow-sm @error('currency', 'paymentConfirm'.$payment->id) border-red-500 @enderror">
                                                 <option value="BRL">BRL</option> <option value="USD">USD</option> <option value="EUR">EUR</option> <option value="GPB">GBP</option>
                                             </select>
                                              @error('currency', 'paymentConfirm'.$payment->id) <span class="text-xs text-red-500">{{ $message }}</span> @enderror
@@ -202,7 +202,7 @@
                                             <label for="confirm_received_date_actual_{{ $payment->id }}" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Data Real Receb.*</label>
                                             <input type="date" name="received_date_actual" id="confirm_received_date_actual_{{ $payment->id }}" required
                                                    x-model="confirmFormData.received_date_actual"
-                                                   class="w-full text-sm rounded-md ... @error('received_date_actual', 'paymentConfirm'.$payment->id) border-red-500 @enderror">
+                                                   class="w-full text-sm rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 focus:border-primary-500 focus:ring-primary-500 shadow-sm @error('received_date_actual', 'paymentConfirm'.$payment->id) border-red-500 @enderror">
                                              @error('received_date_actual', 'paymentConfirm'.$payment->id) <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                                         </div>
                                     </div>
@@ -210,7 +210,7 @@
                                         <label for="confirm_exchange_rate_{{ $payment->id }}" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Taxa Câmbio (se moeda != BRL)</label>
                                         <input type="number" step="0.000001" name="exchange_rate" id="confirm_exchange_rate_{{ $payment->id }}"
                                                x-model="confirmFormData.exchange_rate" placeholder="Taxa do dia do recebimento"
-                                               class="w-full text-sm rounded-md ... @error('exchange_rate', 'paymentConfirm'.$payment->id) border-red-500 @enderror">
+                                               class="w-full text-sm rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 focus:border-primary-500 focus:ring-primary-500 shadow-sm @error('exchange_rate', 'paymentConfirm'.$payment->id) border-red-500 @enderror">
                                           @error('exchange_rate', 'paymentConfirm'.$payment->id) <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                                      </div>
                                     {{-- Notas da Confirmação (Opcional) --}}
@@ -219,7 +219,7 @@
                                         <textarea name="confirmation_notes" ...></textarea>
                                     </div> --}}
                                     <div class="flex justify-end space-x-2 pt-2">
-                                        <button type="button" @click="cancelEdit()" class="bg-gray-200 dark:bg-gray-600 ... text-xs">Cancelar</button>
+                                        <button type="button" @click="cancelEdit()" class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors duration-150 text-xs">Cancelar</button>
                                         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md text-xs">Confirmar Recebimento</button>
                                     </div>
                                      {{-- Exibe erros de validação específicos deste form --}}
@@ -259,7 +259,7 @@
                     ])
                     {{-- Botões --}}
                     <div class="flex justify-end space-x-2">
-                        <button type="button" @click="cancelEdit()" class="bg-gray-200 dark:bg-gray-600 ... text-xs">Cancelar</button>
+<button type="button" @click="cancelEdit()" class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors duration-150 text-xs">Cancelar</button>
                         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
                             <i class="fas fa-plus mr-1"></i> Salvar Parcela
                         </button>
