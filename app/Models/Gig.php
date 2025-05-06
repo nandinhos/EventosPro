@@ -7,20 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\MorphToMany; // Para Tags
-// use Spatie\Activitylog\Traits\LogsActivity; // Para auditoria com pacote
-// use Spatie\Activitylog\LogOptions; // Para auditoria com pacote
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Gig extends Model
 {
-    use HasFactory, SoftDeletes; // Adiciona SoftDeletes
-    // use HasFactory, SoftDeletes, LogsActivity; // Use esta linha se instalar o pacote de activity log
+    use HasFactory, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
+     * REMOVIDO: expenses_value_brl
      */
     protected $fillable = [
         'artist_id',
@@ -29,11 +25,10 @@ class Gig extends Model
         'contract_date',
         'gig_date',
         'location_event_details',
-        'cache_value', // <-- Mudou de total_value
+        'cache_value', // Valor original na moeda original
         'currency',
-        // 'exchange_rate', // Removido
-        // 'cache_value_brl', // Removido
-        'expenses_value_brl',
+        'exchange_rate',           // Mantido (migration adiciona/remove)
+        'cache_value_brl',         // Mantido (migration adiciona/remove)
         'agency_commission_type',
         'agency_commission_rate',
         'agency_commission_value',
@@ -46,21 +41,18 @@ class Gig extends Model
         'booker_payment_status',
         'contract_status',
         'notes',
-        // 'file_path' // Removido conforme migration final
     ];
 
     /**
      * The attributes that should be cast.
-     *
-     * @var array<string, string>
+     * REMOVIDO: expenses_value_brl
      */
     protected $casts = [
         'contract_date' => 'date',
         'gig_date' => 'date',
         'cache_value' => 'decimal:2',
-        //'cache_value_brl' => 'decimal:2',
-        'expenses_value_brl' => 'decimal:2',
-        //'exchange_rate' => 'decimal:6',
+        'cache_value_brl' => 'decimal:2',    // Mantido
+        'exchange_rate' => 'decimal:6',      // Mantido
         'agency_commission_value' => 'decimal:2',
         'booker_commission_value' => 'decimal:2',
         'liquid_commission_value' => 'decimal:2',
@@ -68,80 +60,44 @@ class Gig extends Model
         'booker_commission_rate' => 'decimal:2',
     ];
 
+    // --- Relacionamentos ---
+    public function artist(): BelongsTo { return $this->belongsTo(Artist::class); }
+    public function booker(): BelongsTo { return $this->belongsTo(Booker::class); }
+    public function payments(): HasMany { return $this->hasMany(Payment::class); }
+    public function settlement(): HasOne { return $this->hasOne(Settlement::class); }
+    public function tags(): MorphToMany { return $this->morphToMany(Tag::class, 'taggable'); }
+
     /**
-     * Get the artist associated with the gig.
+     * Get all the costs associated with this gig.
+     * NOVO RELACIONAMENTO
      */
-    public function artist(): BelongsTo
+    public function costs(): HasMany
     {
-        return $this->belongsTo(Artist::class);
+        return $this->hasMany(GigCost::class);
+    }
+
+    // --- Accessors (Atributos Calculados) ---
+
+    /**
+     * Calcula o total das despesas confirmadas em BRL para esta Gig.
+     * Uso: $gig->confirmed_expenses_total_brl
+     */
+    public function getConfirmedExpensesTotalBrlAttribute(): float
+    {
+        // Soma o 'value' de todos os GigCost relacionados onde 'is_confirmed' é true
+        // TODO: Adicionar conversão se gig_costs.currency != 'BRL'
+        return (float) $this->costs()->where('is_confirmed', true)->sum('value');
     }
 
     /**
-     * Get the booker associated with the gig (can be null).
+     * Calcula a base de comissão (Cachê BRL - Despesas Confirmadas BRL).
+     * Uso: $gig->commission_base_brl
      */
-    public function booker(): BelongsTo
+    public function getCommissionBaseBrlAttribute(): float
     {
-        // Como booker_id pode ser nulo, o relacionamento pode retornar null
-        return $this->belongsTo(Booker::class);
+        $base = $this->cache_value_brl ?? 0;
+        // Usa o accessor definido acima para pegar o total das despesas confirmadas
+        $expenses = $this->confirmed_expenses_total_brl;
+        return (float) max(0, $base - $expenses); // Garante que não seja negativo e retorna float
     }
-
-    /**
-     * Get all payments received for this gig.
-     */
-    public function payments(): HasMany
-    {
-        return $this->hasMany(Payment::class);
-    }
-
-    /**
-     * Get the final settlement record for this gig.
-     */
-    public function settlement(): HasOne // Uma gig tem um acerto final
-    {
-        return $this->hasOne(Settlement::class);
-    }
-
-    /**
-     * Get all tags associated with the gig.
-     */
-    public function tags(): MorphToMany
-    {
-        return $this->morphToMany(Tag::class, 'taggable');
-    }
-
-    /**
-      * Opcional: Configuração para spatie/laravel-activitylog
-      */
-    // public function getActivitylogOptions(): LogOptions
-    // {
-    //     return LogOptions::defaults()
-    //         ->logOnly([
-    //              'artist_id', 'booker_id', 'gig_date', 'location_event_details', 'cache_value_brl',
-    //              'payment_status', 'artist_payment_status', 'booker_payment_status'
-    //              // Adicione outros campos importantes para logar
-    //         ])
-    //         ->logOnlyDirty()
-    //         ->dontSubmitEmptyLogs();
-    // }
-
-    // --- Accessors & Mutators (Opcionais, mas úteis) ---
-
-    /**
-     * Calcula a comissão líquida dinamicamente se não estiver salva.
-     * Exemplo: $gig->liquid_commission
-     */
-    // public function getLiquidCommissionAttribute(): ?float
-    // {
-    //     // Retorna o valor salvo se existir, senão calcula
-    //     if (isset($this->attributes['liquid_commission_value'])) {
-    //         return (float) $this->attributes['liquid_commission_value'];
-    //     }
-    //     // Calcula: Comissão da Agência - Comissão do Booker
-    //     // Precisaria de lógica para calcular agency_commission_value e booker_commission_value se não estiverem salvos
-    //     // Esta lógica pode ficar mais complexa, talvez melhor em um Service.
-    //     $agencyCommission = $this->agency_commission_value ?? 0; // Precisa calcular se for percentual
-    //     $bookerCommission = $this->booker_commission_value ?? 0; // Precisa calcular se for percentual
-    //     return $agencyCommission - $bookerCommission;
-    // }
-
 }

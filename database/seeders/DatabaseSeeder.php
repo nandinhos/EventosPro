@@ -1,4 +1,5 @@
 <?php
+
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -6,8 +7,9 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Database\Seeders\ArtistSeeder;
 use Database\Seeders\BookerSeeder;
-use Database\Seeders\TagSeeder; // Mantém se quiser tags
-use Database\Seeders\GigSeeder; // << NOVO SEEDER PRINCIPAL
+use Database\Seeders\TagSeeder;
+use Database\Seeders\CostCenterSeeder; // <-- Importar
+use Database\Seeders\GigSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -23,13 +25,13 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Nando DEV', 'password' => Hash::make('123456789')]
         );
 
-        // Chamar seeders na ordem correta
         $this->call([
-            ArtistSeeder::class,  // Garante que artistas existem
-            BookerSeeder::class,  // Garante que bookers existem
-            TagSeeder::class,     // Cria tags
-            GigSeeder::class,     // << IMPORTA DADOS REAIS de Gigs e Payments
-            // SettlementSeeder::class, // Pode rodar depois se precisar criar acertos fake
+            ArtistSeeder::class,
+            BookerSeeder::class,
+            TagSeeder::class,
+            CostCenterSeeder::class, // <-- Chamar ANTES de GigSeeder
+            GigSeeder::class,        // <-- Agora importa Gigs e GigCosts
+            // SettlementSeeder::class,
         ]);
     }
 }

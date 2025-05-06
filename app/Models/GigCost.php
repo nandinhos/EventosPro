@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes; // Usar SoftDeletes aqui
+
+class GigCost extends Model
+{
+    use HasFactory, SoftDeletes; // Habilitar SoftDeletes
+
+    protected $fillable = [
+        'gig_id',
+        'cost_center_id',
+        'description',
+        'value',
+        'currency',
+        'expense_date',
+        'is_confirmed',
+        'confirmed_by',
+        'confirmed_at',
+        'notes',
+    ];
+
+    protected $casts = [
+        'value' => 'decimal:2',
+        'expense_date' => 'date',
+        'is_confirmed' => 'boolean', // Cast para booleano
+        'confirmed_at' => 'datetime',
+    ];
+
+    /**
+     * Get the Gig that this cost belongs to.
+     */
+    public function gig(): BelongsTo
+    {
+        return $this->belongsTo(Gig::class);
+    }
+
+    /**
+     * Get the Cost Center that this cost belongs to.
+     */
+    public function costCenter(): BelongsTo
+    {
+        return $this->belongsTo(CostCenter::class);
+    }
+
+    /**
+     * Get the User who confirmed this cost.
+     */
+    public function confirmer(): BelongsTo // Nome diferente para evitar conflito com 'user' se existir
+    {
+        // Especifica a chave estrangeira 'confirmed_by'
+        return $this->belongsTo(User::class, 'confirmed_by');
+    }
+}
