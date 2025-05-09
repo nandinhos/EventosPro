@@ -125,8 +125,11 @@
             {{-- FIM Card Financeiro (SIMPLIFICADO FINAL)     --}}
             {{-- ============================================= --}}
 
-             {{-- Card: Pagamentos Recebidos --}}
-             @include('gigs._show_payments', ['payments' => $gig->payments])
+            {{-- Card: Pagamentos Recebidos --}}
+             @include('gigs._show_payments', ['payments' => $gig->payments]) 
+            
+            {{-- Card: Despesas --}}
+             @include('gigs._show_costs', ['costs' => $gig->costs])
 
              {{-- Card: Acerto Final --}}
              @include('gigs._show_settlement', ['settlement' => $gig->settlement, 'gig' => $gig])

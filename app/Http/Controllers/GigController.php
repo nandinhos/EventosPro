@@ -172,6 +172,10 @@ class GigController extends Controller
             'artist', 'booker',
             'payments' => fn($q)=>$q->orderBy('due_date', 'asc'),
             'settlement', 'tags' => fn($q)=>$q->orderBy('name','asc'),
+            'settlement',
+            'tags',
+            'costs.costCenter', // <-- Carrega os custos e seus centros de custo
+            'costs.confirmer'   // <-- Carrega quem confirmou o custo
         ]);
 
         // --- Calcular Resumo Financeiro ATUALIZADO v4 ---
