@@ -186,37 +186,48 @@ class PaymentController extends Controller
     // Usa o novo Form Request para validação
     public function confirm(ConfirmPaymentRequest $request, Gig $gig, Payment $payment): RedirectResponse
     {
-         // Validação feita pelo ConfirmPaymentRequest
          $validated = $request->validated();
 
-         if ($payment->gig_id !== $gig->id || $payment->confirmed_at) { // Verifica se pertence e não está confirmado
-             return back()->with('error', 'Este pagamento não pode ser confirmado.');
+         if ($payment->gig_id !== $gig->id || $payment->confirmed_at) {
+             return back()->with('error', 'Este pagamento não pode ser confirmado ou já está confirmado.');
          }
 
          DB::beginTransaction();
          try {
-             // Atualiza o pagamento com os dados confirmados
-             $payment->update([
+             $updateData = [
                  'received_date_actual' => $validated['received_date_actual'],
                  'received_value_actual' => $validated['received_value_actual'],
-                 'currency' => $validated['currency'],
-                 'exchange_rate' => $validated['exchange_rate'],
+                 'currency' => $validated['currency_received_actual'], // Salva a moeda do recebimento
+                 'exchange_rate' => $validated['exchange_rate_received_actual'], // Salva o câmbio do recebimento
                  'confirmed_at' => now(),
                  'confirmed_by' => auth()->id(),
-                 // Adiciona nota de confirmação se houver campo no form
-                 // 'notes' => $payment->notes . "\nConfirmado em " . now()->format('d/m/Y') . ". " . ($validated['confirmation_notes'] ?? ''),
-             ]);
+                 //'notes' => $payment->notes . "\n" . ($validated['notes'] ?? ''), // Concatena notas
+                 'notes' => $request->filled('notes') ? $validated['notes'] : $payment->notes,
+             ];
+             // Remove exchange_rate se a moeda for BRL (o prepareForValidation já deveria ter feito isso)
+             if(strtoupper($updateData['currency']) === 'BRL') {
+                 $updateData['exchange_rate'] = null;
+             }
+
+
+             $payment->update($updateData);
              Log::info("Pagamento ID: {$payment->id} confirmado por User ID: " . auth()->id());
 
-             // Dispara evento para recalcular status da Gig
-             event(new PaymentSaved($payment));
-             Log::info("Evento disparado após confirmação do pagamento.");
+             event(new PaymentSaved($payment)); // Dispara evento para recalcular status da Gig
+             Log::info("Evento PaymentSaved disparado após confirmação.");
 
              DB::commit();
              return redirect()->route('gigs.show', $gig)->with('success', 'Pagamento confirmado!');
 
-         } catch (\Exception $e) {
-             // ... (Rollback e Log de erro) ...
+         } catch (\Illuminate\Validation\ValidationException $e) { // Captura erro de validação explicitamente
+             DB::rollBack();
+             Log::error('Erro de Validação ao confirmar pagamento: ', $e->errors());
+             // Redireciona com o error bag específico e o ID do pagamento que deu erro
+             return back()->withErrors($e->validator, 'paymentConfirm'.$payment->id)->withInput()->with('error_payment_id', $payment->id);
+         }
+         catch (\Exception $e) {
+             DB::rollBack();
+             Log::error('Erro CRÍTICO ao confirmar pagamento: ' . $e->getMessage(), ['exception' => $e]);
              return back()->withInput()->with('error', 'Erro ao confirmar o pagamento.');
          }
     }

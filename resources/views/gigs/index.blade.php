@@ -11,7 +11,7 @@
         </a>
     </div>
 
-    {{-- Seção de Filtros (Expandida) --}}
+    {{-- Seção de Filtros (Conforme seu código) --}}
     <div class="mb-4 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md">
         <form action="{{ route('gigs.index') }}" method="GET">
             {{-- Linha 1 de Filtros --}}
@@ -26,7 +26,7 @@
                     <label for="artist_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Artista</label>
                     <select name="artist_id" id="artist_id" class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
                         <option value="">Todos</option>
-                        @foreach($artists as $id => $name)
+                        @foreach($artists as $id => $name) {{-- Espera $artists do controller --}}
                             <option value="{{ $id }}" {{ request('artist_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
                         @endforeach
                     </select>
@@ -37,7 +37,7 @@
                     <select name="booker_id" id="booker_id" class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
                         <option value="">Todos</option>
                         <option value="sem_booker" {{ request('booker_id') == 'sem_booker' ? 'selected' : '' }}>(Sem Booker / Agência)</option>
-                        @foreach($bookers as $id => $name)
+                        @foreach($bookers as $id => $name) {{-- Espera $bookers do controller --}}
                             <option value="{{ $id }}" {{ request('booker_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
                         @endforeach
                     </select>
@@ -56,9 +56,9 @@
                  <div>
                     <label for="currency" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Moeda</label>
                     <select name="currency" id="currency" class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="all">Todas</option> {{-- Mudei para 'all' para clareza --}}
-                        @foreach($currencies as $currency)
-                            <option value="{{ $currency }}" {{ request('currency') == $currency ? 'selected' : '' }}>{{ $currency }}</option>
+                        <option value="all">Todas</option>
+                        @foreach($currencies as $currency_code) {{-- Espera $currencies do controller --}}
+                            <option value="{{ $currency_code }}" {{ request('currency') == $currency_code ? 'selected' : '' }}>{{ $currency_code }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -76,7 +76,7 @@
                     <input type="date" name="end_date" id="end_date" value="{{ request('end_date') }}" class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
                 </div>
                  {{-- Espaçadores e Botões --}}
-                 <div class="lg:col-span-2"></div> {{-- Ocupa espaço --}}
+                 <div class="lg:col-span-2"></div>
                 <div class="flex items-end justify-end space-x-2">
                      <a href="{{ route('gigs.index') }}" class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 px-3 py-2 rounded-md text-sm">
                         Limpar

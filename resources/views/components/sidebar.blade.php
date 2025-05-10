@@ -1,8 +1,8 @@
 {{-- resources/views/components/sidebar.blade.php --}}
 
-{{-- A sidebar usa as variáveis sidebarOpen e currentPage do x-data pai (no body) --}}
-<aside :class="sidebarOpen ? 'w-64' : 'w-20'"
-       class="bg-white dark:bg-gray-800 transition-all duration-300 shadow-lg flex flex-col justify-between"> {{-- Adicionado flex para empurrar user info para baixo --}}
+z{{-- A sidebar usa as variáveis sidebarOpen e currentPage do x-data pai (no body) --}}
+<aside :class="sidebarOpen ? 'w-64 translate-x-0' : 'w-20 translate-x-0'"
+       class="bg-white dark:bg-gray-800 transform transition-transform duration-300 shadow-lg flex flex-col justify-between origin-left"> {{-- Adicionado flex para empurrar user info para baixo --}}
 
     <!-- Header da Sidebar -->
     <div class="h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0"> {{-- flex-shrink-0 para não diminuir --}}
@@ -19,9 +19,7 @@
             <li>
                 {{-- Note que estamos usando href="#" e preventDefault no click para a navegação via Alpine.js --}}
                 {{-- Isso mantém o comportamento do seu esboço original de alternar o conteúdo na mesma página --}}
-                <a @click.prevent="currentPage = 'dashboard'" href="#"
-                   :class="currentPage === 'dashboard' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
-                   class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+                <a href="#" class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 text-gray-600 dark:text-gray-300">
                     <i class="fas fa-tachometer-alt w-6 text-center"></i>
                     <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Dashboard</span>
                 </a>
@@ -56,33 +54,25 @@
 </li>
             
             <li>
-                <a @click.prevent="currentPage = 'pagamentos'" href="#"
-                   :class="currentPage === 'pagamentos' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
-                   class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+                <a href="#" class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 text-gray-600 dark:text-gray-300">
                     <i class="fas fa-money-bill-wave w-6 text-center"></i>
                     <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Pagamentos</span>
                 </a>
             </li>
             <li>
-                <a @click.prevent="currentPage = 'relatorios'" href="#"
-                   :class="currentPage === 'relatorios' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
-                   class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+                <a href="#" class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 text-gray-600 dark:text-gray-300">
                     <i class="fas fa-chart-bar w-6 text-center"></i>
                     <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Relatórios</span>
                 </a>
             </li>
             <li>
-                <a @click.prevent="currentPage = 'projecoes'" href="#"
-                   :class="currentPage === 'projecoes' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
-                   class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+                <a href="#" class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 text-gray-600 dark:text-gray-300">
                     <i class="fas fa-chart-line w-6 text-center"></i>
                     <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Projeções</span>
                 </a>
             </li>
             <li>
-                <a @click.prevent="currentPage = 'usuarios'" href="#"
-                   :class="currentPage === 'usuarios' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
-                   class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+                <a href="#" class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 text-gray-600 dark:text-gray-300">
                     <i class="fas fa-users w-6 text-center"></i>
                     <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Usuários</span>
                 </a>

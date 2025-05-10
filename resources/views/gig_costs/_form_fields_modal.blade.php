@@ -37,21 +37,7 @@
     </div>
 </div>
 
-{{-- Pagador --}}
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    <div>
-        <label for="modal_payer_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pagador <span class="text-red-500">*</span></label>
-        <select id="modal_payer_type" x-model="costFormData.payer_type" required
-                class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
-            <option value="agencia">Agência</option> <option value="artista">Artista</option> <option value="cliente">Cliente</option> <option value="outro">Outro</option>
-        </select>
-    </div>
-    <div x-show="costFormData.payer_type === 'outro'">
-        <label for="modal_payer_details" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Detalhes do Pagador (se "Outro")</label>
-        <input type="text" id="modal_payer_details" x-model="costFormData.payer_details" :required="costFormData.payer_type === 'outro'"
-               class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
-    </div>
-</div>
+
 
 {{-- Data da Despesa --}}
 <div>

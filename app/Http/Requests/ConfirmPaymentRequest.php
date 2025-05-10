@@ -1,52 +1,46 @@
 <?php
-
 namespace App\Http\Requests;
-
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class ConfirmPaymentRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        // TODO: Policy - verificar se user pode confirmar pagamento desta gig/payment
-        return true;
-    }
+    public function authorize(): bool { return true; }
 
     public function rules(): array
     {
-        // Valida os campos que podem ser ajustados na confirmação
         return [
-            'received_date_actual' => ['required', 'date'],
-            'received_value_actual' => ['required', 'numeric', 'min:0'], // Permitir 0?
-            'currency' => ['required', 'string', 'max:10'], // Moeda REAL recebida
-            'exchange_rate' => [
+            'received_date_actual'        => ['required', 'date', 'before_or_equal:today'],
+            'received_value_actual'       => ['required', 'numeric', 'min:0.01'],
+            'currency_received_actual'    => ['required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])], // Nome do campo do form
+            'exchange_rate_received_actual' => [ // Nome do campo do form
                 'nullable',
-                Rule::requiredIf(fn() => strtoupper($this->input('currency', 'BRL')) !== 'BRL'),
-                'numeric',
-                'min:0'
+                Rule::requiredIf(fn() => strtoupper($this->input('currency_received_actual', 'BRL')) !== 'BRL'),
+                'numeric', 'min:0'
             ],
-             // 'confirmation_notes' => ['nullable', 'string'] // Se quiser um campo de nota específico para confirmação
+            'notes'                       => ['nullable', 'string', 'max:65535'],
         ];
     }
 
-     public function messages(): array
-     {
-         return [
-            'received_date_actual.required' => 'Informe a data real do recebimento.',
-            'received_value_actual.required' => 'Informe o valor real recebido.',
-            // ... outras mensagens ...
-         ];
-     }
+    public function messages(): array
+    {
+        return [
+            'received_date_actual.required' => 'A data do recebimento é obrigatória.',
+            'received_date_actual.before_or_equal' => 'A data do recebimento não pode ser futura.',
+            'received_value_actual.required' => 'O valor recebido é obrigatório.',
+            'currency_received_actual.required' => 'A moeda recebida é obrigatória.',
+            'exchange_rate_received_actual.required_if' => 'O câmbio é obrigatório se a moeda recebida não for BRL.',
+        ];
+    }
 
-      // Prepare for validation (ex: default date, handle currency/rate)
-      protected function prepareForValidation(): void
-      {
-         if (!$this->filled('received_date_actual')) {
-             $this->merge(['received_date_actual' => today()->format('Y-m-d')]);
-         }
-         if (strtoupper($this->input('currency', 'BRL')) === 'BRL') {
-            $this->merge(['exchange_rate' => null]);
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        // Garante que exchange_rate seja null se moeda for BRL
+        if (strtoupper($this->input('currency_received_actual', 'BRL')) === 'BRL') {
+            $this->merge(['exchange_rate_received_actual' => null]);
         }
-     }
+    }
 }

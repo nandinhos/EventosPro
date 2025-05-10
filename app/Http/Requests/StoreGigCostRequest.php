@@ -29,7 +29,7 @@ class StoreGigCostRequest extends FormRequest
             'description'    => ['nullable', 'string', 'max:255'], // Alterado para nullable conforme form
             'value'          => ['required', 'numeric', 'min:0.01'],
             'currency'       => ['required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])],
-            'expense_date'   => ['nullable', 'date', 'before_or_equal:today'], // Despesa não pode ser no futuro
+            'expense_date'   => ['nullable', 'date'], // removido temporariamente , 'before_or_equal:today'], // Despesa não pode ser no futuro
             'payer_type'     => ['required', 'string', Rule::in(['agencia', 'artista', 'cliente', 'outro'])],
             'payer_details'  => ['nullable', 'string', 'max:255', Rule::requiredIf($this->payer_type === 'outro')],
             'notes'          => ['nullable', 'string', 'max:65535'],

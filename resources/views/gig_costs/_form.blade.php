@@ -53,19 +53,7 @@
         </div>
     </div>
 
-    {{-- Pagador --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-            <label for="payer_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pagador <span class="text-red-500">*</span></label>
-            <select id="payer_type" name="payer_type" required x-data="{ payerTypeField: '{{ old('payer_type', $cost->payer_type ?? 'agencia') }}' }" x-model="payerTypeField"
-                    class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('payer_type') border-red-500 dark:border-red-600 @enderror">
-                <option value="agencia">Agência</option>
-                <option value="artista">Artista</option>
-                <option value="cliente">Cliente</option>
-                <option value="outro">Outro</option>
-            </select>
-            @error('payer_type') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
-        </div>
+    
         <div x-show="payerTypeField === 'outro'">
             <label for="payer_details" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Detalhes do Pagador (se "Outro") <span x-show="payerTypeField === 'outro'" class="text-red-500">*</span></label>
             <input type="text" id="payer_details" name="payer_details" value="{{ old('payer_details', $cost->payer_details) }}"

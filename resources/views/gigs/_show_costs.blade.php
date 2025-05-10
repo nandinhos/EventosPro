@@ -99,6 +99,8 @@
             delete dataToSend.id;
         }
 
+         console.log('Enviando para o backend (submitCostForm):', dataToSend); // << ADICIONE ESTE LOG
+
         try {
             const response = await fetch(url, {
                 method: method,
@@ -238,7 +240,7 @@ class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mt-6">
                             <tr>
                                 <th class="pb-2 text-left font-medium uppercase">Descrição</th>
                                 <th class="pb-2 text-right font-medium uppercase">Valor</th>
-                                <th class="pb-2 text-left font-medium uppercase">Pagador</th>
+                                
                                 <th class="pb-2 text-center font-medium uppercase">Status</th>
                                 <th class="pb-2 text-center font-medium uppercase">Ações</th>
                             </tr>
@@ -248,10 +250,7 @@ class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mt-6">
         <tr :class="!cost.is_confirmed ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''">
             <td class="py-2 px-1 whitespace-normal" x-text="cost.description || '-'"></td>
             <td class="py-2 px-1 whitespace-nowrap text-right" x-text="`${cost.currency} ${parseFloat(cost.value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`"></td>
-            <td class="py-2 px-1 whitespace-nowrap">
-                <span x-text="cost.payer_type ? (cost.payer_type.charAt(0).toUpperCase() + cost.payer_type.slice(1)) : 'N/A'"></span>
-                <span x-show="cost.payer_type === 'outro' && cost.payer_details" x-text="` (${cost.payer_details})`"></span>
-            </td>
+            
             <td class="py-2 px-1 whitespace-nowrap text-center">
     <span x-text="cost.is_confirmed ? 'Confirmado' : 'Pendente'"
           :class="{
