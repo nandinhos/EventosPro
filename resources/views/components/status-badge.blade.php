@@ -43,6 +43,17 @@
             }
             break;
 
+            case 'payment-internal':
+      switch ($processedStatus) { // $processedStatus é strtolower($status)
+        case 'pago':
+            $colorClasses = 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'; break;
+        case 'pendente': // <-- JÁ TEMOS ESTE!
+             $colorClasses = 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'; break;
+        default:
+             $colorClasses = 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-400'; break;
+    }
+    break;    
+
         // Se precisar de distinção visual para pagamento interno e pagamento de cliente, podemos separar.
         // Por enquanto, 'payment-internal' usará a mesma lógica de 'payment' se os status forem os mesmos.
         case 'payment-artist':

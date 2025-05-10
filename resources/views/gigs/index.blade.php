@@ -12,82 +12,114 @@
     </div>
 
     {{-- Seção de Filtros (Expandida) --}}
-    <div class="mb-4 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md">
-        <form action="{{ route('gigs.index') }}" method="GET">
-            {{-- Linha 1 de Filtros --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
-                {{-- Busca Livre --}}
-                <div>
-                    <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Busca Livre</label>
-                    <input type="text" name="search" id="search" value="{{ request('search') }}" placeholder="Nº Contrato, Artista, Local..." class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                </div>
-                {{-- Filtro Artista --}}
-                <div>
-                    <label for="artist_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Artista</label>
-                    <select name="artist_id" id="artist_id" class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="">Todos</option>
-                        @foreach($artists as $id => $name)
-                            <option value="{{ $id }}" {{ request('artist_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                {{-- Filtro Booker --}}
-                <div>
-                    <label for="booker_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Booker</label>
-                    <select name="booker_id" id="booker_id" class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="">Todos</option>
-                        <option value="sem_booker" {{ request('booker_id') == 'sem_booker' ? 'selected' : '' }}>(Sem Booker / Agência)</option>
-                        @foreach($bookers as $id => $name)
-                            <option value="{{ $id }}" {{ request('booker_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                 {{-- Filtro Status Pagamento --}}
-                 <div>
-                    <label for="payment_status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status Pagamento</label>
-                    <select name="payment_status" id="payment_status" class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="">Todos</option>
-                        <option value="pago" {{ request('payment_status') == 'pago' ? 'selected' : '' }}>Pago</option>
-                        <option value="vencido" {{ request('payment_status') == 'vencido' ? 'selected' : '' }}>Vencido</option>
-                        <option value="a_vencer" {{ request('payment_status') == 'a_vencer' ? 'selected' : '' }}>A Vencer</option>
-                    </select>
-                </div>
-                 {{-- Filtro Moeda --}}
-                 <div>
-                    <label for="currency" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Moeda</label>
-                    <select name="currency" id="currency" class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="all">Todas</option> {{-- Mudei para 'all' para clareza --}}
-                        @foreach($currencies as $currency)
-                            <option value="{{ $currency }}" {{ request('currency') == $currency ? 'selected' : '' }}>{{ $currency }}</option>
-                        @endforeach
-                    </select>
-                </div>
+<div class="mb-4 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md">
+    <form action="{{ route('gigs.index') }}" method="GET">
+        {{-- Linha de Filtros --}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
+            {{-- 1. Busca Livre --}}
+            <x-form.input 
+                id="search" 
+                label="Busca Livre" 
+                placeholder="Nº Contrato, Artista, Local..." 
+                :value="request('search')" 
+            />
+
+            {{-- 2. Artista --}}
+            <x-form.select 
+                id="artist_id" 
+                label="Artista" 
+                :options="$artists" 
+                :selected="request('artist_id')" 
+                empty="Todos"
+            />
+
+            {{-- 3. Booker --}}
+            <x-form.select 
+                id="booker_id" 
+                label="Booker" 
+                :options="$bookers" 
+                :selected="request('booker_id')" 
+                empty="Todos"
+            >
+                <option value="sem_booker" {{ request('booker_id') == 'sem_booker' ? 'selected' : '' }}>(Sem Booker / Agência)</option>
+            </x-form.select>
+
+            {{-- 4. Moeda --}}
+            <div>
+                <label for="currency" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Moeda</label>
+                <select name="currency" id="currency" class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                    <option value="all">Todas</option>
+                    @foreach($currencies as $currency)
+                        <option value="{{ $currency }}" {{ request('currency') == $currency ? 'selected' : '' }}>{{ $currency }}</option>
+                    @endforeach
+                </select>
             </div>
-             {{-- Linha 2 de Filtros --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
-                 {{-- Filtro Data Início --}}
-                 <div>
-                    <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data Evento (De)</label>
-                    <input type="date" name="start_date" id="start_date" value="{{ request('start_date') }}" class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                </div>
-                 {{-- Filtro Data Fim --}}
-                 <div>
-                    <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data Evento (Até)</label>
-                    <input type="date" name="end_date" id="end_date" value="{{ request('end_date') }}" class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                </div>
-                 {{-- Espaçadores e Botões --}}
-                 <div class="lg:col-span-2"></div> {{-- Ocupa espaço --}}
-                <div class="flex items-end justify-end space-x-2">
-                     <a href="{{ route('gigs.index') }}" class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 px-3 py-2 rounded-md text-sm">
-                        Limpar
-                    </a>
-                    <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-3 py-2 rounded-md text-sm">
-                        <i class="fas fa-filter mr-1"></i> Filtrar
-                    </button>
-                </div>
+
+            {{-- 5. Status Pagamento --}}
+            <x-form.select 
+                id="payment_status" 
+                label="Status Pagamento" 
+                :selected="request('payment_status')" 
+                empty="Todos"
+                :options="[
+                    'pago' => 'Pago',
+                    'vencido' => 'Vencido',
+                    'a_vencer' => 'A Vencer',
+                ]"
+            />
+
+            {{-- 6. Status Pgto. Artista --}}
+            <x-form.select 
+                id="artist_payment_status" 
+                label="Status Pgto. Artista" 
+                :selected="request('artist_payment_status')" 
+                empty="Todos"
+                :options="[
+                    'pago' => 'Pago',
+                    'pendente' => 'Pendente',
+                ]"
+            />
+
+            {{-- 7. Status Pgto. Booker --}}
+            <x-form.select 
+                id="booker_payment_status" 
+                label="Status Pgto. Booker" 
+                :selected="request('booker_payment_status')" 
+                empty="Todos"
+                :options="[
+                    'pago' => 'Pago',
+                    'pendente' => 'Pendente',
+                ]"
+            />
+
+            {{-- 8. Data Evento (De) --}}
+            <x-form.date 
+                id="start_date" 
+                label="Data Evento (De)" 
+                :value="request('start_date')" 
+            />
+
+            {{-- 9. Data Evento (Até) --}}
+            <x-form.date 
+                id="end_date" 
+                label="Data Evento (Até)" 
+                :value="request('end_date')" 
+            />
+
+            {{-- Botões --}}
+            <div class="flex items-end justify-end space-x-2">
+                <a href="{{ route('gigs.index') }}" class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 px-3 py-2 rounded-md text-sm">
+                    Limpar
+                </a>
+                <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-3 py-2 rounded-md text-sm">
+                    <i class="fas fa-filter mr-1"></i> Filtrar
+                </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
+</div>
+
+
 
     {{-- Tabela de Gigs (Estrutura Atualizada) --}}
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">

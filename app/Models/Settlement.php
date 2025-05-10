@@ -16,11 +16,14 @@ class Settlement extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'event_id',
+        'gig_id',
         'settlement_date',
-        'artist_net_amount',
-        'agency_commission',
-        'booker_commission',
+        'artist_payment_value',         // <-- NOVO
+        'artist_payment_paid_at',       // <-- NOVO
+        'artist_payment_proof',
+        'booker_commission_value_paid', // <-- NOVO
+        'booker_commission_paid_at',    // <-- NOVO
+        'booker_commission_proof',
         'notes',
     ];
 
@@ -31,9 +34,10 @@ class Settlement extends Model
      */
     protected $casts = [
         'settlement_date' => 'date',
-        'artist_net_amount' => 'decimal:2',
-        'agency_commission' => 'decimal:2',
-        'booker_commission' => 'decimal:2',
+        'artist_payment_value' => 'decimal:2',         // <-- NOVO
+        'artist_payment_paid_at' => 'date',           // <-- NOVO
+        'booker_commission_value_paid' => 'decimal:2', // <-- NOVO
+        'booker_commission_paid_at' => 'date',        // <-- NOVO
     ];
 
     /**

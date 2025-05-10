@@ -132,7 +132,11 @@
              @include('gigs._show_costs', ['costs' => $gig->costs])
 
              {{-- Card: Acerto Final --}}
+             @include('gigs._show_final_settlements', ['gig' => $gig, 'settlement' => $gig->settlement])
              @include('gigs._show_settlement', ['settlement' => $gig->settlement, 'gig' => $gig])
+             @include('settlements._settle_artist_modal', ['gig' => $gig])
+             @include('settlements._settle_booker_modal', ['gig' => $gig])
+
 
         </div>
 

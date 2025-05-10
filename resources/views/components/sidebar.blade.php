@@ -16,14 +16,15 @@
     <!-- Links da Sidebar (rolável se necessário) -->
     <nav class="flex-1 overflow-y-auto py-4"> {{-- flex-1 para ocupar espaço, overflow para rolar --}}
         <ul>
-            <li>
-                {{-- Note que estamos usando href="#" e preventDefault no click para a navegação via Alpine.js --}}
-                {{-- Isso mantém o comportamento do seu esboço original de alternar o conteúdo na mesma página --}}
-                <a href="#" class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 text-gray-600 dark:text-gray-300">
-                    <i class="fas fa-tachometer-alt w-6 text-center"></i>
-                    <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Dashboard</span>
-                </a>
-            </li>
+        <li>
+    {{-- Aponta para a rota 'dashboard' e ajusta a lógica da classe ativa --}}
+    <a href="{{ route('dashboard') }}"
+       :class="window.location.pathname === '/dashboard' || window.location.pathname === '/' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
+       class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+        <i class="fas fa-tachometer-alt w-6 text-center"></i>
+        <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Dashboard</span>
+    </a>
+</li>
             <li>
     {{-- Link principal agora para Gigs --}}
     <a href="{{ route('gigs.index') }}"
