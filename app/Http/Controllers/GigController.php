@@ -54,14 +54,54 @@ class GigController extends Controller
 
         $query = Gig::with(['artist', 'booker']); // Eager loading
 
-        // --- Filtros (igual antes) ---
-        if ($request->filled('search')) { /* ... */ }
-        if ($request->filled('payment_status')) { /* ... */ }
-        if ($request->filled('artist_id')) { /* ... */ }
-        if ($request->filled('booker_id')) { /* ... */ }
-        if ($request->filled('start_date')) { /* ... */ }
-        if ($request->filled('end_date')) { /* ... */ }
-        if ($request->filled('currency') && $request->input('currency') !== 'all') { /* ... */ }
+        // --- Filtros ---
+        // Busca livre (pesquisa em múltiplos campos)
+        if ($request->filled('search')) {
+            $searchTerm = $request->input('search');
+            $query->where(function($q) use ($searchTerm) {
+                $q->whereHas('artist', function($q) use ($searchTerm) {
+                    $q->where('name', 'like', "%{$searchTerm}%");
+                })
+                ->orWhereHas('booker', function($q) use ($searchTerm) {
+                    $q->where('name', 'like', "%{$searchTerm}%");
+                })
+                ->orWhere('location_event_details', 'like', "%{$searchTerm}%")
+                ->orWhere('contract_number', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        // Filtro por status de pagamento
+        if ($request->filled('payment_status')) {
+            $query->where('payment_status', $request->input('payment_status'));
+        }
+
+        // Filtro por artista
+        if ($request->filled('artist_id')) {
+            $query->where('artist_id', $request->input('artist_id'));
+        }
+        // Filtro por booker
+        if ($request->filled('booker_id')) {
+            if ($request->input('booker_id') === 'sem_booker') {
+                $query->whereNull('booker_id');
+            } else {
+                $query->where('booker_id', $request->input('booker_id'));
+            }
+        }
+
+        // Filtro por data inicial
+        if ($request->filled('start_date')) {
+            $query->whereDate('gig_date', '>=', $request->input('start_date'));
+        }
+
+        // Filtro por data final
+        if ($request->filled('end_date')) {
+            $query->whereDate('gig_date', '<=', $request->input('end_date'));
+        }
+
+        // Filtro por moeda
+        if ($request->filled('currency') && $request->input('currency') !== 'all') {
+            $query->where('currency', $request->input('currency'));
+        }
         // --- Fim Filtros ---
 
         // Aplicar ordenação ANTES de paginar

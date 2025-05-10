@@ -1,6 +1,6 @@
 {{-- resources/views/components/sidebar.blade.php --}}
 
-z{{-- A sidebar usa as variáveis sidebarOpen e currentPage do x-data pai (no body) --}}
+{{-- A sidebar usa as variáveis sidebarOpen e currentPage do x-data pai (no body) --}}
 <aside :class="sidebarOpen ? 'w-64 translate-x-0' : 'w-20 translate-x-0'"
        class="bg-white dark:bg-gray-800 transform transition-transform duration-300 shadow-lg flex flex-col justify-between origin-left"> {{-- Adicionado flex para empurrar user info para baixo --}}
 
