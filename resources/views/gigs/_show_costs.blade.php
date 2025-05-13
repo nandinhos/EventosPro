@@ -8,6 +8,28 @@
     totalConfirmedCosts: 0,
     totalPendingCosts: 0,
     selectedCenterFilter: '', // Para o filtro de centro de custo
+
+    // Função para alternar o status is_invoice
+    async toggleInvoice(costId, currentStatus) {
+        try {
+            const response = await fetch(`/gigs/{{ $gig->id }}/costs/${costId}/toggle-invoice`, {
+                method: 'PATCH',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+            });
+            const result = await response.json();
+            if (response.ok) {
+                this.fetchCosts(); // Recarrega a lista
+            } else {
+                alert(result.message || 'Erro ao atualizar status da nota fiscal.');
+            }
+        } catch (error) { 
+            console.error('Erro:', error); 
+            alert('Erro de comunicação ao atualizar status da nota fiscal.'); 
+        }
+    },
     costFormData: {           // Dados para o formulário do modal
         id: null,
         cost_center_id: '',
@@ -240,7 +262,7 @@ class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mt-6">
                             <tr>
                                 <th class="pb-2 text-left font-medium uppercase">Descrição</th>
                                 <th class="pb-2 text-right font-medium uppercase">Valor</th>
-                                
+                                <th class="pb-2 text-center font-medium uppercase">NF</th>
                                 <th class="pb-2 text-center font-medium uppercase">Status</th>
                                 <th class="pb-2 text-center font-medium uppercase">Ações</th>
                             </tr>
@@ -250,6 +272,17 @@ class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mt-6">
         <tr :class="!cost.is_confirmed ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''">
             <td class="py-2 px-1 whitespace-normal" x-text="cost.description || '-'"></td>
             <td class="py-2 px-1 whitespace-nowrap text-right" x-text="`${cost.currency} ${parseFloat(cost.value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`"></td>
+            <td class="py-2 px-1 whitespace-nowrap text-center">
+                <div class="flex justify-center items-center space-x-1">
+                    <input type="checkbox" 
+                           :checked="cost.is_invoice"
+                           @click="toggleInvoice(cost.id, cost.is_invoice)"
+                           :disabled="!cost.is_confirmed"
+                           class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 disabled:opacity-50"
+                           :title="!cost.is_confirmed ? 'Confirme a despesa primeiro' : 'Incluir na nota fiscal'">
+                    <i class="fas fa-file-invoice text-gray-400" :class="{'text-primary-500': cost.is_invoice}"></i>
+                </div>
+            </td>
             
             <td class="py-2 px-1 whitespace-nowrap text-center">
     <span x-text="cost.is_confirmed ? 'Confirmado' : 'Pendente'"

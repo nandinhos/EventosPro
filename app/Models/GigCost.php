@@ -19,6 +19,7 @@ class GigCost extends Model
         'currency',
         'expense_date',
         'is_confirmed',
+        'is_invoice',
         'confirmed_by',
         'confirmed_at',
         'notes',
@@ -28,6 +29,7 @@ class GigCost extends Model
         'value' => 'decimal:2',
         'expense_date' => 'date',
         'is_confirmed' => 'boolean', // Cast para booleano
+        'is_invoice' => 'boolean',
         'confirmed_at' => 'datetime',
     ];
 

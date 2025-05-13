@@ -184,18 +184,35 @@ class GigCostController extends Controller
 
     /**
      * Alterna o status de nota fiscal (is_invoice) de uma despesa.
-     * Rota: PATCH gigs/{gig}/costs/{cost}/toggle-invoice (gigs.costs.toggleInvoice)
+     * Somente despesas confirmadas podem ter seu status de nota fiscal alterado.
      */
     public function toggleInvoice(Request $request, Gig $gig, GigCost $cost): JsonResponse
     {
-        if ($cost->gig_id !== $gig->id) { return response()->json(['message' => 'Acesso não autorizado.'], 403); }
-        // if (!$cost->is_confirmed) { return response()->json(['message' => 'Apenas despesas confirmadas...'], 422); } // MANTENHA SE QUISER
+        if ($cost->gig_id !== $gig->id) {
+            return response()->json(['message' => 'Acesso não autorizado.'], 403);
+        }
+
+        if (!$cost->is_confirmed) {
+            return response()->json(['message' => 'Apenas despesas confirmadas podem ter o status de nota fiscal alterado.'], 422);
+        }
 
         try {
-            $cost->update(['is_invoice' => !$cost->is_invoice]);
-            $message = $cost->is_invoice ? 'Despesa marcada como inclusa na NF!' : 'Marcação de NF removida da despesa!';
-            return response()->json(['message' => $message, 'cost' => $cost->fresh()->load('costCenter', 'confirmer')]);
-        } catch (\Exception $e) { /* ... */ }
+            $cost->update([
+                'is_invoice' => !$cost->is_invoice
+            ]);
+
+            $message = $cost->is_invoice
+                ? 'Despesa marcada como nota fiscal!'
+                : 'Status de nota fiscal removido da despesa!';
+
+            return response()->json([
+                'message' => $message,
+                'cost' => $cost->fresh()
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Erro ao alterar status de nota fiscal da despesa {$cost->id}: " . $e->getMessage());
+            return response()->json(['message' => 'Erro ao alterar status de nota fiscal.'], 500);
+        }
     }
 
     // Os métodos create e edit não são mais necessários se o form estiver em modal no show da Gig.
@@ -204,12 +221,18 @@ class GigCostController extends Controller
      * Show the form for creating a new gig cost for a specific gig.
      * Rota: gigs.costs.create (GET /gigs/{gig}/costs/create)
      */
-    public function create(Gig $gig): View
+    public function create(Gig $gig): View // Método CREATE
     {
+        // Busca todos os centros de custo para popular o select no formulário
         $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
-        $cost = new GigCost(['gig_id' => $gig->id, 'currency' => 'BRL', 'payer_type' => 'agencia', 'expense_date' => today()]);
-        // A view _form_modal.blade.php espera $costCenters e $cost (e $gig implicitamente pela rota)
-        return view('gig_costs.create', compact('gig', 'costCenters', 'cost'));
+
+        // Passa a Gig pai e os centros de custo para a view do formulário
+        // A view também precisará de um objeto GigCost vazio para o helper old()
+        return view('gig_costs.create', [
+            'gig' => $gig,
+            'costCenters' => $costCenters,
+            'cost' => new GigCost(['gig_id' => $gig->id, 'currency' => 'BRL', 'payer_type' => 'agencia']), // Preenche defaults
+        ]);
     }
     
     // public function edit(Gig $gig, GigCost $cost): View { ... }

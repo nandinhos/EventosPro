@@ -2,26 +2,55 @@
 @props(['cost', 'gig', 'costCenters', 'formType'])
 
 @php
-    // Determina a action e o método do formulário
-    // $actionUrl = ($formType === 'edit')
-    //     ? route('gigs.costs.update', ['gig' => $gig, 'cost' => $cost])
-    //     : route('gigs.costs.store', $gig);
-    // $httpMethod = ($formType === 'edit') ? 'PUT' : 'POST';
+    // Define as categorias disponíveis para os centros de custo
+    $categories = [
+        'Alimentação' => ['icon' => 'utensils', 'description' => 'Despesas com refeições, lanches, etc.'],
+        'Hospedagem' => ['icon' => 'bed', 'description' => 'Despesas com hotéis e acomodações'],
+        'Logística' => ['icon' => 'truck', 'description' => 'Despesas com transporte, equipamentos, etc.']
+    ];
 @endphp
 
 {{-- Os campos do formulário --}}
-<div class="p-6 space-y-4">
-    {{-- Centro de Custo --}}
+<div class="p-6 space-y-4" x-data="{
+    selectedCategory: '',
+    categoryDescriptions: @js($categories),
+    
+    // Atualiza a descrição da categoria quando o centro de custo é selecionado
+    updateCategoryDescription() {
+        const select = document.getElementById('cost_center_id');
+        const option = select.options[select.selectedIndex];
+        if (option) {
+            this.selectedCategory = option.getAttribute('data-category');
+            document.getElementById('category-description').textContent = 
+                this.selectedCategory ? this.categoryDescriptions[this.selectedCategory].description : '';
+        }
+    }
+}">
+    {{-- Centro de Custo com Categorias --}}
     <div>
         <label for="cost_center_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Centro de Custo <span class="text-red-500">*</span></label>
-        <select id="cost_center_id" name="cost_center_id" required
-                class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('cost_center_id') border-red-500 dark:border-red-600 @enderror">
-            <option value="">Selecione...</option>
-            @foreach($costCenters as $id => $name) {{-- Usa $costCenters passado pelo controller --}}
-                <option value="{{ $id }}" @selected(old('cost_center_id', $cost->cost_center_id) == $id)>{{ $name }}</option>
-            @endforeach
-        </select>
+        <div class="relative">
+            <select id="cost_center_id" name="cost_center_id" required
+                    class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('cost_center_id') border-red-500 dark:border-red-600 @enderror pl-10">
+                <option value="">Selecione...</option>
+                @foreach($categories as $category => $info)
+                    <optgroup label="{{ $category }}">
+                        @foreach($costCenters as $id => $name)
+                            {{-- Aqui você pode adicionar lógica para filtrar os centros de custo por categoria --}}
+                            <option value="{{ $id }}" @selected(old('cost_center_id', $cost->cost_center_id) == $id)
+                                    data-icon="{{ $info['icon'] }}" data-category="{{ $category }}">
+                                {{ $name }}
+                            </option>
+                        @endforeach
+                    </optgroup>
+                @endforeach
+            </select>
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <i class="fas fa-tag text-gray-400"></i>
+            </div>
+        </div>
         @error('cost_center_id') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400" id="category-description"></p>
     </div>
 
     {{-- Descrição --}}

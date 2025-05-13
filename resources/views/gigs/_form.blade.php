@@ -13,15 +13,16 @@
     $currentSelectedTags = old('tags', $selectedTags ?? []);
 
     // Pegar valores iniciais para Alpine (prioriza 'old', depois $gig)
-    // Usa ?? 'percent' como fallback seguro se $gig for novo e não tiver tipo
-    $initialBookerType = old('booker_commission_type', $gig->booker_commission_type ?? 'percent');
-    // Pega a taxa % salva ou null
-    $initialBookerRate = old('booker_commission_rate', $gig->booker_commission_rate);
-    // Pega o valor fixo salvo APENAS se o tipo salvo era 'fixed', ou null
-    $initialBookerFixedValue = old('booker_commission_value', $initialBookerType === 'fixed' ? $gig->booker_commission_value : null);
+    // Valores para Agência
+    $initialAgencyType = old('agency_commission_type', $gig->agency_commission_type ?? 'percent');
+    $initialAgencyRate = old('agency_commission_rate', $gig->agency_commission_rate);
+    $initialAgencyFixedValue = old('agency_commission_value', $initialAgencyType === 'fixed' ? $gig->agency_commission_value : null);
+    $initialAgencyDisplayValue = $initialAgencyType === 'percent' ? $initialAgencyRate : $initialAgencyFixedValue;
 
-    // Determina qual valor mostrar inicialmente no input com base no TIPO inicial
-    // Se tipo for percent, mostra a taxa; senão (fixed ou novo), mostra o valor fixo (ou nada se for novo e tipo percent)
+    // Valores para Booker
+    $initialBookerType = old('booker_commission_type', $gig->booker_commission_type ?? 'percent');
+    $initialBookerRate = old('booker_commission_rate', $gig->booker_commission_rate);
+    $initialBookerFixedValue = old('booker_commission_value', $initialBookerType === 'fixed' ? $gig->booker_commission_value : null);
     $initialBookerDisplayValue = $initialBookerType === 'percent' ? $initialBookerRate : $initialBookerFixedValue;
 
     // Pegar valores base para cálculo (prioriza old)
@@ -33,72 +34,86 @@
 {{-- Adiciona x-data para controlar a lógica da comissão --}}
 <div class="p-6 space-y-6"
      x-data="{
-        commissionType: '{{ $initialBookerType }}',
-        commissionRate: {{ $initialBookerRate ?? 'null' }}, // Armazena a taxa % original ou vinda do old() ou null
-        commissionFixedValue: {{ $initialBookerFixedValue ?? 'null' }}, // Armazena o valor fixo original ou vindo do old() ou null
-        commissionDisplayValue: {{ $initialBookerDisplayValue ?? 'null' }}, // Valor que vai no input number - inicializado pelo PHP
+        // Valores da Agência
+        agencyType: '{{ $initialAgencyType }}',
+        agencyRate: {{ $initialAgencyRate ?? 'null' }},
+        agencyFixedValue: {{ $initialAgencyFixedValue ?? 'null' }},
+        agencyDisplayValue: {{ $initialAgencyDisplayValue ?? 'null' }},
+
+        // Valores do Booker
+        bookerType: '{{ $initialBookerType }}',
+        bookerRate: {{ $initialBookerRate ?? 'null' }},
+        bookerFixedValue: {{ $initialBookerFixedValue ?? 'null' }},
+        bookerDisplayValue: {{ $initialBookerDisplayValue ?? 'null' }},
+
         baseCacheValue: {{ $initialCacheValue ?? 0 }},
         expensesValue: {{ $initialExpensesValue ?? 0 }},
 
-        // Função para calcular o valor monetário a partir da taxa
+        // Funções de cálculo compartilhadas
         calculateValueFromRate(rate, base, expenses) {
             if (rate === null || base === null) return null;
             const numericBase = parseFloat(base) || 0;
             const numericExpenses = parseFloat(expenses) || 0;
             const numericRate = parseFloat(rate) || 0;
             const commissionBase = Math.max(0, numericBase - numericExpenses);
-            return (commissionBase * (numericRate / 100)).toFixed(2); // Arredonda para 2 casas decimais
+            return (commissionBase * (numericRate / 100)).toFixed(2);
         },
 
-        // Função para calcular a taxa a partir do valor monetário
         calculateRateFromValue(value, base, expenses) {
             if (value === null || base === null) return null;
             const numericBase = parseFloat(base) || 0;
             const numericExpenses = parseFloat(expenses) || 0;
             const numericValue = parseFloat(value) || 0;
             const commissionBase = Math.max(0, numericBase - numericExpenses);
-            if (commissionBase <= 0) return 0.00; // Evita divisão por zero, retorna 0%
-            // Arredonda para 2 casas decimais
+            if (commissionBase <= 0) return 0.00;
             return Math.round(((numericValue / commissionBase) * 100) * 100) / 100;
         },
 
-        // Observa mudanças no TIPO de comissão selecionado
-        watchTypeChange(newType) {
-            console.log('Tipo mudou para:', newType);
+        // Funções de observação para Agência
+        watchAgencyTypeChange(newType) {
             if (newType === 'percent') {
-                // Mudou para Percentual: Tenta calcular a TAXA a partir do VALOR FIXO (original ou atual)
-                // Se não conseguir, usa a taxa original (se existir), senão deixa vazio.
-                this.commissionDisplayValue = this.calculateRateFromValue(this.commissionFixedValue ?? this.commissionDisplayValue, this.baseCacheValue, this.expensesValue) ?? this.commissionRate ?? '';
-                console.log('Novo Display Value (percent):', this.commissionDisplayValue);
-            } else { // Mudou para Fixo
-                // Mudou para Fixo: Tenta calcular o VALOR MONETÁRIO a partir da TAXA (original ou atual)
-                // Se não conseguir, usa o valor fixo original (se existir), senão deixa vazio.
-                this.commissionDisplayValue = this.calculateValueFromRate(this.commissionRate ?? this.commissionDisplayValue, this.baseCacheValue, this.expensesValue) ?? this.commissionFixedValue ?? '';
-                console.log('Novo Display Value (fixed):', this.commissionDisplayValue);
+                this.agencyDisplayValue = this.calculateRateFromValue(this.agencyFixedValue ?? this.agencyDisplayValue, this.baseCacheValue, this.expensesValue) ?? this.agencyRate ?? '';
+            } else {
+                this.agencyDisplayValue = this.calculateValueFromRate(this.agencyRate ?? this.agencyDisplayValue, this.baseCacheValue, this.expensesValue) ?? this.agencyFixedValue ?? '';
             }
         },
 
-         // Observa mudanças nos valores base (Cachê, Despesas) para recalcular o valor exibido SE FOR FIXO
-         watchBaseValuesChange() {
-              if (this.commissionType === 'fixed') {
-                  // Recalcula o valor fixo exibido baseado na taxa original salva (se existir)
-                  const recalculatedFixedValue = this.calculateValueFromRate(this.commissionRate, this.baseCacheValue, this.expensesValue);
-                  if (recalculatedFixedValue !== null) {
-                       this.commissionDisplayValue = recalculatedFixedValue;
-                  }
-                  // Se não houver taxa original, mantém o valor fixo digitado.
-                  // console.log('Base mudou, novo Display Value (fixed):', this.commissionDisplayValue);
-              }
-             // Se o tipo for 'percent', o valor no input JÁ É a taxa, não precisa mudar aqui.
-         }
+        watchAgencyBaseValuesChange() {
+            if (this.agencyType === 'fixed') {
+                const recalculatedFixedValue = this.calculateValueFromRate(this.agencyRate, this.baseCacheValue, this.expensesValue);
+                if (recalculatedFixedValue !== null) {
+                    this.agencyDisplayValue = recalculatedFixedValue;
+                }
+            }
+        },
+
+        // Funções de observação para Booker
+        watchBookerTypeChange(newType) {
+            if (newType === 'percent') {
+                this.bookerDisplayValue = this.calculateRateFromValue(this.bookerFixedValue ?? this.bookerDisplayValue, this.baseCacheValue, this.expensesValue) ?? this.bookerRate ?? '';
+            } else {
+                this.bookerDisplayValue = this.calculateValueFromRate(this.bookerRate ?? this.bookerDisplayValue, this.baseCacheValue, this.expensesValue) ?? this.bookerFixedValue ?? '';
+            }
+        },
+
+        watchBookerBaseValuesChange() {
+            if (this.bookerType === 'fixed') {
+                const recalculatedFixedValue = this.calculateValueFromRate(this.bookerRate, this.baseCacheValue, this.expensesValue);
+                if (recalculatedFixedValue !== null) {
+                    this.bookerDisplayValue = recalculatedFixedValue;
+                }
+            }
+        }
 
      }"
      x-init="
-        // Inicialização já feita pelo PHP no atributo 'value'
-        // Apenas define os watchers
-        $watch('commissionType', (newType, oldType) => { if(newType !== oldType) watchTypeChange(newType) });
-        $watch('baseCacheValue', () => watchBaseValuesChange());
-        $watch('expensesValue', () => watchBaseValuesChange());
+        // Watchers para Agência
+        $watch('agencyType', (newType, oldType) => { if(newType !== oldType) watchAgencyTypeChange(newType) });
+        $watch('baseCacheValue', () => { watchAgencyBaseValuesChange(); watchBookerBaseValuesChange(); });
+        $watch('expensesValue', () => { watchAgencyBaseValuesChange(); watchBookerBaseValuesChange(); });
+
+        // Watchers para Booker
+        $watch('bookerType', (newType, oldType) => { if(newType !== oldType) watchBookerTypeChange(newType) });
      "
 >
 
@@ -185,31 +200,53 @@
 
      {{-- Linha 4: Comissões --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        {{-- Tipo Comissão Agência --}}
+        <div>
+            <label for="agency_commission_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo Comissão Agência</label>
+            <select id="agency_commission_type" name="agency_commission_type"
+                    x-model="agencyType"
+                    class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('agency_commission_type') border-red-500 dark:border-red-600 @enderror">
+                <option value="percent">Percentual (%)</option>
+                <option value="fixed">Valor Fixo (BRL)</option>
+            </select>
+            @error('agency_commission_type') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+        </div>
+
+        {{-- Valor/Taxa Comissão Agência --}}
+        <div>
+            <label for="agency_commission_value" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor/Taxa Comissão Agência</label>
+            <input type="number" step="0.01"
+                   id="agency_commission_value"
+                   name="agency_commission_value"
+                   x-model.number="agencyDisplayValue"
+                   placeholder="Ex: 5.00 (%) ou 250.00 (fixo)"
+                   class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('agency_commission_value') border-red-500 dark:border-red-600 @enderror">
+            @error('agency_commission_value') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+        </div>
+
         {{-- Tipo Comissão Booker --}}
         <div>
-             <label for="booker_commission_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo Comissão Booker</label>
+            <label for="booker_commission_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo Comissão Booker</label>
             <select id="booker_commission_type" name="booker_commission_type"
-                    x-model="commissionType" {{-- Vincula ao Alpine --}}
+                    x-model="bookerType"
                     class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('booker_commission_type') border-red-500 dark:border-red-600 @enderror">
                 <option value="percent">Percentual (%)</option>
                 <option value="fixed">Valor Fixo (BRL)</option>
             </select>
-             @error('booker_commission_type') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+            @error('booker_commission_type') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
         </div>
-         {{-- Valor/Taxa Comissão Booker --}}
-         <div>
+
+        {{-- Valor/Taxa Comissão Booker --}}
+        <div>
             <label for="booker_commission_value" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor/Taxa Comissão Booker</label>
-            {{-- Input controlado pelo Alpine --}}
             <input type="number" step="0.01"
                    id="booker_commission_value"
-                   name="booker_commission_value" {{-- Nome real do campo para o backend --}}
-                   x-model.number="commissionDisplayValue" {{-- Alpine controla o valor exibido --}}
+                   name="booker_commission_value"
+                   x-model.number="bookerDisplayValue"
                    placeholder="Ex: 5.00 (%) ou 250.00 (fixo)"
                    class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('booker_commission_value') border-red-500 dark:border-red-600 @enderror">
-             @error('booker_commission_value') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+            @error('booker_commission_value') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
         </div>
-        {{-- Campos Comissão Agência (se houver) --}}
-        <div class="md:col-span-2"></div>
     </div>
 
     {{-- Linha 5: Status e Contrato Formal --}}

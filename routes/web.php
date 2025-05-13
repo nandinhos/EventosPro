@@ -110,8 +110,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // --- NOVA ROTA PARA A PÁGINA DE SOLICITAÇÃO DE NF ---
+    Route::get('gigs/{gig}/request-nf', [GigController::class, 'showRequestNfForm'])->name('gigs.request-nf');
+
     // --- ROTAS PARA GIGS (EVENTOS/DATAS) ---
     Route::resource('gigs', GigController::class);
+    // --- NOVA ROTA PARA A PÁGINA DE SOLICITAÇÃO DE NF ---
+    Route::get('gigs/{gig}/request-nf', [GigController::class, 'showRequestNfForm'])->name('gigs.request-nf');
 
     // --- ROTAS ANINHADAS DENTRO DE UMA GIG ESPECÍFICA ---
     Route::prefix('gigs/{gig}')->name('gigs.')->group(function () {
@@ -139,6 +144,7 @@ Route::middleware('auth')->group(function () {
         // Rotas adicionais para confirmar/desconfirmar despesa.
         Route::patch('costs/{cost}/confirm', [GigCostController::class, 'confirm'])->name('costs.confirm');
         Route::patch('costs/{cost}/unconfirm', [GigCostController::class, 'unconfirm'])->name('costs.unconfirm');
+        Route::patch('costs/{cost}/toggle-invoice', [GigCostController::class, 'toggleInvoice'])->name('costs.toggleInvoice');
 
         // Rota para buscar custos via JSON para Alpine (para a view _show_costs)
         Route::get('costs-json', [GigCostController::class, 'listJson'])->name('costs.listJson');
@@ -146,6 +152,11 @@ Route::middleware('auth')->group(function () {
         // --- ROTAS PARA ACERTOS (SETTLEMENTS) DA GIG ---
         // Marcar cachê do artista como pago e registrar detalhes do acerto
         Route::post('settle-artist', [SettlementController::class, 'settleArtistPayment'])->name('settlements.artist');
+
+        // Rota para a view de solicitação de nota fiscal
+        //Route::get('request-nf', function (Gig $gig) {return view('request-nf', compact('gig'));})->name('request-nf');
+
+        
 
         // Marcar comissão do booker como paga e registrar detalhes do acerto
         Route::post('settle-booker', [SettlementController::class, 'settleBookerCommission'])->name('settlements.booker');

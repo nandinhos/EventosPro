@@ -2,377 +2,301 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Gig; // Importar o modelo Gig
-use Illuminate\Http\Request;
-use Illuminate\View\View;
-use App\Http\Requests\StoreGigRequest;
-use App\Http\Requests\UpdateGigRequest;
-use App\Models\Contract; // Ainda pode ser útil para selects? (Não mais diretamente)
-// Importar outros modelos se precisar para filtros avançados depois
+use App\Models\Gig;
 use App\Models\Artist;
 use App\Models\Booker;
-use App\Models\Tag; // Importar Tag
+use App\Models\Tag;
+use App\Models\ActivityLog; // Importar se usar diretamente
+use App\Http\Requests\StoreGigRequest;
+use App\Http\Requests\UpdateGigRequest;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Services\CommissionCalculationService; // <-- Criaremos este serviço depois
-use App\Models\ActivityLog; // Se for usar o modelo de log diretamente
-use Carbon\Carbon;
-
+use Illuminate\Support\Facades\Schema; // Para Schema::hasColumn
+use Carbon\Carbon; // Para datas
 
 class GigController extends Controller
 {
     /**
      * Display a listing of the resource.
-     * Mostra a lista de Gigs (Datas).
      */
     public function index(Request $request): View
-{
-    // --- Ordenação ---
-    $sortableColumns = [
-        'gig_date', 'cache_value', 'currency', 'payment_status',
-        'artist_payment_status', 'booker_payment_status', 'contract_status',
-        'created_at'
-    ];
+    {
+        $sortableColumns = [
+            'gig_date', 'cache_value', 'currency', 'payment_status',
+            'artist_payment_status', 'booker_payment_status', 'contract_status',
+            'created_at', 'location_event_details', 'artist_name', 'booker_name'
+        ];
+        $sortBy = $request->input('sort_by', 'gig_date');
+        $sortDirection = $request->input('sort_direction', 'desc');
+        if (!in_array($sortBy, $sortableColumns)) { $sortBy = 'gig_date'; }
+        if (!in_array($sortDirection, ['asc', 'desc'])) { $sortDirection = 'desc'; }
 
-    $sortBy = $request->input('sort_by', 'gig_date');
-    $sortDirection = $request->input('sort_direction', 'desc');
+        $query = Gig::query()
+            ->select(['gigs.*', 'artists.name as artist_name', 'bookers.name as booker_name'])
+            ->leftJoin('artists', 'gigs.artist_id', '=', 'artists.id')
+            ->leftJoin('bookers', 'gigs.booker_id', '=', 'bookers.id');
 
-    if (!in_array($sortBy, $sortableColumns)) {
-        $sortBy = 'gig_date';
-    }
-
-    if (!in_array($sortDirection, ['asc', 'desc'])) {
-        $sortDirection = 'desc';
-    }
-    // --- Fim Ordenação ---
-
-    $query = Gig::with(['artist', 'booker']);
-
-    // --- Filtros ---
-
-    // Busca livre (em artista, booker, local e contrato)
-    if ($request->filled('search')) {
-        $searchTerm = $request->input('search');
-
-        $query->where(function ($q) use ($searchTerm) {
-            $q->whereHas('artist', function ($q) use ($searchTerm) {
-                $q->where('name', 'like', "%{$searchTerm}%");
-            })
-            ->orWhereHas('booker', function ($q) use ($searchTerm) {
-                $q->where('name', 'like', "%{$searchTerm}%");
-            })
-            ->orWhere('location_event_details', 'like', "%{$searchTerm}%")
-            ->orWhere('contract_number', 'like', "%{$searchTerm}%");
-        });
-    }
-
-    // Status de pagamento geral
-    if ($request->filled('payment_status')) {
-        $query->where('payment_status', $request->input('payment_status'));
-    }
-
-    // Status de pagamento do artista
-    if ($request->filled('artist_payment_status')) {
-        $query->where('artist_payment_status', $request->input('artist_payment_status'));
-    }
-
-    // Status de pagamento do booker
-    if ($request->filled('booker_payment_status')) {
-        $query->where('booker_payment_status', $request->input('booker_payment_status'));
-    }
-
-    // Filtro por artista específico
-    if ($request->filled('artist_id')) {
-        $query->where('artist_id', $request->input('artist_id'));
-    }
-
-    // Filtro por booker (ou nulo)
-    if ($request->filled('booker_id')) {
-        if ($request->input('booker_id') === 'sem_booker') {
-            $query->whereNull('booker_id');
-        } else {
-            $query->where('booker_id', $request->input('booker_id'));
+        if ($request->filled('search')) {
+            $searchTerm = $request->input('search');
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('gigs.contract_number', 'like', "%{$searchTerm}%")
+                  ->orWhere('gigs.location_event_details', 'like', "%{$searchTerm}%")
+                  ->orWhere('artists.name', 'like', "%{$searchTerm}%")
+                  ->orWhere('bookers.name', 'like', "%{$searchTerm}%");
+            });
         }
+        if ($request->filled('payment_status')) { $query->where('gigs.payment_status', $request->input('payment_status')); }
+        if ($request->filled('artist_id')) { $query->where('gigs.artist_id', $request->input('artist_id')); }
+        if ($request->filled('booker_id')) {
+            if ($request->input('booker_id') === 'sem_booker') { $query->whereNull('gigs.booker_id'); }
+            else { $query->where('gigs.booker_id', $request->input('booker_id')); }
+        }
+        if ($request->filled('start_date')) { $query->where('gigs.gig_date', '>=', $request->input('start_date')); }
+        if ($request->filled('end_date')) { $query->where('gigs.gig_date', '<=', $request->input('end_date')); }
+        if ($request->filled('currency') && $request->input('currency') !== 'all') { $query->where('gigs.currency', $request->input('currency'));}
+
+        $orderByColumn = match ($sortBy) {
+            'artist_name' => 'artists.name', 'booker_name' => 'bookers.name',
+            'gig_date', 'cache_value', 'currency', 'payment_status', 'artist_payment_status',
+            'booker_payment_status', 'contract_status', 'created_at', 'location_event_details' => 'gigs.' . $sortBy,
+            default => 'gigs.gig_date',
+        };
+        $query->orderBy($orderByColumn, $sortDirection);
+
+        $gigs = $query->paginate(25)->withQueryString();
+        $artistsData = Artist::orderBy('name')->pluck('name', 'id'); // Renomeado para não conflitar com $artists na view
+        $bookersData = Booker::orderBy('name')->pluck('name', 'id'); // Renomeado
+        $currencies = DB::table('gigs')->select('currency')->distinct()->orderBy('currency')->pluck('currency');
+
+        return view('gigs.index', [
+            'gigs' => $gigs,
+            'artists' => $artistsData, // Passa como 'artists'
+            'bookers' => $bookersData, // Passa como 'bookers'
+            'currencies' => $currencies,
+            'sortBy' => $sortBy,
+            'sortDirection' => $sortDirection
+        ]);
     }
-
-    // Filtro por datas
-    if ($request->filled('start_date')) {
-        $query->whereDate('gig_date', '>=', $request->input('start_date'));
-    }
-
-    if ($request->filled('end_date')) {
-        $query->whereDate('gig_date', '<=', $request->input('end_date'));
-    }
-
-    // Filtro por moeda
-    if ($request->filled('currency') && $request->input('currency') !== 'all') {
-        $query->where('currency', $request->input('currency'));
-    }
-
-    // --- Fim Filtros ---
-
-    $query->orderBy($sortBy, $sortDirection);
-
-    $gigs = $query->paginate(25)->withQueryString();
-
-    // Dados para os filtros do formulário
-    $artists = Artist::orderBy('name')->pluck('name', 'id');
-    $bookers = Booker::orderBy('name')->pluck('name', 'id');
-    $currencies = Gig::select('currency')->distinct()->orderBy('currency')->pluck('currency');
-
-    return view('gigs.index', compact(
-        'gigs',
-        'artists',
-        'bookers',
-        'currencies',
-        'sortBy',
-        'sortDirection'
-    ));
-}
-
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
-        // Buscar dados para preencher os selects no formulário
         $artists = Artist::orderBy('name')->pluck('name', 'id');
         $bookers = Booker::orderBy('name')->pluck('name', 'id');
-        $tags = Tag::orderBy('name')->get()->groupBy('type'); // Buscar e agrupar tags por tipo
-        $backUrlParams = request()->query(); // Pega os parâmetros da URL atual para voltar depois
+        $tags = Tag::orderBy('name')->get()->groupBy('type');
+        $backUrlParams = $request->session()->get('gig_index_url_params', []); // Para "Cancelar"
 
-        // Passa os dados para a view 'gigs.create'
-        // Usamos um array vazio para $gig para que a view do form possa ser reutilizada para edit
         return view('gigs.create', compact('artists', 'bookers', 'tags', 'backUrlParams'));
     }
 
     /**
      * Store a newly created resource in storage.
-     * Armazena uma nova Gig.
      */
+    public function store(StoreGigRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+        DB::beginTransaction();
+        try {
+            Log::info('Store - Validated Data:', $validated);
+            $preparedData = $this->prepareGigData($validated, null); // Passa null para $existingGig
+            Log::info('Store - Prepared Data for Create:', $preparedData);
 
-     public function store(StoreGigRequest $request): RedirectResponse
-     {
-         $validated = $request->validated();
-         // Pega os parâmetros de volta que foram enviados como hidden input 'backParams'
-         $backParams = $request->input('backParams', []); // Pega o array 'backParams', default vazio
- 
-         DB::beginTransaction();
-         try {
-             $preparedData = $this->prepareGigData($validated);
-             $gig = Gig::create($preparedData);
-             if ($request->filled('tags')) {
-                 $gig->tags()->sync($request->input('tags'));
-             }
-             DB::commit();
- 
-             // --- CORREÇÃO AQUI: Usa $backParams no redirect ---
-             return redirect()->route('gigs.index', $backParams)->with('success', 'Gig criada com sucesso!');
- 
-         } catch (\Exception $e) {
-             DB::rollBack();
-             Log::error('Erro ao criar Gig: ' . $e->getMessage(), ['exception' => $e]);
-             // Ao voltar com erro, também passa os backParams para o form ser repopulado
-             return back()->withInput()->withErrors(['error' => 'Erro ao criar a Gig. Verifique os dados e tente novamente.'])->with('backUrlParams', $backParams); // Passa de volta para o form
-         }
-     }
+            $gig = Gig::create($preparedData);
+            if ($request->filled('tags')) {
+                $gig->tags()->sync($request->input('tags'));
+            }
+            DB::commit();
+            return redirect()->route('gigs.index')->with('success', 'Gig criada com sucesso!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao criar Gig: ' . $e->getMessage(), ['exception' => $e, 'data' => $validated]);
+            return back()->withInput()->with('error', 'Erro ao criar a Gig: ' . $e->getMessage());
+        }
+    }
 
+    /**
+     * Display the specified resource.
+     */
+    public function show(Gig $gig, Request $request): View
+    {
+        // Salvar parâmetros da URL da index na sessão para o botão "Voltar"
+        if ($request->hasAny(['search', 'payment_status', 'artist_id', 'booker_id', 'start_date', 'end_date', 'currency', 'sort_by', 'sort_direction', 'page'])) {
+            $request->session()->put('gig_index_url_params', $request->query());
+        }
 
-    // --- MÉTODO UPDATE ---
+        $gig->load(['artist', 'booker', 'payments' => fn($q) => $q->orderBy('due_date', 'asc')->orderBy('id', 'asc'), 'settlement', 'tags', 'costs.costCenter', 'costs.confirmer']);
+        $totalReceivedOriginalCurrency = $gig->payments->where('confirmed_at', '!=', null)->where('currency', $gig->currency)->sum('received_value_actual');
+        $balanceOriginalCurrency = max(0, ($gig->cache_value ?? 0) - $totalReceivedOriginalCurrency);
+        $activityLogs = ActivityLog::where('subject_type', Gig::class)->where('subject_id', $gig->id)->latest()->paginate(10, ['*'], 'logs_page')->withQueryString();
+        $backUrlParams = $request->session()->get('gig_index_url_params', []);
+
+        return view('gigs.show', compact(
+            'gig', 'activityLogs', 'totalReceivedOriginalCurrency',
+            'balanceOriginalCurrency', 'backUrlParams'
+        ));
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Gig $gig, Request $request): View
+    {
+        $artists = Artist::orderBy('name')->pluck('name', 'id');
+        $bookers = Booker::orderBy('name')->pluck('name', 'id');
+        $tags = Tag::orderBy('name')->get()->groupBy('type');
+        $selectedTags = $gig->tags()->pluck('id')->toArray();
+        $backUrlParams = $request->session()->get('gig_index_url_params', []);
+
+        return view('gigs.edit', compact('gig', 'artists', 'bookers', 'tags', 'selectedTags', 'backUrlParams'));
+    }
+
     /**
      * Update the specified resource in storage.
      */
     public function update(UpdateGigRequest $request, Gig $gig): RedirectResponse
     {
         $validated = $request->validated();
-        // Pega os parâmetros de volta que foram enviados como hidden input 'backParams'
-        $backParams = $request->input('backParams', []); // Pega o array 'backParams', default vazio
+        $backParams = $request->input('backParams', []); // Pega do form se existir
 
         DB::beginTransaction();
         try {
-            $preparedData = $this->prepareGigData($validated);
+            Log::info("Update - Validated Data for Gig ID {$gig->id}:", $validated);
+            // Chama prepareGigData APENAS UMA VEZ
+            $preparedData = $this->prepareGigData($validated, $gig);
+            Log::info("Update - Prepared Data for Gig ID {$gig->id}:", $preparedData);
+
             $gig->update($preparedData);
             $gig->tags()->sync($request->input('tags', []));
             DB::commit();
 
-            // --- CORREÇÃO AQUI: Usa $backParams no redirect ---
             return redirect()->route('gigs.index', $backParams)->with('success', 'Gig atualizada com sucesso!');
-            // Se preferir voltar para o show com filtros:
-            // return redirect()->route('gigs.show', ['gig' => $gig] + $backParams)->with('success', '...');
-
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Erro ao atualizar Gig: ' . $e->getMessage(), ['exception' => $e, 'gig_id' => $gig->id]);
-             // Ao voltar com erro, também passa os backParams para o form ser repopulado
-            return back()->withInput()->withErrors(['error' => 'Erro ao atualizar a Gig.'])->with('backUrlParams', $backParams); // Passa de volta para o form
+            Log::error('Erro ao atualizar Gig: ' . $e->getMessage(), ['exception' => $e, 'gig_id' => $gig->id, 'data' => $validated]);
+            return back()->withInput()->withErrors(['error_update' => 'Erro ao atualizar a Gig: ' . $e->getMessage()])->with('backUrlParams', $backParams);
         }
     }
-    // --- FIM MÉTODO UPDATE ---
 
     /**
-     * Display the specified resource.
+     * Remove the specified resource from storage.
      */
-    public function show(Gig $gig): View
+    public function destroy(Gig $gig, Request $request): RedirectResponse
     {
-        $gig->load([
-            'artist', 'booker',
-            'payments' => fn($q)=>$q->orderBy('due_date', 'asc'),
-            'settlement', 'tags' => fn($q)=>$q->orderBy('name','asc'),
-            'settlement',
-            'tags',
-            'costs.costCenter', // <-- Carrega os custos e seus centros de custo
-            'costs.confirmer'   // <-- Carrega quem confirmou o custo
-        ]);
+        try {
+            $gig->delete();
+            $backParams = $request->input('backParams', []);
+            return redirect()->route('gigs.index', $backParams)->with('success', 'Gig excluída com sucesso!');
+        } catch (\Exception $e) {
+            Log::error('Erro ao excluir Gig: ' . $e->getMessage(), ['exception' => $e, 'gig_id' => $gig->id]);
+            return back()->with('error', 'Erro ao excluir a Gig.');
+        }
+    }
 
-        // --- Calcular Resumo Financeiro ATUALIZADO v4 ---
-        $totalDueOriginal = $gig->cache_value ?? 0;
-        $gigCurrency = strtoupper($gig->currency ?? 'BRL'); // <-- DEFINIR $gigCurrency AQUI TAMBÉM
+    /**
+     * Prepara os dados das comissões ANTES de criar ou atualizar uma Gig.
+     */
+    private function prepareGigData(array $validatedData, ?Gig $existingGig = null): array
+    {
+        // Log::info('Início prepareGigData - Dados validados recebidos:', $validatedData);
 
-        // Calcular total RECEBIDO e CONFIRMADO na moeda original da Gig
-        $totalReceivedOriginalCurrency = $gig->payments // Pega a coleção já carregada
-                                            ->where('currency', $gigCurrency) // <-- USA $gigCurrency
-                                            ->whereNotNull('confirmed_at')
-                                            ->sum(function($payment) {
-                                                // Soma o valor real ou o devido como fallback
-                                                return $payment->received_value_actual ?? $payment->due_value ?? 0;
-                                            });
-        $totalReceivedOriginalCurrency = round($totalReceivedOriginalCurrency, 2);
+        $preparedData = $validatedData;
 
-        // Calcular Saldo na Moeda Original
-        $balanceOriginalCurrency = $totalDueOriginal - $totalReceivedOriginalCurrency;
-        // --- Fim do Cálculo Atualizado ---
+        // --- Booker Commission ---
+        $bookerCommissionType = $preparedData['booker_commission_type'] ?? null;
+        $bookerCommissionInputValue = $preparedData['booker_commission_value'] ?? null;
+
+        if ($bookerCommissionType === 'percent') {
+            $preparedData['booker_commission_rate'] = $bookerCommissionInputValue;
+            $preparedData['booker_commission_value'] = null;
+        } elseif ($bookerCommissionType === 'fixed') {
+            $preparedData['booker_commission_rate'] = null;
+            $preparedData['booker_commission_value'] = $bookerCommissionInputValue;
+        } else {
+            $preparedData['booker_commission_rate'] = $existingGig?->booker_commission_rate; // Mantém existente se não especificado
+            $preparedData['booker_commission_value'] = $existingGig?->booker_commission_value;
+        }
+        // Log::info('Booker Commission Processada:', [ 'type' => $preparedData['booker_commission_type'], 'rate' => $preparedData['booker_commission_rate'], 'value' => $preparedData['booker_commission_value'] ]);
+
+        // --- Agency Commission ---
+        $agencyCommissionType = $preparedData['agency_commission_type'] ?? ($existingGig?->agency_commission_type ?? 'percent');
+        // Se o input 'agency_commission_value' do form for usado para a taxa % ou valor fixo:
+        $agencyCommissionInputValue = $preparedData['agency_commission_value'] ?? ($agencyCommissionType === 'percent' ? ($existingGig?->agency_commission_rate ?? 20.00) : $existingGig?->agency_commission_value);
+
+        if ($agencyCommissionType === 'percent') {
+            $preparedData['agency_commission_rate'] = $agencyCommissionInputValue;
+            $preparedData['agency_commission_value'] = null;
+        } elseif ($agencyCommissionType === 'fixed') {
+            $preparedData['agency_commission_rate'] = null;
+            $preparedData['agency_commission_value'] = $agencyCommissionInputValue;
+        } else {
+             // Mantém existente ou default da migration/modelo se nenhum tipo for passado
+            $preparedData['agency_commission_rate'] = $preparedData['agency_commission_rate'] ?? $existingGig?->agency_commission_rate ?? 20.00; // Default 20%
+            $preparedData['agency_commission_value'] = $preparedData['agency_commission_value'] ?? $existingGig?->agency_commission_value ?? null;
+            $preparedData['agency_commission_type'] = $preparedData['agency_commission_type'] ?? 'percent';
+        }
+        // Log::info('Agency Commission Processada:', [ 'type' => $preparedData['agency_commission_type'], 'rate' => $preparedData['agency_commission_rate'], 'value' => $preparedData['agency_commission_value'] ]);
+
+        // Liquid commission é sempre calculado pelo Accessor
+        if (Schema::hasColumn('gigs', 'liquid_commission_value')) {
+             $preparedData['liquid_commission_value'] = null;
+        }
+
+        Log::info('Data preparada FINAL para salvar:', $preparedData);
+        return $preparedData;
+    }
+    
+    
 
 
-        // ... (busca de logs) ...
-         $activityLogs = ActivityLog::where('subject_type', Gig::class)
-                                   ->where('subject_id', $gig->id)
-                                   ->latest()
-                                   ->paginate(10, ['*'], 'logs_page');
+     /**
+     * Display the form/page for requesting the artist's NF.
+     */
+    public function showRequestNfForm(Gig $gig, Request $request): View
+    {
+        // Carregar relacionamentos necessários
+        $gig->load(['artist', 'booker', 'costs.costCenter']);
 
-        $backUrlParams = request()->query(); // Pega os parâmetros da URL atual para voltar depois
-        // Passa os dados para a view
+        // --- Cálculos Financeiros (Reutilizando lógica similar à da gigs.show) ---
+        $gigCacheValueBrl = $gig->cache_value_brl; // Via Accessor
+
+        $confirmedExpensesGrouped = $gig->costs
+            ->where('is_confirmed', true)
+            ->groupBy(function ($cost) {
+                return $cost->costCenter?->name ?? 'Outras Despesas';
+            })
+            ->map(function ($costsInGroup) {
+                return $costsInGroup->sum('value');
+            });
+        $totalConfirmedExpensesBrl = $confirmedExpensesGrouped->sum();
+
+        $agencyTotalCommissionOnGig = $gig->agency_commission_value ?? 0;
+
+        // Valor Líquido para o Artista (NF)
+        $netArtistCacheToReceive = $gigCacheValueBrl - $totalConfirmedExpensesBrl - $agencyTotalCommissionOnGig;
+        // --- Fim Cálculos ---
 
 
-        // Passa os dados atualizados para a view
-        return view('gigs.show', compact(
+        // Parâmetros para o botão "Voltar" na view de NF, se necessário
+        $backUrlParams = $request->session()->get('gig_show_url_params', ['gig' => $gig->id]); // Tenta pegar da sessão
+        if (empty(array_filter($backUrlParams, fn($k) => $k !== 'gig', ARRAY_FILTER_USE_KEY))) { // Se só tiver gig_id
+            $backUrlParams = ['gig' => $gig->id]; // Default para voltar ao show
+        }
+
+
+        return view('gigs.request-nf', compact(
             'gig',
-            'activityLogs',
-            'totalDueOriginal', // Valor original
-            'gigCurrency', // <-- Passa a moeda original para a view (útil)
-            'totalReceivedOriginalCurrency', // Recebido na moeda original (confirmado)
-            'balanceOriginalCurrency', // Saldo na moeda original
-            'backUrlParams' // Parâmetros da URL atual para voltar depois
+            'gigCacheValueBrl', // Passar o valor já convertido
+            'confirmedExpensesGrouped',
+            'totalConfirmedExpensesBrl',
+            'agencyTotalCommissionOnGig',
+            'netArtistCacheToReceive',
+            'backUrlParams'
         ));
     }
-
-
-    // --- MÉTODO EDIT ---
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Gig $gig): View // Usa Route Model Binding
-    {
-        // Buscar dados para os selects
-        $artists = Artist::orderBy('name')->pluck('name', 'id');
-        $bookers = Booker::orderBy('name')->pluck('name', 'id');
-        $tags = Tag::orderBy('name')->get()->groupBy('type'); // Agrupado por tipo
-
-        // Pegar os IDs das tags já associadas a esta Gig para pré-selecionar
-        $selectedTags = $gig->tags()->pluck('tags.id')->toArray(); // 'tags.id' para evitar ambiguidade
-
-        $backUrlParams = request()->query(); // Pega os parâmetros da URL atual para voltar depois
-
-        // Retorna a view de edição, passando a gig e os dados dos selects/tags
-        return view('gigs.edit', compact('gig', 'artists', 'bookers', 'tags', 'selectedTags', 'backUrlParams'));
-    }
-    // --- FIM MÉTODO EDIT ---
-
-    
-    
-    // --- MÉTODO DESTROY ---
-    /**
-     * Remove the specified resource from storage (Soft Delete).
-     */
-    public function destroy(Request $request, Gig $gig): RedirectResponse // Usar Request normal para pegar filtros
-{
-    // Pega os filtros dos campos hidden
-    $backUrlParams = $request->except(['_token', '_method']); // Pega tudo exceto token/method
-
-    try {
-        $gig->delete();
-        return redirect()->route('gigs.index', $backUrlParams)->with('success', 'Gig excluída com sucesso!');
-    } catch (\Exception $e) {
-         Log::error(/*...*/);
-        return redirect()->route('gigs.index', $backUrlParams)->with('error', 'Erro ao excluir a Gig.'); // Volta para index com filtros e erro
-    }
-}
-     // --- FIM MÉTODO DESTROY ---
-
-    /**
-     * Método auxiliar para calcular e preparar os dados da Gig antes de salvar/atualizar.
-     */
-    private function prepareGigData(array $validatedData): array
-{
-    // 1. Remover cálculo de cache_value_brl e exchange_rate daqui
-    $cacheValue = $validatedData['cache_value'] ?? 0; // Pega o valor bruto original
-    $expensesValueBrl = $validatedData['expenses_value_brl'] ?? 0;
-
-    // Base da comissão é o valor bruto menos despesas
-    // ATENÇÃO: Se o cache_value não for BRL, este cálculo base está incorreto!
-    // Precisamos decidir como calcular comissão % em moeda estrangeira.
-    // Opção 1: Calcular comissão sobre valor BRL apenas no momento do *pagamento* dela.
-    // Opção 2: Calcular comissão sobre valor original e salvar na moeda original?
-    // Opção 3: Exigir uma taxa de câmbio de REFERÊNCIA no form da Gig para este cálculo?
-
-    // --- VAMOS SIMPLIFICAR POR ENQUANTO: Comissão calculada apenas se moeda for BRL ---
-    $baseCommission = 0;
-    if (strtoupper($validatedData['currency'] ?? 'BRL') === 'BRL') {
-         $baseCommission = max(0, $cacheValue - $expensesValueBrl);
-    } else {
-        // Se não for BRL, não calculamos a comissão automaticamente aqui
-         Log::warning("Cálculo de comissão não aplicado para Gig com moeda {$validatedData['currency']}. Será calculado no acerto/pagamento.");
-    }
-
-    // 2. Calcular Comissões (Só aplicável se base > 0)
-    $bookerRate = null; $bookerValue = null;
-    $agencyRate = null; $agencyValue = null; // Removendo default 20% daqui
-    $liquidCommissionValue = null;
-
-    if ($baseCommission > 0) { // Só calcula se a base for BRL e positiva
-        // Booker Commission
-        $bookerCommissionType = $validatedData['booker_commission_type'] ?? null;
-        $bookerCommissionInputValue = $validatedData['booker_commission_value'] ?? null;
-        if ($bookerCommissionType === 'percent' && $bookerCommissionInputValue !== null) {
-            $bookerRate = $bookerCommissionInputValue; $bookerValue = $baseCommission * ($bookerRate / 100);
-        } elseif ($bookerCommissionType === 'fixed' && $bookerCommissionInputValue !== null) {
-            $bookerRate = null; $bookerValue = $bookerCommissionInputValue;
-        }
-
-        // Agency Commission (se houver campos no form)
-        $agencyCommissionType = $validatedData['agency_commission_type'] ?? null;
-        $agencyCommissionInputValue = $validatedData['agency_commission_value'] ?? null;
-         if ($agencyCommissionType === 'percent' && $agencyCommissionInputValue !== null) {
-             $agencyRate = $agencyCommissionInputValue; $agencyValue = $baseCommission * ($agencyRate / 100);
-         } elseif ($agencyCommissionType === 'fixed' && $agencyCommissionInputValue !== null) {
-             $agencyRate = null; $agencyValue = $agencyCommissionInputValue;
-         }
-
-        // Calcular Comissão Líquida
-         $liquidCommissionValue = ($agencyValue ?? 0) - ($bookerValue ?? 0);
-    }
-
-    // Atribui os valores calculados (ou nulos) ao array validado
-    $validatedData['booker_commission_rate'] = $bookerRate;
-    $validatedData['booker_commission_value'] = $bookerValue;
-    $validatedData['agency_commission_rate'] = $agencyRate;
-    $validatedData['agency_commission_value'] = $agencyValue;
-    $validatedData['liquid_commission_value'] = $liquidCommissionValue;
-
-    return $validatedData;
-}
-     // --- FIM MÉTODO PREPARE ---
-
 
 }
