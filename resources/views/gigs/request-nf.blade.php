@@ -40,26 +40,39 @@
                     </div>
                 @endif
 
-                {{-- Despesas Confirmadas Detalhadas --}}
-                @if($confirmedExpensesGrouped->isNotEmpty())
+                {{-- Despesas Confirmadas e Reembolsáveis (para NF) --}}
+                @php
+                    // Filtra apenas as despesas confirmadas E marcadas como is_invoice
+                    $reimbursableExpenses = $gig->costs
+                        ->where('is_confirmed', true)
+                        ->where('is_invoice', true)
+                        ->groupBy('costCenter.name');
+                    
+                    $totalReimbursableExpenses = $reimbursableExpenses
+                        ->map(function($group) {
+                            return $group->sum('value');
+                        })->sum();
+                @endphp
+
+                @if($reimbursableExpenses->isNotEmpty())
                     <div class="pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50">
-                        <span class="text-gray-600 dark:text-gray-400 block mb-1">(-) Despesas Confirmadas (Reembolsáveis pela Agência/Cliente):</span>
+                        <span class="text-gray-600 dark:text-gray-400 block mb-1">(-) Despesas Reembolsáveis (a incluir na NF):</span>
                         <div class="pl-4 space-y-1">
-                            @foreach($confirmedExpensesGrouped as $costCenterName => $totalCostCenterValue)
+                            @foreach($reimbursableExpenses as $costCenterName => $costsInGroup)
                                 <div class="flex justify-between text-xs">
                                     <span class="text-gray-500 dark:text-gray-400">- {{ $costCenterName }}:</span>
-                                    <span class="font-medium text-red-500 dark:text-red-400">R$ {{ number_format($totalCostCenterValue, 2, ',', '.') }}</span>
+                                    <span class="font-medium text-red-500 dark:text-red-400">R$ {{ number_format($costsInGroup->sum('value'), 2, ',', '.') }}</span>
                                 </div>
                             @endforeach
                             <div class="flex justify-between text-xs font-semibold pt-1 border-t border-dashed border-gray-200 dark:border-gray-600 mt-1">
-                                <span class="text-gray-500 dark:text-gray-400">Total Despesas:</span>
-                                <span class="text-red-500 dark:text-red-400">R$ {{ number_format($totalConfirmedExpensesBrl, 2, ',', '.') }}</span>
+                                <span class="text-gray-500 dark:text-gray-400">Total Despesas Reembolsáveis:</span>
+                                <span class="text-red-500 dark:text-red-400">R$ {{ number_format($totalReimbursableExpenses, 2, ',', '.') }}</span>
                             </div>
                         </div>
                     </div>
                 @else
                     <div class="pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50">
-                        <span class="text-gray-600 dark:text-gray-400">(-) Despesas Confirmadas: R$ 0,00</span>
+                        <span class="text-gray-600 dark:text-gray-400">(-) Despesas Reembolsáveis: R$ 0,00</span>
                     </div>
                 @endif
 

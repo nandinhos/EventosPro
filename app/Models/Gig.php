@@ -89,13 +89,21 @@ class Gig extends Model
     }
 
     /**
-     * Calcula a base de comissão (Cachê BRL - Despesas Confirmadas BRL).
+     * Calcula o valor líquido do cachê (Cachê BRL - Despesas Confirmadas BRL).
      */
-    public function getCommissionBaseBrlAttribute(): float
+    public function getNetCacheValueBrlAttribute(): float
     {
         $cacheBrl = $this->cache_value_brl; // Chama o accessor getCacheValueBrlAttribute()
         $expensesBrl = $this->confirmed_expenses_total_brl; // Chama o accessor
         return (float) max(0, $cacheBrl - $expensesBrl);
+    }
+
+    /**
+     * Calcula a base de comissão (usando o valor líquido do cachê).
+     */
+    public function getCommissionBaseBrlAttribute(): float
+    {
+        return $this->net_cache_value_brl; // Usa o valor líquido como base para comissões
     }
 
     /**

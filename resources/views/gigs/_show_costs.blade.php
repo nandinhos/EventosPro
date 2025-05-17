@@ -174,6 +174,7 @@
             const result = await response.json();
             if (response.ok) {
                 this.fetchCosts(); // Recarrega a lista
+                $dispatch('costs-updated', { gigId: {{ $gig->id }} });
                 alert(result.message);
             } else {
                  alert(result.message || `Erro ao ${action} despesa.`);
@@ -198,6 +199,7 @@
             const result = await response.json();
             if (response.ok) {
                 this.fetchCosts(); // Recarrega a lista
+                $dispatch('costs-updated', { gigId: {{ $gig->id }} });
                 alert(result.message);
             } else {
                  alert(result.message || 'Erro ao excluir despesa.');

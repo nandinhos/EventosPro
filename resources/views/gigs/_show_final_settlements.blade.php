@@ -7,7 +7,10 @@
 --}}
 @props(['gig', 'settlement', 'confirmedExpensesGrouped', 'totalConfirmedExpensesBrl', 'agencyTotalCommissionOnGig', 'netArtistCacheToReceive'])
 
-<div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mt-6">
+<div
+    x-data="{ reloadSettlements() { window.location.reload(); } }"
+    @costs-updated.window="reloadSettlements()"
+    class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mt-6">
     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Acertos Financeiros (Pagamentos Efetuados)</h3>
     </div>

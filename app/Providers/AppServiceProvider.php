@@ -3,6 +3,10 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Models\Gig;
+use App\Models\GigCost;
+use App\Observers\GigObserver;
+use App\Observers\GigCostObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Registra os observers
+        Gig::observe(GigObserver::class);
+        GigCost::observe(GigCostObserver::class);
     }
 }
