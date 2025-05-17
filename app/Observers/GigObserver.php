@@ -131,20 +131,25 @@ class GigObserver
             ]);
 
             // Calcula e atualiza a comissão do booker se for do tipo percentual
-            if (strtoupper($gig->booker_commission_type ?? '') === 'PERCENT' && isset($gig->booker_commission_rate)) {
-                $gig->booker_commission_value = $gig->getBookerCommissionValueAttribute(null);
+            // Calcula a comissão do booker apenas se ainda não foi calculada
+            if (!isset($gig->booker_commission_value) && strtoupper($gig->booker_commission_type ?? '') === 'PERCENT' && isset($gig->booker_commission_rate)) {
+                $base = $gig->commission_base_brl;
+                $taxa = $gig->booker_commission_rate;
+                $valor_calculado = ($base * $taxa) / 100;
+                $gig->booker_commission_value = $valor_calculado;
+                
                 Log::info('Comissão do booker calculada', [
                     'gig_id' => $gig->id ?? 'novo',
                     'tipo' => 'percentual',
-                    'taxa' => $gig->booker_commission_rate,
-                    'valor_calculado' => $gig->booker_commission_value,
-                    'base_calculo' => $gig->commission_base_brl
+                    'taxa' => $taxa,
+                    'valor_calculado' => $valor_calculado,
+                    'base_calculo' => $base
                 ]);
             } else {
-                Log::info('Comissão do booker mantida fixa', [
+                Log::info('Comissão do booker mantida', [
                     'gig_id' => $gig->id ?? 'novo',
                     'tipo' => $gig->booker_commission_type,
-                    'valor_fixo' => $gig->booker_commission_value
+                    'valor' => $gig->booker_commission_value
                 ]);
             }
 
