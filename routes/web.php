@@ -8,6 +8,7 @@ use App\Http\Controllers\ArtistController;
 use App\Http\Controllers\BookerController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\GigCostController; // Certifique-se que este controller existe,
+use App\Http\Controllers\ReportController;
 use App\Models\Gig; // Importar Gig
 use Carbon\Carbon;  // Importar Carbon
 use App\Http\Controllers\SettlementController;
@@ -32,6 +33,9 @@ Route::get('/', function () {
     return view('auth.login'); // Ou view('welcome') se preferir
 })->name('home');
 
+
+// Rotas de Relatórios
+Route::get('/reports/financial', [ReportController::class, 'financial'])->name('reports.financial');
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', function (): View {

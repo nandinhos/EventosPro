@@ -21,6 +21,16 @@ class GigCostObserver
             'is_confirmed' => $gigCost->is_confirmed
         ]);
 
+        // Se a despesa foi revertida (is_confirmed mudou para false), remove a marcação de NF
+        if (!$gigCost->is_confirmed && $gigCost->is_invoice) {
+            $gigCost->is_invoice = false;
+            $gigCost->saveQuietly(); // Evita loop infinito do observer
+            
+            Log::info('Marcação de NF removida após reversão da despesa', [
+                'gig_cost_id' => $gigCost->id
+            ]);
+        }
+
         // Busca a Gig associada
         $gig = Gig::find($gigCost->gig_id);
         if (!$gig) {
