@@ -204,15 +204,7 @@
                 </select>
                 @error('currency') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
             </div>
-            {{-- Campo de Câmbio (Opcional) --}}
-            <div>
-                <label for="exchange_rate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Taxa de Câmbio (p/ BRL)</label>
-                <input type="number" step="0.000001" id="exchange_rate" name="exchange_rate"
-                       value="{{ old('exchange_rate', $gig->exchange_rate) }}"
-                       placeholder="Se moeda não for BRL"
-                       class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('exchange_rate') border-red-500 dark:border-red-600 @enderror">
-                @error('exchange_rate') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
-            </div>
+            {{-- Campo de Câmbio removido do cadastro inicial --}}
             <hr class="dark:border-gray-700">
              {{-- Número Contrato --}}
             <div>

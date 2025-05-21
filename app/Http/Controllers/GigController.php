@@ -221,54 +221,72 @@ class GigController extends Controller
      * Prepara os dados das comissões ANTES de criar ou atualizar uma Gig.
      */
     private function prepareGigData(array $validatedData, ?Gig $existingGig = null): array
-    {
-        // Log::info('Início prepareGigData - Dados validados recebidos:', $validatedData);
+{
+    Log::info('--- prepareGigData - Dados Recebidos ANTES da lógica ---', $validatedData);
 
-        $preparedData = $validatedData;
+    $preparedData = $validatedData;
 
-        // --- Booker Commission ---
-        $bookerCommissionType = $preparedData['booker_commission_type'] ?? null;
-        $bookerCommissionInputValue = $preparedData['booker_commission_value'] ?? null;
+    // --- Agency Commission ---
+    // Se não vier tipo, assume 'percent' (ou o que estiver no $existingGig)
+    $agencyCommissionType = $preparedData['agency_commission_type'] ?? ($existingGig?->agency_commission_type ?? 'percent');
+    $preparedData['agency_commission_type'] = $agencyCommissionType; // Garante que seja setado
 
-        if ($bookerCommissionType === 'percent') {
-            $preparedData['booker_commission_rate'] = $bookerCommissionInputValue;
-            $preparedData['booker_commission_value'] = null;
-        } elseif ($bookerCommissionType === 'fixed') {
-            $preparedData['booker_commission_rate'] = null;
-            $preparedData['booker_commission_value'] = $bookerCommissionInputValue;
-        } else {
-            $preparedData['booker_commission_rate'] = $existingGig?->booker_commission_rate; // Mantém existente se não especificado
-            $preparedData['booker_commission_value'] = $existingGig?->booker_commission_value;
-        }
-        // Log::info('Booker Commission Processada:', [ 'type' => $preparedData['booker_commission_type'], 'rate' => $preparedData['booker_commission_rate'], 'value' => $preparedData['booker_commission_value'] ]);
+    // O campo 'agency_commission_value' do form é usado tanto para taxa (%) quanto para valor fixo.
+    $agencyCommissionInputValue = $preparedData['agency_commission_value'] ?? null;
 
-        // --- Agency Commission ---
-        $agencyCommissionType = $preparedData['agency_commission_type'] ?? ($existingGig?->agency_commission_type ?? 'percent');
-        // Se o input 'agency_commission_value' do form for usado para a taxa % ou valor fixo:
-        $agencyCommissionInputValue = $preparedData['agency_commission_value'] ?? ($agencyCommissionType === 'percent' ? ($existingGig?->agency_commission_rate ?? 20.00) : $existingGig?->agency_commission_value);
-
-        if ($agencyCommissionType === 'percent') {
-            $preparedData['agency_commission_rate'] = $agencyCommissionInputValue;
-            $preparedData['agency_commission_value'] = null;
-        } elseif ($agencyCommissionType === 'fixed') {
-            $preparedData['agency_commission_rate'] = null;
-            $preparedData['agency_commission_value'] = $agencyCommissionInputValue;
-        } else {
-             // Mantém existente ou default da migration/modelo se nenhum tipo for passado
-            $preparedData['agency_commission_rate'] = $preparedData['agency_commission_rate'] ?? $existingGig?->agency_commission_rate ?? 20.00; // Default 20%
-            $preparedData['agency_commission_value'] = $preparedData['agency_commission_value'] ?? $existingGig?->agency_commission_value ?? null;
-            $preparedData['agency_commission_type'] = $preparedData['agency_commission_type'] ?? 'percent';
-        }
-        // Log::info('Agency Commission Processada:', [ 'type' => $preparedData['agency_commission_type'], 'rate' => $preparedData['agency_commission_rate'], 'value' => $preparedData['agency_commission_value'] ]);
-
-        // Liquid commission é sempre calculado pelo Accessor
-        if (Schema::hasColumn('gigs', 'liquid_commission_value')) {
-             $preparedData['liquid_commission_value'] = null;
-        }
-
-        Log::info('Data preparada FINAL para salvar:', $preparedData);
-        return $preparedData;
+    if (strtoupper($agencyCommissionType) === 'PERCENT') {
+        $preparedData['agency_commission_rate'] = $agencyCommissionInputValue ?? ($existingGig?->agency_commission_rate ?? 20.00); // Default 20% se valor nulo
+        $preparedData['agency_commission_value'] = null; // Limpa o valor fixo
+    } elseif (strtoupper($agencyCommissionType) === 'FIXED') {
+        $preparedData['agency_commission_rate'] = null; // Limpa a taxa
+        $preparedData['agency_commission_value'] = $agencyCommissionInputValue;
+    } else {
+        // Caso inválido ou não definido, poderia resetar para um default seguro ou manter existente
+        $preparedData['agency_commission_type'] = $existingGig?->agency_commission_type ?? 'percent';
+        $preparedData['agency_commission_rate'] = $existingGig?->agency_commission_rate ?? 20.00;
+        $preparedData['agency_commission_value'] = $existingGig?->agency_commission_value;
     }
+    Log::info('Agency Commission Processada:', [
+        'type_input' => $validatedData['agency_commission_type'] ?? 'N/A',
+        'value_input' => $validatedData['agency_commission_value'] ?? 'N/A',
+        'type_final' => $preparedData['agency_commission_type'],
+        'rate_final' => $preparedData['agency_commission_rate'],
+        'value_final' => $preparedData['agency_commission_value']
+    ]);
+
+    // --- Booker Commission ---
+    $bookerCommissionType = $preparedData['booker_commission_type'] ?? null; // Pode vir nulo se "Nenhuma"
+    $preparedData['booker_commission_type'] = $bookerCommissionType;
+
+    $bookerCommissionInputValue = $preparedData['booker_commission_value'] ?? null;
+
+    if (strtoupper($bookerCommissionType ?? '') === 'PERCENT') {
+        $preparedData['booker_commission_rate'] = $bookerCommissionInputValue ?? ($existingGig?->booker_commission_rate ?? ($preparedData['booker_id'] ? 5.00 : null)); // Default 5% se booker_id e valor nulo
+        $preparedData['booker_commission_value'] = null;
+    } elseif (strtoupper($bookerCommissionType ?? '') === 'FIXED') {
+        $preparedData['booker_commission_rate'] = null;
+        $preparedData['booker_commission_value'] = $bookerCommissionInputValue;
+    } else { // Nenhuma ou tipo inválido
+        $preparedData['booker_commission_type'] = null; // Garante que seja null
+        $preparedData['booker_commission_rate'] = null;
+        $preparedData['booker_commission_value'] = null;
+    }
+    Log::info('Booker Commission Processada:', [
+        'type_input' => $validatedData['booker_commission_type'] ?? 'N/A',
+        'value_input' => $validatedData['booker_commission_value'] ?? 'N/A',
+        'type_final' => $preparedData['booker_commission_type'],
+        'rate_final' => $preparedData['booker_commission_rate'],
+        'value_final' => $preparedData['booker_commission_value']
+    ]);
+
+    // Liquid commission é sempre calculado pelo Observer/Accessor
+    if (Schema::hasColumn('gigs', 'liquid_commission_value')) {
+         $preparedData['liquid_commission_value'] = null; // Deixa o observer/accessor calcular
+    }
+
+    Log::info('Data preparada FINAL para salvar (prepareGigData):', $preparedData);
+    return $preparedData;
+}
     
     
 
