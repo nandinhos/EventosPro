@@ -86,15 +86,16 @@ class GigController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
-{
-    return view('gigs.create', [
-        'artists' => Artist::orderBy('name')->get()->pluck('name', 'id'),
-        'bookers' => Booker::orderBy('name')->get()->pluck('name', 'id'),
-        'costCenters' => CostCenter::orderBy('name')->get()->pluck('name', 'id'),
-        'tags' => Tag::orderBy('name')->get(),
-    ]);
-}
+    public function create(Request $request): View
+    {
+        $artists = Artist::orderBy('name')->pluck('name', 'id');
+        $bookers = Booker::orderBy('name')->pluck('name', 'id');
+        $tags = Tag::orderBy('name')->get()->groupBy('type');
+        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id'); // Adicionar esta linha
+        $backUrlParams = $request->session()->get('gig_index_url_params', []);
+
+        return view('gigs.create', compact('artists', 'bookers', 'tags', 'costCenters', 'backUrlParams')); // Adicionar 'costCenters'
+    }
 
     /**
      * Store a newly created resource in storage.
@@ -154,16 +155,17 @@ class GigController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Gig $gig)
-{
-    return view('gigs.edit', [
-        'gig' => $gig->load('tags'),
-        'artists' => Artist::orderBy('name')->get()->pluck('name', 'id'),
-        'bookers' => Booker::orderBy('name')->get()->pluck('name', 'id'),
-        'costCenters' => CostCenter::orderBy('name')->get()->pluck('name', 'id'),
-        'tags' => Tag::orderBy('name')->get(),
-    ]);
-}
+    public function edit(Gig $gig, Request $request): View
+    {
+        $artists = Artist::orderBy('name')->pluck('name', 'id');
+        $bookers = Booker::orderBy('name')->pluck('name', 'id');
+        $tags = Tag::orderBy('name')->get()->groupBy('type');
+        $selectedTags = $gig->tags()->pluck('id')->toArray();
+        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id'); // Adicionar esta linha
+        $backUrlParams = $request->session()->get('gig_index_url_params', []);
+
+        return view('gigs.edit', compact('gig', 'artists', 'bookers', 'tags', 'selectedTags', 'costCenters', 'backUrlParams')); // Adicionar 'costCenters'
+    }
 
     /**
      * Update the specified resource in storage.

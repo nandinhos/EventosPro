@@ -21,7 +21,7 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('tabs', () => ({
         tabsOrder: ['contract', 'event', 'costs', 'commissions', 'tags'],
         activeTab: 'contract',
-        pageTitle: '{{ $submitLabel ?? 'Nova Gig' }}',
+        pageTitle: '',
         nextTab() {
             const currentIndex = this.tabsOrder.indexOf(this.activeTab);
             if (currentIndex < this.tabsOrder.length - 1) {
