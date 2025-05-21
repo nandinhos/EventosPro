@@ -206,8 +206,8 @@
             <select id="agency_commission_type" name="agency_commission_type"
                     x-model="agencyType"
                     class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('agency_commission_type') border-red-500 dark:border-red-600 @enderror">
-                <option value="percent">Percentual (%)</option>
-                <option value="fixed">Valor Fixo (BRL)</option>
+                <option value="percent" {{ old('agency_commission_type') == 'percent' ? 'selected' : '' }}>Percentual (%)</option>
+<option value="fixed" {{ old('agency_commission_type') == 'fixed' ? 'selected' : '' }}>Valor Fixo (BRL)</option>
             </select>
             @error('agency_commission_type') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
         </div>
@@ -230,8 +230,8 @@
             <select id="booker_commission_type" name="booker_commission_type"
                     x-model="bookerType"
                     class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('booker_commission_type') border-red-500 dark:border-red-600 @enderror">
-                <option value="percent">Percentual (%)</option>
-                <option value="fixed">Valor Fixo (BRL)</option>
+                <option value="percent" {{ old('agency_commission_type') == 'percent' ? 'selected' : '' }}>Percentual (%)</option>
+<option value="fixed" {{ old('agency_commission_type') == 'fixed' ? 'selected' : '' }}>Valor Fixo (BRL)</option>
             </select>
             @error('booker_commission_type') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
         </div>

@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema; // Para Schema::hasColumn
 use Carbon\Carbon; // Para datas
+use App\Models\CostCenter; // Importar o modelo CostCenter
+
 
 class GigController extends Controller
 {
@@ -84,40 +86,48 @@ class GigController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(Request $request): View
-    {
-        $artists = Artist::orderBy('name')->pluck('name', 'id');
-        $bookers = Booker::orderBy('name')->pluck('name', 'id');
-        $tags = Tag::orderBy('name')->get()->groupBy('type');
-        $backUrlParams = $request->session()->get('gig_index_url_params', []); // Para "Cancelar"
-
-        return view('gigs.create', compact('artists', 'bookers', 'tags', 'backUrlParams'));
-    }
+    public function create()
+{
+    return view('gigs.create', [
+        'artists' => Artist::orderBy('name')->get()->pluck('name', 'id'),
+        'bookers' => Booker::orderBy('name')->get()->pluck('name', 'id'),
+        'costCenters' => CostCenter::orderBy('name')->get()->pluck('name', 'id'),
+        'tags' => Tag::orderBy('name')->get(),
+    ]);
+}
 
     /**
      * Store a newly created resource in storage.
      */
     public function store(StoreGigRequest $request): RedirectResponse
-    {
-        $validated = $request->validated();
-        DB::beginTransaction();
-        try {
-            Log::info('Store - Validated Data:', $validated);
-            $preparedData = $this->prepareGigData($validated, null); // Passa null para $existingGig
-            Log::info('Store - Prepared Data for Create:', $preparedData);
+{
+    DB::beginTransaction();
+    try {
+        // Cria a Gig
+        $gig = Gig::create($request->validated());
 
-            $gig = Gig::create($preparedData);
-            if ($request->filled('tags')) {
-                $gig->tags()->sync($request->input('tags'));
+        // Salva as despesas relacionadas
+        if ($request->filled('cost_center_id')) {
+            foreach ($request->input('cost_center_id') as $index => $costCenterId) {
+                $gig->costs()->create([
+                    'cost_center_id' => $costCenterId,
+                    'description' => $request->input("description.$index"),
+                    'value' => $request->input("value.$index"),
+                    'currency' => $request->input('currency', 'BRL'),
+                    'is_confirmed' => true,
+                ]);
             }
-            DB::commit();
-            return redirect()->route('gigs.index')->with('success', 'Gig criada com sucesso!');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erro ao criar Gig: ' . $e->getMessage(), ['exception' => $e, 'data' => $validated]);
-            return back()->withInput()->with('error', 'Erro ao criar a Gig: ' . $e->getMessage());
         }
+
+        DB::commit();
+
+        return redirect()->route('gigs.index')->with('success', 'Gig criada com sucesso!');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Erro ao salvar Gig: ' . $e->getMessage());
+        return back()->withInput()->with('error', 'Erro ao criar gig.');
     }
+}
 
     /**
      * Display the specified resource.
@@ -144,43 +154,51 @@ class GigController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Gig $gig, Request $request): View
-    {
-        $artists = Artist::orderBy('name')->pluck('name', 'id');
-        $bookers = Booker::orderBy('name')->pluck('name', 'id');
-        $tags = Tag::orderBy('name')->get()->groupBy('type');
-        $selectedTags = $gig->tags()->pluck('id')->toArray();
-        $backUrlParams = $request->session()->get('gig_index_url_params', []);
-
-        return view('gigs.edit', compact('gig', 'artists', 'bookers', 'tags', 'selectedTags', 'backUrlParams'));
-    }
+    public function edit(Gig $gig)
+{
+    return view('gigs.edit', [
+        'gig' => $gig->load('tags'),
+        'artists' => Artist::orderBy('name')->get()->pluck('name', 'id'),
+        'bookers' => Booker::orderBy('name')->get()->pluck('name', 'id'),
+        'costCenters' => CostCenter::orderBy('name')->get()->pluck('name', 'id'),
+        'tags' => Tag::orderBy('name')->get(),
+    ]);
+}
 
     /**
      * Update the specified resource in storage.
      */
     public function update(UpdateGigRequest $request, Gig $gig): RedirectResponse
-    {
-        $validated = $request->validated();
-        $backParams = $request->input('backParams', []); // Pega do form se existir
+{
+    DB::beginTransaction();
+    try {
+        // Atualiza os dados da Gig
+        $gig->update($request->validated());
 
-        DB::beginTransaction();
-        try {
-            Log::info("Update - Validated Data for Gig ID {$gig->id}:", $validated);
-            // Chama prepareGigData APENAS UMA VEZ
-            $preparedData = $this->prepareGigData($validated, $gig);
-            Log::info("Update - Prepared Data for Gig ID {$gig->id}:", $preparedData);
+        // Atualiza ou cria despesas
+        if ($request->has('cost_center_id')) {
+            $gig->costs()->delete(); // Limpa anteriores
 
-            $gig->update($preparedData);
-            $gig->tags()->sync($request->input('tags', []));
-            DB::commit();
-
-            return redirect()->route('gigs.index', $backParams)->with('success', 'Gig atualizada com sucesso!');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erro ao atualizar Gig: ' . $e->getMessage(), ['exception' => $e, 'gig_id' => $gig->id, 'data' => $validated]);
-            return back()->withInput()->withErrors(['error_update' => 'Erro ao atualizar a Gig: ' . $e->getMessage()])->with('backUrlParams', $backParams);
+            foreach ($request->input('cost_center_id') as $index => $costCenterId) {
+                $gig->costs()->create([
+                    'cost_center_id' => $costCenterId,
+                    'description' => $request->input("description.$index"),
+                    'value' => $request->input("value.$index"),
+                    'currency' => $request->input('currency', 'BRL'),
+                    'is_confirmed' => true,
+                ]);
+            }
         }
+
+        DB::commit();
+
+        return redirect()->route('gigs.edit', $gig)->with('success', 'Gig atualizada com sucesso!');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Erro ao atualizar Gig: ' . $e->getMessage());
+        return back()->withInput()->with('error', 'Erro ao atualizar gig.');
     }
+}
 
     /**
      * Remove the specified resource from storage.

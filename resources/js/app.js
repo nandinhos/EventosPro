@@ -16,3 +16,23 @@ Alpine.start();
 // Você pode inicializar gráficos aqui ou em componentes Alpine específicos
 // Exemplo: document.addEventListener('livewire:init', () => { /* inicializar gráficos */ });
 // Ou diretamente em <canvas x-init="...">                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+
+document.addEventListener('alpine:init', () => {
+    Alpine.data('tabs', () => ({
+        tabsOrder: ['contract', 'event', 'costs', 'commissions', 'tags'],
+        activeTab: 'contract',
+        pageTitle: '{{ $submitLabel ?? 'Nova Gig' }}',
+        nextTab() {
+            const currentIndex = this.tabsOrder.indexOf(this.activeTab);
+            if (currentIndex < this.tabsOrder.length - 1) {
+                this.activeTab = this.tabsOrder[currentIndex + 1];
+            }
+        },
+        previousTab() {
+            const currentIndex = this.tabsOrder.indexOf(this.activeTab);
+            if (currentIndex > 0) {
+                this.activeTab = this.tabsOrder[currentIndex - 1];
+            }
+        }
+    }));
+});
