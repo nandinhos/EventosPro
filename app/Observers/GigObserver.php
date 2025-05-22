@@ -3,207 +3,101 @@
 namespace App\Observers;
 
 use App\Models\Gig;
+use App\Services\GigFinancialCalculatorService;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
 
 class GigObserver
 {
+    protected GigFinancialCalculatorService $financialCalculator;
+
+    public function __construct()
+    {
+        $this->financialCalculator = App::make(GigFinancialCalculatorService::class);
+    }
+
     /**
      * Handle the Gig "saving" event.
-     * Este método é chamado automaticamente pelo Laravel tanto para create quanto para update,
-     * interceptando a operação antes da persistência no banco de dados.
+     * ANTES de uma Gig ser criada ou atualizada.
      *
-     * Responsabilidades:
-     * 1. Calcular e atualizar a comissão da agência (quando baseada em percentual)
-     * 2. Calcular e atualizar a comissão do booker (quando baseada em percentual)
-     * 3. Calcular e atualizar a comissão líquida (diferença entre comissão da agência e do booker)
-     * 4. Registrar logs para auditoria de alterações significativas
-     *
-     * @param Gig $gig Instância do modelo Gig que está sendo salvo
+     * @param  \App\Models\Gig  $gig
+     * @return void
      */
     public function saving(Gig $gig): void
     {
-        try {
-            // Obtém todas as despesas da Gig
-            $allExpenses = $gig->costs()->get();
-            $confirmedExpenses = $allExpenses->where('is_confirmed', true);
-            $unconfirmedExpenses = $allExpenses->where('is_confirmed', false);
+        Log::info("[GigObserver@saving] Iniciando para Gig ID: " . ($gig->id ?? 'NOVA GIG'));
 
-            // Log dos valores iniciais com detalhamento das despesas
-            Log::info('Iniciando cálculo de comissões', [
-                'gig_id' => $gig->id ?? 'novo',
-                'cache_value' => $gig->cache_value,
-                'currency' => $gig->currency,
-                'cache_value_brl' => $gig->cache_value_brl,
-                'despesas' => [
-                    'confirmadas' => $confirmedExpenses->map(function($expense) {
-                        return [
-                            'id' => $expense->id,
-                            'descricao' => $expense->description,
-                            'valor' => $expense->value,
-                            'centro_custo' => $expense->costCenter->name ?? 'N/A',
-                            'data_confirmacao' => $expense->confirmed_at
-                        ];
-                    }),
-                    'nao_confirmadas' => $unconfirmedExpenses->map(function($expense) {
-                        return [
-                            'id' => $expense->id,
-                            'descricao' => $expense->description,
-                            'valor' => $expense->value,
-                            'centro_custo' => $expense->costCenter->name ?? 'N/A'
-                        ];
-                    }),
-                    'total_confirmadas' => $gig->confirmed_expenses_total_brl,
-                ],
-                'net_cache_value' => $gig->net_cache_value_brl,
-                'commission_base' => $gig->commission_base_brl
-            ]);
+        // Captura os valores de INPUT que vieram do formulário para comissões.
+        // $gig->agency_commission_value e $gig->booker_commission_value contêm
+        // a TAXA (se tipo percentual) ou o VALOR FIXO (se tipo fixo) digitado pelo usuário.
+        $agencyCommissionInputValue = $gig->agency_commission_value;
+        $bookerCommissionInputValue = $gig->booker_commission_value;
 
-
-            // Armazena os valores originais para log
-            $originalAgencyCommission = $gig->agency_commission_value;
-            $originalBookerCommission = $gig->booker_commission_value;
-            $originalLiquidCommission = $gig->liquid_commission_value;
-
-            // Calcula e atualiza a comissão da agência se for do tipo percentual
-            // Calcula a comissão da agência
-            if (strtoupper($gig->agency_commission_type ?? '') === 'PERCENT' && isset($gig->agency_commission_rate)) {
-                $base = $gig->commission_base_brl;
-                $taxa = $gig->agency_commission_rate;
-                $valor_calculado = ($base * $taxa) / 100;
-                $gig->agency_commission_value = $valor_calculado;
-                
-                Log::info('Comissão da agência calculada', [
-                    'gig_id' => $gig->id ?? 'novo',
-                    'tipo' => 'percentual',
-                    'taxa' => $taxa,
-                    'valor_calculado' => $valor_calculado,
-                    'base_calculo' => $base
-                ]);
-            } else {
-                Log::info('Comissão da agência mantida fixa', [
-                    'gig_id' => $gig->id ?? 'novo',
-                    'tipo' => $gig->agency_commission_type,
-                    'valor_fixo' => $gig->agency_commission_value
-                ]);
-            }
-
-            // Calcula a comissão do booker
-            if (strtoupper($gig->booker_commission_type ?? '') === 'PERCENT' && isset($gig->booker_commission_rate)) {
-                $base = $gig->commission_base_brl;
-                $taxa = $gig->booker_commission_rate;
-                $valor_calculado = ($base * $taxa) / 100;
-                $gig->booker_commission_value = $valor_calculado;
-                
-                Log::info('Comissão do booker calculada', [
-                    'gig_id' => $gig->id ?? 'novo',
-                    'tipo' => 'percentual',
-                    'taxa' => $taxa,
-                    'valor_calculado' => $valor_calculado,
-                    'base_calculo' => $base
-                ]);
-            } else {
-                Log::info('Comissão do booker mantida fixa', [
-                    'gig_id' => $gig->id ?? 'novo',
-                    'tipo' => $gig->booker_commission_type,
-                    'valor_fixo' => $gig->booker_commission_value
-                ]);
-            }
-
-            // Calcula a comissão líquida
-            $gig->liquid_commission_value = ($gig->agency_commission_value ?? 0) - ($gig->booker_commission_value ?? 0);
-            Log::info('Valores finais das comissões calculados', [
-                'gig_id' => $gig->id ?? 'novo',
-                'agency_commission' => [
-                    'anterior' => $gig->getOriginal('agency_commission_value'),
-                    'atual' => $gig->agency_commission_value,
-                    'diferenca' => ($gig->agency_commission_value ?? 0) - ($gig->getOriginal('agency_commission_value') ?? 0)
-                ],
-                'booker_commission' => [
-                    'anterior' => $gig->getOriginal('booker_commission_value'),
-                    'atual' => $gig->booker_commission_value,
-                    'diferenca' => ($gig->booker_commission_value ?? 0) - ($gig->getOriginal('booker_commission_value') ?? 0)
-                ],
-                'liquid_commission' => [
-                    'anterior' => $gig->getOriginal('liquid_commission_value'),
-                    'atual' => $gig->liquid_commission_value,
-                    'diferenca' => ($gig->liquid_commission_value ?? 0) - ($gig->getOriginal('liquid_commission_value') ?? 0)
-                ]
-            ]);
-
-            // Calcula e atualiza a comissão do booker se for do tipo percentual
-            // Calcula a comissão do booker apenas se ainda não foi calculada
-            if (!isset($gig->booker_commission_value) && strtoupper($gig->booker_commission_type ?? '') === 'PERCENT' && isset($gig->booker_commission_rate)) {
-                $base = $gig->commission_base_brl;
-                $taxa = $gig->booker_commission_rate;
-                $valor_calculado = ($base * $taxa) / 100;
-                $gig->booker_commission_value = $valor_calculado;
-                
-                Log::info('Comissão do booker calculada', [
-                    'gig_id' => $gig->id ?? 'novo',
-                    'tipo' => 'percentual',
-                    'taxa' => $taxa,
-                    'valor_calculado' => $valor_calculado,
-                    'base_calculo' => $base
-                ]);
-            } else {
-                Log::info('Comissão do booker mantida', [
-                    'gig_id' => $gig->id ?? 'novo',
-                    'tipo' => $gig->booker_commission_type,
-                    'valor' => $gig->booker_commission_value
-                ]);
-            }
-
-            // Calcula e atualiza a comissão líquida (sempre calculada, pois depende das outras comissões)
-            $gig->liquid_commission_value = $gig->getLiquidCommissionValueAttribute(null);
-
-            // Registra log das alterações nos valores das comissões
-            Log::info('Valores finais das comissões calculados', [
-                'gig_id' => $gig->id ?? 'novo',
-                'agency_commission' => [
-                    'anterior' => $originalAgencyCommission,
-                    'atual' => $gig->agency_commission_value,
-                    'diferenca' => $gig->agency_commission_value - ($originalAgencyCommission ?? 0)
-                ],
-                'booker_commission' => [
-                    'anterior' => $originalBookerCommission,
-                    'atual' => $gig->booker_commission_value,
-                    'diferenca' => $gig->booker_commission_value - ($originalBookerCommission ?? 0)
-                ],
-                'liquid_commission' => [
-                    'anterior' => $originalLiquidCommission,
-                    'atual' => $gig->liquid_commission_value,
-                    'diferenca' => $gig->liquid_commission_value - ($originalLiquidCommission ?? 0)
-                ]
-            ]);
-            if ($originalAgencyCommission !== $gig->agency_commission_value ||
-                $originalBookerCommission !== $gig->booker_commission_value ||
-                $originalLiquidCommission !== $gig->liquid_commission_value) {
-                
-                Log::info('Valores de comissão atualizados', [
-                    'gig_id' => $gig->id,
-                    'alterações' => [
-                        'comissão_agência' => [
-                            'anterior' => $originalAgencyCommission,
-                            'novo' => $gig->agency_commission_value
-                        ],
-                        'comissão_booker' => [
-                            'anterior' => $originalBookerCommission,
-                            'novo' => $gig->booker_commission_value
-                        ],
-                        'comissão_líquida' => [
-                            'anterior' => $originalLiquidCommission,
-                            'novo' => $gig->liquid_commission_value
-                        ]
-                    ]
-                ]);
-            }
-        } catch (\Exception $e) {
-            // Registra qualquer erro durante o cálculo das comissões
-            Log::error('Erro ao calcular comissões', [
-                'gig_id' => $gig->id ?? 'novo',
-                'erro' => $e->getMessage()
-            ]);
-            throw $e; // Relança a exceção para que o Laravel possa tratá-la
+        // Prepara os atributos da Gig para o Service
+        if (strtoupper($gig->agency_commission_type ?? '') === 'PERCENT') {
+            $gig->agency_commission_rate = (float) $agencyCommissionInputValue;
+             // $gig->agency_commission_value será sobrescrito pelo valor BRL calculado
+        } else { // FIXED ou não definido
+            $gig->agency_commission_rate = null;
+            // $gig->agency_commission_value já contém o valor fixo do input para o service usar
         }
+
+        if (strtoupper($gig->booker_commission_type ?? '') === 'PERCENT') {
+            $gig->booker_commission_rate = (float) $bookerCommissionInputValue;
+        } else { // FIXED ou não definido
+            $gig->booker_commission_rate = null;
+        }
+
+        Log::debug("[GigObserver@saving] Gig APÓS preparar rates/fixed_values para o Service:", [
+            'id' => $gig->id ?? 'NOVA',
+            'agency_type' => $gig->agency_commission_type,
+            'agency_rate_para_service' => $gig->agency_commission_rate,
+            'agency_fixed_value_para_service' => (strtoupper($gig->agency_commission_type ?? '') !== 'PERCENT') ? $agencyCommissionInputValue : null,
+            'booker_type' => $gig->booker_commission_type,
+            'booker_rate_para_service' => $gig->booker_commission_rate,
+            'booker_fixed_value_para_service' => (strtoupper($gig->booker_commission_type ?? '') !== 'PERCENT') ? $bookerCommissionInputValue : null,
+        ]);
+
+        // Chama o Service para calcular os VALORES FINAIS EM BRL das comissões
+        // O Service usará os $gig->agency_commission_rate, $gig->booker_commission_rate,
+        // $gig->agency_commission_value (como fixo de input), $gig->booker_commission_value (como fixo de input)
+        // que acabamos de preparar.
+        $calculatedAgencyGrossCommissionBrl = $this->financialCalculator->calculateAgencyGrossCommissionBrl($gig);
+        $calculatedBookerCommissionBrl = $this->financialCalculator->calculateBookerCommissionBrl($gig);
+        $calculatedAgencyNetCommissionBrl = $this->financialCalculator->calculateAgencyNetCommissionBrl($gig);
+
+        // Atribui os valores CALCULADOS EM BRL aos campos para persistência
+        $gig->agency_commission_value = $calculatedAgencyGrossCommissionBrl;
+        $gig->booker_commission_value = $calculatedBookerCommissionBrl;
+        $gig->liquid_commission_value = $calculatedAgencyNetCommissionBrl;
+
+        Log::info("[GigObserver@saving] Gig ID: " . ($gig->id ?? 'NOVA') .
+            " - Com. Ag. Bruta BRL (Salvar): {$gig->agency_commission_value}");
+        Log::info("[GigObserver@saving] Gig ID: " . ($gig->id ?? 'NOVA') .
+            " - Com. Booker BRL (Salvar): {$gig->booker_commission_value}");
+        Log::info("[GigObserver@saving] Gig ID: " . ($gig->id ?? 'NOVA') .
+            " - Com. Líquida Ag. BRL (Salvar): {$gig->liquid_commission_value}");
+
+        if ($gig->isDirty()) {
+            Log::info("[GigObserver@saving] Alterações na Gig ID: " . ($gig->id ?? 'NOVA') . " prestes a serem salvas:", $gig->getDirty());
+        }
+    }
+
+    public function created(Gig $gig): void
+    {
+        Log::info("[GigObserver@created] Gig ID: {$gig->id} criada com sucesso.");
+    }
+
+    public function updated(Gig $gig): void
+    {
+        Log::info("[GigObserver@updated] Gig ID: {$gig->id} atualizada com sucesso.");
+        if ($gig->wasChanged()) {
+            Log::debug("[GigObserver@updated] Campos alterados: ", $gig->getChanges());
+        }
+    }
+
+    public function deleted(Gig $gig): void
+    {
+        Log::info("[GigObserver@deleted] Gig ID: {$gig->id} excluída (soft delete).");
     }
 }

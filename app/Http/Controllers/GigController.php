@@ -6,7 +6,9 @@ use App\Models\Gig;
 use App\Models\Artist;
 use App\Models\Booker;
 use App\Models\Tag;
-use App\Models\ActivityLog; // Importar se usar diretamente
+use App\Models\CostCenter;
+use App\Models\GigCost; // Adicionado para manipulação direta
+use App\Models\ActivityLog;
 use App\Http\Requests\StoreGigRequest;
 use App\Http\Requests\UpdateGigRequest;
 use Illuminate\Http\Request;
@@ -14,10 +16,12 @@ use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema; // Para Schema::hasColumn
-use Carbon\Carbon; // Para datas
-use App\Models\CostCenter; // Importar o modelo CostCenter
-
+use Illuminate\Support\Facades\Schema;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\App; // Adicionado para usar o App::make()
+// O GigFinancialCalculatorService não é chamado diretamente pelo controller para salvar,
+// pois o GigObserver já faz esse papel. Mas pode ser usado para buscar dados para a view, se necessário.
+use App\Services\GigFinancialCalculatorService;
 
 class GigController extends Controller
 {
@@ -26,6 +30,8 @@ class GigController extends Controller
      */
     public function index(Request $request): View
     {
+        // Lógica do Index (já revisada anteriormente e parece OK)
+        // (mantém a lógica de ordenação e filtros)
         $sortableColumns = [
             'gig_date', 'cache_value', 'currency', 'payment_status',
             'artist_payment_status', 'booker_payment_status', 'contract_status',
@@ -50,6 +56,7 @@ class GigController extends Controller
                   ->orWhere('bookers.name', 'like', "%{$searchTerm}%");
             });
         }
+        // ... (outros filtros como payment_status, artist_id, booker_id, datas, currency) ...
         if ($request->filled('payment_status')) { $query->where('gigs.payment_status', $request->input('payment_status')); }
         if ($request->filled('artist_id')) { $query->where('gigs.artist_id', $request->input('artist_id')); }
         if ($request->filled('booker_id')) {
@@ -60,23 +67,23 @@ class GigController extends Controller
         if ($request->filled('end_date')) { $query->where('gigs.gig_date', '<=', $request->input('end_date')); }
         if ($request->filled('currency') && $request->input('currency') !== 'all') { $query->where('gigs.currency', $request->input('currency'));}
 
+
         $orderByColumn = match ($sortBy) {
-            'artist_name' => 'artists.name', 'booker_name' => 'bookers.name',
-            'gig_date', 'cache_value', 'currency', 'payment_status', 'artist_payment_status',
-            'booker_payment_status', 'contract_status', 'created_at', 'location_event_details' => 'gigs.' . $sortBy,
-            default => 'gigs.gig_date',
+            'artist_name' => 'artists.name',
+            'booker_name' => 'bookers.name',
+            default => 'gigs.' . $sortBy,
         };
         $query->orderBy($orderByColumn, $sortDirection);
 
         $gigs = $query->paginate(25)->withQueryString();
-        $artistsData = Artist::orderBy('name')->pluck('name', 'id'); // Renomeado para não conflitar com $artists na view
-        $bookersData = Booker::orderBy('name')->pluck('name', 'id'); // Renomeado
+        $artistsData = Artist::orderBy('name')->pluck('name', 'id');
+        $bookersData = Booker::orderBy('name')->pluck('name', 'id');
         $currencies = DB::table('gigs')->select('currency')->distinct()->orderBy('currency')->pluck('currency');
 
         return view('gigs.index', [
             'gigs' => $gigs,
-            'artists' => $artistsData, // Passa como 'artists'
-            'bookers' => $bookersData, // Passa como 'bookers'
+            'artists' => $artistsData,
+            'bookers' => $bookersData,
             'currencies' => $currencies,
             'sortBy' => $sortBy,
             'sortDirection' => $sortDirection
@@ -88,68 +95,123 @@ class GigController extends Controller
      */
     public function create(Request $request): View
     {
+        //
         $artists = Artist::orderBy('name')->pluck('name', 'id');
         $bookers = Booker::orderBy('name')->pluck('name', 'id');
-        $tags = Tag::orderBy('name')->get()->groupBy('type');
-        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id'); // Adicionar esta linha
+        $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type'); // Ajustado para ordenar por tipo e nome
+        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
 
-        return view('gigs.create', compact('artists', 'bookers', 'tags', 'costCenters', 'backUrlParams')); // Adicionar 'costCenters'
+        return view('gigs.create', compact('artists', 'bookers', 'tags', 'costCenters', 'backUrlParams'));
     }
 
     /**
      * Store a newly created resource in storage.
      */
     public function store(StoreGigRequest $request): RedirectResponse
-{
-    DB::beginTransaction();
-    try {
-        // Cria a Gig
-        $gig = Gig::create($request->validated());
+    {
+        $validatedGigData = $request->safe()->except('expenses', 'tags', 'backParams'); // Pega dados validados da Gig
+        $expensesData = $request->validated('expenses', []); // Pega dados validados das despesas
+        $tagsIds = $request->validated('tags', []); // Pega IDs das tags
+        $backParams = $request->input('backParams', []); // Pega os parâmetros de volta
 
-        // Salva as despesas relacionadas
-        if ($request->filled('cost_center_id')) {
-            foreach ($request->input('cost_center_id') as $index => $costCenterId) {
-                $gig->costs()->create([
-                    'cost_center_id' => $costCenterId,
-                    'description' => $request->input("description.$index"),
-                    'value' => $request->input("value.$index"),
-                    'currency' => $request->input('currency', 'BRL'),
-                    'is_confirmed' => true,
-                ]);
+        DB::beginTransaction();
+        try {
+            // O GigObserver (via método saving) cuidará de calcular e setar
+            // agency_commission_value, booker_commission_value, liquid_commission_value
+            // com base nos tipos e taxas/valores informados no $validatedGigData.
+            $gig = Gig::create($validatedGigData);
+            Log::info("[GigController@store] Gig ID: {$gig->id} criada. Processando despesas e tags...");
+
+            // Sincronizar Tags
+            if (!empty($tagsIds)) {
+                $gig->tags()->sync($tagsIds);
+                Log::info("[GigController@store] Tags sincronizadas para Gig ID: {$gig->id}.");
             }
+
+            // Criar Despesas (GigCosts)
+            if (!empty($expensesData)) {
+                foreach ($expensesData as $expenseItem) {
+                    if (isset($expenseItem['_deleted']) && $expenseItem['_deleted']) {
+                        continue; // Pular despesas marcadas para exclusão no formulário de criação (não deveria acontecer)
+                    }
+                    $gig->costs()->create([
+                        'cost_center_id' => $expenseItem['cost_center_id'],
+                        'description'    => $expenseItem['description'] ?? null,
+                        'value'          => $expenseItem['value'],
+                        'currency'       => $expenseItem['currency'] ?? 'BRL',
+                        'expense_date'   => $expenseItem['expense_date'] ?? null,
+                        'notes'          => $expenseItem['notes'] ?? null,
+                        'is_confirmed'   => $expenseItem['is_confirmed'] ?? false, // Default false
+                        'is_invoice'     => $expenseItem['is_invoice'] ?? false,   // Default false
+                    ]);
+                }
+                Log::info("[GigController@store] Despesas processadas para Gig ID: {$gig->id}.");
+            }
+
+            DB::commit();
+            Log::info("[GigController@store] Transação commitada para Gig ID: {$gig->id}.");
+
+            // Se a Gig foi salva e teve despesas, o GigCostObserver pode ter chamado $gig->save() novamente,
+            // o que é ok, pois o GigObserver::saving() é idempotente no sentido de recálculo.
+            return redirect()->route('gigs.show', ['gig' => $gig] + $backParams)->with('success', '🎉 Gig criada com sucesso!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("[GigController@store] Erro ao salvar Gig: " . $e->getMessage(), ['exception' => $e, 'data' => $request->all()]);
+            return back()->withInput()->with('error', '❌ Ops! Erro ao criar a gig. Verifique os dados e tente novamente.');
         }
-
-        DB::commit();
-
-        return redirect()->route('gigs.index')->with('success', 'Gig criada com sucesso!');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Erro ao salvar Gig: ' . $e->getMessage());
-        return back()->withInput()->with('error', 'Erro ao criar gig.');
     }
-}
 
     /**
      * Display the specified resource.
      */
-    public function show(Gig $gig, Request $request): View
+    public function show(Gig $gig, Request $request /*, GigFinancialCalculatorService $financialCalculator */ ): View // Service pode ser injetado se for usar aqui
     {
         // Salvar parâmetros da URL da index na sessão para o botão "Voltar"
+        // (lógica de salvar params da URL anterior)
         if ($request->hasAny(['search', 'payment_status', 'artist_id', 'booker_id', 'start_date', 'end_date', 'currency', 'sort_by', 'sort_direction', 'page'])) {
             $request->session()->put('gig_index_url_params', $request->query());
         }
-
-        $gig->load(['artist', 'booker', 'payments' => fn($q) => $q->orderBy('due_date', 'asc')->orderBy('id', 'asc'), 'settlement', 'tags', 'costs.costCenter', 'costs.confirmer']);
-        $totalReceivedOriginalCurrency = $gig->payments->where('confirmed_at', '!=', null)->where('currency', $gig->currency)->sum('received_value_actual');
-        $balanceOriginalCurrency = max(0, ($gig->cache_value ?? 0) - $totalReceivedOriginalCurrency);
-        $activityLogs = ActivityLog::where('subject_type', Gig::class)->where('subject_id', $gig->id)->latest()->paginate(10, ['*'], 'logs_page')->withQueryString();
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
 
-        return view('gigs.show', compact(
-            'gig', 'activityLogs', 'totalReceivedOriginalCurrency',
-            'balanceOriginalCurrency', 'backUrlParams'
-        ));
+
+        $gig->loadMissing(['artist', 'booker', 'payments' => fn($q) => $q->orderBy('due_date', 'asc')->orderBy('id', 'asc'), 'settlement', 'tags', 'costs.costCenter', 'costs.confirmer']);
+
+        // Calcular totais para exibição usando o service ou os accessors que usam o service
+        // Exemplo com os accessors já refatorados (que usam o service internamente):
+        $totalReceivedOriginalCurrency = 0;
+        if ($gig->currency) { // Garante que a gig tem uma moeda definida
+            $totalReceivedOriginalCurrency = $gig->payments
+                ->where('confirmed_at', '!=', null)
+                ->where('currency', $gig->currency) // Soma apenas pagamentos na moeda original da Gig
+                ->sum('received_value_actual');
+        }
+        $balanceOriginalCurrency = max(0, ($gig->cache_value ?? 0) - $totalReceivedOriginalCurrency);
+
+        // Para "Acertos Financeiros (Pagamentos Efetuados)"
+        // O GigFinancialCalculatorService pode ser usado aqui para fornecer os valores para a view de forma centralizada.
+        // Injetar o service no método ou resolver via App::make()
+        $financialCalculator = App::make(GigFinancialCalculatorService::class);
+        $viewData = [
+            'gig' => $gig,
+            'activityLogs' => ActivityLog::where('subject_type', Gig::class)->where('subject_id', $gig->id)->latest()->paginate(10, ['*'], 'logs_page')->withQueryString(),
+            'totalReceivedOriginalCurrency' => $totalReceivedOriginalCurrency,
+            'balanceOriginalCurrency' => $balanceOriginalCurrency,
+            'backUrlParams' => $backUrlParams,
+
+            // Valores calculados pelo service para a seção de acertos e NF
+            'calculatedGrossCashBrl' => $financialCalculator->calculateGrossCashBrl($gig),
+            'calculatedAgencyGrossCommissionBrl' => $financialCalculator->calculateAgencyGrossCommissionBrl($gig),
+            'calculatedArtistNetPayoutBrl' => $financialCalculator->calculateArtistNetPayoutBrl($gig),
+            'calculatedBookerCommissionBrl' => $financialCalculator->calculateBookerCommissionBrl($gig),
+            'calculatedAgencyNetCommissionBrl' => $financialCalculator->calculateAgencyNetCommissionBrl($gig),
+            'calculatedTotalConfirmedExpensesBrl' => $financialCalculator->calculateTotalConfirmedExpensesBrl($gig), // Para NF
+            'calculatedTotalReimbursableExpensesBrl' => $financialCalculator->calculateTotalReimbursableExpensesBrl($gig), // Para NF
+            'calculatedArtistInvoiceValueBrl' => $financialCalculator->calculateArtistInvoiceValueBrl($gig), // Para NF
+        ];
+
+        return view('gigs.show', $viewData);
     }
 
     /**
@@ -157,184 +219,151 @@ class GigController extends Controller
      */
     public function edit(Gig $gig, Request $request): View
     {
+        //
         $artists = Artist::orderBy('name')->pluck('name', 'id');
         $bookers = Booker::orderBy('name')->pluck('name', 'id');
-        $tags = Tag::orderBy('name')->get()->groupBy('type');
+        $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type'); // Ajustado
         $selectedTags = $gig->tags()->pluck('id')->toArray();
-        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id'); // Adicionar esta linha
+        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
 
-        return view('gigs.edit', compact('gig', 'artists', 'bookers', 'tags', 'selectedTags', 'costCenters', 'backUrlParams')); // Adicionar 'costCenters'
+        // Carregar custos para popular o formulário de despesas
+        $gig->load('costs');
+
+        return view('gigs.edit', compact('gig', 'artists', 'bookers', 'tags', 'selectedTags', 'costCenters', 'backUrlParams'));
     }
 
     /**
      * Update the specified resource in storage.
      */
     public function update(UpdateGigRequest $request, Gig $gig): RedirectResponse
-{
-    DB::beginTransaction();
-    try {
-        // Atualiza os dados da Gig
-        $gig->update($request->validated());
+    {
+        $validatedGigData = $request->safe()->except('expenses', 'tags', 'backParams');
+        $expensesData = $request->validated('expenses', []);
+        $tagsIds = $request->validated('tags', []);
+        $backParams = $request->input('backParams', []);
 
-        // Atualiza ou cria despesas
-        if ($request->has('cost_center_id')) {
-            $gig->costs()->delete(); // Limpa anteriores
+        DB::beginTransaction();
+        try {
+            // O GigObserver (via método saving) cuidará de recalcular e setar
+            // agency_commission_value, booker_commission_value, liquid_commission_value
+            $gig->update($validatedGigData);
+            Log::info("[GigController@update] Dados da Gig ID: {$gig->id} atualizados. Processando despesas e tags...");
 
-            foreach ($request->input('cost_center_id') as $index => $costCenterId) {
-                $gig->costs()->create([
-                    'cost_center_id' => $costCenterId,
-                    'description' => $request->input("description.$index"),
-                    'value' => $request->input("value.$index"),
-                    'currency' => $request->input('currency', 'BRL'),
-                    'is_confirmed' => true,
-                ]);
+            // Sincronizar Tags
+            $gig->tags()->sync($tagsIds); // sync([]) remove todas as tags se $tagsIds for vazio
+            Log::info("[GigController@update] Tags sincronizadas para Gig ID: {$gig->id}.");
+
+            // Sincronizar Despesas (GigCosts) - Lógica mais robusta
+            $existingCostIds = $gig->costs()->pluck('id')->all();
+            $formCostIds = [];
+
+            if (!empty($expensesData)) {
+                foreach ($expensesData as $expenseItem) {
+                    $isDeleted = $expenseItem['_deleted'] ?? false;
+                    $costId = $expenseItem['id'] ?? null;
+
+                    $dataToUpsert = [
+                        'cost_center_id' => $expenseItem['cost_center_id'],
+                        'description'    => $expenseItem['description'] ?? null,
+                        'value'          => $expenseItem['value'],
+                        'currency'       => $expenseItem['currency'] ?? 'BRL',
+                        'expense_date'   => $expenseItem['expense_date'] ?? null,
+                        'notes'          => $expenseItem['notes'] ?? null,
+                        // Não atualizamos is_confirmed ou is_invoice diretamente aqui,
+                        // pois são controlados por ações específicas (confirmar/marcarNF)
+                        // A menos que o formulário de edição permita alterá-los.
+                        // Se vierem do form, use:
+                        'is_confirmed'   => $expenseItem['is_confirmed'] ?? false,
+                        'is_invoice'     => $expenseItem['is_invoice'] ?? false,
+                    ];
+
+                    if ($costId && !$isDeleted) { // Atualizar existente
+                        $cost = GigCost::find($costId);
+                        if ($cost && $cost->gig_id === $gig->id) { // Segurança
+                            $cost->update($dataToUpsert);
+                            $formCostIds[] = $costId;
+                        }
+                    } elseif (!$costId && !$isDeleted) { // Criar novo
+                        $newCost = $gig->costs()->create($dataToUpsert);
+                        $formCostIds[] = $newCost->id;
+                    }
+                }
             }
+
+            // Deletar custos que estavam no banco mas não vieram no formulário (ou foram marcados com _deleted)
+            $costsToDelete = array_diff($existingCostIds, $formCostIds);
+            if (!empty($costsToDelete)) {
+                GigCost::whereIn('id', $costsToDelete)->where('gig_id', $gig->id)->delete(); // Soft delete
+                Log::info("[GigController@update] Despesas IDs: " . implode(', ', $costsToDelete) . " removidas (soft delete) da Gig ID: {$gig->id}.");
+            }
+            Log::info("[GigController@update] Despesas sincronizadas para Gig ID: {$gig->id}.");
+
+
+            DB::commit();
+            Log::info("[GigController@update] Transação commitada para Gig ID: {$gig->id}.");
+
+            // O GigObserver::saving já foi chamado pelo $gig->update().
+            // Se algum GigCost foi alterado, o GigCostObserver também pode ter disparado $gig->save() novamente.
+            return redirect()->route('gigs.show', ['gig' => $gig] + $backParams)->with('success', '🎉 Gig atualizada com sucesso!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("[GigController@update] Erro ao atualizar Gig ID {$gig->id}: " . $e->getMessage(), ['exception' => $e, 'data' => $request->all()]);
+            return back()->withInput()->with('error', '❌ Ops! Erro ao atualizar a gig. Verifique os dados e tente novamente.');
         }
-
-        DB::commit();
-
-        return redirect()->route('gigs.edit', $gig)->with('success', 'Gig atualizada com sucesso!');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Erro ao atualizar Gig: ' . $e->getMessage());
-        return back()->withInput()->with('error', 'Erro ao atualizar gig.');
     }
-}
 
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(Gig $gig, Request $request): RedirectResponse
     {
+        // (lógica de exclusão e redirect com backParams)
         try {
-            $gig->delete();
-            $backParams = $request->input('backParams', []);
-            return redirect()->route('gigs.index', $backParams)->with('success', 'Gig excluída com sucesso!');
+            DB::transaction(function () use ($gig) {
+                // Soft delete pagamentos e custos relacionados PRIMEIRO se houver restrições de FK
+                // ou se desejar manter a integridade para restauração.
+                // Se cascadeOnDelete estiver configurado nas migrations, isso pode ser automático.
+                // $gig->payments()->delete(); // Se usar softDeletes no Payment
+                // $gig->costs()->delete();    // Se usar softDeletes no GigCost
+                $gig->delete(); // Soft delete da Gig
+            });
+
+            $backParams = $request->input('backParams', []); // Recupera dos inputs hidden
+            return redirect()->route('gigs.index', $backParams)->with('success', '🗑️ Gig excluída com sucesso!');
         } catch (\Exception $e) {
             Log::error('Erro ao excluir Gig: ' . $e->getMessage(), ['exception' => $e, 'gig_id' => $gig->id]);
-            return back()->with('error', 'Erro ao excluir a Gig.');
+            return back()->with('error', '❌ Erro ao excluir a Gig.');
         }
     }
 
     /**
-     * Prepara os dados das comissões ANTES de criar ou atualizar uma Gig.
-     */
-    private function prepareGigData(array $validatedData, ?Gig $existingGig = null): array
-{
-    Log::info('--- prepareGigData - Dados Recebidos ANTES da lógica ---', $validatedData);
-
-    $preparedData = $validatedData;
-
-    // --- Agency Commission ---
-    // Se não vier tipo, assume 'percent' (ou o que estiver no $existingGig)
-    $agencyCommissionType = $preparedData['agency_commission_type'] ?? ($existingGig?->agency_commission_type ?? 'percent');
-    $preparedData['agency_commission_type'] = $agencyCommissionType; // Garante que seja setado
-
-    // O campo 'agency_commission_value' do form é usado tanto para taxa (%) quanto para valor fixo.
-    $agencyCommissionInputValue = $preparedData['agency_commission_value'] ?? null;
-
-    if (strtoupper($agencyCommissionType) === 'PERCENT') {
-        $preparedData['agency_commission_rate'] = $agencyCommissionInputValue ?? ($existingGig?->agency_commission_rate ?? 20.00); // Default 20% se valor nulo
-        $preparedData['agency_commission_value'] = null; // Limpa o valor fixo
-    } elseif (strtoupper($agencyCommissionType) === 'FIXED') {
-        $preparedData['agency_commission_rate'] = null; // Limpa a taxa
-        $preparedData['agency_commission_value'] = $agencyCommissionInputValue;
-    } else {
-        // Caso inválido ou não definido, poderia resetar para um default seguro ou manter existente
-        $preparedData['agency_commission_type'] = $existingGig?->agency_commission_type ?? 'percent';
-        $preparedData['agency_commission_rate'] = $existingGig?->agency_commission_rate ?? 20.00;
-        $preparedData['agency_commission_value'] = $existingGig?->agency_commission_value;
-    }
-    Log::info('Agency Commission Processada:', [
-        'type_input' => $validatedData['agency_commission_type'] ?? 'N/A',
-        'value_input' => $validatedData['agency_commission_value'] ?? 'N/A',
-        'type_final' => $preparedData['agency_commission_type'],
-        'rate_final' => $preparedData['agency_commission_rate'],
-        'value_final' => $preparedData['agency_commission_value']
-    ]);
-
-    // --- Booker Commission ---
-    $bookerCommissionType = $preparedData['booker_commission_type'] ?? null; // Pode vir nulo se "Nenhuma"
-    $preparedData['booker_commission_type'] = $bookerCommissionType;
-
-    $bookerCommissionInputValue = $preparedData['booker_commission_value'] ?? null;
-
-    if (strtoupper($bookerCommissionType ?? '') === 'PERCENT') {
-        $preparedData['booker_commission_rate'] = $bookerCommissionInputValue ?? ($existingGig?->booker_commission_rate ?? ($preparedData['booker_id'] ? 5.00 : null)); // Default 5% se booker_id e valor nulo
-        $preparedData['booker_commission_value'] = null;
-    } elseif (strtoupper($bookerCommissionType ?? '') === 'FIXED') {
-        $preparedData['booker_commission_rate'] = null;
-        $preparedData['booker_commission_value'] = $bookerCommissionInputValue;
-    } else { // Nenhuma ou tipo inválido
-        $preparedData['booker_commission_type'] = null; // Garante que seja null
-        $preparedData['booker_commission_rate'] = null;
-        $preparedData['booker_commission_value'] = null;
-    }
-    Log::info('Booker Commission Processada:', [
-        'type_input' => $validatedData['booker_commission_type'] ?? 'N/A',
-        'value_input' => $validatedData['booker_commission_value'] ?? 'N/A',
-        'type_final' => $preparedData['booker_commission_type'],
-        'rate_final' => $preparedData['booker_commission_rate'],
-        'value_final' => $preparedData['booker_commission_value']
-    ]);
-
-    // Liquid commission é sempre calculado pelo Observer/Accessor
-    if (Schema::hasColumn('gigs', 'liquid_commission_value')) {
-         $preparedData['liquid_commission_value'] = null; // Deixa o observer/accessor calcular
-    }
-
-    Log::info('Data preparada FINAL para salvar (prepareGigData):', $preparedData);
-    return $preparedData;
-}
-    
-    
-
-
-     /**
      * Display the form/page for requesting the artist's NF.
      */
     public function showRequestNfForm(Gig $gig, Request $request): View
     {
-        // Carregar relacionamentos necessários
-        $gig->load(['artist', 'booker', 'costs.costCenter']);
+        //
+        $gig->loadMissing(['artist', 'costs.costCenter']); // Carrega o que precisa para os cálculos
 
-        // --- Cálculos Financeiros (Reutilizando lógica similar à da gigs.show) ---
-        $gigCacheValueBrl = $gig->cache_value_brl; // Via Accessor
+        $financialCalculator = App::make(GigFinancialCalculatorService::class);
 
-        $confirmedExpensesGrouped = $gig->costs
-            ->where('is_confirmed', true)
-            ->groupBy(function ($cost) {
-                return $cost->costCenter?->name ?? 'Outras Despesas';
-            })
-            ->map(function ($costsInGroup) {
-                return $costsInGroup->sum('value');
-            });
-        $totalConfirmedExpensesBrl = $confirmedExpensesGrouped->sum();
-
-        $agencyTotalCommissionOnGig = $gig->agency_commission_value ?? 0;
-
-        // Valor Líquido para o Artista (NF)
-        $netArtistCacheToReceive = $gigCacheValueBrl - $totalConfirmedExpensesBrl - $agencyTotalCommissionOnGig;
-        // --- Fim Cálculos ---
-
-
-        // Parâmetros para o botão "Voltar" na view de NF, se necessário
-        $backUrlParams = $request->session()->get('gig_show_url_params', ['gig' => $gig->id]); // Tenta pegar da sessão
-        if (empty(array_filter($backUrlParams, fn($k) => $k !== 'gig', ARRAY_FILTER_USE_KEY))) { // Se só tiver gig_id
-            $backUrlParams = ['gig' => $gig->id]; // Default para voltar ao show
+        // Parâmetros para o botão "Voltar"
+        // Mantém a lógica anterior de buscar da sessão, mas podemos simplificar se sempre vier da Gig.show
+        $backUrlParams = $request->session()->get('gig_show_url_params', []);
+        if (empty(array_filter($backUrlParams, fn($k) => $k !== 'gig', ARRAY_FILTER_USE_KEY))) {
+             $backUrlParams = ['gig' => $gig->id] + $request->session()->get('gig_index_url_params', []);
         }
 
 
-        return view('gigs.request-nf', compact(
-            'gig',
-            'gigCacheValueBrl', // Passar o valor já convertido
-            'confirmedExpensesGrouped',
-            'totalConfirmedExpensesBrl',
-            'agencyTotalCommissionOnGig',
-            'netArtistCacheToReceive',
-            'backUrlParams'
-        ));
+        return view('gigs.request-nf', [
+            'gig' => $gig,
+            'gigCacheValueBrl' => $financialCalculator->calculateGrossCashBrl($gig) + $financialCalculator->calculateTotalConfirmedExpensesBrl($gig), // Recalcula o "Valor Contrato BRL"
+            'totalConfirmedExpensesBrl' => $financialCalculator->calculateTotalConfirmedExpensesBrl($gig), // Despesas da Agência + Reembolsáveis
+            'totalReimbursableExpensesBrl' => $financialCalculator->calculateTotalReimbursableExpensesBrl($gig), // Apenas as do Artista
+            'artistNetPayoutBeforeReimbursement' => $financialCalculator->calculateArtistNetPayoutBrl($gig),
+            'finalArtistInvoiceValueBrl' => $financialCalculator->calculateArtistInvoiceValueBrl($gig),
+            'backUrlParams' => $backUrlParams
+        ]);
     }
-
 }

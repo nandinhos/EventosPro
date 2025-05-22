@@ -132,9 +132,17 @@
              @include('gigs._show_costs', ['costs' => $gig->costs])
 
              {{-- Card: Acerto Final --}}
-             @include('gigs._show_final_settlements', ['gig' => $gig, 'settlement' => $gig->settlement])
-             @include('settlements._settle_artist_modal', ['gig' => $gig])
-             @include('settlements._settle_booker_modal', ['gig' => $gig])
+             @include('gigs._show_final_settlements', [
+    'gig' => $gig,
+    'settlement' => $gig->settlement, // $settlement pode ser null se não houver
+    'calculatedGrossCashBrl' => $calculatedGrossCashBrl,
+    'calculatedAgencyGrossCommissionBrl' => $calculatedAgencyGrossCommissionBrl,
+    'calculatedArtistNetPayoutBrl' => $calculatedArtistNetPayoutBrl,
+    'calculatedBookerCommissionBrl' => $calculatedBookerCommissionBrl,
+    'calculatedArtistInvoiceValueBrl' => $calculatedArtistInvoiceValueBrl
+])
+            @include('settlements._settle_artist_modal', ['gig' => $gig])
+            @include('settlements._settle_booker_modal', ['gig' => $gig])
              <x-modals.request-nf-modal />
 
         </div>
