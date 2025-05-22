@@ -90,22 +90,7 @@ class GigController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create(Request $request): View
-    {
-        //
-        $artists = Artist::orderBy('name')->pluck('name', 'id');
-        $bookers = Booker::orderBy('name')->pluck('name', 'id');
-        $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type'); // Ajustado para ordenar por tipo e nome
-        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
-        $backUrlParams = $request->session()->get('gig_index_url_params', []);
-
-        return view('gigs.create', compact('artists', 'bookers', 'tags', 'costCenters', 'backUrlParams'));
-    }
-
-    /**
+        /**
      * Store a newly created resource in storage.
      */
     public function store(StoreGigRequest $request): RedirectResponse
@@ -214,23 +199,102 @@ class GigController extends Controller
         return view('gigs.show', $viewData);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Gig $gig, Request $request): View
+    public function create(Request $request): View
     {
-        //
         $artists = Artist::orderBy('name')->pluck('name', 'id');
         $bookers = Booker::orderBy('name')->pluck('name', 'id');
-        $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type'); // Ajustado
+        $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type');
+        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
+        $backUrlParams = $request->session()->get('gig_index_url_params', []);
+        $gig = new Gig(); // Para o formulário
+
+        $expensesDataForView = old('expenses', []);
+
+        // Valores iniciais para comissões (para um novo Gig)
+        $initialCommissionData = [
+            'agency_type' => old('agency_commission_type', 'percent'),
+            'agency_input_value' => old('agency_commission_value', 20.00), // Default taxa 20%
+            'booker_type' => old('booker_commission_type', 'percent'),
+            'booker_input_value' => old('booker_commission_value', 5.00),   // Default taxa 5%
+            'cache_value' => old('cache_value', 0)
+        ];
+
+        return view('gigs.create', compact(
+            'gig',
+            'artists',
+            'bookers',
+            'tags',
+            'costCenters',
+            'expensesDataForView',
+            'initialCommissionData', // <<-- ADICIONADO
+            'backUrlParams'
+        ));
+    }
+
+    public function edit(Gig $gig, Request $request): View
+    {
+        $artists = Artist::orderBy('name')->pluck('name', 'id');
+        $bookers = Booker::orderBy('name')->pluck('name', 'id');
+        $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type');
         $selectedTags = $gig->tags()->pluck('id')->toArray();
         $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
 
-        // Carregar custos para popular o formulário de despesas
         $gig->load('costs');
 
-        return view('gigs.edit', compact('gig', 'artists', 'bookers', 'tags', 'selectedTags', 'costCenters', 'backUrlParams'));
+        $expensesDataForView = old('expenses');
+        if (is_null($expensesDataForView) && $gig->exists && $gig->costs) {
+            $expensesDataForView = $gig->costs->map(function($cost) {
+                return [
+                    'id' => $cost->id,
+                    'cost_center_id' => (string)($cost->cost_center_id ?? ''),
+                    'description'    => $cost->description ?? '',
+                    'value'          => $cost->value ?? '',
+                    'currency'       => $cost->currency ?: 'BRL',
+                    'expense_date'   => optional($cost->expense_date)->format('Y-m-d') ?? now()->format('Y-m-d'),
+                    'notes'          => $cost->notes ?? '',
+                    'is_confirmed'   => (bool)($cost->is_confirmed ?? false),
+                    'is_invoice'     => (bool)($cost->is_invoice ?? false),
+                    '_deleted'       => false
+                ];
+            })->toArray();
+        }
+        $expensesDataForView = $expensesDataForView ?? [];
+
+
+        // Valores iniciais para comissões (para um Gig existente)
+        $initialCommissionData = [
+            'agency_type' => old('agency_commission_type', $gig->agency_commission_type ?? 'percent'),
+            'agency_input_value' => old('agency_commission_value', $gig->agency_commission_type === 'PERCENT' ? $gig->agency_commission_rate : $gig->agency_commission_value),
+            'booker_type' => old('booker_commission_type', $gig->booker_commission_type ?? 'percent'),
+            'booker_input_value' => old('booker_commission_value', $gig->booker_commission_type === 'PERCENT' ? $gig->booker_commission_rate : $gig->booker_commission_value),
+            'cache_value' => old('cache_value', $gig->cache_value ?? 0)
+        ];
+        // Ajuste para pegar taxa se for percentual, senão o valor fixo (que já é o calculado em BRL)
+        // O formulário precisa do input original (taxa ou valor fixo que o usuário digitou)
+        if ($gig->agency_commission_type === 'PERCENT') {
+            $initialCommissionData['agency_input_value'] = old('agency_commission_value', $gig->agency_commission_rate ?? 20.00);
+        } else { // FIXED
+            $initialCommissionData['agency_input_value'] = old('agency_commission_value', $gig->agency_commission_value ?? null); // Valor fixo BRL do banco
+        }
+        if ($gig->booker_commission_type === 'PERCENT') {
+            $initialCommissionData['booker_input_value'] = old('booker_commission_value', $gig->booker_commission_rate ?? 5.00);
+        } else { // FIXED
+             $initialCommissionData['booker_input_value'] = old('booker_commission_value', $gig->booker_commission_value ?? null); // Valor fixo BRL do banco
+        }
+
+
+        return view('gigs.edit', compact(
+            'gig',
+            'artists',
+            'bookers',
+            'tags',
+            'selectedTags',
+            'costCenters',
+            'expensesDataForView',
+            'initialCommissionData', // <<-- ADICIONADO
+            'backUrlParams'
+        ));
     }
 
     /**

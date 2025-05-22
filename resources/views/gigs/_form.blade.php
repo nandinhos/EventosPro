@@ -1,105 +1,55 @@
 {{-- resources/views/gigs/_form.blade.php --}}
-{{--
-    Formulário parcial para Gigs (usado em create e edit) com ABAS.
-    Recebe as variáveis:
-    - $gig (Objeto Gig, vazio para create, preenchido para edit)
-    - $artists (Array/Collection de artistas para select)
-    - $bookers (Array/Collection de bookers para select)
-    - $tags (Array/Collection agrupada de tags para select)
-    - $selectedTags (Array de IDs das tags selecionadas para edit/old)
-    - $costCenters (Array/Collection de centros de custo para o form de despesas)
---}}
+{{-- Variáveis esperadas: $gig, $artists, $bookers, $tags, $selectedTags (opc), $costCenters, $expensesDataForView, $initialCommissionData --}}
+
 @php
+    // $currentSelectedTags ainda é útil para o select de Tags
     $currentSelectedTags = old('tags', $selectedTags ?? []);
-
-    // Valores iniciais para Alpine (comissões)
-    $initialAgencyType = old('agency_commission_type', $gig->agency_commission_type ?? 'percent');
-    $initialAgencyRate = old('agency_commission_rate', $gig->agency_commission_rate);
-    $initialAgencyFixedValue = old('agency_commission_value', $initialAgencyType === 'fixed' ? $gig->agency_commission_value : null); // Correção: só pega se for fixed
-    $initialAgencyDisplayValue = $initialAgencyType === 'percent' ? ($initialAgencyRate ?? ($gig->exists ? $gig->agency_commission_rate : 20.00) ) : $initialAgencyFixedValue;
-
-
-    $initialBookerType = old('booker_commission_type', $gig->booker_commission_type ?? 'percent');
-    $initialBookerRate = old('booker_commission_rate', $gig->booker_commission_rate);
-    $initialBookerFixedValue = old('booker_commission_value', $initialBookerType === 'fixed' ? $gig->booker_commission_value : null); // Correção
-    $initialBookerDisplayValue = $initialBookerType === 'percent' ? ($initialBookerRate ?? ($gig->exists && $gig->booker_id ? $gig->booker_commission_rate : 5.00) ) : $initialBookerFixedValue;
-
-
-    $initialCacheValue = old('cache_value', $gig->cache_value);
-    // expenses_value_brl foi removido do modelo Gig, mas o form de despesas dinâmicas o substitui.
-    // Para a lógica Alpine de cálculo de comissão, vamos precisar do total das despesas dinâmicas.
-    // Isso será gerenciado dentro do x-data das despesas.
 @endphp
 
-<div x-data="{
-        activeTab: 1,
-        // Valores da Agência
-        agencyType: '{{ $initialAgencyType }}',
-        agencyDisplayValue: {{ $initialAgencyDisplayValue ?? 'null' }},
-
-        // Valores do Booker
-        bookerType: '{{ $initialBookerType }}',
-        bookerDisplayValue: {{ $initialBookerDisplayValue ?? 'null' }},
-
-        // Valores base para cálculo (usados pelos watchers, atualizados pelo x-model dos inputs)
-        baseCacheValue: {{ $initialCacheValue ?? 0 }},
-        // O total das despesas virá do x-data do _expenses_form.blade.php
-        // Vamos precisar de uma forma de comunicar esse total para cá, ou recalcular a base de comissão
-        // dentro do contexto dos inputs de comissão. Por simplicidade, vamos assumir que o cálculo
-        // da base de comissão nos accessors do modelo Gig já considera as despesas corretamente
-        // e que o GigObserver fará o cálculo final ao salvar.
-        // O JavaScript aqui é mais para UX de mostrar a taxa ou valor.
-
-        // Função para UX do input de comissão: mostrar taxa ou valor
-        updateDisplayValue(commissionPrefix) {
-            const type = this[commissionPrefix + 'Type'];
-            const displayValueInput = document.getElementById(commissionPrefix + '_commission_value'); // O input que sempre existe
-            
-            if (type === 'percent') {
-                // Se mudou para percentual, tentamos manter o valor que estava no campo como taxa
-                // Se o valor no campo for muito alto para ser uma taxa, pode-se limpar ou usar um default.
-                // A validação no backend cuidará do max:100.
-                // this[commissionPrefix + 'DisplayValue'] = parseFloat(displayValueInput.value) || (commissionPrefix === 'agency' ? 20 : 5);
-            } else { // fixed
-                // Se mudou para fixo, não precisamos converter nada aqui, o usuário digita o valor fixo.
-                // this[commissionPrefix + 'DisplayValue'] = parseFloat(displayValueInput.value) || null;
-            }
-            // O importante é que o NOME do input enviado ('agency_commission_value' ou 'booker_commission_value')
-            // contenha o valor que o usuário digitou, e o tipo (percent/fixed) também seja enviado.
-            // O prepareGigData no controller/observer fará a lógica de qual campo popular (rate ou value).
-        }
-     }"
-     x-init="
-        $watch('agencyType', (newType) => updateDisplayValue('agency'));
-        $watch('bookerType', (newType) => updateDisplayValue('booker'));
-
-        // Lógica para abrir aba com erro (simplificado)
+<div x-data="gigFormManager(
+        {{ Js::from($initialCommissionData['agency_type']) }},
+        {{ Js::from($initialCommissionData['agency_input_value']) }},
+        {{ Js::from($initialCommissionData['booker_type']) }},
+        {{ Js::from($initialCommissionData['booker_input_value']) }},
+        {{ Js::from($initialCommissionData['cache_value']) }}
+    )"
+    x-init="
+        activeTab = parseInt(new URLSearchParams(window.location.search).get('active_tab') || {{ old('active_tab', 1) }});
         @if ($errors->any())
             let firstErrorFieldId = '';
-            @foreach ($errors->keys() as $key)
-                @if (!$loop->first) firstErrorFieldId = '{{ $key }}'; @break @endif
-            @endforeach
-            if (firstErrorFieldId) {
-                const errorField = document.getElementById(firstErrorFieldId);
-                if (errorField) {
-                    const tabPane = errorField.closest('[role=tabpanel]');
-                    if (tabPane) {
-                        activeTab = parseInt(tabPane.id.replace('tab-panel-', ''));
-                    }
+            let errorTab = 0;
+            const fieldToTabMap = {
+                'artist_id': 1, 'booker_id': 1, 'gig_date': 1, 'location_event_details': 1, 'tags': 5,
+                'cache_value': 2, 'currency': 2, 'contract_number': 2, 'contract_date': 2, 'contract_status': 2,
+                'agency_commission_type': 3, 'agency_commission_value': 3, 'booker_commission_type': 3, 'booker_commission_value': 3,
+                'expenses': 4, // Erros de expenses.*.* vão para a aba 4
+                'notes': 5
+            };
+            const errorKeys = {{ Js::from($errors->keys()) }};
+            for (let key of errorKeys) {
+                let baseKey = key.split('.')[0]; // Pega a parte base (ex: 'expenses' de 'expenses.0.value')
+                if (fieldToTabMap[baseKey]) {
+                    errorTab = fieldToTabMap[baseKey];
+                    break;
+                }
+                if (fieldToTabMap[key]) { // Para erros não-array
+                    errorTab = fieldToTabMap[key];
+                    break;
                 }
             }
+            if (errorTab > 0) activeTab = errorTab;
         @endif
-     "
-     class="p-0 md:p-0"> {{-- Removido padding para o container das abas ocupar todo o espaço --}}
+    "
+    class="p-0 md:p-0">
 
-    <!-- Navegação das Abas -->
+    {{-- Navegação das Abas --}}
     <div class="mb-0 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-t-xl">
         <nav class="-mb-px flex space-x-1 sm:space-x-4 overflow-x-auto px-4" aria-label="Tabs">
-            @php $tabs = ['Principais', 'Financeiro', 'Comissões', 'Despesas', 'Notas']; @endphp
+            @php $tabs = ['Principais', 'Financeiro', 'Comissões', 'Despesas', 'Notas & Tags']; @endphp
             @foreach($tabs as $index => $tabName)
                 @php $tabId = $index + 1; @endphp
                 <button type="button"
-                        @click="activeTab = {{ $tabId }}"
+                        @click="activeTab = {{ $tabId }}; const url = new URL(window.location); url.searchParams.set('active_tab', {{ $tabId }}); window.history.replaceState({}, '', url);"
                         :class="{
                             'border-primary-500 text-primary-600 dark:border-primary-400 dark:text-primary-300': activeTab === {{ $tabId }},
                             'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-500': activeTab !== {{ $tabId }}
@@ -111,7 +61,10 @@
         </nav>
     </div>
 
-    <!-- Conteúdo das Abas -->
+    {{-- Input hidden para submeter a aba ativa e o helper old() funcionar --}}
+    <input type="hidden" name="active_tab" x-model="activeTab">
+
+    {{-- Conteúdo das Abas --}}
     <div class="py-6 px-2 sm:px-6 space-y-6">
         {{-- Aba 1: Informações Principais --}}
         <div x-show="activeTab === 1" role="tabpanel" id="tab-panel-1" class="space-y-6">
@@ -160,25 +113,6 @@
                 >{{ old('location_event_details', $gig->location_event_details) }}</textarea>
                 @error('location_event_details') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
             </div>
-            {{-- Tags --}}
-            <div>
-                <label for="tags" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags (Opcional)</label>
-                 <select name="tags[]" id="tags" multiple
-                         class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('tags.*') border-red-500 dark:border-red-600 @enderror tomselect-tags">
-                    @foreach ($tags as $type => $tagGroup)
-                         <optgroup label="{{ $type ? Str::ucfirst(str_replace('_', ' ', $type)) : 'Geral' }}">
-                            @foreach ($tagGroup as $tag)
-                                <option value="{{ $tag->id }}" @selected(in_array($tag->id, $currentSelectedTags))>
-                                    {{ $tag->name }}
-                                </option>
-                            @endforeach
-                        </optgroup>
-                    @endforeach
-                 </select>
-                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Segure Ctrl/Cmd para selecionar várias ou comece a digitar.</p>
-                 @error('tags.*') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
-                 @error('tags') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
-            </div>
         </div>
 
         {{-- Aba 2: Financeiro (Cachê e Contrato) --}}
@@ -186,9 +120,9 @@
             <h3 class="text-lg font-medium text-gray-900 dark:text-white sr-only">Financeiro (Cachê e Contrato)</h3>
             {{-- Cachê Bruto --}}
             <div>
-                <label for="cache_value" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cachê Bruto <span class="text-red-500">*</span></label>
+                <label for="cache_value" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor do Contrato (Cachê Original) <span class="text-red-500">*</span></label>
                 <input type="number" step="0.01" id="cache_value" name="cache_value" required
-                       x-model.number="baseCacheValue"
+                       x-model.number="baseCacheValueForCommissions" {{-- Usar este para o Alpine --}}
                        class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('cache_value') border-red-500 dark:border-red-600 @enderror">
                 @error('cache_value') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
             </div>
@@ -204,7 +138,6 @@
                 </select>
                 @error('currency') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
             </div>
-            {{-- Campo de Câmbio removido do cadastro inicial --}}
             <hr class="dark:border-gray-700">
              {{-- Número Contrato --}}
             <div>
@@ -230,6 +163,7 @@
                     <option value="n/a" @selected(old('contract_status', $gig->contract_status ?? 'n/a') == 'n/a')>N/A (Sem Contrato)</option>
                     <option value="para_assinatura" @selected(old('contract_status', $gig->contract_status) == 'para_assinatura')>Para Assinatura</option>
                     <option value="assinado" @selected(old('contract_status', $gig->contract_status) == 'assinado')>Assinado</option>
+                    <option value="concluido" @selected(old('contract_status', $gig->contract_status) == 'concluido')>Concluído</option>
                     <option value="expirado" @selected(old('contract_status', $gig->contract_status) == 'expirado')>Expirado</option>
                     <option value="cancelado" @selected(old('contract_status', $gig->contract_status) == 'cancelado')>Cancelado</option>
                 </select>
@@ -245,8 +179,8 @@
                 <legend class="text-sm font-medium text-gray-700 dark:text-gray-300 px-2">Comissão da Agência</legend>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                     <div>
-                        <label for="agency_commission_type" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
-                        <select id="agency_commission_type" name="agency_commission_type" x-model="agencyType"
+                        <label for="agency_commission_type_select" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
+                        <select id="agency_commission_type_select" name="agency_commission_type" x-model="agencyType"
                                 class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('agency_commission_type') border-red-500 dark:border-red-600 @enderror">
                             <option value="percent">Percentual (%)</option>
                             <option value="fixed">Valor Fixo (BRL)</option>
@@ -254,15 +188,14 @@
                         @error('agency_commission_type') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label for="agency_commission_value" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1" x-text="agencyType === 'percent' ? 'Taxa (%)' : 'Valor Fixo (BRL)'"></label>
-                        <input type="number" step="0.01" id="agency_commission_value" name="agency_commission_value"
-                               x-model.number="agencyDisplayValue"
+                        <label for="agency_commission_value_input" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1" x-text="agencyType === 'percent' ? 'Taxa (%)' : 'Valor Fixo (R$)'"></label>
+                        <input type="number" step="0.01" id="agency_commission_value_input" name="agency_commission_value" x-model.number="agencyDisplayValue"
                                :placeholder="agencyType === 'percent' ? 'Ex: 20.00' : 'Ex: 500.00'"
                                class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('agency_commission_value') border-red-500 dark:border-red-600 @enderror">
                         @error('agency_commission_value') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-show="agencyType === 'percent' && agencyDisplayValue">
-                            Valor Estimado: R$ <span x-text="calculateValueFromRate(agencyDisplayValue, baseCacheValue, {{ optional($gig->expenses)->sum('value') ?? 0 }})"></span>
-                         </p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                           Valor Estimado: <span x-text="formatCurrencyForDisplay(calculatedAgencyCommissionEstimate)"></span>
+                        </p>
                     </div>
                 </div>
             </fieldset>
@@ -272,44 +205,67 @@
                 <legend class="text-sm font-medium text-gray-700 dark:text-gray-300 px-2">Comissão do Booker (Opcional)</legend>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                     <div>
-                        <label for="booker_commission_type" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
-                        <select id="booker_commission_type" name="booker_commission_type" x-model="bookerType"
+                        <label for="booker_commission_type_select" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
+                        <select id="booker_commission_type_select" name="booker_commission_type" x-model="bookerType"
                                 class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('booker_commission_type') border-red-500 dark:border-red-600 @enderror">
-                             <option value="">Nenhuma</option>
+                             <option value="">Nenhuma</option> {{-- Adicionado para desmarcar --}}
                             <option value="percent">Percentual (%)</option>
                             <option value="fixed">Valor Fixo (BRL)</option>
                         </select>
                         @error('booker_commission_type') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label for="booker_commission_value" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1" x-text="bookerType === 'percent' ? 'Taxa (%)' : (bookerType === 'fixed' ? 'Valor Fixo (BRL)' : 'Valor/Taxa')"></label>
-                        <input type="number" step="0.01" id="booker_commission_value" name="booker_commission_value"
+                        <label for="booker_commission_value_input" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1" x-text="bookerType === 'percent' ? 'Taxa (%)' : (bookerType === 'fixed' ? 'Valor Fixo (BRL)' : 'Valor/Taxa')"></label>
+                        <input type="number" step="0.01" id="booker_commission_value_input" name="booker_commission_value"
                                x-model.number="bookerDisplayValue"
                                :placeholder="bookerType === 'percent' ? 'Ex: 5.00' : (bookerType === 'fixed' ? 'Ex: 250.00' : 'Defina o tipo')"
                                :disabled="!bookerType"
                                class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('booker_commission_value') border-red-500 dark:border-red-600 @enderror">
                         @error('booker_commission_value') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
-                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-show="bookerType === 'percent' && bookerDisplayValue">
-                            Valor Estimado: R$ <span x-text="calculateValueFromRate(bookerDisplayValue, baseCacheValue, {{ optional($gig->expenses)->sum('value') ?? 0 }})"></span>
-                         </p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-show="bookerType && bookerDisplayValue">
+                            Valor Estimado: <span x-text="formatCurrencyForDisplay(calculatedBookerCommissionEstimate)"></span>
+                        </p>
                     </div>
                 </div>
             </fieldset>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                Nota: As comissões percentuais são calculadas sobre o "Cachê Bruto" MENOS as "Despesas Confirmadas" (que serão adicionadas na próxima aba).
-                O valor final das comissões será calculado e salvo no backend.
+                Nota: A comissão da Agência é calculada sobre o "Valor do Contrato" MENOS as "Despesas Pagas pela Agência". A comissão do Booker é calculada sobre o "Valor do Contrato" original. O valor final das comissões será sempre calculado e salvo no backend.
             </p>
         </div>
 
         {{-- Aba 4: Despesas Previstas --}}
         <div x-show="activeTab === 4" role="tabpanel" id="tab-panel-4" class="space-y-6">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white sr-only">Despesas Previstas</h3>
-            @include('gigs._expenses_form', ['costCenters' => $costCenters ?? \App\Models\CostCenter::orderBy('name')->pluck('name', 'id'), 'gig' => $gig])
+            {{-- O @include para _expenses_form já foi corrigido para usar Js::from na resposta anterior --}}
+            @include('gigs._expenses_form', [
+                'gig' => $gig,
+                'costCenters' => $costCenters,
+                'expensesDataForView' => $expensesDataForView ?? []
+            ])
         </div>
 
-        {{-- Aba 5: Notas Adicionais --}}
+        {{-- Aba 5: Notas & Tags --}}
         <div x-show="activeTab === 5" role="tabpanel" id="tab-panel-5" class="space-y-6">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white sr-only">Notas Adicionais</h3>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white sr-only">Notas & Tags</h3>
+            {{-- Tags (já estava na Aba 1, movido para cá para melhor organização) --}}
+            <div>
+                <label for="tags" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags (Opcional)</label>
+                 <select name="tags[]" id="tags" multiple
+                         class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('tags.*') border-red-500 dark:border-red-600 @enderror tomselect-tags">
+                    @foreach ($tags as $type => $tagGroup)
+                         <optgroup label="{{ $type ? Str::ucfirst(str_replace('_', ' ', $type)) : 'Geral' }}">
+                            @foreach ($tagGroup as $tag)
+                                <option value="{{ $tag->id }}" @selected(in_array($tag->id, $currentSelectedTags))>
+                                    {{ $tag->name }}
+                                </option>
+                            @endforeach
+                        </optgroup>
+                    @endforeach
+                 </select>
+                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Comece a digitar para buscar ou selecionar tags.</p>
+                 @error('tags.*') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                 @error('tags') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+            </div>
             <div>
                 <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notas Gerais da Gig (Opcional)</label>
                 <textarea id="notes" name="notes" rows="5"
@@ -321,37 +277,79 @@
     </div>
 </div>
 
-@push('scripts')
-<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+{{-- Script para o gigFormManager e TomSelect --}}
+@pushOnce('scripts')
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet"> {{-- Ou o tema padrão se preferir --}}
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
-    // O evento 'alpine:init' é útil se você estiver definindo componentes Alpine globais (Alpine.data).
-    // Como a lógica principal do formulário de Gigs já está em um x-data inline no _form.blade.php,
-    // este bloco pode não ser estritamente necessário A MENOS QUE TomSelect precise que o Alpine
-    // já esteja totalmente inicializado, o que geralmente não é o caso para bibliotecas externas.
-    // Manter o DOMContentLoaded é mais seguro para garantir que o HTML do select já exista.
-
-    document.addEventListener('DOMContentLoaded', function () {
-        // Inicializa TomSelect para o campo de tags
+    document.addEventListener('alpine:init', () => {
+        // Se você quiser usar TomSelect para outros selects além de #tags,
+        // adicione a inicialização deles aqui também.
+        // O TomSelect para #tags é melhor inicializar aqui, APÓS o Alpine ter renderizado o DOM inicial.
         const tagsElement = document.getElementById('tags');
         if (tagsElement) {
             new TomSelect(tagsElement,{
                 plugins: ['remove_button'],
-                create: false,
+                create: false, // Mudar para true se quiser permitir criar novas tags dinamicamente
                 // placeholder: 'Selecione ou digite para buscar tags...'
             });
         }
-
-        // Exemplo de como você poderia inicializar TomSelect para outros selects se desejado:
-        // const artistSelect = document.getElementById('artist_id');
-        // if (artistSelect) {
-        //     new TomSelect(artistSelect, { /* opções se necessário */ });
-        // }
-
-        // const bookerSelect = document.getElementById('booker_id');
-        // if (bookerSelect) {
-        //     new TomSelect(bookerSelect, { allowEmptyOption: true /* para a opção "Sem Booker" */ });
-        // }
     });
+
+    function gigFormManager(agencyTypeInitial, agencyValueInitial, bookerTypeInitial, bookerValueInitial, cacheValueInitial) {
+        return {
+            activeTab: parseInt(new URLSearchParams(window.location.search).get('active_tab') || {{ old('active_tab', 1) }}),
+            agencyType: agencyTypeInitial,
+            agencyDisplayValue: agencyValueInitial,
+            bookerType: bookerTypeInitial,
+            bookerDisplayValue: bookerValueInitial,
+            baseCacheValueForCommissions: parseFloat(cacheValueInitial) || 0, // Input do cachê original da gig
+
+            // Estimativa da base de comissão para a Agência (Cachê Original - Despesas da Agência)
+            // Esta é uma estimativa visual, o cálculo real é no backend.
+            // Para uma estimativa mais precisa aqui, precisaríamos do total das despesas da agência do expensesManager.
+            // Por enquanto, a nota no form explica que o cálculo final é no backend.
+            get commissionBaseEstimateBRLForAgency() {
+                // Simplificação: no form, a comissão da agência é mostrada sobre o "Valor do Contrato"
+                // A dedução de despesas é complexa de fazer em tempo real entre componentes Alpine separados.
+                // A nota explicativa no formulário é crucial.
+                return this.baseCacheValueForCommissions;
+            },
+
+            get calculatedAgencyCommissionEstimate() {
+                if (this.agencyType === 'percent') {
+                    return (this.commissionBaseEstimateBRLForAgency * (parseFloat(this.agencyDisplayValue) || 0)) / 100;
+                }
+                return parseFloat(this.agencyDisplayValue) || 0;
+            },
+
+            get calculatedBookerCommissionEstimate() {
+                // Booker é sobre o Valor Contrato Original (baseCacheValueForCommissions)
+                if (this.bookerType === 'percent') {
+                    return (this.baseCacheValueForCommissions * (parseFloat(this.bookerDisplayValue) || 0)) / 100;
+                }
+                return parseFloat(this.bookerDisplayValue) || 0;
+            },
+            
+            formatCurrencyForDisplay(value) {
+                const num = parseFloat(value);
+                if (isNaN(num)) return 'R$ 0,00';
+                return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            },
+
+            init() {
+                //console.log('gigFormManager init');
+                //console.log('Initial Agency Type:', this.agencyType, 'Initial Agency Value:', this.agencyDisplayValue);
+                //console.log('Initial Booker Type:', this.bookerType, 'Initial Booker Value:', this.bookerDisplayValue);
+                //console.log('Initial Cache Value:', this.baseCacheValueForCommissions);
+
+                this.$watch('activeTab', value => { // Atualiza URL ao mudar de aba
+                    const url = new URL(window.location);
+                    url.searchParams.set('active_tab', value);
+                    window.history.replaceState({}, '', url);
+                });
+            }
+        };
+    }
 </script>
-@endpush
+@endPushOnce
