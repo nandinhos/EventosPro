@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\App; // Adicionado para usar o App::make()
 // O GigFinancialCalculatorService não é chamado diretamente pelo controller para salvar,
 // pois o GigObserver já faz esse papel. Mas pode ser usado para buscar dados para a view, se necessário.
 use App\Services\GigFinancialCalculatorService;
+use Illuminate\Support\Js;
 
 class GigController extends Controller
 {
@@ -231,6 +232,9 @@ class GigController extends Controller
         ));
     }
 
+    /**
+     * Show the form for editing the specified resource.
+     */
     public function edit(Gig $gig, Request $request): View
     {
         $artists = Artist::orderBy('name')->pluck('name', 'id');
@@ -261,28 +265,35 @@ class GigController extends Controller
         }
         $expensesDataForView = $expensesDataForView ?? [];
 
+        // --- CORREÇÃO AQUI para initialCommissionData ---
+        $agency_input_value_for_form = null;
+        if (strtoupper($gig->agency_commission_type ?? '') === 'PERCENT') {
+            // Se o tipo é PERCENT, o campo do formulário (agencyDisplayValue) deve ser preenchido com a TAXA
+            $agency_input_value_for_form = $gig->agency_commission_rate;
+        } else { // FIXED ou não definido
+            // Se o tipo é FIXED, o campo do formulário deve ser preenchido com o VALOR FIXO BRL
+            $agency_input_value_for_form = $gig->agency_commission_value;
+        }
 
-        // Valores iniciais para comissões (para um Gig existente)
+        $booker_input_value_for_form = null;
+        if ($gig->booker_id) {
+            if (strtoupper($gig->booker_commission_type ?? '') === 'PERCENT') {
+                $booker_input_value_for_form = $gig->booker_commission_rate;
+            } else { // FIXED ou não definido
+                $booker_input_value_for_form = $gig->booker_commission_value;
+            }
+        }
+
         $initialCommissionData = [
             'agency_type' => old('agency_commission_type', $gig->agency_commission_type ?? 'percent'),
-            'agency_input_value' => old('agency_commission_value', $gig->agency_commission_type === 'PERCENT' ? $gig->agency_commission_rate : $gig->agency_commission_value),
-            'booker_type' => old('booker_commission_type', $gig->booker_commission_type ?? 'percent'),
-            'booker_input_value' => old('booker_commission_value', $gig->booker_commission_type === 'PERCENT' ? $gig->booker_commission_rate : $gig->booker_commission_value),
+            'agency_input_value' => old('agency_commission_value', $agency_input_value_for_form),
+            'booker_type' => old('booker_commission_type', $gig->booker_commission_type ?? ($gig->booker_id ? 'percent' : '')), // Default para string vazia se sem booker e tipo
+            'booker_input_value' => old('booker_commission_value', $booker_input_value_for_form),
             'cache_value' => old('cache_value', $gig->cache_value ?? 0)
         ];
-        // Ajuste para pegar taxa se for percentual, senão o valor fixo (que já é o calculado em BRL)
-        // O formulário precisa do input original (taxa ou valor fixo que o usuário digitou)
-        if ($gig->agency_commission_type === 'PERCENT') {
-            $initialCommissionData['agency_input_value'] = old('agency_commission_value', $gig->agency_commission_rate ?? 20.00);
-        } else { // FIXED
-            $initialCommissionData['agency_input_value'] = old('agency_commission_value', $gig->agency_commission_value ?? null); // Valor fixo BRL do banco
-        }
-        if ($gig->booker_commission_type === 'PERCENT') {
-            $initialCommissionData['booker_input_value'] = old('booker_commission_value', $gig->booker_commission_rate ?? 5.00);
-        } else { // FIXED
-             $initialCommissionData['booker_input_value'] = old('booker_commission_value', $gig->booker_commission_value ?? null); // Valor fixo BRL do banco
-        }
+        // --- FIM DA CORREÇÃO ---
 
+        Log::debug("[GigController@edit] InitialCommissionData para Gig ID {$gig->id}:", $initialCommissionData);
 
         return view('gigs.edit', compact(
             'gig',
@@ -292,7 +303,7 @@ class GigController extends Controller
             'selectedTags',
             'costCenters',
             'expensesDataForView',
-            'initialCommissionData', // <<-- ADICIONADO
+            'initialCommissionData',
             'backUrlParams'
         ));
     }
@@ -407,27 +418,37 @@ class GigController extends Controller
      */
     public function showRequestNfForm(Gig $gig, Request $request): View
     {
-        //
-        $gig->loadMissing(['artist', 'costs.costCenter']); // Carrega o que precisa para os cálculos
+        $gig->loadMissing(['artist', 'costs.costCenter']);
 
+        // Instanciar o service para fazer os cálculos
         $financialCalculator = App::make(GigFinancialCalculatorService::class);
 
         // Parâmetros para o botão "Voltar"
-        // Mantém a lógica anterior de buscar da sessão, mas podemos simplificar se sempre vier da Gig.show
         $backUrlParams = $request->session()->get('gig_show_url_params', []);
         if (empty(array_filter($backUrlParams, fn($k) => $k !== 'gig', ARRAY_FILTER_USE_KEY))) {
              $backUrlParams = ['gig' => $gig->id] + $request->session()->get('gig_index_url_params', []);
         }
 
+        // Preparar todas as variáveis necessárias para a view
+        $gigCacheValueBrl = $gig->cache_value_brl; // Valor original do contrato em BRL
+        $totalConfirmedExpensesBrl = $financialCalculator->calculateTotalConfirmedExpensesBrl($gig);
+        $calculatedGrossCashBrl = $financialCalculator->calculateGrossCashBrl($gig); // <<-- ESTA É A CHAVE
+        $calculatedAgencyGrossCommissionBrl = $financialCalculator->calculateAgencyGrossCommissionBrl($gig);
+        $artistNetPayoutBeforeReimbursement = $financialCalculator->calculateArtistNetPayoutBrl($gig);
+        $totalReimbursableExpensesBrl = $financialCalculator->calculateTotalReimbursableExpensesBrl($gig);
+        $finalArtistInvoiceValueBrl = $financialCalculator->calculateArtistInvoiceValueBrl($gig);
 
-        return view('gigs.request-nf', [
-            'gig' => $gig,
-            'gigCacheValueBrl' => $financialCalculator->calculateGrossCashBrl($gig) + $financialCalculator->calculateTotalConfirmedExpensesBrl($gig), // Recalcula o "Valor Contrato BRL"
-            'totalConfirmedExpensesBrl' => $financialCalculator->calculateTotalConfirmedExpensesBrl($gig), // Despesas da Agência + Reembolsáveis
-            'totalReimbursableExpensesBrl' => $financialCalculator->calculateTotalReimbursableExpensesBrl($gig), // Apenas as do Artista
-            'artistNetPayoutBeforeReimbursement' => $financialCalculator->calculateArtistNetPayoutBrl($gig),
-            'finalArtistInvoiceValueBrl' => $financialCalculator->calculateArtistInvoiceValueBrl($gig),
-            'backUrlParams' => $backUrlParams
-        ]);
+
+        return view('gigs.request-nf', compact(
+            'gig',
+            'gigCacheValueBrl',
+            'totalConfirmedExpensesBrl',
+            'calculatedGrossCashBrl', // <<-- Garantir que está aqui
+            'calculatedAgencyGrossCommissionBrl',
+            'artistNetPayoutBeforeReimbursement',
+            'totalReimbursableExpensesBrl',
+            'finalArtistInvoiceValueBrl',
+            'backUrlParams'
+        ));
     }
 }

@@ -6,14 +6,14 @@
     'calculatedArtistNetPayoutBrl',
     'calculatedBookerCommissionBrl',
     'calculatedArtistInvoiceValueBrl',
-    'backUrlParams' // Adicionado para a rota de NF
+    'backUrlParams',
+    'calculatedTotalConfirmedExpensesBrl' // Adicionado conforme nossa última discussão
 ])
 {{--
     Exibe e permite gerenciar os acertos finais (pagamentos efetuados ao Artista e Booker).
 --}}
 
-<div
-    x-data="{ reloadSettlements() { window.location.reload(); } }"
+<div x-data="{ reloadSettlements() { window.location.reload(); } }"
     @costs-updated.window="reloadSettlements()"
     class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mt-6">
     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -34,47 +34,49 @@
             </div>
 
             <div class="space-y-2 text-sm">
-                {{-- Valor do Contrato/Cachê --}}
+                {{-- Valor do Contrato (Original BRL) --}}
                 <div class="flex items-center justify-between py-1">
                     <span class="text-gray-600 dark:text-gray-400">Valor Contrato ({{ $gig->currency }}):</span>
                     <span class="font-semibold text-gray-800 dark:text-white">
                         {{ $gig->currency }} {{ number_format($gig->cache_value ?? 0, 2, ',', '.') }}
+                        @if($gig->currency !== 'BRL' && $gig->cache_value_brl) {{-- Adicionado verificação se cache_value_brl existe --}}
+                            (aprox. R$ {{ number_format($gig->cache_value_brl, 2, ',', '.') }})
+                        @endif
                     </span>
                 </div>
-                @if($gig->currency !== 'BRL')
-                    <div class="flex items-center justify-between py-1 text-xs -mt-1">
-                        <span class="text-gray-500 dark:text-gray-400 ml-4">(Equivalente em BRL para cálculo):</span>
-                        <span class="font-medium text-gray-700 dark:text-gray-300">R$ {{ number_format($gig->cache_value_brl, 2, ',', '.') }}</span>
-                    </div>
-                @endif
 
-                {{-- Detalhamento das Despesas Pagas pela Agência (is_invoice = false) --}}
-                @php
-                    $despesasPagasPelaAgencia = $gig->costs->where('is_confirmed', true)->where('is_invoice', false);
-                    $totalDespesasPagasPelaAgencia = $despesasPagasPelaAgencia->sum('value');
-                @endphp
-                @if($despesasPagasPelaAgencia->isNotEmpty())
-                    <div class="py-2 border-t border-gray-100 dark:border-gray-700/50">
-                        <span class="text-gray-600 dark:text-gray-400 block mb-1 font-medium">(-) Despesas Confirmadas (Pagas pela Agência):</span>
+                {{-- Total de TODAS as Despesas Confirmadas --}}
+                <div class="py-2 border-t border-gray-100 dark:border-gray-700/50">
+                    <span class="text-gray-600 dark:text-gray-400 block mb-1 font-medium">(-) Total Despesas Confirmadas (Dedutíveis da Base):</span>
+                    @if($calculatedTotalConfirmedExpensesBrl > 0)
                         <div class="pl-4 space-y-1">
-                            @foreach($despesasPagasPelaAgencia->groupBy('costCenter.name') as $costCenterName => $costsInGroup)
+                            @php
+                                // Carregar os custos apenas uma vez se ainda não estiverem carregados e ordenados
+                                $confirmedCostsGrouped = $gig->costs()
+                                    ->where('is_confirmed', true)
+                                    ->with('costCenter') // Eager load para evitar N+1
+                                    ->get()
+                                    ->groupBy(function($cost) {
+                                        return $cost->costCenter->name ?? 'Outras Despesas';
+                                    });
+                            @endphp
+                            @forelse($confirmedCostsGrouped as $costCenterName => $costsInGroup)
                                 <div class="flex items-center justify-between text-xs">
-                                    <span class="text-gray-500 dark:text-gray-400">- {{ $costCenterName ?: 'Outras Despesas' }}:</span>
+                                    <span class="text-gray-500 dark:text-gray-400">- {{ $costCenterName }}:</span>
                                     <span class="font-medium text-red-600 dark:text-red-400">R$ {{ number_format($costsInGroup->sum('value'), 2, ',', '.') }}</span>
                                 </div>
-                            @endforeach
+                            @empty
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Nenhuma despesa confirmada individualmente listada.</p>
+                            @endforelse
                             <div class="flex items-center justify-between text-xs font-semibold pt-1 border-t border-dashed border-gray-200 dark:border-gray-600 mt-1">
-                                <span class="text-gray-500 dark:text-gray-400">Total Desp. Agência:</span>
-                                <span class="text-red-600 dark:text-red-400">R$ {{ number_format($totalDespesasPagasPelaAgencia, 2, ',', '.') }}</span>
+                                <span class="text-gray-500 dark:text-gray-400">Total Geral Despesas Confirmadas:</span>
+                                <span class="text-red-600 dark:text-red-400">R$ {{ number_format($calculatedTotalConfirmedExpensesBrl, 2, ',', '.') }}</span>
                             </div>
                         </div>
-                    </div>
-                @else
-                    <div class="py-2 border-t border-gray-100 dark:border-gray-700/50">
-                        <span class="text-gray-600 dark:text-gray-400">(-) Despesas Pagas pela Agência:</span>
+                    @else
                         <span class="font-semibold text-gray-800 dark:text-white ml-2">R$ 0,00</span>
-                    </div>
-                @endif
+                    @endif
+                </div>
 
                 {{-- Cachê Bruto (Base para Comissões) --}}
                 <div class="flex items-center justify-between py-1 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-700/30 px-2 -mx-2 rounded">
@@ -82,15 +84,15 @@
                     <span class="font-semibold text-gray-800 dark:text-white">R$ {{ number_format($calculatedGrossCashBrl, 2, ',', '.') }}</span>
                 </div>
 
-                {{-- Comissão Agência --}}
+                {{-- Comissão Agência (calculada sobre o Cachê Bruto acima) --}}
                 <div class="py-2 border-t border-gray-100 dark:border-gray-700/50">
-                    <span class="text-gray-600 dark:text-gray-400 block mb-1 font-medium">(-) Comissão Bruta da Agência:</span>
-                    <div class="pl-4 text-xs">
+                     <span class="text-gray-600 dark:text-gray-400 block mb-1 font-medium">(-) Comissão Bruta da Agência:</span>
+                     <div class="pl-4 text-xs">
                         <div class="flex items-center justify-between">
                             <span class="text-gray-500 dark:text-gray-400">
-                                @if($gig->agency_commission_type === 'PERCENT' && isset($gig->agency_commission_rate)) {{-- Verifica se rate não é null --}}
+                                @if(strtoupper($gig->agency_commission_type ?? '') === 'PERCENT' && isset($gig->agency_commission_rate))
                                     {{ number_format($gig->agency_commission_rate, 1) }}% sobre R$ {{ number_format($calculatedGrossCashBrl, 2, ',', '.') }}
-                                @elseif($gig->agency_commission_type === 'FIXED')
+                                @elseif(strtoupper($gig->agency_commission_type ?? '') === 'FIXED')
                                     Valor Fixo
                                 @else
                                      {{ $gig->agency_commission_type ?? 'Não definido' }}
@@ -101,9 +103,38 @@
                     </div>
                 </div>
 
-                {{-- Valor Líquido para Nota Fiscal do Artista (Já inclui reembolso de despesas is_invoice=true) --}}
+                {{-- Cachê Líquido do Artista (ANTES de reembolsos) --}}
+                 <div class="flex items-center justify-between py-1 border-t border-gray-100 dark:border-gray-700/50">
+                    <span class="text-gray-600 dark:text-gray-400">= Cachê Líquido do Artista (Base NF):</span>
+                    <span class="font-semibold text-gray-800 dark:text-white">R$ {{ number_format($calculatedArtistNetPayoutBrl, 2, ',', '.') }}</span>
+                </div>
+
+                {{-- Despesas Pagas pelo Artista (Reembolsáveis, is_invoice = true) --}}
+                @php
+                    $despesasReembolsaveisAoArtista = $gig->costs->where('is_confirmed', true)->where('is_invoice', true);
+                    $totalDespesasReembolsaveisAoArtista = $despesasReembolsaveisAoArtista->sum('value');
+                @endphp
+                @if($despesasReembolsaveisAoArtista->isNotEmpty())
+                    <div class="py-2 border-t border-gray-100 dark:border-gray-700/50">
+                        <span class="text-gray-600 dark:text-gray-400 block mb-1 font-medium">(+) Reembolso Despesas Pagas pelo Artista:</span>
+                        <div class="pl-4 space-y-1">
+                            @foreach($despesasReembolsaveisAoArtista->groupBy('costCenter.name') as $costCenterName => $costsInGroup)
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-gray-500 dark:text-gray-400">- {{ $costCenterName ?: 'Outras Despesas' }}:</span>
+                                    <span class="font-medium text-green-600 dark:text-green-400">R$ {{ number_format($costsInGroup->sum('value'), 2, ',', '.') }}</span>
+                                </div>
+                            @endforeach
+                             <div class="flex items-center justify-between text-xs font-semibold pt-1 border-t border-dashed border-gray-200 dark:border-gray-600 mt-1">
+                                <span class="text-gray-500 dark:text-gray-400">Total Reembolsável ao Artista:</span>
+                                <span class="text-green-600 dark:text-green-400">R$ {{ number_format($totalDespesasReembolsaveisAoArtista, 2, ',', '.') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                @endif {{-- Fim do if($despesasReembolsaveisAoArtista->isNotEmpty()) --}}
+
+                {{-- Valor Líquido Final para Nota Fiscal do Artista --}}
                 <div class="flex items-center justify-between py-2 mt-2 border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700/50 px-2 -mx-2 rounded">
-                    <span class="font-medium text-gray-700 dark:text-gray-300">= Valor Líquido para Nota Fiscal do Artista:</span>
+                    <span class="font-medium text-gray-700 dark:text-gray-300">= Valor Final para Nota Fiscal do Artista:</span>
                     <span class="font-bold text-lg text-primary-600 dark:text-primary-400">R$ {{ number_format($calculatedArtistInvoiceValueBrl, 2, ',', '.') }}</span>
                 </div>
             </div>
@@ -156,7 +187,7 @@
                         </button>
                     </form>
                 </div>
-            @endif
+            @endif {{-- Fim do if ($gig->artist_payment_status === 'pendente') --}}
         </div>
         {{-- FIM Acerto com Artista --}}
 
@@ -173,19 +204,17 @@
                     </h4>
                     <x-status-badge :status="$gig->booker_payment_status" type="payment-internal" />
                 </div>
-
                 <div class="space-y-1">
                     <div class="flex items-center justify-between py-1">
-                        <span class="text-xs text-gray-600 dark:text-gray-400">Base de Cálculo (Valor Contrato BRL):</span>
-                        <span class="text-xs font-semibold text-gray-800 dark:text-white">R$ {{ number_format($gig->cache_value_brl, 2, ',', '.') }}</span>
+                        <span class="text-xs text-gray-600 dark:text-gray-400">Base de Cálculo (Cachê Bruto BRL):</span>
+                        <span class="text-xs font-semibold text-gray-800 dark:text-white">R$ {{ number_format($calculatedGrossCashBrl, 2, ',', '.') }}</span>
                     </div>
-
                     <div class="flex items-center justify-between py-1 border-t border-gray-100 dark:border-gray-700">
                         <span class="text-xs text-gray-600 dark:text-gray-400">
                             Comissão
-                            @if($gig->booker_commission_type === 'PERCENT' && isset($gig->booker_commission_rate))
+                            @if(strtoupper($gig->booker_commission_type ?? '') === 'PERCENT' && isset($gig->booker_commission_rate))
                                 ({{ number_format($gig->booker_commission_rate, 1) }}%):
-                            @elseif($gig->booker_commission_type === 'FIXED')
+                            @elseif(strtoupper($gig->booker_commission_type ?? '') === 'FIXED')
                                 (Valor Fixo):
                             @else
                                  {{ $gig->booker_commission_type ?? 'Não definido' }}:
@@ -194,7 +223,7 @@
                         <span class="font-semibold text-gray-800 dark:text-white">R$ {{ number_format($calculatedBookerCommissionBrl, 2, ',', '.') }}</span>
                     </div>
                 </div>
-
+                {{-- Botões para Booker --}}
                 @if ($gig->booker_payment_status === 'pendente' && $calculatedBookerCommissionBrl > 0.009)
                      <div class="mt-4">
                          <button type="button"
@@ -209,17 +238,40 @@
                      </div>
                 @elseif ($gig->booker_payment_status === 'pago')
                     <div class="mt-3 text-xs">
-                        {{-- ... (mensagens e botão de reverter para booker) ... --}}
+                        <div class="text-green-700 dark:text-green-300 mb-2">
+                             <p class="font-medium"><i class="fas fa-check-circle fa-fw"></i> Comissão do booker registrada como 'Paga'.</p>
+                             @if($settlement?->booker_commission_value_paid)
+                                <p>Valor Registrado Pago: R$ {{ number_format($settlement->booker_commission_value_paid, 2, ',', '.') }}
+                                    @if($settlement->booker_commission_paid_at)
+                                     em {{ $settlement->booker_commission_paid_at?->format('d/m/Y') }}
+                                    @endif
+                                </p>
+                            @endif
+                            @if($settlement?->booker_commission_proof)
+                                <p class="mt-1">Comprovante:
+                                    <a href="{{ Storage::url($settlement->booker_commission_proof) }}" target="_blank" class="text-blue-500 hover:underline ml-1">
+                                        <i class="fas fa-paperclip"></i> Visualizar
+                                    </a>
+                                </p>
+                            @endif
+                        </div>
+                        <form action="{{ route('gigs.settlements.booker.unsettle', $gig) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja reverter o pagamento da comissão do booker para PENDENTE?');" class="inline">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-md text-xs flex items-center">
+                                <i class="fas fa-undo-alt mr-1"></i> Reverter para Pendente
+                            </button>
+                        </form>
                     </div>
-                @endif
+                @endif {{-- Fim do if ($gig->booker_payment_status === 'pendente' ...) --}}
             </div>
             @elseif($gig->booker_id && $calculatedBookerCommissionBrl <= 0.009 && $gig->booker_payment_status !== 'pago')
                 <div class="p-4 rounded-md bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700">
                     <h4 class="font-semibold text-gray-700 dark:text-gray-200">Comissão do Booker: {{ $gig->booker->name ?? 'N/A' }}</h4>
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Sem comissão definida ou valor zerado para este booker nesta gig.</p>
                 </div>
-            @endif
-        @endif
+            @endif {{-- Fim do if( $calculatedBookerCommissionBrl > 0.009 ... ) --}}
+        @endif {{-- Fim do if($gig->booker_id) --}}
         {{-- FIM Acerto com Booker --}}
     </div>
 </div>

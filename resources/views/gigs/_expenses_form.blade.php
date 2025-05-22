@@ -3,33 +3,31 @@
 
 <div x-data="{
     costCenters: {{ json_encode($costCenters ?? []) }},
-    expenses: {{ old('expenses', ($gig->exists && $gig->costs ? $gig->costs->map(fn($cost) => [
+    expenses: {{ json_encode(old('expenses', ($gig->exists && $gig->costs ? $gig->costs->map(fn($cost) => [
         'id' => $cost->id,
-        'cost_center_id' => (string)($cost->cost_center_id ?? ''), // Garantir string e default
+        'cost_center_id' => (string)($cost->cost_center_id ?? ''),
         'description' => $cost->description ?? '',
-        'value' => $cost->value ?? '', // Default para string vazia se nulo
+        'value' => $cost->value ?? '',
         'currency' => $cost->currency ?: 'BRL',
         'expense_date' => $cost->expense_date ? $cost->expense_date->format('Y-m-d') : now()->format('Y-m-d'),
         'notes' => $cost->notes ?? '',
         'is_confirmed' => (bool)($cost->is_confirmed ?? false),
         'is_invoice' => (bool)($cost->is_invoice ?? false),
         '_deleted' => false
-    ])->toJson() : '[]')) }}, // old() para repopular em caso de erro de validação
+    ])->toArray() : []))) }},
     totalExpensesValue: 0,
 
     init() {
         this.calculateTotalExpenses();
-        // Se for uma criação de Gig (sem $gig->exists ou sem old('expenses')),
-        // e você quiser que comece com uma linha de despesa em branco:
         if (!{{ $gig->exists ? 'true' : 'false' }} && this.expenses.length === 0 && !{{ count(old('expenses', [])) > 0 ? 'true' : 'false' }}) {
-            // this.addExpense(); // Descomente se quiser uma linha ao criar nova Gig
+            // this.addExpense(); // Se quiser iniciar com uma linha vazia.
         }
     },
 
     addExpense() {
         this.expenses.push({
             id: null,
-            cost_center_id: '', // Default para string vazia
+            cost_center_id: '',
             description: '',
             value: '',
             currency: 'BRL',
@@ -44,19 +42,13 @@
             const firstInput = document.getElementById(`expenses[${lastIndex}][cost_center_id]`);
             firstInput?.focus();
         });
-        this.calculateTotalExpenses(); // Recalcular ao adicionar
+        this.calculateTotalExpenses();
     },
 
     removeExpense(index) {
-        // Se a despesa tem um ID, ela existe no banco. Marcamos para deleção LÓGICA no backend.
-        // Se não tem ID, é uma linha nova no formulário, apenas removemos do array.
         if (this.expenses[index].id) {
             if (confirm('Tem certeza que deseja marcar esta despesa salva para remoção? A remoção efetiva ocorrerá ao salvar a Gig.')) {
-                this.expenses[index]._deleted = true; // Marca para o backend
-                // Visualmente, você pode querer esconder ou estilizar diferente:
-                // Ex: document.getElementById(`expense_row_${index}`).style.display = 'none';
-                // Ou adicionar uma classe para tachar o texto, etc.
-                // Por ora, o _deleted=true fará o backend ignorá-la para update e potencialmente deletá-la.
+                this.expenses[index]._deleted = true;
             }
         } else {
             this.expenses.splice(index, 1);
@@ -66,7 +58,7 @@
 
     calculateTotalExpenses() {
         this.totalExpensesValue = this.expenses.reduce((sum, expense) => {
-            if (expense._deleted) return sum; // Não soma se marcada para exclusão
+            if (expense._deleted) return sum;
             return sum + (parseFloat(expense.value) || 0);
         }, 0);
     },
@@ -78,6 +70,7 @@
         });
     }
 }" class="space-y-4">
+
 
     <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
         <h4 class="text-md font-semibold text-gray-800 dark:text-white">

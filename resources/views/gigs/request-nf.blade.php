@@ -22,116 +22,79 @@
         </div>
 
         <div class="p-4 space-y-3 text-xs sm:text-sm">
-            {{-- Resumo Financeiro para NF --}}
-            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-2">
-                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Cálculo do Valor da NF:</h4>
+    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Cálculo do Valor da NF:</h4>
 
-                {{-- Valor do Contrato/Cachê Bruto --}}
-                <div class="flex justify-between">
-                    <span class="text-gray-600 dark:text-gray-400">Valor Contrato (Cachê Bruto {{ $gig->currency }}):</span>
-                    <span class="font-medium text-gray-800 dark:text-white">
-                        {{ $gig->currency }} {{ number_format($gig->cache_value, 2, ',', '.') }}
-                    </span>
+    {{-- Valor do Contrato (Original BRL) --}}
+    <div class="flex justify-between">
+        <span class="text-gray-600 dark:text-gray-400">Valor Contrato ({{ $gig->currency }}):</span>
+        <span class="font-medium text-gray-800 dark:text-white">
+            {{ $gig->currency }} {{ number_format($gig->cache_value, 2, ',', '.') }}
+            @if($gig->currency !== 'BRL')
+                (aprox. R$ {{ number_format($gigCacheValueBrl, 2, ',', '.') }}) {{-- $gigCacheValueBrl é o Valor Contrato em BRL --}}
+            @endif
+        </span>
+    </div>
+
+    {{-- Total de TODAS as Despesas Confirmadas --}}
+    <div class="pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50">
+        <span class="text-gray-600 dark:text-gray-400 block mb-1">(-) Total Despesas Confirmadas (Deduzidas da Base):</span>
+        <div class="pl-2 space-y-1">
+            @forelse($gig->costs->where('is_confirmed', true) as $cost)
+                <div class="flex justify-between text-[11px] sm:text-xs">
+                    <span class="text-gray-500 dark:text-gray-400">- {{ $cost->costCenter->name ?? 'N/A' }}: {{ $cost->description }}</span>
+                    <span class="font-medium text-red-500 dark:text-red-400">R$ {{ number_format($cost->value, 2, ',', '.') }}</span>
                 </div>
-                @if($gig->currency !== 'BRL')
+            @empty
+                <div class="text-gray-500 dark:text-gray-400 text-[11px] sm:text-xs">- Nenhuma despesa confirmada.</div>
+            @endforelse
+            <div class="flex justify-between text-xs font-semibold pt-1 border-t border-dashed border-gray-200 dark:border-gray-600 mt-1">
+                <span class="text-gray-500 dark:text-gray-400">Total Geral Despesas Confirmadas:</span>
+                <span class="text-red-500 dark:text-red-400">R$ {{ number_format($totalConfirmedExpensesBrl, 2, ',', '.') }}</span> {{-- Esta variável vem do controller --}}
+            </div>
+        </div>
+    </div>
+
+    {{-- Cachê Bruto (Base para Comissões) --}}
+    <div class="flex justify-between pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50">
+        <span class="text-gray-600 dark:text-gray-400">= Cachê Bruto (Base para Comissões):</span>
+        <span class="font-medium text-gray-800 dark:text-white">R$ {{ number_format($calculatedGrossCashBrl, 2, ',', '.') }}</span> {{-- Esta variável vem do controller --}}
+    </div>
+
+    
+
+    {{-- Cachê Líquido do Artista (antes do reembolso) --}}
+    <div class="flex justify-between pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-700/30 px-3 -mx-3 rounded-t-md">
+        <span class="text-gray-600 dark:text-gray-400 font-semibold">= Cachê Líquido do Artista (para NF):</span>
+        <span class="font-semibold text-gray-800 dark:text-white">R$ {{ number_format($artistNetPayoutBeforeReimbursement, 2, ',', '.') }}</span> {{-- Esta variável vem do controller --}}
+    </div>
+
+    {{-- Despesas Pagas pelo Artista (Reembolsáveis, is_invoice = true) --}}
+    @if($totalReimbursableExpensesBrl > 0)
+        <div class="pt-2 mt-0 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-700/30 px-3 -mx-3">
+            <span class="text-gray-600 dark:text-gray-400 block mb-1 font-semibold">(+) Reembolso Despesas Pagas pelo Artista:</span>
+            <div class="pl-2 space-y-1">
+                @foreach($gig->costs->where('is_confirmed', true)->where('is_invoice', true) as $cost)
                     <div class="flex justify-between text-[11px] sm:text-xs">
-                        <span class="text-gray-500 dark:text-gray-400 ml-4">(Equivalente em BRL para cálculo):</span>
-                        <span class="font-medium text-gray-700 dark:text-gray-300">R$ {{ number_format($gigCacheValueBrl, 2, ',', '.') }}</span>
+                        <span class="text-gray-500 dark:text-gray-400">- {{ $cost->costCenter->name ?? 'N/A' }}: {{ $cost->description }}</span>
+                        <span class="font-medium text-green-600 dark:text-green-400">R$ {{ number_format($cost->value, 2, ',', '.') }}</span>
                     </div>
-                @endif
-
-                {{-- Despesas Confirmadas --}}
-                @php
-                    // Filtra todas as despesas confirmadas
-                    $confirmedExpenses = $gig->costs
-                        ->where('is_confirmed', true)
-                        ->groupBy('costCenter.name');
-                    
-                    $totalConfirmedExpenses = $confirmedExpenses
-                        ->map(function($group) {
-                            return $group->sum('value');
-                        })->sum();
-
-                    // Filtra apenas as despesas confirmadas que serão reembolsadas via NF
-                    $reimbursableExpenses = $gig->costs
-                        ->where('is_confirmed', true)
-                        ->where('is_invoice', true)
-                        ->groupBy('costCenter.name');
-                    
-                    $totalReimbursableExpenses = $reimbursableExpenses
-                        ->map(function($group) {
-                            return $group->sum('value');
-                        })->sum();
-                @endphp
-
-                @if($confirmedExpenses->isNotEmpty())
-                    <div class="pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50">
-                        <span class="text-gray-600 dark:text-gray-400 block mb-1">(-) Despesas Confirmadas:</span>
-                        <div class="pl-2 space-y-1">
-                            @foreach($confirmedExpenses as $costCenterName => $costsInGroup)
-                                <div class="flex justify-between text-[11px] sm:text-xs">
-                                    <span class="text-gray-500 dark:text-gray-400">- {{ $costCenterName }}:</span>
-                                    <span class="font-medium text-red-500 dark:text-red-400">R$ {{ number_format($costsInGroup->sum('value'), 2, ',', '.') }}</span>
-                                </div>
-                            @endforeach
-                            <div class="flex justify-between text-xs font-semibold pt-1 border-t border-dashed border-gray-200 dark:border-gray-600 mt-1">
-                                <span class="text-gray-500 dark:text-gray-400">Total Despesas Confirmadas:</span>
-                                <span class="text-red-500 dark:text-red-400">R$ {{ number_format($totalConfirmedExpenses, 2, ',', '.') }}</span>
-                            </div>
-                        </div>
-                    </div>
-                @else
-                    <div class="pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50">
-                        <span class="text-gray-600 dark:text-gray-400">(-) Despesas Confirmadas: R$ 0,00</span>
-                    </div>
-                @endif
-
-                {{-- Cachê Base para Comissões --}}
-                <div class="flex justify-between pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50">
-                    <span class="text-gray-600 dark:text-gray-400">= Cachê Base (após despesas):</span>
-                    <span class="font-medium text-gray-800 dark:text-white">R$ {{ number_format($gigCacheValueBrl - $totalConfirmedExpenses, 2, ',', '.') }}</span>
-                </div>
-
-                {{-- Cachê do Artista --}}
-                <div class="flex justify-between pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50">
-                    <span class="text-gray-600 dark:text-gray-400">
-                        Cachê Artista ({{ number_format($gig->artist_commission_rate ?? 80, 1) }}%):
-                    </span>
-                    <span class="font-medium text-gray-800 dark:text-white">R$ {{ number_format(($gigCacheValueBrl - $totalConfirmedExpenses) * ($gig->artist_commission_rate ?? 80) / 100, 2, ',', '.') }}</span>
-                </div>
-
-                {{-- Despesas Reembolsáveis --}}
-                @if($reimbursableExpenses->isNotEmpty())
-                    <div class="pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50">
-                        <span class="text-gray-600 dark:text-gray-400 block mb-1">(+) Despesas Reembolsáveis:</span>
-                        <div class="pl-2 space-y-1">
-                            @foreach($reimbursableExpenses as $costCenterName => $costsInGroup)
-                                <div class="flex justify-between text-[11px] sm:text-xs">
-                                    <span class="text-gray-500 dark:text-gray-400">- {{ $costCenterName }}:</span>
-                                    <span class="font-medium text-green-500 dark:text-green-400">R$ {{ number_format($costsInGroup->sum('value'), 2, ',', '.') }}</span>
-                                </div>
-                            @endforeach
-                            <div class="flex justify-between text-xs font-semibold pt-1 border-t border-dashed border-gray-200 dark:border-gray-600 mt-1">
-                                <span class="text-gray-500 dark:text-gray-400">Total Despesas Reembolsáveis:</span>
-                                <span class="text-green-500 dark:text-green-400">R$ {{ number_format($totalReimbursableExpenses, 2, ',', '.') }}</span>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-
-                {{-- Valor Líquido Final para Nota Fiscal --}}
-                <div class="flex justify-between items-center py-3 mt-3 border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700/50 px-3 -mx-3 rounded-b-md">
-                    <span class="text-md font-semibold text-gray-700 dark:text-gray-200">VALOR NOTA FISCAL:</span>
-                    <span class="text-xl font-bold text-primary-600 dark:text-primary-400">
-                        R$ {{ number_format(
-                            ($gigCacheValueBrl - $totalConfirmedExpenses) * ($gig->artist_commission_rate ?? 80) / 100 + $totalReimbursableExpenses,
-                            2,
-                            ',',
-                            '.'
-                        ) }}
-                    </span>
+                @endforeach
+                <div class="flex justify-between text-xs font-semibold pt-1 border-t border-dashed border-gray-200 dark:border-gray-600 mt-1">
+                    <span class="text-gray-500 dark:text-gray-400">Total Reembolsável ao Artista:</span>
+                    <span class="text-green-600 dark:text-green-400">R$ {{ number_format($totalReimbursableExpensesBrl, 2, ',', '.') }}</span> {{-- Esta variável vem do controller --}}
                 </div>
             </div>
+        </div>
+    @endif
+
+    {{-- VALOR FINAL DA NOTA FISCAL --}}
+    <div class="flex justify-between items-center py-3 mt-0 border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700/50 px-3 -mx-3 rounded-b-md">
+        <span class="text-md font-semibold text-gray-700 dark:text-gray-200">VALOR NOTA FISCAL:</span>
+        <span class="text-xl font-bold text-primary-600 dark:text-primary-400">
+            R$ {{ number_format($finalArtistInvoiceValueBrl, 2, ',', '.') }} {{-- Esta variável vem do controller --}}
+        </span>
+    </div>
+</div>
 
            
 
