@@ -31,7 +31,7 @@ class StoreGigRequest extends FormRequest
             'gig_date'                => ['required', 'date'],
             'location_event_details'  => ['required', 'string', 'max:65535'],
             'cache_value'             => ['required', 'numeric', 'min:0'], // Valor original
-            'currency'                => ['required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])], // Moeda original
+            'currency'                => ['required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP', 'GPB'])], // Moeda original (GPB é um alias para GBP)
 
             'contract_number'         => ['nullable', 'string', 'max:100', 'unique:gigs,contract_number'],
             'contract_date'           => ['nullable', 'date', 'before_or_equal:gig_date'],

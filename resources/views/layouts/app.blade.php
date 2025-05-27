@@ -53,14 +53,8 @@
                             @endisset
                         </div>
 
-                        {{-- Lado Direito do Header (Busca, Notificações, User) --}}
+                        <!-- Lado Direito do Header (Notificações, User) -->
                         <div class="flex items-center space-x-4">
-                            {{-- Busca (Pode ser um componente) --}}
-                            <div class="relative hidden md:block"> {{-- Esconde em telas pequenas --}}
-                                <input type="text" class="w-64 rounded-full border border-gray-300 dark:border-gray-600 py-2 px-4 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-gray-100" placeholder="Pesquisar...">
-                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"></i>
-                            </div>
-
                             {{-- Notificações (Componente ou direto) --}}
                             <x-header-notifications /> {{-- Exemplo de componente --}}
 

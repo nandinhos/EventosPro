@@ -2,8 +2,8 @@
 @props(['gig', 'costCenters']) {{-- Adicionado $gig como prop se necessário para 'old' --}}
 
 <div x-data="{
-    costCenters: {{ json_encode($costCenters ?? []) }},
-    expenses: {{ json_encode(old('expenses', ($gig->exists && $gig->costs ? $gig->costs->map(fn($cost) => [
+    costCenters: {{ json_encode($costCenters ?? [], JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) }},
+    expenses: {{ json_encode(old('expenses', $gig->exists && $gig->costs ? $gig->costs->map(fn($cost) => [
         'id' => $cost->id,
         'cost_center_id' => (string)($cost->cost_center_id ?? ''),
         'description' => $cost->description ?? '',
@@ -14,13 +14,15 @@
         'is_confirmed' => (bool)($cost->is_confirmed ?? false),
         'is_invoice' => (bool)($cost->is_invoice ?? false),
         '_deleted' => false
-    ])->toArray() : []))) }},
+    ])->toArray() : []), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) }},
     totalExpensesValue: 0,
 
     init() {
         this.calculateTotalExpenses();
-        if (!{{ $gig->exists ? 'true' : 'false' }} && this.expenses.length === 0 && !{{ count(old('expenses', [])) > 0 ? 'true' : 'false' }}) {
-            // this.addExpense(); // Se quiser iniciar com uma linha vazia.
+        const isNewGig = !{{ $gig->exists ? 'true' : 'false' }};
+        const hasOldExpenses = {{ count(old('expenses', [])) > 0 ? 'true' : 'false' }};
+        if (isNewGig && this.expenses.length === 0 && !hasOldExpenses) {
+            // this.addExpense(); // Descomente se quiser iniciar com uma linha vazia
         }
     },
 
@@ -40,15 +42,26 @@
         this.$nextTick(() => {
             const lastIndex = this.expenses.length - 1;
             const firstInput = document.getElementById(`expenses[${lastIndex}][cost_center_id]`);
-            firstInput?.focus();
+            if (firstInput) {
+                firstInput.focus();
+            }
         });
         this.calculateTotalExpenses();
     },
 
     removeExpense(index) {
-        if (this.expenses[index].id) {
+        const expense = this.expenses[index];
+        if (!expense) return;
+
+        if (expense.id) {
             if (confirm('Tem certeza que deseja marcar esta despesa salva para remoção? A remoção efetiva ocorrerá ao salvar a Gig.')) {
                 this.expenses[index]._deleted = true;
+                this.$nextTick(() => {
+                    const hiddenInput = document.querySelector(`input[name='expenses[${index}][_deleted]']`);
+                    if (hiddenInput) {
+                        hiddenInput.value = '1';
+                    }
+                });
             }
         } else {
             this.expenses.splice(index, 1);
@@ -57,10 +70,9 @@
     },
 
     calculateTotalExpenses() {
-        this.totalExpensesValue = this.expenses.reduce((sum, expense) => {
-            if (expense._deleted) return sum;
-            return sum + (parseFloat(expense.value) || 0);
-        }, 0);
+        this.totalExpensesValue = this.expenses
+            .filter(expense => !expense._deleted)
+            .reduce((sum, expense) => sum + (parseFloat(expense.value) || 0), 0);
     },
 
     formatCurrency(value) {
@@ -98,9 +110,17 @@
                  :class="{ 'opacity-60 !bg-red-50 dark:!bg-red-900/20': expense._deleted }">
 
                 {{-- Campo hidden para marcar como deletado --}}
-                <input type="hidden" :name="'expenses['+index+'][_deleted]'" x-model="expense._deleted">
+                <input type="hidden" :name="'expenses['+index+'][_deleted]'" :value="expense._deleted ? 1 : 0">
                 {{-- Campo hidden para o ID da despesa (se for uma existente) --}}
                 <input type="hidden" :name="'expenses['+index+'][id]'" x-model="expense.id">
+                {{-- Campos hidden para manter os valores originais quando marcado para exclusão --}}
+                <template x-if="expense._deleted">
+                    <div>
+                        <input type="hidden" :name="'expenses['+index+'][cost_center_id]'" :value="expense.cost_center_id">
+                        <input type="hidden" :name="'expenses['+index+'][value]'" :value="expense.value">
+                        <input type="hidden" :name="'expenses['+index+'][currency]'" :value="expense.currency">
+                    </div>
+                </template>
 
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">

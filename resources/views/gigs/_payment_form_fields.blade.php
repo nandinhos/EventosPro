@@ -24,7 +24,7 @@
             <option value="BRL" @selected($currentCurrency == 'BRL')>BRL</option>
             <option value="USD" @selected($currentCurrency == 'USD')>USD</option>
             <option value="EUR" @selected($currentCurrency == 'EUR')>EUR</option>
-            <option value="GPB" @selected($currentCurrency == 'GPB')>GBP</option>
+            <option value="GBP" @selected($currentCurrency == 'GBP')>GBP</option>
         </select>
         @error('currency') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
     </div>

@@ -94,6 +94,12 @@ class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mt-6">
                             <span class="font-semibold text-gray-800 dark:text-gray-100 block">
                                 {{ $payment->description ?: 'Parcela Prevista' }} -
                                 {{ $payment->currency }} {{ number_format($payment->due_value ?? 0, 2, ',', '.') }}
+                                @if($payment->currency !== 'BRL')
+                                    <span class="text-sm text-gray-600 dark:text-gray-300">
+                                        (Taxa: {{ number_format($payment->exchange_rate ?? 0, 4, ',', '.') }} - 
+                                        BRL {{ number_format(($payment->due_value ?? 0) * ($payment->exchange_rate ?? 0), 2, ',', '.') }})
+                                    </span>
+                                @endif
                             </span>
                             <span class="block text-xs text-gray-500 dark:text-gray-400">
                                 Vencimento: {{ $payment->due_date ? $payment->due_date->format('d/m/Y') : 'N/A' }}

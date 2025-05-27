@@ -199,7 +199,7 @@
                                          <div>
                                             <label for="confirm_currency_{{ $payment->id }}" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Moeda Receb.*</label>
                                             <select name="currency" id="confirm_currency_{{ $payment->id }}" required x-model="confirmFormData.currency" class="w-full text-sm rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 focus:border-primary-500 focus:ring-primary-500 shadow-sm @error('currency', 'paymentConfirm'.$payment->id) border-red-500 @enderror">
-                                                <option value="BRL">BRL</option> <option value="USD">USD</option> <option value="EUR">EUR</option> <option value="GPB">GBP</option>
+                                                <option value="BRL">BRL</option> <option value="USD">USD</option> <option value="EUR">EUR</option> <option value="GBP">GBP</option>
                                             </select>
                                              @error('currency', 'paymentConfirm'.$payment->id) <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                                         </div>

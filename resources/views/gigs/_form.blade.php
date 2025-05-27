@@ -134,7 +134,7 @@
                     <option value="BRL" @selected(old('currency', $gig->currency ?? 'BRL') == 'BRL')>BRL</option>
                     <option value="USD" @selected(old('currency', $gig->currency) == 'USD')>USD</option>
                     <option value="EUR" @selected(old('currency', $gig->currency) == 'EUR')>EUR</option>
-                    <option value="GPB" @selected(old('currency', $gig->currency) == 'GPB')>GBP</option>
+                    <option value="GBP" @selected(old('currency', $gig->currency) == 'GBP')>GBP</option>
                 </select>
                 @error('currency') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
             </div>
@@ -246,26 +246,9 @@
 
         {{-- Aba 5: Notas & Tags --}}
         <div x-show="activeTab === 5" role="tabpanel" id="tab-panel-5" class="space-y-6">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white sr-only">Notas & Tags</h3>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white sr-only">Notas</h3>
             {{-- Tags (já estava na Aba 1, movido para cá para melhor organização) --}}
-            <div>
-                <label for="tags" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags (Opcional)</label>
-                 <select name="tags[]" id="tags" multiple
-                         class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('tags.*') border-red-500 dark:border-red-600 @enderror tomselect-tags">
-                    @foreach ($tags as $type => $tagGroup)
-                         <optgroup label="{{ $type ? Str::ucfirst(str_replace('_', ' ', $type)) : 'Geral' }}">
-                            @foreach ($tagGroup as $tag)
-                                <option value="{{ $tag->id }}" @selected(in_array($tag->id, $currentSelectedTags))>
-                                    {{ $tag->name }}
-                                </option>
-                            @endforeach
-                        </optgroup>
-                    @endforeach
-                 </select>
-                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Comece a digitar para buscar ou selecionar tags.</p>
-                 @error('tags.*') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
-                 @error('tags') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
-            </div>
+            
             <div>
                 <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notas Gerais da Gig (Opcional)</label>
                 <textarea id="notes" name="notes" rows="5"

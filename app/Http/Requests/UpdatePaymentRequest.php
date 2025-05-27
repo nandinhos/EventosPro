@@ -31,7 +31,7 @@ class UpdatePaymentRequest extends FormRequest
         return [
             'due_value' => ['required', 'numeric', 'min:0.01'], // Renomeado de received_value
             'due_date' => ['required', 'date'],                // Renomeado de received_date
-            'currency' => ['required', 'string', 'max:10'],
+            'currency' => ['required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])],
             'exchange_rate' => [
                 'nullable',
                 Rule::requiredIf(fn() => strtoupper($this->input('currency', 'BRL')) !== 'BRL'),

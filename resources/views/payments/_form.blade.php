@@ -42,7 +42,7 @@
                 <option value="BRL" @selected(old('currency', $payment->currency ?? $gig->currency ?? 'BRL') == 'BRL')>BRL</option>
                 <option value="USD" @selected(old('currency', $payment->currency ?? $gig->currency) == 'USD')>USD</option>
                 <option value="EUR" @selected(old('currency', $payment->currency ?? $gig->currency) == 'EUR')>EUR</option>
-                <option value="GPB" @selected(old('currency', $payment->currency ?? $gig->currency) == 'GPB')>GBP</option>
+                <option value="GBP" @selected(old('currency', $payment->currency ?? $gig->currency) == 'GBP')>GBP</option>
             </select>
             @error('currency', $errorBag) <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
         </div>

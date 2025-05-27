@@ -99,6 +99,23 @@ return [
 
     'key' => env('APP_KEY'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Default Exchange Rates
+    |--------------------------------------------------------------------------
+    |
+    | These values are used as default exchange rates for currency conversion
+    | when no specific exchange rate is available from confirmed payments.
+    | Values are relative to BRL (Brazilian Real).
+    |
+    */
+
+    'default_exchange_rates' => [
+        'usd' => env('DEFAULT_EXCHANGE_RATE_USD', 5.20),
+        'eur' => env('DEFAULT_EXCHANGE_RATE_EUR', 5.60),
+        'gbp' => env('DEFAULT_EXCHANGE_RATE_GBP', 6.20),
+    ],
+
     'previous_keys' => [
         ...array_filter(
             explode(',', env('APP_PREVIOUS_KEYS', ''))

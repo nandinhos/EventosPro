@@ -309,85 +309,88 @@ class GigController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateGigRequest $request, Gig $gig): RedirectResponse
-    {
-        $validatedGigData = $request->safe()->except('expenses', 'tags', 'backParams');
-        $expensesData = $request->validated('expenses', []);
-        $tagsIds = $request->validated('tags', []);
-        $backParams = $request->input('backParams', []);
+ * Update the specified resource in storage.
+ */
+public function update(UpdateGigRequest $request, Gig $gig): RedirectResponse
+{
+    $validatedGigData = $request->safe()->except('expenses', 'tags', 'backParams');
+    $expensesData = $request->validated('expenses', []);
+    $tagsIds = $request->validated('tags', []);
+    $backParams = $request->input('backParams', []);
 
-        DB::beginTransaction();
-        try {
-            // O GigObserver (via método saving) cuidará de recalcular e setar
-            // agency_commission_value, booker_commission_value, liquid_commission_value
-            $gig->update($validatedGigData);
-            Log::info("[GigController@update] Dados da Gig ID: {$gig->id} atualizados. Processando despesas e tags...");
+    DB::beginTransaction();
+    try {
+        // O GigObserver (via método saving) cuidará de recalcular e setar
+        // agency_commission_value, booker_commission_value, liquid_commission_value
+        $gig->update($validatedGigData);
+        Log::info("[GigController@update] Dados da Gig ID: {$gig->id} atualizados. Processando despesas e tags...");
 
-            // Sincronizar Tags
-            $gig->tags()->sync($tagsIds); // sync([]) remove todas as tags se $tagsIds for vazio
-            Log::info("[GigController@update] Tags sincronizadas para Gig ID: {$gig->id}.");
+        // Sincronizar Tags
+        $gig->tags()->sync($tagsIds); // sync([]) remove todas as tags se $tagsIds for vazio
+        Log::info("[GigController@update] Tags sincronizadas para Gig ID: {$gig->id}.");
 
-            // Sincronizar Despesas (GigCosts) - Lógica mais robusta
-            $existingCostIds = $gig->costs()->pluck('id')->all();
-            $formCostIds = [];
+        // Sincronizar Despesas (GigCosts) - Lógica mais robusta
+        $existingCostIds = $gig->costs()->pluck('id')->all();
+        $formCostIds = [];
 
-            if (!empty($expensesData)) {
-                foreach ($expensesData as $expenseItem) {
-                    $isDeleted = $expenseItem['_deleted'] ?? false;
-                    $costId = $expenseItem['id'] ?? null;
+        if (!empty($expensesData)) {
+            foreach ($expensesData as $expenseItem) {
+                $isDeleted = isset($expenseItem['_deleted']) && $expenseItem['_deleted'] === true; // Verifica se está marcado para exclusão
+                $costId = $expenseItem['id'] ?? null;
 
-                    $dataToUpsert = [
-                        'cost_center_id' => $expenseItem['cost_center_id'],
-                        'description'    => $expenseItem['description'] ?? null,
-                        'value'          => $expenseItem['value'],
-                        'currency'       => $expenseItem['currency'] ?? 'BRL',
-                        'expense_date'   => $expenseItem['expense_date'] ?? null,
-                        'notes'          => $expenseItem['notes'] ?? null,
-                        // Não atualizamos is_confirmed ou is_invoice diretamente aqui,
-                        // pois são controlados por ações específicas (confirmar/marcarNF)
-                        // A menos que o formulário de edição permita alterá-los.
-                        // Se vierem do form, use:
-                        'is_confirmed'   => $expenseItem['is_confirmed'] ?? false,
-                        'is_invoice'     => $expenseItem['is_invoice'] ?? false,
-                    ];
-
-                    if ($costId && !$isDeleted) { // Atualizar existente
-                        $cost = GigCost::find($costId);
-                        if ($cost && $cost->gig_id === $gig->id) { // Segurança
-                            $cost->update($dataToUpsert);
-                            $formCostIds[] = $costId;
-                        }
-                    } elseif (!$costId && !$isDeleted) { // Criar novo
-                        $newCost = $gig->costs()->create($dataToUpsert);
-                        $formCostIds[] = $newCost->id;
+                // Se a despesa está marcada como deletada e tem ID, deletá-la imediatamente
+                if ($isDeleted && $costId) {
+                    $cost = GigCost::find($costId);
+                    if ($cost && $cost->gig_id === $gig->id) { // Segurança
+                        $cost->delete(); // Soft delete
+                        Log::info("[GigController@update] Despesa ID: {$costId} marcada como deletada e removida da Gig ID: {$gig->id}.");
                     }
+                    continue; // Pula para a próxima despesa, não adiciona ao $formCostIds
+                }
+
+                $dataToUpsert = [
+                    'cost_center_id' => $expenseItem['cost_center_id'],
+                    'description'    => $expenseItem['description'] ?? null,
+                    'value'          => $expenseItem['value'],
+                    'currency'       => $expenseItem['currency'] ?? 'BRL',
+                    'expense_date'   => $expenseItem['expense_date'] ?? null,
+                    'notes'          => $expenseItem['notes'] ?? null,
+                    'is_confirmed'   => $expenseItem['is_confirmed'] ?? false,
+                    'is_invoice'     => $expenseItem['is_invoice'] ?? false,
+                ];
+
+                if ($costId && !$isDeleted) { // Atualizar existente
+                    $cost = GigCost::find($costId);
+                    if ($cost && $cost->gig_id === $gig->id) { // Segurança
+                        $cost->update($dataToUpsert);
+                        $formCostIds[] = $costId;
+                    }
+                } elseif (!$costId && !$isDeleted) { // Criar novo
+                    $newCost = $gig->costs()->create($dataToUpsert);
+                    $formCostIds[] = $newCost->id;
                 }
             }
-
-            // Deletar custos que estavam no banco mas não vieram no formulário (ou foram marcados com _deleted)
-            $costsToDelete = array_diff($existingCostIds, $formCostIds);
-            if (!empty($costsToDelete)) {
-                GigCost::whereIn('id', $costsToDelete)->where('gig_id', $gig->id)->delete(); // Soft delete
-                Log::info("[GigController@update] Despesas IDs: " . implode(', ', $costsToDelete) . " removidas (soft delete) da Gig ID: {$gig->id}.");
-            }
-            Log::info("[GigController@update] Despesas sincronizadas para Gig ID: {$gig->id}.");
-
-
-            DB::commit();
-            Log::info("[GigController@update] Transação commitada para Gig ID: {$gig->id}.");
-
-            // O GigObserver::saving já foi chamado pelo $gig->update().
-            // Se algum GigCost foi alterado, o GigCostObserver também pode ter disparado $gig->save() novamente.
-            return redirect()->route('gigs.show', ['gig' => $gig] + $backParams)->with('success', '🎉 Gig atualizada com sucesso!');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error("[GigController@update] Erro ao atualizar Gig ID {$gig->id}: " . $e->getMessage(), ['exception' => $e, 'data' => $request->all()]);
-            return back()->withInput()->with('error', '❌ Ops! Erro ao atualizar a gig. Verifique os dados e tente novamente.');
         }
+
+        // Deletar custos que estavam no banco mas não vieram no formulário
+        $costsToDelete = array_diff($existingCostIds, $formCostIds);
+        if (!empty($costsToDelete)) {
+            GigCost::whereIn('id', $costsToDelete)->where('gig_id', $gig->id)->delete(); // Soft delete
+            Log::info("[GigController@update] Despesas IDs: " . implode(', ', $costsToDelete) . " removidas (soft delete) da Gig ID: {$gig->id}.");
+        }
+        Log::info("[GigController@update] Despesas sincronizadas para Gig ID: {$gig->id}.");
+
+        DB::commit();
+        Log::info("[GigController@update] Transação commitada para Gig ID: {$gig->id}.");
+
+        return redirect()->route('gigs.show', ['gig' => $gig] + $backParams)->with('success', '🎉 Gig atualizada com sucesso!');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error("[GigController@update] Erro ao atualizar Gig ID {$gig->id}: " . $e->getMessage(), ['exception' => $e, 'data' => $request->all()]);
+        return back()->withInput()->with('error', '❌ Ops! Erro ao atualizar a gig. Verifique os dados e tente novamente.');
     }
+}
 
     /**
      * Remove the specified resource from storage.
