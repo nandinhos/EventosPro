@@ -108,14 +108,14 @@
                     <div>
                         <label :for="'expense_cost_center_id_'+index" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">Centro de Custo <span class="text-red-500">*</span></label>
                         <select :name="'expenses['+index+'][cost_center_id]'" :id="'expense_cost_center_id_'+index" x-model="expense.cost_center_id" required
-                                :disabled="expense._deleted"
-                                class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                :class="{ 'border-red-500 dark:border-red-600': $store.errors?.has('expenses.'+index+'.cost_center_id') }"> {{-- Exemplo para erro --}}
-                            <option value="">Selecione...</option>
-                            <template x-for="(name, id_key) in costCenters" :key="id_key"> {{-- Usar id_key para evitar conflito com id da despesa --}}
-                                <option :value="id_key" x-text="name"></option>
-                            </template>
-                        </select>
+        :disabled="expense._deleted"
+        class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500"
+        :class="{ 'border-red-500 dark:border-red-600': $store.errors?.has('expenses.'+index+'.cost_center_id') }">
+    <option value="">Selecione...</option>
+    <template x-for="(name, id_key) in costCenters" :key="id_key">
+        <option :value="id_key" :selected="id_key == expense.cost_center_id" x-text="name"></option>
+    </template>
+</select>
                         {{-- Exemplo de como exibir erro específico do array com Alpine (requer adaptação do error handling) --}}
                         {{-- <template x-if="$store.errors?.has('expenses.'+index+'.cost_center_id')">
                             <p class="mt-1 text-xs text-red-500" x-text="$store.errors.get('expenses.'+index+'.cost_center_id')[0]"></p>

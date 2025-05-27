@@ -29,6 +29,7 @@
                 'bookers' => $bookers,
                 'tags' => $tags,
                 'selectedTags' => old('tags', []),
+                'expensesDataForView' => $expensesDataForView,
                 'costCenters' => $costCenters ?? \App\Models\CostCenter::orderBy('name')->pluck('name', 'id') // Garante que costCenters exista
             ])
 

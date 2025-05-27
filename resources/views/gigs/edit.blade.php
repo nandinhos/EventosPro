@@ -31,7 +31,8 @@
                 'bookers' => $bookers,
                 'tags' => $tags,
                 'selectedTags' => $selectedTags, // Vem do controller
-                'costCenters' => $costCenters ?? \App\Models\CostCenter::orderBy('name')->pluck('name', 'id') // Garante que costCenters exista
+                'costCenters' => $costCenters ?? \App\Models\CostCenter::orderBy('name')->pluck('name', 'id'), // Garante que costCenters exista
+                'expensesDataForView' => $expensesDataForView
             ])
 
             {{-- Botões de Ação --}}
