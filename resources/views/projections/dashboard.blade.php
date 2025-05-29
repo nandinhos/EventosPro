@@ -181,32 +181,54 @@
             <h3 class="text-md font-semibold text-gray-800 dark:text-white">Despesas Previstas por Centro de Custo</h3>
         </div>
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-                <thead class="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Centro de Custo</th>
-                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total (BRL)</th>
-                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Moeda Estrangeira</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    @forelse ($projected_expenses_by_cost_center as $expense)
-                        <tr class="{{ $expense['has_foreign_currency'] ? 'bg-blue-50 dark:bg-blue-900/10' : '' }}">
-                            <td class="px-3 py-1.5 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">{{ $expense['cost_center_name'] }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">R$ {{ number_format($expense['total_brl'], 2, ',', '.') }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-center text-gray-600 dark:text-gray-400">
-                                {{ $expense['has_foreign_currency'] ? 'Sim' : 'Não' }}
-                            </td>
-                        </tr>
-                    @empty
+            @forelse ($projected_expenses_by_cost_center as $cost_center)
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                    <thead class="bg-gray-100 dark:bg-gray-700">
                         <tr>
-                            <td colspan="3" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                            <th colspan="5" class="px-3 py-2 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                {{ $cost_center['cost_center_name'] }}
+                                <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                    (Total: R$ {{ number_format($cost_center['total_brl'], 2, ',', '.') }})
+                                </span>
+                            </th>
+                        </tr>
+                        <tr class="bg-gray-50 dark:bg-gray-800">
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gig</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descrição</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data da Despesa</th>
+                            <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Valor (BRL)</th>
+                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Moeda</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        @foreach ($cost_center['expenses'] as $expense)
+                            <tr class="{{ $expense['currency'] != 'BRL' ? 'bg-blue-100 dark:bg-blue-900/20' : '' }}">
+                                <td class="px-3 py-1.5 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">{{ $expense['gig_contract_number'] }}</td>
+                                <td class="px-3 py-1.5 whitespace-normal text-gray-600 dark:text-gray-400">{{ $expense['description'] }}</td>
+                                <td class="px-3 py-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">
+                                    {{ $expense['expense_date'] ? \Carbon\Carbon::parse($expense['expense_date'])->format('d/m/Y') : 'N/A' }}
+                                </td>
+                                <td class="px-3 py-1.5 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">
+                                    R$ {{ number_format($expense['value_brl'], 2, ',', '.') }}
+                                </td>
+                                <td class="px-3 py-1.5 whitespace-nowrap text-center text-gray-600 dark:text-gray-400">
+                                    {{ $expense['currency'] }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @empty
+                <table class="min-w-full">
+                    <tbody>
+                        <tr>
+                            <td class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                                 Nenhuma despesa prevista para o período selecionado.
                             </td>
                         </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            @endforelse
         </div>
     </div>
 

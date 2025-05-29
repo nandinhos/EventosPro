@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Services;
 
 use App\Models\Payment;
@@ -98,7 +97,7 @@ class FinancialProjectionService
         return $costs->sum('value_brl');
     }
 
-    // Despesas Previstas Agrupadas por Centro de Custo
+    // Despesas Previstas Agrupadas por Centro de Custo com Detalhes por Gig
     public function getProjectedExpensesByCostCenter(): Collection
     {
         $costs = GigCost::where('is_confirmed', false)
@@ -109,23 +108,31 @@ class FinancialProjectionService
                           $subQuery->whereBetween('gig_date', [$this->startDate, $this->endDate]);
                       });
             })
-            ->with('costCenter') // Carrega o relacionamento
+            ->with(['costCenter', 'gig']) // Carrega relacionamentos
             ->get();
 
-        // Agrupa por cost_center_id e calcula a soma de value_brl
+        // Agrupa por cost_center_id
         return $costs->groupBy('cost_center_id')->map(function ($group) {
             $costCenter = $group->first()->costCenter;
             $totalBrl = $group->sum('value_brl');
-            $hasForeignCurrency = $group->contains(function ($cost) {
-                return strtoupper($cost->currency ?? 'BRL') !== 'BRL';
-            });
+
+            // Detalhes de cada despesa
+            $expenses = $group->map(function ($cost) {
+                return [
+                    'gig_contract_number' => $cost->gig->contract_number ?? 'N/A',
+                    'description' => $cost->description,
+                    'expense_date' => $cost->expense_date ?? $cost->gig->gig_date,
+                    'value_brl' => (float) $cost->value_brl,
+                    'currency' => strtoupper($cost->currency ?? 'BRL'),
+                ];
+            })->sortBy('expense_date'); // Ordena por data da despesa
 
             return [
                 'cost_center_name' => $costCenter->name ?? 'Sem Centro de Custo',
                 'total_brl' => $totalBrl,
-                'has_foreign_currency' => $hasForeignCurrency,
+                'expenses' => $expenses,
             ];
-        })->values();
+        })->sortBy('cost_center_name')->values();
     }
 
     // Fluxo de Caixa Projetado
