@@ -57,4 +57,26 @@ class GigCost extends Model
         // Especifica a chave estrangeira 'confirmed_by'
         return $this->belongsTo(User::class, 'confirmed_by');
     }
+
+    /**
+     * Accessor para obter o valor em BRL.
+     */
+    public function getValueBrlAttribute(): float
+    {
+        if (strtoupper($this->currency ?? 'BRL') === 'BRL') {
+            return (float) $this->value;
+        }
+
+        $exchangeRate = $this->gig->getExchangeRateForCurrency(
+            $this->currency,
+            Carbon::parse($this->expense_date ?: $this->gig->gig_date ?: today())
+        );
+
+        if ($exchangeRate === null) {
+            \Log::warning("Taxa de câmbio não encontrada para moeda {$this->currency} na data {$this->expense_date} para GigCost ID {$this->id}.");
+            return (float) $this->value;
+        }
+
+        return (float) $this->value * $exchangeRate;
+    }
 }

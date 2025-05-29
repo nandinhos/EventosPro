@@ -77,4 +77,26 @@ class Payment extends Model
              default: return 'gray';
          }
     }
+
+    /**
+     * Accessor para obter o valor devido em BRL.
+     */
+    public function getDueValueBrlAttribute(): float
+    {
+        if (strtoupper($this->currency ?? 'BRL') === 'BRL') {
+            return (float) $this->due_value;
+        }
+
+        $exchangeRate = $this->exchange_rate ?? $this->gig->getExchangeRateForCurrency(
+            $this->currency,
+            Carbon::parse($this->due_date ?: today())
+        );
+
+        if ($exchangeRate === null) {
+            \Log::warning("Taxa de câmbio não encontrada para moeda {$this->currency} na data {$this->due_date} para Payment ID {$this->id}.");
+            return (float) $this->due_value;
+        }
+
+        return (float) $this->due_value * $exchangeRate;
+    }
 }

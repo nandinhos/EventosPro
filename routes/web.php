@@ -12,6 +12,7 @@ use App\Http\Controllers\ReportController;
 use App\Models\Gig; // Importar Gig
 use Carbon\Carbon;  // Importar Carbon
 use App\Http\Controllers\SettlementController;
+use App\Http\Controllers\FinancialProjectionController;
 
 
 /*
@@ -170,6 +171,8 @@ Route::middleware('auth')->group(function () {
         Route::patch('unsettle-booker', [SettlementController::class, 'unsettleBookerCommission'])->name('settlements.booker.unsettle');
    
     });
+
+    Route::get('/projections', [FinancialProjectionController::class, 'index'])->name('projections.index');
 
 
     // --- ROTAS PARA ARTISTAS ---
