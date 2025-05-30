@@ -1,11 +1,11 @@
 <x-app-layout>
     {{-- Cabeçalho --}}
-    <div class="mb-6 flex flex-wrap justify-between items-center gap-4">
-        <div>
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Projeções Financeiras</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Visualize as previsões de receitas e despesas para os próximos períodos</p>
-        </div>
-    </div>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-white leading-tight">
+            {{ __('Projeções Financeiras') }}
+        </h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Visualize as previsões de receitas e despesas para os próximos períodos</p>
+    </x-slot>
 
     {{-- Seção de Filtros --}}
     <div class="mb-4 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md">

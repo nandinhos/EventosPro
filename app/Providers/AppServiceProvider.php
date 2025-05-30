@@ -26,5 +26,7 @@ class AppServiceProvider extends ServiceProvider
         // Registra os observers
         Gig::observe(GigObserver::class);
         GigCost::observe(GigCostObserver::class);
+        \Illuminate\Support\Facades\Blade::component('reports.components.tab-nav', 'tab-nav');
+        \Illuminate\Support\Facades\Blade::component('reports.components.chart', 'chart');
     }
 }

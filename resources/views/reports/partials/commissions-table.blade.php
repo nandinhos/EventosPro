@@ -1,0 +1,38 @@
+<div class="overflow-x-auto mt-6">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-800">
+            <tr>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contrato</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data</th>
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Booker</th>
+                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Comissão (BRL)</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            @forelse ($commissionsTable as $row)
+                <tr>
+                    <td class="px-3 py-1.5 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">{{ $row['contract_number'] ?? 'N/A' }}</td>
+                    <td class="px-3 py-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">{{ $row['gig_date'] }}</td>
+                    <td class="px-3 py-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">{{ $row['booker'] }}</td>
+                    <td class="px-3 py-1.5 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">R$ {{ number_format($row['commission'], 2, ',', '.') }}</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="4" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                        Nenhum dado disponível para o período selecionado.
+                    </td>
+                </tr>
+            @endforelse
+        </tbody>
+        @if ($commissionsTable->isNotEmpty())
+            <tfoot class="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                    <td class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" colspan="3">Total</td>
+                    <td class="px-3 py-2 text-right text-xs font-medium text-gray-700 dark:text-gray-300">
+                        R$ {{ number_format($commissionsTable->sum('commission'), 2, ',', '.') }}
+                    </td>
+                </tr>
+            </tfoot>
+        @endif
+    </table>
+</div>
