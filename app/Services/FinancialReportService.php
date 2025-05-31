@@ -51,44 +51,27 @@ class FinancialReportService
     }
 
     public function getOverviewSummary(): array
-    {
-        $gigs = Gig::with(['costs', 'payments'])
-            ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn($q) => $q->where('booker_id', $this->filters['booker_id']))
-            ->when(isset($this->filters['artist_id']), fn($q) => $q->where('artist_id', $this->filters['artist_id']))
-            ->get();
+{
+    $gigs = Gig::with(['payments', 'costs'])
+        ->whereBetween('gig_date', [$this->startDate, $this->endDate])
+        ->when(isset($this->filters['booker_id']), fn($q) => $q->where('booker_id', $this->filters['booker_id']))
+        ->when(isset($this->filters['artist_id']), fn($q) => $q->where('artist_id', $this->filters['artist_id']))
+        ->get();
 
-        $totalRevenue = 0;
-        $totalCommissions = 0;
-        $totalExpenses = 0;
-        $netProfit = 0;
+    $totalInflow = $gigs->sum(function ($gig) {
+        return $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
+    });
+    $totalOutflow = $gigs->sum(function ($gig) {
+        return $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
+    });
+    $netCashflow = $totalInflow - $totalOutflow;
 
-        foreach ($gigs as $gig) {
-            try {
-                $revenue = $gig->payments
-                    ->whereNotNull('confirmed_at')
-                    ->sum('due_value_brl');
-                $totalRevenue += $revenue;
-
-                $bookerCommission = $this->calculator->calculateBookerCommissionBrl($gig);
-                $totalCommissions += $bookerCommission;
-
-                $expenses = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
-                $totalExpenses += $expenses;
-
-                $netProfit += ($revenue - ($bookerCommission + $expenses));
-            } catch (\Exception $e) {
-                \Log::error("Erro ao calcular resumo para Gig ID {$gig->id}: " . $e->getMessage());
-            }
-        }
-
-        return [
-            'total_revenue' => $totalRevenue,
-            'total_commissions' => $totalCommissions,
-            'total_expenses' => $totalExpenses,
-            'net_profit' => $netProfit,
-        ];
-    }
+    return [
+        'total_inflow' => $totalInflow ?: 0,
+        'total_outflow' => $totalOutflow ?: 0,
+        'net_cashflow' => $netCashflow ?: 0,
+    ];
+}
 
     public function getOverviewTableData(): Collection
     {
@@ -169,44 +152,41 @@ class FinancialReportService
 
     public function getProfitabilityTableData(): Collection
 {
-    $gigs = Gig::with(['artist', 'booker', 'payments', 'costs'])
+    return Gig::with(['payments', 'costs', 'artist'])
         ->whereBetween('gig_date', [$this->startDate, $this->endDate])
         ->when(isset($this->filters['booker_id']), fn($q) => $q->where('booker_id', $this->filters['booker_id']))
         ->when(isset($this->filters['artist_id']), fn($q) => $q->where('artist_id', $this->filters['artist_id']))
-        ->get();
+        ->get()
+        ->map(function ($gig) {
+            try {
+                $revenue = $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
+                $costs = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
+                $commission = $gig->agency_commission_value ?? 0;
+                $profit = $revenue - $costs - $commission;
+                $margin = $revenue > 0 ? ($profit / $revenue) * 100 : 0;
 
-    return $gigs->map(function ($gig) {
-        try {
-            $revenue = $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
-            $costs = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
-            $commission = $this->calculator->calculateBookerCommissionBrl($gig);
-            $profit = $revenue - ($costs + $commission);
-            $margin = $revenue > 0 ? ($profit / $revenue) * 100 : 0;
-
-            return [
-                'contract_number' => $gig->contract_number ?? 'N/A',
-                'gig_date' => $gig->gig_date->format('d/m/Y'),
-                'artist' => $gig->artist->name ?? 'N/A',
-                'booker' => $gig->booker->name ?? 'N/A',
-                'revenue' => $revenue,
-                'costs' => $costs,
-                'profit' => $profit,
-                'margin' => $margin,
-            ];
-        } catch (\Exception $e) {
-            \Log::error("Erro ao mapear dados de rentabilidade para Gig ID {$gig->id}: " . $e->getMessage());
-            return [
-                'contract_number' => 'Erro',
-                'gig_date' => 'N/A',
-                'artist' => 'N/A',
-                'booker' => 'N/A',
-                'revenue' => 0,
-                'costs' => 0,
-                'profit' => 0,
-                'margin' => 0,
-            ];
-        }
-    });
+                return [
+                    'contract_number' => $gig->contract_number ?? 'N/A',
+                    'artist' => $gig->artist->name ?? 'N/A', // Adiciona o nome do artista
+                    'gig_date' => $gig->gig_date->format('d/m/Y'),
+                    'revenue' => $revenue,
+                    'costs' => $costs,
+                    'profit' => $profit,
+                    'margin' => $margin,
+                ];
+            } catch (\Exception $e) {
+                \Log::error("Erro ao mapear dados de rentabilidade para Gig ID {$gig->id}: " . $e->getMessage());
+                return [
+                    'contract_number' => 'Erro',
+                    'artist' => 'N/A',
+                    'gig_date' => 'N/A',
+                    'revenue' => 0,
+                    'costs' => 0,
+                    'profit' => 0,
+                    'margin' => 0,
+                ];
+            }
+        });
 }
 
     public function getCashflowSummary(): array

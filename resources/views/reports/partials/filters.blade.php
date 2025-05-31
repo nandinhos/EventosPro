@@ -1,5 +1,5 @@
 <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
-    <form method="GET" action="{{ route('reports.index') }}" class="space-y-4">
+    <form method="GET" action="{{ route('reports.index', ['tab' => request()->input('tab', 'overview')]) }}" class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Filtro de Datas -->
             <div>
@@ -16,7 +16,7 @@
                 <label for="booker_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Booker</label>
                 <select name="booker_id" id="booker_id" class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
                     <option value="">Todos</option>
-                    @if (isset($bookers))
+                    @if (isset($bookers) && $bookers->isNotEmpty())
                         @foreach ($bookers as $booker)
                             <option value="{{ $booker->id }}" {{ request('booker_id') == $booker->id ? 'selected' : '' }}>
                                 {{ $booker->name ?? 'Sem Nome' }}

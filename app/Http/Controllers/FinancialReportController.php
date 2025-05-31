@@ -36,12 +36,16 @@ class FinancialReportController extends Controller
     $commissionsSummary = $this->reportService->getCommissionsSummary();
     $commissionsTable = collect($this->reportService->getCommissionsTableData());
 
-    // Buscar bookers e artistas usando os modelos corretos
-    $bookers = \App\Models\Booker::all();
-    $artists = \App\Models\Artist::all();
+    // Depuração temporária
+    /*dd([
+        'overviewSummary' => $overviewSummary,
+        'profitabilitySummary' => $profitabilitySummary,
+        'cashflowSummary' => $cashflowSummary,
+        'filters' => $filters
+    ]);*/
 
-    // Adicionar dd para depuração
-    //dd($artists);
+    $bookers = \App\Models\Booker::all();
+    $artists = \App\Models\Artist::withoutTrashed()->orderBy('name')->get();
 
     return view('reports.dashboard', [
         'filters' => $filters,

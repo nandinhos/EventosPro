@@ -1,26 +1,24 @@
-<x-tab-nav :active-tab="'rentabilidade'">
+<x-tab-nav :active-tab="'profitability'">
     @section('exportButtons')
         <x-slot-button :type="'profitability'" :filters="$filters" />
     @endsection
 
     <div class="space-y-6 mt-6">
         <!-- Seção de Cards -->
-        @if (isset($profitabilitySummary) && $profitabilitySummary['total_profit'] > 0)
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <div class="bg-green-100 dark:bg-green-900/20 p-4 rounded-lg">
-                    <h3 class="text-sm text-gray-500 dark:text-gray-400">Lucro Total</h3>
-                    <p class="text-lg font-semibold text-green-800 dark:text-green-300">R$ {{ number_format($profitabilitySummary['total_profit'] ?? 0, 2, ',', '.') }}</p>
-                </div>
-                <div class="bg-yellow-100 dark:bg-yellow-900/20 p-4 rounded-lg">
-                    <h3 class="text-sm text-gray-500 dark:text-gray-400">Margem Média</h3>
-                    <p class="text-lg font-semibold text-yellow-800 dark:text-yellow-300">{{ number_format($profitabilitySummary['average_margin'] ?? 0, 2, ',', '.') }}%</p>
-                </div>
-                <div class="bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg">
-                    <h3 class="text-sm text-gray-500 dark:text-gray-400">Eventos Rentáveis</h3>
-                    <p class="text-lg font-semibold text-blue-800 dark:text-blue-300">{{ $profitabilitySummary['profitable_events'] ?? 0 }}</p>
-                </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div class="bg-green-100 dark:bg-green-900/20 p-4 rounded-lg">
+                <h3 class="text-sm text-gray-500 dark:text-gray-400">Lucro Total</h3>
+                <p class="text-lg font-semibold text-green-800 dark:text-green-300">R$ {{ number_format($profitabilitySummary['total_profit'] ?? 0, 2, ',', '.') }}</p>
             </div>
-        @endif
+            <div class="bg-yellow-100 dark:bg-yellow-900/20 p-4 rounded-lg">
+                <h3 class="text-sm text-gray-500 dark:text-gray-400">Margem Média</h3>
+                <p class="text-lg font-semibold text-yellow-800 dark:text-yellow-300">{{ number_format($profitabilitySummary['average_margin'] ?? 0, 2, ',', '.') }}%</p>
+            </div>
+            <div class="bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg">
+                <h3 class="text-sm text-gray-500 dark:text-gray-400">Eventos Rentáveis</h3>
+                <p class="text-lg font-semibold text-blue-800 dark:text-blue-300">{{ $profitabilitySummary['profitable_events'] ?? 0 }}</p>
+            </div>
+        </div>
 
         <!-- Tabela de Rentabilidade -->
         @if (isset($profitabilityTable) && $profitabilityTable->isNotEmpty())
@@ -41,7 +39,7 @@
                         @foreach ($profitabilityTable as $row)
                             <tr>
                                 <td class="px-3 py-1.5 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">{{ $row['contract_number'] ?? 'N/A' }}</td>
-                                <td class="px-3 py-1.5 text-gray-600 dark:text-gray-400">{{ $row['artist'] ?? 'N/A' }}</td>
+                                <td class="px-3 py-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">{{ $row['artist'] ?? 'N/A' }}</td>
                                 <td class="px-3 py-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">{{ $row['gig_date'] ?? 'N/A' }}</td>
                                 <td class="px-3 py-1.5 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">R$ {{ number_format($row['revenue'] ?? 0, 2, ',', '.') }}</td>
                                 <td class="px-3 py-1.5 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">R$ {{ number_format($row['costs'] ?? 0, 2, ',', '.') }}</td>

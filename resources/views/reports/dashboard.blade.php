@@ -25,11 +25,6 @@
 
     <div class="container mx-auto px-4 py-6">
         <div x-data="{ activeTab: '{{ $initialTab }}' }" 
-             x-init="() => {
-                 $watch('activeTab', (value) => {
-                     window.history.pushState({}, '', `?tab=${value}`);
-                 });
-             }" 
              class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
             <x-tab-nav :tabs="$tabs" />
 
