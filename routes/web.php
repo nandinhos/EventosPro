@@ -33,9 +33,7 @@ Route::get('/', function () {
     return view('auth.login'); // ou 'welcome' se preferir
 })->name('home');
 
-// Rotas de Relatórios
-Route::get('/reports', [FinancialReportController::class, 'index'])->name('reports.index');
-Route::get('/reports/export/{type}/{format}', [FinancialReportController::class, 'export'])->name('reports.export');
+
 
 // Grupo de rotas protegidas por autenticação
 Route::middleware('auth')->group(function () {
@@ -116,6 +114,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Rotas de Relatórios
+    Route::get('/reports', [FinancialReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/export/{type}/{format}', [FinancialReportController::class, 'export'])->name('reports.export');
 
     // Artists
     Route::resource('artists', ArtistController::class);

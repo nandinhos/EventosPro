@@ -1,13 +1,35 @@
-<ul class="flex border-b border-gray-200 dark:border-gray-700">
-    @foreach ($tabs as $tab)
-        <li class="mr-1">
-            <button
-                @click="activeTab = '{{ $tab['id'] }}'"
-                :class="{ 'bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400': activeTab === '{{ $tab['id'] }}', 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200': activeTab !== '{{ $tab['id'] }}' }"
-                class="inline-block py-2 px-4 font-medium text-sm rounded-t-lg"
-            >
+@props(['tabs' => []])
+
+<div class="w-full">
+    <!-- Navegação de Abas -->
+    <nav class="flex space-x-4 border-b border-gray-200 dark:border-gray-700 mb-4">
+        @foreach ($tabs as $tab)
+            <a href="#{{ $tab['id'] }}" 
+               class="tab-link" 
+               :class="activeTab === '{{ $tab['id'] }}' ? 'active' : ''" 
+               data-tab="{{ $tab['id'] }}" 
+               @click="activeTab = '{{ $tab['id'] }}'">
                 {{ $tab['label'] }}
-            </button>
-        </li>
-    @endforeach
-</ul>
+            </a>
+        @endforeach
+    </nav>
+
+    <!-- Container para Botões de Exportação -->
+    <div class="flex justify-end mb-4">
+        {{ $exportButtons ?? '' }}
+    </div>
+
+    <!-- Conteúdo das Abas -->
+    <div class="tab-content">
+        {{ $slot }}
+    </div>
+</div>
+
+<style>
+    .tab-link {
+        @apply text-sm font-medium text-gray-500 dark:text-gray-400 px-4 py-2 rounded-t-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors;
+    }
+    .tab-link.active {
+        @apply text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 border-b-2 border-indigo-500;
+    }
+</style>

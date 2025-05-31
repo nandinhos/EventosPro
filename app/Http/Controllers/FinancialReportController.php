@@ -20,32 +20,45 @@ class FinancialReportController extends Controller
     }
 
     public function index(Request $request)
-    {
-        $filters = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
-        $this->reportService->setFilters($filters);
+{
+    $filters = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
+    $activeTab = $request->input('tab', 'overview');
 
-        $overviewSummary = $this->reportService->getOverviewSummary();
-        $overviewTable = $this->reportService->getOverviewTableData();
-        $profitabilityTable = $this->reportService->getProfitabilityTableData();
-        $cashflowTable = $this->reportService->getCashflowTableData();
-        $commissionsTable = $this->reportService->getCommissionsTableData();
-        $expensesTable = $this->reportService->getExpensesTableData();
+    $this->reportService->setFilters($filters);
 
-        $artists = Artist::pluck('name', 'id')->prepend('Todos', '');
-        $bookers = Booker::pluck('name', 'id')->prepend('Todos', '');
+    $overviewSummary = $this->reportService->getOverviewSummary();
+    $overviewTable = collect($this->reportService->getOverviewTableData());
+    $expensesTable = collect($this->reportService->getExpensesTableData());
+    $profitabilitySummary = $this->reportService->getProfitabilitySummary();
+    $profitabilityTable = collect($this->reportService->getProfitabilityTableData());
+    $cashflowSummary = $this->reportService->getCashflowSummary();
+    $cashflowTable = collect($this->reportService->getCashflowTableData());
+    $commissionsSummary = $this->reportService->getCommissionsSummary();
+    $commissionsTable = collect($this->reportService->getCommissionsTableData());
 
-        return view('reports.dashboard', compact(
-            'overviewSummary',
-            'overviewTable',
-            'profitabilityTable',
-            'cashflowTable',
-            'commissionsTable',
-            'expensesTable',
-            'filters',
-            'artists',
-            'bookers'
-        ));
-    }
+    // Buscar bookers e artistas usando os modelos corretos
+    $bookers = \App\Models\Booker::all();
+    $artists = \App\Models\Artist::all();
+
+    // Adicionar dd para depuração
+    //dd($artists);
+
+    return view('reports.dashboard', [
+        'filters' => $filters,
+        'activeTab' => $activeTab,
+        'overviewSummary' => $overviewSummary,
+        'overviewTable' => $overviewTable,
+        'expensesTable' => $expensesTable,
+        'profitabilitySummary' => $profitabilitySummary,
+        'profitabilityTable' => $profitabilityTable,
+        'cashflowSummary' => $cashflowSummary,
+        'cashflowTable' => $cashflowTable,
+        'commissionsSummary' => $commissionsSummary,
+        'commissionsTable' => $commissionsTable,
+        'bookers' => $bookers,
+        'artists' => $artists,
+    ]);
+}
 
     public function export(Request $request)
 {
@@ -54,8 +67,8 @@ class FinancialReportController extends Controller
     $filters = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
 
     // Validar e corrigir intervalo de datas
-    $startDate = $filters['start_date'] ?? null;
-    $endDate = $filters['end_date'] ?? null;
+    $startDate = $filters['start_date'] ?? now()->startOfMonth()->format('Y-m-d');
+    $endDate = $filters['end_date'] ?? now()->endOfMonth()->format('Y-m-d');
     if ($startDate && $endDate && $startDate > $endDate) {
         $temp = $startDate;
         $startDate = $endDate;
@@ -67,6 +80,9 @@ class FinancialReportController extends Controller
     $this->reportService->setFilters($filters);
 
     switch ($type) {
+        case 'financial_report':
+            $data = $this->reportService->getFinancialReportData();
+            break;
         case 'overview':
             $data = collect([
                 'summary' => $this->reportService->getOverviewSummary(),
@@ -76,7 +92,6 @@ class FinancialReportController extends Controller
         case 'expenses':
             $data = $this->reportService->getExpensesTableData();
             break;
-        // Adicione outros tipos (profitability, cashflow, commissions) conforme necessário
         default:
             return redirect()->back()->with('error', 'Tipo de relatório inválido');
     }
@@ -92,6 +107,23 @@ class FinancialReportController extends Controller
 
             public function collection()
             {
+                if (isset($this->data['events_by_artist'])) {
+                    $rows = collect();
+                    foreach ($this->data['events_by_artist'] as $artist => $events) {
+                        foreach ($events as $event) {
+                            $rows->push([
+                                'Artista' => $artist,
+                                'Data' => $event['date'],
+                                'Local' => $event['location'],
+                                'Cachê Bruto' => $event['contract_value'],
+                                'Comissão Agência' => $event['agency_commission'],
+                                'Comissão Booker' => $event['booker_commission'],
+                                'Cachê Líquido' => $event['net_cache'],
+                            ]);
+                        }
+                    }
+                    return $rows;
+                }
                 if (isset($this->data['table'])) {
                     return $this->data['table']->map(function ($row) {
                         return collect($row);
@@ -101,13 +133,13 @@ class FinancialReportController extends Controller
                     return collect($group)->except('expenses')->merge(['details' => $group['expenses']]);
                 });
             }
-        }, ($type === 'overview' ? 'visao_geral' : $type) . '_' . now()->format('Ymd_His') . '.xlsx');
+        }, ($type === 'financial_report' ? 'relatorio_financeiro' : $type) . '_' . now()->format('Ymd_His') . '.xlsx');
     }
 
     if ($format === 'pdf') {
         $view = 'reports.exports.' . $type;
         $pdf = Pdf::loadView($view, ['data' => $data, 'filters' => $filters]);
-        return $pdf->download(($type === 'overview' ? 'visao_geral' : $type) . '_' . now()->format('Ymd_His') . '.pdf');
+        return $pdf->download(($type === 'financial_report' ? 'relatorio_financeiro' : $type) . '_' . now()->format('Ymd_His') . '.pdf');
     }
 
     return redirect()->back()->with('error', 'Formato inválido');
