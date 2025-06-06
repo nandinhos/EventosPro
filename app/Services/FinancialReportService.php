@@ -249,37 +249,37 @@ class FinancialReportService
         });
 }
 
-    public function getCommissionsSummary(): array
-    {
-        $gigs = Gig::with(['booker'])
-            ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn($q) => $q->where('booker_id', $this->filters['booker_id']))
-            ->when(isset($this->filters['artist_id']), fn($q) => $q->where('artist_id', $this->filters['artist_id']))
-            ->get();
+public function getCommissionsSummary(): array
+{
+    $gigs = Gig::with(['booker'])
+        ->whereBetween('gig_date', [$this->startDate, $this->endDate])
+        ->when(isset($this->filters['booker_id']), fn($q) => $q->where('booker_id', $this->filters['booker_id']))
+        ->when(isset($this->filters['artist_id']), fn($q) => $q->where('artist_id', $this->filters['artist_id']))
+        ->get();
 
-        $totalCommissions = 0;
-        $bookers = [];
+    $totalCommissions = 0;
+    $eventsWithCommissionsCount = 0; // <<-- Variável para a contagem
 
-        foreach ($gigs as $gig) {
-            try {
-                $commission = $this->calculator->calculateBookerCommissionBrl($gig);
+    foreach ($gigs as $gig) {
+        try {
+            // Usamos o GigFinancialCalculatorService para consistência
+            $commission = $this->calculator->calculateBookerCommissionBrl($gig);
+
+            if ($commission > 0) { // Se a comissão calculada for maior que zero
                 $totalCommissions += $commission;
-                $bookerId = $gig->booker->id ?? 'unknown';
-                $bookers[$bookerId] = true;
-            } catch (\Exception $e) {
-                \Log::error("Erro ao calcular resumo de comissões para Gig ID {$gig->id}: " . $e->getMessage());
+                $eventsWithCommissionsCount++; // <<-- Incrementa o contador
             }
+        } catch (\Exception $e) {
+            \Log::error("Erro ao calcular resumo de comissões para Gig ID {$gig->id}: " . $e->getMessage());
         }
-
-        $totalBookers = count($bookers);
-        $averagePerBooker = $totalBookers > 0 ? $totalCommissions / $totalBookers : 0;
-
-        return [
-            'total_commissions' => $totalCommissions,
-            'total_bookers' => $totalBookers,
-            'average_per_booker' => $averagePerBooker,
-        ];
     }
+
+    return [
+        'total_commissions' => $totalCommissions,
+        'events_with_commissions' => $eventsWithCommissionsCount, // <<-- Retorna a contagem correta
+        // Outras métricas que você queira adicionar...
+    ];
+}
 
     public function getCommissionsTableData(): Collection
     {
