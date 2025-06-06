@@ -454,4 +454,37 @@ public function update(UpdateGigRequest $request, Gig $gig): RedirectResponse
             'backUrlParams'
         ));
     }
+
+    /**
+     * Exibe uma página de depuração com todos os cálculos financeiros para uma Gig.
+     *
+     * @param Gig $gig
+     * @return View
+     */
+    public function debugFinancials(Gig $gig): View
+    {
+        // Garante que todos os relacionamentos necessários estejam carregados
+        $gig->loadMissing(['costs.costCenter', 'artist', 'booker']);
+
+        // Instancia o nosso service de cálculo
+        $calculator = App::make(GigFinancialCalculatorService::class);
+
+        // Executa todos os cálculos e armazena os resultados em um array
+        $calculations = [
+            'calculateTotalConfirmedExpensesBrl'      => $calculator->calculateTotalConfirmedExpensesBrl($gig),
+            'calculateTotalReimbursableExpensesBrl' => $calculator->calculateTotalReimbursableExpensesBrl($gig),
+            'calculateGrossCashBrl'                 => $calculator->calculateGrossCashBrl($gig),
+            'calculateAgencyGrossCommissionBrl'     => $calculator->calculateAgencyGrossCommissionBrl($gig),
+            'calculateBookerCommissionBrl'          => $calculator->calculateBookerCommissionBrl($gig),
+            'calculateAgencyNetCommissionBrl'       => $calculator->calculateAgencyNetCommissionBrl($gig),
+            'calculateArtistNetPayoutBrl'           => $calculator->calculateArtistNetPayoutBrl($gig),
+            'calculateArtistInvoiceValueBrl'        => $calculator->calculateArtistInvoiceValueBrl($gig),
+        ];
+
+        // Passa a Gig e o array com os resultados para a nova view de depuração
+        return view('gigs.debug.financials', [
+            'gig' => $gig,
+            'calculations' => $calculations
+        ]);
+    }
 }

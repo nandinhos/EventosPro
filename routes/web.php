@@ -156,6 +156,12 @@ Route::middleware('auth')->group(function () {
         Route::patch('unsettle-artist', [SettlementController::class, 'unsettleArtistPayment'])->name('settlements.artist.unsettle');
         Route::patch('unsettle-booker', [SettlementController::class, 'unsettleBookerCommission'])->name('settlements.booker.unsettle');
     });
+
+    // ROTA DE DEPURAÇÃO FINANCEIRA PARA UMA GIG ESPECÍFICA
+    // Coloque esta rota dentro do grupo de autenticação para que só usuários logados possam acessá-la.
+    // Ela deve vir antes ou depois do Route::resource, a ordem aqui não é crítica.
+    Route::get('gigs/{gig}/debug-financials', [GigController::class, 'debugFinancials'])->name('gigs.debugFinancials');
+
 });
 
 // Rotas de autenticação (geradas pelo Breeze)
