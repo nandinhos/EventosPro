@@ -75,52 +75,45 @@
             {{-- ============================================= --}}
              {{-- Card: Resumo Financeiro (SIMPLIFICADO FINAL) --}}
              {{-- ============================================= --}}
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Resumo Financeiro</h3>
-                </div>
-                 <div class="p-6 space-y-3 text-sm">
+             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Resumo Financeiro</h3>
+    </div>
+    <div class="p-6 space-y-3 text-sm">
+        {{-- Valor Total do Contrato --}}
+        <div>
+            <span class="text-gray-500 dark:text-gray-400">Valor Contrato:</span>
+            <span class="font-semibold text-gray-900 dark:text-white ml-2">
+                {{ $gig->currency }} {{ number_format($gig->cache_value ?? 0, 2, ',', '.') }}
+            </span>
+        </div>
 
-                     {{-- Valor Total do Contrato (na Moeda Original) --}}
-                     <div>
-                        <span class="text-gray-500 dark:text-gray-400">Valor Contrato:</span>
-                        <span class="font-semibold text-gray-900 dark:text-white ml-2">
-                            {{ $gig->currency }} {{ number_format($gig->cache_value ?? 0, 2, ',', '.') }}
-                        </span>
-                     </div>
+        {{-- Total Recebido (agora vindo do array financialData) --}}
+        <div>
+            <span class="text-gray-500 dark:text-gray-400">Total Recebido:</span>
+            <span class="font-semibold text-green-600 dark:text-green-400 ml-2">
+                {{ $gig->currency }} {{ number_format($financialData['totalReceivedInOriginalCurrency'], 2, ',', '.') }}
+            </span>
+        </div>
 
-                     {{-- Valor Total Recebido (na Moeda Original) --}}
-                      <div>
-                        <span class="text-gray-500 dark:text-gray-400">Total Recebido:</span>
-                        <span class="font-semibold text-green-600 dark:text-green-400 ml-2">
-                            {{-- Usa a variável calculada no controller --}}
-                           {{ $gig->currency }} {{ number_format($totalReceivedOriginalCurrency, 2, ',', '.') }}
-                        </span>
-                         {{-- Nota: Pode haver pagamentos em outras moedas não somados aqui --}}
-                         @if($gig->payments->where('currency', '!=', $gig->currency)->count() > 0)
-                            <span class="text-xs text-gray-400 dark:text-gray-500 ml-1">(+ valores em outras moedas)</span>
-                         @endif
-                     </div>
+        {{-- Saldo Pendente (agora vindo do array financialData) --}}
+        <div>
+            <span class="text-gray-500 dark:text-gray-400">Saldo Pendente:</span>
+            <span class="font-semibold {{ $financialData['pendingBalanceInOriginalCurrency'] <= 0.01 ? 'text-gray-500 dark:text-gray-400' : 'text-red-600 dark:text-red-400' }} ml-2">
+                {{ $gig->currency }} {{ number_format($financialData['pendingBalanceInOriginalCurrency'], 2, ',', '.') }}
+            </span>
+        </div>
 
-                    {{-- Valor Pendente (na Moeda Original) --}}
-                    <div>
-                        <span class="text-gray-500 dark:text-gray-400">Saldo Pendente:</span>
-                        <span class="font-semibold {{ $balanceOriginalCurrency <= 0.01 ? 'text-gray-500 dark:text-gray-400' : 'text-red-600 dark:text-red-400' }} ml-2">
-                            {{-- Usa a variável calculada no controller --}}
-                           {{ $gig->currency }} {{ number_format($balanceOriginalCurrency, 2, ',', '.') }}
-                        </span>
-                    </div>
+        <hr class="my-3 border-gray-200 dark:border-gray-700">
 
-                    <hr class="my-3 border-gray-200 dark:border-gray-700">
-
-                     {{-- Status Gerais --}}
-                     <div class="flex flex-wrap gap-x-6 gap-y-2">
-                         <div><strong class="text-gray-500 dark:text-gray-400">Pgto Cliente:</strong> <x-status-badge :status="$gig->payment_status" type="payment" class="ml-1"/></div>
-                         <div><strong class="text-gray-500 dark:text-gray-400">Pgto Artista:</strong> <x-status-badge :status="$gig->artist_payment_status" type="payment-artist" class="ml-1"/></div>
-                         <div><strong class="text-gray-500 dark:text-gray-400">Pgto Booker:</strong> <x-status-badge :status="$gig->booker_payment_status" type="payment-booker" class="ml-1"/></div>
-                     </div>
-                </div>
-            </div>
+        {{-- Status Gerais --}}
+        <div class="flex flex-wrap gap-x-6 gap-y-2">
+            <div><strong class="text-gray-500 dark:text-gray-400">Pgto Cliente:</strong> <x-status-badge :status="$gig->payment_status" type="payment" class="ml-1"/></div>
+            <div><strong class="text-gray-500 dark:text-gray-400">Pgto Artista:</strong> <x-status-badge :status="$gig->artist_payment_status" type="payment-artist" class="ml-1"/></div>
+            <div><strong class="text-gray-500 dark:text-gray-400">Pgto Booker:</strong> <x-status-badge :status="$gig->booker_payment_status" type="payment-booker" class="ml-1"/></div>
+        </div>
+    </div>
+</div>
             {{-- ============================================= --}}
             {{-- FIM Card Financeiro (SIMPLIFICADO FINAL)     --}}
             {{-- ============================================= --}}
@@ -134,12 +127,14 @@
              {{-- Card: Acerto Final --}}
              @include('gigs._show_final_settlements', [
     'gig' => $gig,
-    'settlement' => $gig->settlement, // $settlement pode ser null se não houver
-    'calculatedGrossCashBrl' => $calculatedGrossCashBrl,
-    'calculatedAgencyGrossCommissionBrl' => $calculatedAgencyGrossCommissionBrl,
-    'calculatedArtistNetPayoutBrl' => $calculatedArtistNetPayoutBrl,
-    'calculatedBookerCommissionBrl' => $calculatedBookerCommissionBrl,
-    'calculatedArtistInvoiceValueBrl' => $calculatedArtistInvoiceValueBrl
+    'settlement' => $gig->settlement,
+    'calculatedGrossCashBrl' => $financialData['calculatedGrossCashBrl'],
+    'calculatedAgencyGrossCommissionBrl' => $financialData['calculatedAgencyGrossCommissionBrl'],
+    'calculatedArtistNetPayoutBrl' => $financialData['calculatedArtistNetPayoutBrl'],
+    'calculatedBookerCommissionBrl' => $financialData['calculatedBookerCommissionBrl'],
+    'calculatedArtistInvoiceValueBrl' => $financialData['calculatedArtistInvoiceValueBrl'],
+    'backUrlParams' => $backUrlParams,
+    'calculatedTotalConfirmedExpensesBrl' => $financialData['calculatedTotalConfirmedExpensesBrl']
 ])
             @include('settlements._settle_artist_modal', ['gig' => $gig])
             @include('settlements._settle_booker_modal', ['gig' => $gig])

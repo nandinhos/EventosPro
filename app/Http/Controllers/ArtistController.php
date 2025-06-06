@@ -11,6 +11,7 @@ use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Services\ArtistFinancialsService;
 
 
 class ArtistController extends Controller
@@ -90,49 +91,34 @@ class ArtistController extends Controller
         }
     }
 
-    /** Display the specified resource. */
-    /** Display the specified resource. */
-    public function show(Artist $artist, Request $request): View // Adicionar Request
+    /**
+     * Display the specified resource.
+     *
+     * @param Artist $artist
+     * @param Request $request
+     * @param ArtistFinancialsService $financialsService // Injeção de dependência
+     * @return View
+     */
+    public function show(Artist $artist, Request $request, ArtistFinancialsService $financialsService): View
     {
-        $artist->load('tags');
-        $gigsQuery = $artist->gigs()->with('booker'); // Carrega booker
+        $artist->load('tags'); // Eager load tags
 
-        // --- Métricas Financeiras do ARTISTA ---
-        $totalGigs = $gigsQuery->clone()->count();
+        // Inicia a query para as gigs, permitindo filtros
+        $gigsQuery = $artist->gigs()->with('booker')->latest('gig_date');
 
-        // Soma do CACHÊ LÍQUIDO (Valor BRL - Comissões Totais) onde o pagamento AO ARTISTA foi feito
-        // Isso é uma aproximação, o valor exato pago pode estar no settlement ou ser calculado
-        // Vamos somar cache_value_brl ONDE artist_payment_status = 'pago' por enquanto
-        // Idealmente, teríamos o valor exato pago ao artista registrado em algum lugar.
-        $cacheReceivedByArtist = $gigsQuery->clone()
-                                            ->where('artist_payment_status', 'pago')
-                                            ->sum(DB::raw('cache_value - IFNULL(agency_commission_value, 0)')); // Soma (Cachê BRL - Comissão Agência)
-                                            // Ou ->sum('artist_net_amount') se tivéssemos essa coluna
+        // Aplicar filtros da requisição, se houver
+        // Ex: if ($request->filled('period')) { ... }
 
-        // Soma do CACHÊ LÍQUIDO onde o pagamento AO ARTISTA está pendente
-        $cachePendingForArtist = $gigsQuery->clone()
-                                            ->where('artist_payment_status', 'pendente')
-                                             ->sum(DB::raw('cache_value - IFNULL(agency_commission_value, 0)')); // Soma (Cachê BRL - Comissão Agência)
+        // Pagina o resultado da query de gigs
+        $gigs = $gigsQuery->paginate(15)->withQueryString();
 
-        // --- Filtragem e Paginação das Gigs (igual antes) ---
-         if ($request->filled('gig_status')) { $gigsQuery->where('payment_status', $request->input('gig_status')); }
-         if ($request->filled('start_date')) { $gigsQuery->where('gig_date', '>=', $request->input('start_date')); }
-         if ($request->filled('end_date')) { $gigsQuery->where('gig_date', '<=', $request->input('end_date')); }
-         // Adicionar filtro por booker?
-         // if ($request->filled('booker_id')) { ... }
+        // **A LÓGICA DE CÁLCULO AGORA É DELEGADA PARA O SERVICE**
+        // Passamos a coleção de gigs já paginada (ou poderíamos passar a query inteira)
+        // para o service calcular as métricas apenas sobre essa seleção.
+        // Para métricas GERAIS do artista, passamos a coleção completa.
+        $allGigs = $artist->gigs; // Busca todas as gigs para métricas totais
+        $metrics = $financialsService->getFinancialMetrics($artist, $allGigs);
 
-        $gigs = $gigsQuery->latest('gig_date')->paginate(15)->withQueryString();
-
-        // Montar dados para os cards de métricas
-        $metrics = [
-            'total_gigs' => $totalGigs,
-            'cache_received_brl' => $cacheReceivedByArtist ?? 0,
-            'cache_pending_brl' => $cachePendingForArtist ?? 0,
-        ];
-
-         // Dados para filtros (se adicionar)
-        // $bookers = Booker::orderBy('name')->pluck('name', 'id');
-
-        return view('artists.show', compact('artist', 'gigs', 'metrics')); // Remover $artists, $bookers se não usar nos filtros aqui
+        return view('artists.show', compact('artist', 'gigs', 'metrics'));
     }
 }

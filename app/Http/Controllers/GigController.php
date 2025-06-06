@@ -152,52 +152,50 @@ class GigController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Gig $gig, Request $request /*, GigFinancialCalculatorService $financialCalculator */ ): View // Service pode ser injetado se for usar aqui
+    public function show(Gig $gig, Request $request): View
     {
-        // Salvar parâmetros da URL da index na sessão para o botão "Voltar"
-        // (lógica de salvar params da URL anterior)
+        // Salva parâmetros da URL da index na sessão para o botão "Voltar"
         if ($request->hasAny(['search', 'payment_status', 'artist_id', 'booker_id', 'start_date', 'end_date', 'currency', 'sort_by', 'sort_direction', 'page'])) {
             $request->session()->put('gig_index_url_params', $request->query());
         }
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
 
-
+        // Carrega todos os relacionamentos necessários para a view de uma vez (Eager Loading)
         $gig->loadMissing(['artist', 'booker', 'payments' => fn($q) => $q->orderBy('due_date', 'asc')->orderBy('id', 'asc'), 'settlement', 'tags', 'costs.costCenter', 'costs.confirmer']);
 
-        // Calcular totais para exibição usando o service ou os accessors que usam o service
-        // Exemplo com os accessors já refatorados (que usam o service internamente):
-        $totalReceivedOriginalCurrency = 0;
-        if ($gig->currency) { // Garante que a gig tem uma moeda definida
-            $totalReceivedOriginalCurrency = $gig->payments
-                ->where('confirmed_at', '!=', null)
-                ->where('currency', $gig->currency) // Soma apenas pagamentos na moeda original da Gig
-                ->sum('received_value_actual');
-        }
-        $balanceOriginalCurrency = max(0, ($gig->cache_value ?? 0) - $totalReceivedOriginalCurrency);
-
-        // Para "Acertos Financeiros (Pagamentos Efetuados)"
-        // O GigFinancialCalculatorService pode ser usado aqui para fornecer os valores para a view de forma centralizada.
-        // Injetar o service no método ou resolver via App::make()
+        // Instancia o service para fazer TODOS os cálculos
         $financialCalculator = App::make(GigFinancialCalculatorService::class);
-        $viewData = [
-            'gig' => $gig,
-            'activityLogs' => ActivityLog::where('subject_type', Gig::class)->where('subject_id', $gig->id)->latest()->paginate(10, ['*'], 'logs_page')->withQueryString(),
-            'totalReceivedOriginalCurrency' => $totalReceivedOriginalCurrency,
-            'balanceOriginalCurrency' => $balanceOriginalCurrency,
-            'backUrlParams' => $backUrlParams,
 
-            // Valores calculados pelo service para a seção de acertos e NF
+        // Prepara um array com todos os dados financeiros necessários para a view
+        $financialData = [
+            // Dados do Resumo Financeiro (a refatoração principal)
+            'totalReceivedInOriginalCurrency' => $financialCalculator->calculateTotalReceivedInOriginalCurrency($gig),
+            'pendingBalanceInOriginalCurrency' => $financialCalculator->calculatePendingBalanceInOriginalCurrency($gig),
+
+            // Dados para a seção de Acertos e NF (já calculados pelo service)
             'calculatedGrossCashBrl' => $financialCalculator->calculateGrossCashBrl($gig),
             'calculatedAgencyGrossCommissionBrl' => $financialCalculator->calculateAgencyGrossCommissionBrl($gig),
             'calculatedArtistNetPayoutBrl' => $financialCalculator->calculateArtistNetPayoutBrl($gig),
             'calculatedBookerCommissionBrl' => $financialCalculator->calculateBookerCommissionBrl($gig),
             'calculatedAgencyNetCommissionBrl' => $financialCalculator->calculateAgencyNetCommissionBrl($gig),
-            'calculatedTotalConfirmedExpensesBrl' => $financialCalculator->calculateTotalConfirmedExpensesBrl($gig), // Para NF
-            'calculatedTotalReimbursableExpensesBrl' => $financialCalculator->calculateTotalReimbursableExpensesBrl($gig), // Para NF
-            'calculatedArtistInvoiceValueBrl' => $financialCalculator->calculateArtistInvoiceValueBrl($gig), // Para NF
+            'calculatedTotalConfirmedExpensesBrl' => $financialCalculator->calculateTotalConfirmedExpensesBrl($gig),
+            'calculatedTotalReimbursableExpensesBrl' => $financialCalculator->calculateTotalReimbursableExpensesBrl($gig),
+            'calculatedArtistInvoiceValueBrl' => $financialCalculator->calculateArtistInvoiceValueBrl($gig),
         ];
 
-        return view('gigs.show', $viewData);
+        // Logs de Atividade
+        $activityLogs = ActivityLog::where('subject_type', Gig::class)
+            ->where('subject_id', $gig->id)
+            ->latest()
+            ->paginate(10, ['*'], 'logs_page')
+            ->withQueryString();
+
+        return view('gigs.show', [
+            'gig' => $gig,
+            'financialData' => $financialData, // Passa o array com todos os dados financeiros
+            'activityLogs' => $activityLogs,
+            'backUrlParams' => $backUrlParams
+        ]);
     }
 
     public function create(Request $request): View

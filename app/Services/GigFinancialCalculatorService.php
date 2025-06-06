@@ -180,4 +180,45 @@ class GigFinancialCalculatorService
         Log::debug("[GigFinancialCalculatorService] Valor NF Artista para Gig ID {$gig->id}: Payout Artista (antes reembolso) BRL {$artistNetPayoutBeforeReimbursement} + Desp. Reembolsáveis BRL {$reimbursableExpenses} = {$invoiceValue}");
         return (float) $invoiceValue;
     }
+
+    /**
+     * Calcula o valor total já recebido para uma Gig, na moeda original da Gig.
+     * Soma o valor de todos os pagamentos confirmados que estão na mesma moeda do contrato.
+     *
+     * @param  \App\Models\Gig $gig
+     * @return float
+     */
+    public function calculateTotalReceivedInOriginalCurrency(Gig $gig): float
+    {
+        // Garante que o relacionamento 'payments' esteja carregado
+        $gig->loadMissing('payments');
+
+        $totalReceived = $gig->payments
+            ->whereNotNull('confirmed_at')
+            ->where('currency', $gig->currency) // Considera apenas pagamentos na moeda principal do contrato
+            ->sum('received_value_actual'); // Soma o valor real recebido
+
+        Log::debug("[GigFinancialCalculatorService] Calculando Total Recebido para Gig ID {$gig->id} (Moeda: {$gig->currency}): {$totalReceived}");
+
+        return (float) $totalReceived;
+    }
+
+    /**
+     * Calcula o saldo pendente a ser recebido para uma Gig, na moeda original da Gig.
+     * Fórmula: Valor do Contrato (Original) - Total Recebido (na Moeda Original).
+     *
+     * @param  \App\Models\Gig $gig
+     * @return float
+     */
+    public function calculatePendingBalanceInOriginalCurrency(Gig $gig): float
+    {
+        $contractValue = (float) ($gig->cache_value ?? 0);
+        $totalReceived = $this->calculateTotalReceivedInOriginalCurrency($gig);
+
+        $pendingBalance = $contractValue - $totalReceived;
+
+        Log::debug("[GigFinancialCalculatorService] Calculando Saldo Pendente para Gig ID {$gig->id} (Moeda: {$gig->currency}): Contrato {$contractValue} - Recebido {$totalReceived} = {$pendingBalance}");
+
+        return (float) max(0, $pendingBalance); // O saldo pendente não deve ser negativo
+    }
 }

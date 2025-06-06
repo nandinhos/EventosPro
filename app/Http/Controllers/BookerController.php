@@ -15,6 +15,7 @@ use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB; // Para transação, se necessário
+use App\Services\BookerFinancialsService;
 
 class BookerController extends Controller
 {
@@ -49,39 +50,30 @@ class BookerController extends Controller
         }
     }
 
-    /** Display the specified resource. */
-    public function show(Booker $booker, Request $request): View
+    /**
+     * Display the specified resource.
+     *
+     * @param Booker $booker
+     * @param Request $request
+     * @param BookerFinancialsService $financialsService // Injeção de dependência
+     * @return View
+     */
+    public function show(Booker $booker, Request $request, BookerFinancialsService $financialsService): View
     {
-        // Query base para as gigs do booker
-        $gigsQuery = $booker->gigs()->with('artist'); // Carrega artista
+        // Inicia a query para as gigs do booker, permitindo filtros
+        $gigsQuery = $booker->gigs()->with('artist')->latest('gig_date');
 
-        // --- Métricas ATUALIZADAS ---
-        $totalGigs = $gigsQuery->clone()->count(); // Clonar para não afetar a query principal
+        // Aplicar filtros da requisição, se houver
+        // Ex: if ($request->filled('period')) { ... }
 
-        // Soma da Comissão do Booker onde o status de pagamento da comissão é 'pago'
-        $commissionReceived = $gigsQuery->clone()
-                                        ->where('booker_payment_status', 'pago')
-                                        ->sum('booker_commission_value'); // Soma o valor salvo
+        $gigs = $gigsQuery->paginate(15)->withQueryString();
 
-        // Soma da Comissão do Booker onde o status de pagamento da comissão é 'pendente'
-        $commissionPending = $gigsQuery->clone()
-                                       ->where('booker_payment_status', 'pendente')
-                                       ->sum('booker_commission_value'); // Soma o valor salvo
+        // **A LÓGICA DE CÁLCULO AGORA É DELEGADA PARA O SERVICE**
+        $allGigs = $booker->gigs; // Busca todas as gigs para métricas totais
+        $metrics = $financialsService->getCommissionMetrics($booker, $allGigs);
 
-
-        // --- Filtragem e Paginação das Gigs (sem alterações) ---
-        if ($request->filled('gig_status')) { $gigsQuery->where('payment_status', $request->input('gig_status')); }
-        // ... (outros filtros) ...
-        $gigs = $gigsQuery->latest('gig_date')->paginate(15)->withQueryString();
-
-        // Dados para os cards ATUALIZADOS
-        $metrics = [
-            'total_gigs' => $totalGigs,
-            'commission_received_brl' => $commissionReceived ?? 0, // Garante que é numérico
-            'commission_pending_brl' => $commissionPending ?? 0, // Garante que é numérico
-        ];
-
-        $artists = Artist::orderBy('name')->pluck('name', 'id');
+        // $artists é usado para filtros na view, se houver
+        $artists = \App\Models\Artist::orderBy('name')->pluck('name', 'id');
 
         return view('bookers.show', compact('booker', 'gigs', 'metrics', 'artists'));
     }
