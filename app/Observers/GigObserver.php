@@ -18,110 +18,85 @@ class GigObserver
 
     /**
      * Handle the Gig "saving" event.
-     * ANTES de uma Gig ser criada ou atualizada.
+     * Este observer agora verifica se os campos de comissão foram alterados
+     * antes de reinterpretar os inputs, evitando recálculos incorretos
+     * quando a Gig é salva por outras razões (ex: mudança de status).
      *
      * @param  \App\Models\Gig  $gig
      * @return void
      */
     public function saving(Gig $gig): void
     {
-        Log::info("[GigObserver@saving] INICIANDO para Gig ID: " . ($gig->id ?? 'NOVA GIG'));
-        Log::debug("[GigObserver@saving] Dados da Gig RECEBIDOS (do request/form) ANTES de qualquer lógica do observer:", [
-            'id' => $gig->id ?? 'NOVA',
-            'gig_original_attributes' => $gig->getOriginal(), // Valores do banco antes da mudança (se for update)
-            'gig_dirty_attributes_from_request' => $gig->getDirty(), // Campos que vieram do request e são diferentes
-            'agency_commission_type_from_request' => $gig->agency_commission_type,
-            'agency_commission_value_from_request' => $gig->agency_commission_value, // Este é o input do form (taxa ou valor fixo)
-            'booker_commission_type_from_request' => $gig->booker_commission_type,
-            'booker_commission_value_from_request' => $gig->booker_commission_value, // Este é o input do form (taxa ou valor fixo)
-        ]);
+        Log::info("[GigObserver@saving] Iniciando para Gig ID: " . ($gig->id ?? 'NOVA GIG'));
+
+        // Verifica se os campos de input de comissão foram alterados nesta requisição
+        $isAgencyCommissionDirty = $gig->isDirty('agency_commission_type') || $gig->isDirty('agency_commission_value');
+        $isBookerCommissionDirty = $gig->isDirty('booker_commission_type') || $gig->isDirty('booker_commission_value');
 
         // --- PREPARAÇÃO PARA COMISSÃO DA AGÊNCIA ---
-        $agencyTypeFromRequest = strtoupper($gig->agency_commission_type ?? '') === 'PERCENT' ? 'PERCENT' : 'FIXED';
-        // Se o tipo não for 'PERCENT', consideramos 'FIXED' ou o que estiver (o service trata fallback)
-        // Se o campo vier vazio do form, o FormRequest deve ter setado um default ou o model.
-        // Se for null, o service usará defaults internos.
+        // SÓ executa esta lógica se os campos de comissão da agência vieram do formulário
+        if ($isAgencyCommissionDirty) {
+            Log::debug("[GigObserver@saving] Detectada alteração na comissão da agência. Reinterpretando inputs.");
+            $agencyCommissionInputValue = $gig->agency_commission_value; // Valor/Taxa do input
 
-        $agencyInputValueFromRequest = $gig->agency_commission_value; // Valor/Taxa do input
-
-        // Limpa os campos rate/value no modelo $gig antes de popular com base no tipo
-        // Isso garante que o service não pegue um 'rate' antigo se o tipo mudou para 'fixed', e vice-versa.
-        $gig->agency_commission_rate = null;
-        // Não zeramos $gig->agency_commission_value ainda, pois ele pode ser o valor fixo do input.
-
-        if ($agencyTypeFromRequest === 'PERCENT') {
-            $gig->agency_commission_rate = (float) $agencyInputValueFromRequest;
-            // O campo $gig->agency_commission_value será preenchido pelo service com o valor BRL calculado.
-            // Se $agencyInputValueFromRequest for null/vazio aqui, $gig->agency_commission_rate será 0.0,
-            // e o service usará a taxa default (ex: 20%) se $gig->agency_commission_rate for nulo ou zero.
-            // Se você quer que uma taxa vazia no form signifique "sem comissão percentual", o service precisa saber disso.
-            // Por ora, o service tem um default se a taxa for nula.
-        } else { // Tipo é FIXED
-            // O $agencyInputValueFromRequest é o valor fixo.
-            // O service usará $gig->agency_commission_value (que é o $agencyInputValueFromRequest)
-            // e $gig->agency_commission_rate (que está null).
-            // A linha $gig->agency_commission_value = $calculatedAgencyGrossCommissionBrl; abaixo
-            // vai apenas reafirmar esse valor (já que para comissão fixa, o valor calculado é o próprio valor fixo).
+            if (strtoupper($gig->agency_commission_type ?? '') === 'PERCENT') {
+                // O valor do input é a TAXA. Salva em `rate`.
+                $gig->agency_commission_rate = (float) $agencyCommissionInputValue;
+            } else { // Tipo é FIXED
+                // O valor do input é o VALOR FIXO. Limpa a taxa.
+                $gig->agency_commission_rate = null;
+            }
         }
-        // $gig->agency_commission_type já está correto vindo do request.
-
-        Log::debug("[GigObserver@saving] Gig APÓS preparar inputs para Agência (para o Service):", [
-            'agency_type_final' => $gig->agency_commission_type,
-            'agency_rate_para_service' => $gig->agency_commission_rate,
-            'agency_value_de_input_para_service' => ($agencyTypeFromRequest === 'FIXED') ? $agencyInputValueFromRequest : '(será calculado)',
-        ]);
 
         // --- PREPARAÇÃO PARA COMISSÃO DO BOOKER ---
-        $bookerTypeFromRequest = strtoupper($gig->booker_commission_type ?? '') === 'PERCENT' ? 'PERCENT' : 'FIXED';
-        $bookerInputValueFromRequest = $gig->booker_commission_value;
+        if ($isBookerCommissionDirty) {
+            Log::debug("[GigObserver@saving] Detectada alteração na comissão do booker. Reinterpretando inputs.");
+            $bookerCommissionInputValue = $gig->booker_commission_value;
 
-        $gig->booker_commission_rate = null;
-
-        if ($gig->booker_id) { // Só processa comissão do booker se houver um booker
-            if ($bookerTypeFromRequest === 'PERCENT') {
-                $gig->booker_commission_rate = (float) $bookerInputValueFromRequest;
-            } else { // Tipo é FIXED
-                // $bookerInputValueFromRequest é o valor fixo.
+            if ($gig->booker_id) {
+                if (strtoupper($gig->booker_commission_type ?? '') === 'PERCENT') {
+                    $gig->booker_commission_rate = (float) $bookerCommissionInputValue;
+                } else { // Tipo é FIXED
+                    $gig->booker_commission_rate = null;
+                }
+            } else {
+                $gig->booker_commission_type = null;
+                $gig->booker_commission_rate = null;
+                $gig->booker_commission_value = null;
             }
-        } else { // Sem booker, zera tudo
-            $gig->booker_commission_type = null;
-            $gig->booker_commission_rate = null;
-            $gig->booker_commission_value = null; // Garante que o valor do input seja zerado se não houver booker
         }
-        // $gig->booker_commission_type já está correto vindo do request (ou null se não houver booker).
 
-        Log::debug("[GigObserver@saving] Gig APÓS preparar inputs para Booker (para o Service):", [
-            'booker_id' => $gig->booker_id,
-            'booker_type_final' => $gig->booker_commission_type,
-            'booker_rate_para_service' => $gig->booker_commission_rate,
-            'booker_value_de_input_para_service' => ($gig->booker_id && $bookerTypeFromRequest === 'FIXED') ? $bookerInputValueFromRequest : '(será calculado ou nulo)',
+        // Após a preparação (se necessária), os campos de tipo e taxa no objeto $gig
+        // estão corretos para o service usar. O service sempre será chamado para garantir
+        // que os valores sejam consistentes, mesmo que só uma despesa tenha mudado.
+
+        Log::debug("[GigObserver@saving] Dados da Gig antes de chamar o service:", [
+            'id' => $gig->id ?? 'NOVA',
+            'agency_type' => $gig->agency_commission_type,
+            'agency_rate' => $gig->agency_commission_rate,
+            'agency_value_pre_calc' => $gig->agency_commission_value,
+            'booker_type' => $gig->booker_commission_type,
+            'booker_rate' => $gig->booker_commission_rate,
+            'booker_value_pre_calc' => $gig->booker_commission_value,
         ]);
 
-        // Agora, o objeto $gig tem os atributos de tipo, taxa (se percentual),
-        // e valor de input (se fixo) corretamente configurados para o service usar.
-
-        // Chamar o Service para calcular os VALORES FINAIS EM BRL das comissões
+        // Calcula os VALORES FINAIS EM BRL das comissões
         $calculatedAgencyGrossCommissionBrl = $this->financialCalculator->calculateAgencyGrossCommissionBrl($gig);
-        $calculatedBookerCommissionBrl = $this->financialCalculator->calculateBookerCommissionBrl($gig); // Já retorna 0 se não houver booker_id
+        $calculatedBookerCommissionBrl = $this->financialCalculator->calculateBookerCommissionBrl($gig);
         $calculatedAgencyNetCommissionBrl = $this->financialCalculator->calculateAgencyNetCommissionBrl($gig);
 
-        // Atribuir os valores CALCULADOS EM BRL aos campos para persistência
-        // Estes campos no banco SEMPRE guardarão o valor monetário final em BRL da comissão.
+        // Atribui os valores CALCULADOS EM BRL aos campos para persistência
         $gig->agency_commission_value = $calculatedAgencyGrossCommissionBrl;
-        $gig->booker_commission_value = $calculatedBookerCommissionBrl; // Será 0 se não houver booker
+        $gig->booker_commission_value = $calculatedBookerCommissionBrl;
         $gig->liquid_commission_value = $calculatedAgencyNetCommissionBrl;
 
         Log::info("[GigObserver@saving] Gig ID: " . ($gig->id ?? 'NOVA') . " - VALORES FINAIS PARA SALVAR NO BANCO:", [
-            'agency_commission_type' => $gig->agency_commission_type, 'agency_commission_rate' => $gig->agency_commission_rate, 'persisted_agency_commission_value_brl' => $gig->agency_commission_value,
-            'booker_commission_type' => $gig->booker_commission_type, 'booker_commission_rate' => $gig->booker_commission_rate, 'persisted_booker_commission_value_brl' => $gig->booker_commission_value,
+            'agency_commission_rate' => $gig->agency_commission_rate,
+            'persisted_agency_commission_value_brl' => $gig->agency_commission_value,
+            'booker_commission_rate' => $gig->booker_commission_rate,
+            'persisted_booker_commission_value_brl' => $gig->booker_commission_value,
             'persisted_liquid_commission_value_brl' => $gig->liquid_commission_value,
         ]);
-
-        if ($gig->isDirty()) {
-            Log::info("[GigObserver@saving] Alterações na Gig ID: " . ($gig->id ?? 'NOVA') . " prestes a serem salvas:", $gig->getDirty());
-        } else {
-            Log::info("[GigObserver@saving] Gig ID: " . ($gig->id ?? 'NOVA') . " - Nenhuma alteração suja detectada após processamento de comissões (pode ser que os valores calculados sejam iguais aos já existentes).");
-        }
     }
 
     public function created(Gig $gig): void

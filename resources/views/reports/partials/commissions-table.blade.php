@@ -1,49 +1,74 @@
-<x-tab-nav :active-tab="'commissions'">
-    @section('exportButtons')
-        <x-slot-button :type="'commissions'" :filters="$filters" />
-    @endsection
+@php
+    $commissionGroups = $commissionsReport['groups'] ?? collect([]);
+    $commissionsSummary = $commissionsReport['summary'] ?? [];
+@endphp
 
-    <div class="space-y-6 mt-6">
-        <!-- Seção de Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <div class="bg-indigo-100 dark:bg-indigo-900/20 p-4 rounded-lg">
-                <h3 class="text-sm text-gray-500 dark:text-gray-400">Total de Comissões</h3>
-                <p class="text-lg font-semibold text-indigo-800 dark:text-indigo-300">R$ {{ number_format($commissionsSummary['total_commissions'] ?? 0, 2, ',', '.') }}</p>
-            </div>
-            <div class="bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg">
-                <h3 class="text-sm text-gray-500 dark:text-gray-400">Eventos com Comissão</h3>
-                <p class="text-lg font-semibold text-blue-800 dark:text-blue-300">{{ $commissionsSummary['events_with_commissions'] ?? 0 }}</p>
-            </div>
+<div class="space-y-6 mt-4">
+    {{-- Cards de Resumo para Comissões --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div class="bg-indigo-100 dark:bg-indigo-900/20 p-4 rounded-lg">
+            <h3 class="text-sm text-gray-500 dark:text-gray-400">Total de Comissões (Bookers)</h3>
+            <p class="text-lg font-semibold text-indigo-800 dark:text-indigo-300">R$ {{ number_format($commissionsSummary['total_commissions'] ?? 0, 2, ',', '.') }}</p>
         </div>
-
-        <!-- Tabela de Comissões -->
-        @if (isset($commissionsTable) && $commissionsTable->isNotEmpty())
-            <div class="overflow-x-auto mt-6">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-                    <thead class="bg-gray-50 dark:bg-gray-800">
-                        <tr>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contrato</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Booker</th>
-                            <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Comissão (BRL)</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        @foreach ($commissionsTable as $row)
-                            <tr>
-                                <td class="px-3 py-1.5 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">{{ $row['contract_number'] ?? 'N/A' }}</td>
-                                <td class="px-3 py-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">{{ $row['gig_date'] ?? 'N/A' }}</td>
-                                <td class="px-3 py-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">{{ $row['booker'] ?? 'N/A' }}</td>
-                                <td class="px-3 py-1.5 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">R$ {{ number_format($row['commission'] ?? 0, 2, ',', '.') }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @else
-            <p class="text-center text-gray-500 dark:text-gray-400 mt-6">
-                Nenhum dado de comissões disponível para o período selecionado.
-            </p>
-        @endif
+        <div class="bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg">
+            <h3 class="text-sm text-gray-500 dark:text-gray-400">Eventos com Comissão</h3>
+            <p class="text-lg font-semibold text-blue-800 dark:text-blue-300">{{ $commissionsSummary['events_with_commissions'] ?? 0 }}</p>
+        </div>
     </div>
-</x-tab-nav>
+
+    {{-- Tabela Agrupada por Booker --}}
+    @if ($commissionGroups->isNotEmpty())
+        <div class="space-y-6">
+            @foreach ($commissionGroups as $group)
+                <div class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm border dark:border-gray-700">
+                    {{-- Cabeçalho do Grupo com Subtotal --}}
+                    <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-t-lg flex justify-between items-center">
+                        <h4 class="text-md font-semibold text-gray-800 dark:text-white">{{ $group['booker_name'] }}</h4>
+                        <span class="text-sm font-bold text-gray-600 dark:text-gray-300">
+                            Subtotal: R$ {{ number_format($group['subtotal'], 2, ',', '.') }}
+                        </span>
+                    </div>
+
+                    {{-- Tabela de Comissões do Grupo --}}
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-xs">
+                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase">Data da Gig</th>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase">Artista</th>
+                                    <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase">Gig</th>
+                                    <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase">Base de Cálculo (R$)</th>
+                                    <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase">Comissão (R$)</th>
+                                    <th class="px-3 py-2 text-center font-medium text-gray-500 dark:text-gray-400 uppercase">Status Pgto.</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                @foreach ($group['gigs'] as $gig)
+                                    <tr>
+                                        <td class="px-3 py-2 whitespace-nowrap">{{ $gig->gig_date ? $gig->gig_date->format('d/m/Y') : 'N/A' }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap font-semibold">{{ $gig->artist->name ?? 'N/A' }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap">
+                                            <a href="{{ route('gigs.show', $gig) }}" class="text-primary-600 hover:underline" title="{{ $gig->location_event_details ?? 'Ver Gig' }}">
+                                                Gig #{{ $gig->id }}
+                                            </a>
+                                        </td>
+                                        {{-- CORREÇÃO AQUI: Usa a propriedade pré-calculada --}}
+                                        <td class="px-3 py-2 whitespace-nowrap text-right text-gray-500">{{ number_format($gig->calculated_gross_cash_brl, 2, ',', '.') }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-right font-bold">{{ number_format($gig->calculated_booker_commission, 2, ',', '.') }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-center">
+                                            <x-status-badge :status="$gig->booker_payment_status" type="payment-internal" />
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @else
+        <p class="text-center text-gray-500 dark:text-gray-400 mt-6">
+            Nenhuma comissão de booker encontrada para os filtros selecionados.
+        </p>
+    @endif
+</div>

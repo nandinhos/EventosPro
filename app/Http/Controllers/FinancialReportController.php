@@ -8,6 +8,7 @@ use Barryvdh\DomPDF\Facade\Pdf; // Importar PDF
 use Illuminate\Http\Request;
 use App\Models\Artist;
 use App\Models\Booker;
+use App\Models\CostCenter;
 
 
 class FinancialReportController extends Controller
@@ -31,10 +32,17 @@ class FinancialReportController extends Controller
     $expensesTable = collect($this->reportService->getExpensesTableData());
     $profitabilitySummary = $this->reportService->getProfitabilitySummary();
     $profitabilityTable = collect($this->reportService->getProfitabilityTableData());
+    $groupedExpensesReport = $this->reportService->getGroupedExpensesData();
+    $commissionsReport = $this->reportService->getGroupedCommissionsData();
     $cashflowSummary = $this->reportService->getCashflowSummary();
     $cashflowTable = collect($this->reportService->getCashflowTableData());
     $commissionsSummary = $this->reportService->getCommissionsSummary();
     $commissionsTable = collect($this->reportService->getCommissionsTableData());
+    $detailedPerformanceReport = $this->reportService->getDetailedPerformanceData();
+    $profitabilityReport = $this->reportService->getProfitabilityAnalysisData();
+    $detailedExpenses = $this->reportService->getDetailedExpenses();
+
+
 
     // Depuração temporária
     /*dd([
@@ -46,10 +54,16 @@ class FinancialReportController extends Controller
 
     $bookers = \App\Models\Booker::all();
     $artists = \App\Models\Artist::withoutTrashed()->orderBy('name')->get();
+    $costCenters = CostCenter::orderBy('name')->get();
 
     return view('reports.dashboard', [
         'filters' => $filters,
         'activeTab' => $activeTab,
+        'detailedExpenses' => $detailedExpenses,
+        'detailedPerformanceReport' => $detailedPerformanceReport,
+        'profitabilityReport' => $profitabilityReport,
+        'groupedExpensesReport' => $groupedExpensesReport,
+        'commissionsReport' => $commissionsReport,
         'overviewSummary' => $overviewSummary,
         'overviewTable' => $overviewTable,
         'expensesTable' => $expensesTable,
@@ -61,6 +75,7 @@ class FinancialReportController extends Controller
         'commissionsTable' => $commissionsTable,
         'bookers' => $bookers,
         'artists' => $artists,
+        'costCenters' => $costCenters,
     ]);
 }
 

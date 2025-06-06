@@ -51,11 +51,11 @@ class SettlementController extends Controller
                 }
                 $settlement->artist_payment_proof = $request->file('artist_payment_proof_file')->store('settlements/artist_proofs', 'public');
             }
-            $settlement->notes = $settlement->notes . "\n[Artista " . now()->format('d/m/y H:i') . "]: " . ($validated['artist_payment_notes'] ?? '');
+            $settlement->notes = trim(($settlement->notes ?? '') . "\n[Artista " . now()->format('d/m/y H:i') . "]: " . ($validated['artist_payment_notes'] ?? 'Pagamento registrado.'));
             $settlement->save();
 
             // Atualiza o status da Gig
-            $gig->artist_payment_status = 'pago';
+            $gig->update(['artist_payment_status' => 'pago']);
             $gig->save();
 
             DB::commit();
@@ -105,7 +105,7 @@ class SettlementController extends Controller
             $settlement->notes = $settlement->notes . "\n[Booker " . now()->format('d/m/y H:i') . "]: " . ($validated['booker_commission_notes'] ?? '');
             $settlement->save();
 
-            $gig->booker_payment_status = 'pago';
+            $gig->update(['booker_payment_status' => 'pago']);
             $gig->save();
 
             DB::commit();
@@ -141,7 +141,7 @@ class SettlementController extends Controller
             }
 
             // Atualiza o status da Gig para pendente
-            $gig->artist_payment_status = 'pendente';
+            $gig->update(['artist_payment_status' => 'pendente']);
             $gig->save();
 
             DB::commit();

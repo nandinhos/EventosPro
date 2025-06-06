@@ -1,7 +1,13 @@
 import './bootstrap'; // Importa o bootstrap do axios, etc.
 import Alpine from 'alpinejs';
 import focus from '@alpinejs/focus';
-import Chart from 'chart.js/auto'; // Importa Chart.js
+
+// Importar o Chart.js da pasta node_modules
+import { Chart, registerables } from 'chart.js';
+
+// Registrar todos os componentes do Chart.js (controllers, escalas, etc.)
+Chart.register(...registerables);
+
 import Swal from 'sweetalert2';
 
 window.Alpine = Alpine;
