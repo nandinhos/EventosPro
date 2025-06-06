@@ -193,27 +193,25 @@ class FinancialReportService
 
     /**
      * Obtém o resumo para a aba de Fluxo de Caixa.
-     * Considera pagamentos de cliente confirmados como ENTRADA.
-     * Considera despesas confirmadas E acertos pagos a artistas/bookers como SAÍDA.
-     *
-     * @return array
+     * (Mantém a lógica que já corrigimos, baseada em datas de transação)
      */
     public function getCashflowSummary(): array
     {
         // 1. Entradas: Pagamentos de clientes confirmados no período
         $totalInflow = Payment::whereNotNull('confirmed_at')
-            ->whereBetween('received_date_actual', [$this->startDate, $this->endDate]) // Baseado na data do recebimento
-            ->sum(DB::raw('COALESCE(received_value_actual, 0)')); // Soma o valor real recebido
+            ->whereBetween('received_date_actual', [$this->startDate, $this->endDate])
+            ->sum(DB::raw('COALESCE(received_value_actual, 0)'));
 
         // 2. Saídas (Despesas): Custos confirmados no período
         $totalOutflowExpenses = GigCost::where('is_confirmed', true)
-            ->whereBetween('confirmed_at', [$this->startDate, $this->endDate]) // Baseado na data de confirmação do custo
-            ->sum('value'); // Assumindo que o valor já está em BRL
+            ->whereBetween('confirmed_at', [$this->startDate, $this->endDate])
+            ->sum('value');
 
         // 3. Saídas (Acertos): Pagamentos a artistas e bookers no período
-        $settlementsInPeriod = Settlement::whereBetween('settlement_date', [$this->startDate, $this->endDate])->get();
-        $totalOutflowArtists = $settlementsInPeriod->sum('artist_payment_value');
-        $totalOutflowBookers = $settlementsInPeriod->sum('booker_commission_value_paid');
+        $totalOutflowArtists = Settlement::whereBetween('artist_payment_paid_at', [$this->startDate, $this->endDate])
+            ->sum('artist_payment_value');
+        $totalOutflowBookers = Settlement::whereBetween('booker_commission_paid_at', [$this->startDate, $this->endDate])
+            ->sum('booker_commission_value_paid');
 
         // 4. Consolidação
         $totalOutflow = $totalOutflowExpenses + $totalOutflowArtists + $totalOutflowBookers;
@@ -229,36 +227,84 @@ class FinancialReportService
         ];
     }
 
+    /**
+     * Gera uma lista de transações cronológicas para a tabela de Fluxo de Caixa.
+     *
+     * @return Collection
+     */
     public function getCashflowTableData(): Collection
-{
-    return Gig::with(['payments', 'costs'])
-        ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-        ->when(isset($this->filters['booker_id']), fn($q) => $q->where('booker_id', $this->filters['booker_id']))
-        ->when(isset($this->filters['artist_id']), fn($q) => $q->where('artist_id', $this->filters['artist_id']))
-        ->get()
-        ->map(function ($gig) {
-            try {
-                $revenue = $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
-                $costs = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
+    {
+        // 1. Entradas (Pagamentos de Clientes)
+        $inflows = Payment::whereNotNull('confirmed_at')
+            ->whereBetween('received_date_actual', [$this->startDate, $this->endDate])
+            ->whereHas('gig') // <<-- CORREÇÃO: Garante que a Gig relacionada não foi deletada
+            ->with('gig.artist')
+            ->get()
+            ->map(function ($payment) {
                 return [
-                    'contract_number' => $gig->contract_number ?? 'N/A',
-                    'gig_date' => $gig->gig_date->format('d/m/Y'),
-                    'revenue' => $revenue,
-                    'costs' => $costs,
-                    'net_cashflow' => $revenue - $costs,
+                    'date' => Carbon::parse($payment->received_date_actual),
+                    'type' => 'Entrada',
+                    'description' => "Recebimento: " . ($payment->description ?: "Gig #{$payment->gig_id}"),
+                    'gig_id' => $payment->gig_id,
+                    'artist_name' => $payment->gig->artist->name ?? 'N/A',
+                    'value' => (float)$payment->received_value_actual,
                 ];
-            } catch (\Exception $e) {
-                \Log::error("Erro ao mapear dados de fluxo de caixa para Gig ID {$gig->id}: " . $e->getMessage());
+            });
+
+        // 2. Saídas (Despesas)
+        $outflowExpenses = GigCost::where('is_confirmed', true)
+            ->whereBetween('confirmed_at', [$this->startDate, $this->endDate])
+            ->whereHas('gig') // <<-- CORREÇÃO: Garante que a Gig relacionada não foi deletada
+            ->with(['gig.artist', 'costCenter'])
+            ->get()
+            ->map(function ($cost) {
                 return [
-                    'contract_number' => 'Erro',
-                    'gig_date' => 'N/A',
-                    'revenue' => 0,
-                    'costs' => 0,
-                    'net_cashflow' => 0,
+                    'date' => Carbon::parse($cost->confirmed_at),
+                    'type' => 'Saída',
+                    'description' => "Despesa ({$cost->costCenter->name}): " . ($cost->description ?: "Gig #{$cost->gig_id}"),
+                    'gig_id' => $cost->gig_id,
+                    'artist_name' => $cost->gig->artist->name ?? 'N/A',
+                    'value' => -(float)$cost->value, // Negativo para indicar saída
                 ];
-            }
-        });
-}
+            });
+
+        // 3. Saídas (Acertos com Artistas)
+        $outflowArtists = Settlement::whereNotNull('artist_payment_paid_at')
+            ->whereBetween('artist_payment_paid_at', [$this->startDate, $this->endDate])
+            ->whereHas('gig') // <<-- CORREÇÃO: Garante que a Gig relacionada não foi deletada
+            ->with('gig.artist')
+            ->get()
+            ->map(function ($settlement) {
+                return [
+                    'date' => Carbon::parse($settlement->artist_payment_paid_at),
+                    'type' => 'Saída',
+                    'description' => "Pagamento Artista: {$settlement->gig->artist->name}",
+                    'gig_id' => $settlement->gig_id,
+                    'artist_name' => $settlement->gig->artist->name ?? 'N/A',
+                    'value' => -(float)$settlement->artist_payment_value, // Negativo para indicar saída
+                ];
+            });
+        
+        // 4. Saídas (Acertos com Bookers)
+        $outflowBookers = Settlement::whereNotNull('booker_commission_paid_at')
+            ->whereBetween('booker_commission_paid_at', [$this->startDate, $this->endDate])
+            ->whereHas('gig') // <<-- CORREÇÃO: Garante que a Gig relacionada não foi deletada
+            ->with(['gig.artist', 'gig.booker'])
+            ->get()
+            ->map(function ($settlement) {
+                return [
+                    'date' => Carbon::parse($settlement->booker_commission_paid_at),
+                    'type' => 'Saída',
+                    'description' => "Pagamento Booker: {$settlement->gig->booker->name}",
+                    'gig_id' => $settlement->gig_id,
+                    'artist_name' => $settlement->gig->artist->name ?? 'N/A',
+                    'value' => -(float)$settlement->booker_commission_value_paid, // Negativo para indicar saída
+                ];
+            });
+
+        // 5. Junta tudo e ordena por data
+        return $inflows->concat($outflowExpenses)->concat($outflowArtists)->concat($outflowBookers)->sortBy('date');
+    }
 
     public function getCommissionsSummary(): array
     {
@@ -602,18 +648,17 @@ class FinancialReportService
         }
 
         // Prepara os dados para o gráfico comparativo por booker
+        // Prepara os dados para o gráfico comparativo por booker
         $commissionByBooker = $gigs->groupBy('booker.name')
             ->map(function ($bookerGigs) {
                 return $bookerGigs->sum(function ($gig) {
                     return $this->calculator->calculateAgencyNetCommissionBrl($gig);
                 });
             })
-            ->sortByDesc(function ($total) {
-                return $total;
-            });
-        
+            ->forget(''); // <<-- ADICIONE ESTA LINHA PARA REMOVER O GRUPO SEM NOME (Agência Direta)
+
         $chartData['commissionByBooker'] = [
-            'labels' => $commissionByBooker->keys()->map(fn($name) => $name ?: 'Agência Direta'),
+            'labels' => $commissionByBooker->keys(), // Não precisa mais do fallback 'Agência Direta'
             'data' => $commissionByBooker->values(),
         ];
 

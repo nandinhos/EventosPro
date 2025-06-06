@@ -42,12 +42,13 @@ class Settlement extends Model
     ];
 
     /**
-     * Get the event that the settlement belongs to.
-     * (Um Acerto pertence a um Evento)
+     * Obtém a Gig à qual este acerto pertence.
+     * (Um Acerto pertence a uma Gig)
      */
-    public function event(): BelongsTo
+    public function gig(): BelongsTo
     {
-        // Laravel assume 'event_id' como chave estrangeira
-        return $this->belongsTo(Event::class);
+        // Esta é a relação que estava faltando.
+        // O Laravel usará a coluna 'gig_id' por padrão.
+        return $this->belongsTo(Gig::class);
     }
 }
