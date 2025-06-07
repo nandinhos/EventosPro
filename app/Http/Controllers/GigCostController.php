@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Illuminate\Support\Carbon;
 
 class GigCostController extends Controller
 {
@@ -130,28 +131,37 @@ class GigCostController extends Controller
     }
 
     /**
-     * Confirma uma despesa.
+     * Confirma uma despesa, usando uma data informada pelo usuário.
      */
     public function confirm(Request $request, Gig $gig, GigCost $cost): JsonResponse
     {
-        if ($cost->gig_id !== $gig->id) {
-            return response()->json(['message' => 'Acesso não autorizado.'], 403);
+        if ($cost->gig_id !== $gig->id || $cost->is_confirmed) {
+            return response()->json(['message' => 'Esta despesa não pode ser confirmada.'], 422);
         }
-        if ($cost->is_confirmed) {
-             return response()->json(['message' => 'Esta despesa já está confirmada.'], 422);
-        }
+
+        // Valida a data de confirmação vinda do formulário inline
+        $validated = $request->validate([
+            'confirmed_at_date' => ['required', 'date', 'before_or_equal:today']
+        ], [
+            'confirmed_at_date.required' => 'A data de confirmação é obrigatória.',
+            'confirmed_at_date.before_or_equal' => 'A data de confirmação não pode ser no futuro.',
+        ]);
 
         try {
             $cost->update([
                 'is_confirmed' => true,
                 'confirmed_by' => Auth::id(),
-                'confirmed_at' => now(),
+                'confirmed_at' => Carbon::parse($validated['confirmed_at_date'])->endOfDay(), // Usa a data do form
             ]);
-            // event(new GigDataChanged($gig));
-            return response()->json(['message' => 'Despesa confirmada!', 'cost' => $cost->fresh()]);
+            
+            // Retorna a mensagem de sucesso e o custo atualizado para o Alpine
+            return response()->json([
+                'message' => 'Despesa confirmada com sucesso!',
+                'cost' => $cost->fresh()->load('confirmer', 'costCenter')
+            ]);
         } catch (\Exception $e) {
             Log::error("Erro ao confirmar despesa {$cost->id}: " . $e->getMessage());
-            return response()->json(['message' => 'Erro ao confirmar despesa.'], 500);
+            return response()->json(['message' => 'Erro interno ao confirmar despesa.'], 500);
         }
     }
 

@@ -190,11 +190,14 @@ class GigController extends Controller
             ->paginate(10, ['*'], 'logs_page')
             ->withQueryString();
 
+        $costCenters = CostCenter::orderBy('name')->get();
+
         return view('gigs.show', [
             'gig' => $gig,
             'financialData' => $financialData, // Passa o array com todos os dados financeiros
             'activityLogs' => $activityLogs,
-            'backUrlParams' => $backUrlParams
+            'backUrlParams' => $backUrlParams,
+            'costCenters' => $costCenters,
         ]);
     }
 
@@ -461,17 +464,22 @@ public function update(UpdateGigRequest $request, Gig $gig): RedirectResponse
      */
     public function debugFinancials(Gig $gig): View
     {
-        // Garante que todos os relacionamentos necessários estejam carregados
-        $gig->loadMissing(['costs.costCenter', 'artist', 'booker']);
-
-        // Instancia o nosso service de cálculo
+        $gig->loadMissing(['costs.costCenter', 'artist', 'booker', 'payments']);
         $calculator = App::make(GigFinancialCalculatorService::class);
 
-        // Executa todos os cálculos e armazena os resultados em um array
+        // Array de cálculos agora inclui os de pagamento
         $calculations = [
+            // Cálculos de Pagamento
+            'calculateTotalReceivedInOriginalCurrency' => $calculator->calculateTotalReceivedInOriginalCurrency($gig),
+            'calculateTotalReceivableInOriginalCurrency' => $calculator->calculateTotalReceivableInOriginalCurrency($gig),
+            'calculatePendingBalanceInOriginalCurrency' => $calculator->calculatePendingBalanceInOriginalCurrency($gig),
+            'divider_1' => null, // Apenas para criar um separador visual na tabela
+            // Cálculos de Despesas e Base de Comissão
             'calculateTotalConfirmedExpensesBrl'      => $calculator->calculateTotalConfirmedExpensesBrl($gig),
             'calculateTotalReimbursableExpensesBrl' => $calculator->calculateTotalReimbursableExpensesBrl($gig),
             'calculateGrossCashBrl'                 => $calculator->calculateGrossCashBrl($gig),
+            'divider_2' => null, // Outro separador
+            // Cálculos de Comissões e Acertos
             'calculateAgencyGrossCommissionBrl'     => $calculator->calculateAgencyGrossCommissionBrl($gig),
             'calculateBookerCommissionBrl'          => $calculator->calculateBookerCommissionBrl($gig),
             'calculateAgencyNetCommissionBrl'       => $calculator->calculateAgencyNetCommissionBrl($gig),
@@ -479,7 +487,6 @@ public function update(UpdateGigRequest $request, Gig $gig): RedirectResponse
             'calculateArtistInvoiceValueBrl'        => $calculator->calculateArtistInvoiceValueBrl($gig),
         ];
 
-        // Passa a Gig e o array com os resultados para a nova view de depuração
         return view('gigs.debug.financials', [
             'gig' => $gig,
             'calculations' => $calculations

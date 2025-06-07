@@ -204,6 +204,27 @@ class GigFinancialCalculatorService
     }
 
     /**
+     * Calcula o valor total AINDA A RECEBER, somando as parcelas pendentes.
+     * Soma o valor devido (due_value) de todos os pagamentos não confirmados.
+     *
+     * @param  \App\Models\Gig $gig
+     * @return float
+     */
+    public function calculateTotalReceivableInOriginalCurrency(Gig $gig): float
+    {
+        $gig->loadMissing('payments');
+
+        $totalReceivable = $gig->payments
+            ->whereNull('confirmed_at')
+            ->sum('due_value');
+
+        Log::debug("[GigFinancialCalculatorService] Calculando Total A RECEBER (parcelas pendentes) para Gig ID {$gig->id}: {$totalReceivable}");
+        return (float) $totalReceivable;
+    }
+
+
+
+    /**
      * Calcula o saldo pendente a ser recebido para uma Gig, na moeda original da Gig.
      * Fórmula: Valor do Contrato (Original) - Total Recebido (na Moeda Original).
      *
