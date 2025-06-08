@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\App; // Adicionado para usar o App::make()
 // pois o GigObserver já faz esse papel. Mas pode ser usado para buscar dados para a view, se necessário.
 use App\Services\GigFinancialCalculatorService;
 use Illuminate\Support\Js;
+use Illuminate\Http\JsonResponse;
 
 class GigController extends Controller
 {

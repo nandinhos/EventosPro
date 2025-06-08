@@ -1,4 +1,8 @@
 <x-app-layout>
+    @php
+        // Necessário para a diretiva @js do Alpine, uma forma mais segura de passar dados
+        //use Illuminate\Support\Js;
+    @endphp
 
     {{-- Cabeçalho da Página e Botões de Ação --}}
     <div class="mb-6 flex flex-wrap justify-between items-center gap-4">
@@ -11,122 +15,30 @@
             </p>
         </div>
         <div class="flex space-x-2 items-center">
-        <a href="{{ route('gigs.index', $backUrlParams) }}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-sm">
+            <a href="{{ route('gigs.index', $backUrlParams) }}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-sm">
                 <i class="fas fa-arrow-left mr-1"></i> Voltar para Lista
             </a>
-            {{-- Botão Editar - Adiciona backUrlParams também --}}
             <a href="{{ route('gigs.edit', ['gig' => $gig] + $backUrlParams) }}" class="bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-md text-sm">
                 <i class="fas fa-edit mr-1"></i> Editar
             </a>
-            {{-- Botão Excluir - Adiciona backUrlParams nos hiddens --}}
-             <form action="{{ route('gigs.destroy', $gig) }}" method="POST" onsubmit="return confirm('Tem certeza?');" class="inline">
-                @csrf
-                @method('DELETE')
-                {{-- Adiciona campos hidden para cada parâmetro de volta --}}
-                @foreach($backUrlParams as $key => $value)
-                     @if(!is_array($value))
-                         <input type="hidden" name="backParams[{{ $key }}]" value="{{ $value }}">
-                     @endif
-                @endforeach
-                <button type="submit" title="Excluir" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-md text-sm">
-                    <i class="fas fa-trash-alt mr-1"></i> Excluir
-                </button>
-            </form>
         </div>
     </div>
 
-    {{-- Grid Principal (Informações e Seções Relacionadas) --}}
+    {{-- Grid Principal --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {{-- Coluna Esquerda: Detalhes Principais da Gig --}}
         <div class="lg:col-span-2 space-y-6">
-            {{-- Card: Informações Gerais --}}
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Informações Gerais</h3>
-                </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                    <div><strong class="text-gray-500 dark:text-gray-400">Artista:</strong> {{ $gig->artist->name ?? 'N/A' }}</div>
-                    <div><strong class="text-gray-500 dark:text-gray-400">Booker:</strong> {{ $gig->booker->name ?? 'Agência/Sem Booker' }}</div>
-                    <div><strong class="text-gray-500 dark:text-gray-400">Data Evento:</strong> {{ $gig->gig_date->format('d/m/Y') }}</div>
-                    <div class="md:col-span-2"><strong class="text-gray-500 dark:text-gray-400">Local/Evento:</strong> {{ $gig->location_event_details }}</div>
-                    <div><strong class="text-gray-500 dark:text-gray-400">Contrato Nº:</strong> {{ $gig->contract_number ?? 'N/A' }}</div>
-                    <div><strong class="text-gray-500 dark:text-gray-400">Data Contrato:</strong> {{ $gig->contract_date?->format('d/m/Y') ?? 'N/A' }}</div>
-                     <div class="md:col-span-2"><strong class="text-gray-500 dark:text-gray-400">Status Contrato:</strong> <x-status-badge :status="$gig->contract_status" type="contract" /></div>
-                    @if($gig->notes)
-                        <div class="md:col-span-2"><strong class="text-gray-500 dark:text-gray-400">Notas:</strong><br><span class="whitespace-pre-wrap">{{ $gig->notes }}</span></div>
-                    @endif
-                     {{-- Tags --}}
-                    @if($gig->tags->isNotEmpty())
-                        <div class="md:col-span-2">
-                            <strong class="text-gray-500 dark:text-gray-400 block mb-1">Tags:</strong>
-                             <div class="flex flex-wrap gap-1">
-                                @foreach($gig->tags as $tag)
-                                    <span class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium px-2 py-0.5 rounded">
-                                        {{ $tag->name }}
-                                    </span>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            </div>
 
-            {{-- ============================================= --}}
-             {{-- Card: Resumo Financeiro (SIMPLIFICADO FINAL) --}}
-             {{-- ============================================= --}}
-             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Resumo Financeiro</h3>
-    </div>
-    <div class="p-6 space-y-3 text-sm">
-        {{-- Valor Total do Contrato --}}
-        <div>
-            <span class="text-gray-500 dark:text-gray-400">Valor Contrato:</span>
-            <span class="font-semibold text-gray-900 dark:text-white ml-2">
-                {{ $gig->currency }} {{ number_format($gig->cache_value ?? 0, 2, ',', '.') }}
-            </span>
-        </div>
-
-        {{-- Total Recebido (agora vindo do array financialData) --}}
-        <div>
-            <span class="text-gray-500 dark:text-gray-400">Total Recebido:</span>
-            <span class="font-semibold text-green-600 dark:text-green-400 ml-2">
-                {{ $gig->currency }} {{ number_format($financialData['totalReceivedInOriginalCurrency'], 2, ',', '.') }}
-            </span>
-        </div>
-
-        {{-- Saldo Pendente (agora vindo do array financialData) --}}
-        <div>
-            <span class="text-gray-500 dark:text-gray-400">Saldo Pendente:</span>
-            <span class="font-semibold {{ $financialData['pendingBalanceInOriginalCurrency'] <= 0.01 ? 'text-gray-500 dark:text-gray-400' : 'text-red-600 dark:text-red-400' }} ml-2">
-                {{ $gig->currency }} {{ number_format($financialData['pendingBalanceInOriginalCurrency'], 2, ',', '.') }}
-            </span>
-        </div>
-
-        <hr class="my-3 border-gray-200 dark:border-gray-700">
-
-        {{-- Status Gerais --}}
-        <div class="flex flex-wrap gap-x-6 gap-y-2">
-            <div><strong class="text-gray-500 dark:text-gray-400">Pgto Cliente:</strong> <x-status-badge :status="$gig->payment_status" type="payment" class="ml-1"/></div>
-            <div><strong class="text-gray-500 dark:text-gray-400">Pgto Artista:</strong> <x-status-badge :status="$gig->artist_payment_status" type="payment-artist" class="ml-1"/></div>
-            <div><strong class="text-gray-500 dark:text-gray-400">Pgto Booker:</strong> <x-status-badge :status="$gig->booker_payment_status" type="payment-booker" class="ml-1"/></div>
-        </div>
-    </div>
-</div>
-            {{-- ============================================= --}}
-            {{-- FIM Card Financeiro (SIMPLIFICADO FINAL)     --}}
-            {{-- ============================================= --}}
-
-            {{-- Card: Pagamentos Recebidos --}}
-             @include('gigs._show_payments', ['payments' => $gig->payments]) 
+            {{-- Incluindo todos os parciais e passando os dados corretos --}}
+            @include('gigs._show_general_info', ['gig' => $gig])
             
-            {{-- Card: Despesas --}}
-             
-             @include('gigs._show_costs', ['gig' => $gig, 'costCenters' => $costCenters])
+            @include('gigs._show_financial_summary', ['gig' => $gig, 'financialData' => $financialData])
+            
+            @include('gigs._show_payments', ['gig' => $gig, 'payments' => $gig->payments])
+            
+            {{-- ** CORREÇÃO AQUI: Passando a variável $costCenters ** --}}
+            @include('gigs._show_costs', ['gig' => $gig, 'costCenters' => $costCenters])
 
-             {{-- Card: Acerto Final --}}
-             @include('gigs._show_final_settlements', [
+            @include('gigs._show_final_settlements', [
     'gig' => $gig,
     'settlement' => $gig->settlement,
     'calculatedGrossCashBrl' => $financialData['calculatedGrossCashBrl'],
@@ -140,46 +52,144 @@
             @include('settlements._settle_artist_modal', ['gig' => $gig])
             @include('settlements._settle_booker_modal', ['gig' => $gig])
              <x-modals.request-nf-modal />
-
         </div>
-
-        {{-- Coluna Direita: Histórico / Ações Rápidas --}}
         <div class="lg:col-span-1 space-y-6">
-             {{-- Card: Histórico de Atividades --}}
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Histórico</h3>
-                </div>
-                <div class="p-6 space-y-4">
-                     @forelse($activityLogs as $log)
-                        <div class="text-xs border-b border-gray-100 dark:border-gray-700 pb-2 mb-2">
-                             <p class="text-gray-800 dark:text-gray-200">{{ $log->description }}</p>
-                             <p class="text-gray-500 dark:text-gray-400">
-                                 {{ $log->created_at->diffForHumans() }}
-                                 @if($log->causer)
-                                     por {{ $log->causer->name ?? 'Sistema' }}
-                                 @endif
-                             </p>
-                             {{-- Detalhes das propriedades (se houver e quiser mostrar) --}}
-                             {{-- @if($log->properties?->count())
-                                 <pre class="mt-1 text-xs bg-gray-100 dark:bg-gray-900 p-2 rounded overflow-x-auto"><code>{{ json_encode($log->properties, JSON_PRETTY_PRINT) }}</code></pre>
-                             @endif --}}
-                        </div>
-                     @empty
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Nenhuma atividade registrada.</p>
-                     @endforelse
-
-                     {{-- Paginação dos Logs --}}
-                     @if ($activityLogs->hasPages())
-                        <div class="mt-4">
-                            {{ $activityLogs->links('pagination::simple-tailwind') }} {{-- Estilo simples para logs --}}
-                        </div>
-                     @endif
-                </div>
-            </div>
-            {{-- Outros cards podem ir aqui (ex: Ações rápidas, Eventos adicionais, etc.) --}}
+            @include('gigs._show_activity_logs', ['activityLogs' => $activityLogs])
         </div>
-
     </div>
 
+    {{-- Modais --}}
+    @include('settlements._settle_artist_modal', ['gig' => $gig])
+    @include('settlements._settle_booker_modal', ['gig' => $gig])
 </x-app-layout>
+
+
+@push('scripts')
+<script>
+    function costsManager(gigId, costCentersInitial) {
+        return {
+            loading: true,
+            costsByCenter: [],
+            totalConfirmedCosts: 0,
+            totalPendingCosts: 0,
+            costCentersData: costCentersInitial,
+            
+            showCostFormModal: false,
+            isEditMode: false,
+            costFormData: {},
+
+            showConfirmModal: false,
+            confirmCostData: { id: null, description: '', date: '{{ today()->format("Y-m-d") }}' },
+            
+            formatCurrency(value, withSymbol = true) {
+                const num = parseFloat(value);
+                if (isNaN(num)) return withSymbol ? 'R$ 0,00' : '0,00';
+                const options = withSymbol ? { style: 'currency', currency: 'BRL' } : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+                return num.toLocaleString('pt-BR', options);
+            },
+
+            async fetchCosts() {
+                this.loading = true;
+                try {
+                    const response = await fetch(`/gigs/${gigId}/costs-json`);
+                    if (!response.ok) throw new Error('Falha ao buscar custos');
+                    const data = await response.json();
+                    this.costsByCenter = data;
+                    this.calculateTotals();
+                } catch (error) { 
+                    console.error('Erro buscando custos:', error);
+                } finally { 
+                    this.loading = false; 
+                }
+            },
+
+            calculateTotals() {
+                let confirmed = 0, pending = 0;
+                (this.costsByCenter || []).forEach(group => {
+                    (group.costs || []).forEach(cost => {
+                        const costValue = parseFloat(cost.value) || 0;
+                        if (cost.is_confirmed) { confirmed += costValue; } else { pending += costValue; }
+                    });
+                });
+                this.totalConfirmedCosts = confirmed;
+                this.totalPendingCosts = pending;
+            },
+
+            async performAction(url, method, body = null) {
+                try {
+                    const response = await fetch(url, {
+                        method: method.toUpperCase(),
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                        body: body ? JSON.stringify(body) : null
+                    });
+                    const result = await response.json();
+                    if (!response.ok) {
+                        let errorMessage = result.message || 'Ocorreu um erro.';
+                        if (response.status === 422 && result.errors) {
+                            errorMessage += '\n\n- ' + Object.values(result.errors).map(err => err[0]).join('\n- ');
+                        }
+                        throw new Error(errorMessage);
+                    }
+                    await this.fetchCosts();
+                    this.$dispatch('financial-data-changed', { gigId: gigId });
+                } catch (error) {
+                    console.error(`Erro na ação ${method} ${url}:`, error);
+                    alert(error.message);
+                }
+            },
+            
+            unconfirmCost(costId) {
+                if (confirm('Reverter confirmação desta despesa?')) {
+                    this.performAction(`/gigs/${gigId}/costs/${costId}/unconfirm`, 'PATCH');
+                }
+            },
+            toggleInvoice(costId) {
+                this.performAction(`/gigs/${gigId}/costs/${costId}/toggle-invoice`, 'PATCH');
+            },
+            deleteCost(costId) {
+                if (confirm('Tem certeza que deseja excluir esta despesa?')) {
+                    this.performAction(`/gigs/${gigId}/costs/${costId}`, 'DELETE');
+                }
+            },
+            
+            openNewCostModal() {
+                this.isEditMode = false;
+                this.costFormData = { id: null, cost_center_id: '', description: '', value: '', currency: 'BRL', expense_date: '{{ today()->format("Y-m-d") }}', notes: '' };
+                this.showCostFormModal = true;
+                this.$nextTick(() => document.getElementById('modal_cost_center_id')?.focus());
+            },
+            openEditCostModal(cost) {
+                this.isEditMode = true;
+                this.costFormData = { 
+                    ...cost,
+                    cost_center_id: String(cost.cost_center_id || '') 
+                };
+                this.showCostFormModal = true;
+                this.$nextTick(() => document.getElementById('modal_cost_center_id')?.focus());
+            },
+            openConfirmCostModal(cost) {
+                this.confirmCostData = { id: cost.id, description: cost.description || 'Despesa', date: '{{ today()->format("Y-m-d") }}' };
+                this.showConfirmModal = true;
+                this.$nextTick(() => document.getElementById('confirmation_date_input')?.focus());
+            },
+
+            async submitConfirmForm() {
+                const url = `/gigs/${gigId}/costs/${this.confirmCostData.id}/confirm`;
+                const body = { confirmed_at_date: this.confirmCostData.date };
+                
+                await this.performAction(url, 'PATCH', body);
+                this.showConfirmModal = false;
+            },
+            async submitCostForm() {
+                const url = this.isEditMode 
+                    ? `/gigs/${gigId}/costs/${this.costFormData.id}`
+                    : `/gigs/${gigId}/costs`;
+                const method = this.isEditMode ? 'PUT' : 'POST';
+                
+                await this.performAction(url, method, this.costFormData);
+                this.showCostFormModal = false;
+            }
+        };
+    }
+</script>
+@endpush
