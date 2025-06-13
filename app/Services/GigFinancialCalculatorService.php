@@ -19,19 +19,24 @@ class GigFinancialCalculatorService
      */
     public function calculateGrossCashBrl(Gig $gig): float
     {
-        $gig->loadMissing('costs'); // Garante que os custos estejam carregados
+        $gig->loadMissing('costs');
+        
+        // Pega os detalhes do valor do contrato em BRL
+        $contractBrlDetails = $gig->cacheValueBrlDetails; // Usa o novo accessor
+        
+        if ($contractBrlDetails['value'] === null) {
+            // Se não foi possível converter, não podemos calcular com segurança. Retorna 0.
+            Log::warning("[GigFinancialCalculatorService] Não foi possível calcular o Cachê Bruto para Gig ID {$gig->id} por falta de taxa de câmbio.");
+            return 0.0;
+        }
 
-        $contractValueBrl = $gig->cache_value_brl; // Accessor que converte para BRL
-
-        // Soma TODAS as despesas confirmadas.
-        // Assumindo que GigCost->value está em BRL ou tem seu próprio mecanismo de conversão se necessário.
-        $totalConfirmedExpensesBrl = $gig->costs
-            ->where('is_confirmed', true)
-            ->sum('value'); // Assumindo que GigCost->value está consistentemente em BRL para soma direta
+        $contractValueBrl = $contractBrlDetails['value'];
+        
+        $totalConfirmedExpensesBrl = $gig->costs->where('is_confirmed', true)->sum('value');
 
         $grossCashBrl = $contractValueBrl - $totalConfirmedExpensesBrl;
 
-        Log::debug("[GigFinancialCalculatorService] Calculando Cachê Bruto para Gig ID {$gig->id}: Contrato BRL {$contractValueBrl} - Total Desp. Confirmadas BRL {$totalConfirmedExpensesBrl} = {$grossCashBrl}");
+        Log::debug("[GigFinancialCalculatorService] Calculando Cachê Bruto para Gig ID {$gig->id}: Contrato BRL {$contractValueBrl} - Total Desp. BRL {$totalConfirmedExpensesBrl} = {$grossCashBrl}");
 
         return (float) max(0, $grossCashBrl);
     }

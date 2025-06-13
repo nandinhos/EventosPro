@@ -256,7 +256,9 @@ class PaymentController extends Controller
                 'confirmed_by' => null,
                 // Mantém currency e exchange_rate originais da parcela prevista? Ou limpa?
                 // Vamos limpar por segurança, podem ser reinseridos na próxima confirmação.
-                // 'exchange_rate' => null, // Descomente se quiser limpar
+                'exchange_rate' => null, // Descomente se quiser limpar
+                'currency' => $gig->currency, // <<-- BÔNUS: Restaura a moeda para a original da Gig
+            
             ]);
 
             Log::info("Pagamento ID: {$payment->id} desconfirmado.");

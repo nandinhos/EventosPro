@@ -13,6 +13,8 @@ use Carbon\Carbon;
 use App\Services\GigFinancialCalculatorService; // Importar o novo Service
 use Illuminate\Support\Facades\App; // Para resolver o Service
 use Illuminate\Support\Facades\Log; // Para logs
+use Illuminate\Database\Eloquent\Casts\Attribute; // Importar para nova sintaxe de Accessor
+
 
 class Gig extends Model
 {
@@ -82,30 +84,7 @@ class Gig extends Model
 
     // --- Accessors (Atributos Calculados Dinamicamente) ---
 
-    /**
-     * Retorna o valor do cachê original da Gig convertido para BRL.
-     * Utiliza uma taxa de câmbio para conversão, se a moeda não for BRL.
-     * Este é o "Valor do Contrato em BRL" antes de quaisquer deduções.
-     *
-     * @return float
-     */
-    public function getCacheValueBrlAttribute(): float
-    {
-        if (strtoupper($this->currency ?? 'BRL') === 'BRL') {
-            return (float) $this->cache_value;
-        }
-
-        // Implementação da busca da taxa de câmbio
-        // Por ora, usaremos um placeholder, mas no futuro pode vir de uma API ou config.
-        $exchangeRate = $this->getExchangeRateForCurrency($this->currency, Carbon::parse($this->gig_date ?: today()));
-
-        if ($exchangeRate === null) {
-            Log::warning("Taxa de câmbio não encontrada para moeda {$this->currency} na data {$this->gig_date} para Gig ID {$this->id}. Retornando valor original sem conversão.");
-            return (float) $this->cache_value; // Retorna o valor na moeda original se não houver taxa
-        }
-
-        return (float) $this->cache_value * $exchangeRate;
-    }
+    
 
     /**
      * Função auxiliar para buscar taxa de câmbio.
@@ -236,6 +215,143 @@ class Gig extends Model
     {
         return $this->getFinancialCalculator()->calculateArtistInvoiceValueBrl($this);
     }
+
+    /**
+     * Retorna a taxa de câmbio a ser usada para a Gig.
+     * Prioriza a taxa do primeiro pagamento confirmado.
+     * Se não houver, usa uma taxa de projeção configurada.
+     *
+     * @return array contendo 'rate' e 'type' ('confirmed' ou 'projected')
+     */
+    public function getExchangeRateDetails(): array
+    {
+        if (strtoupper($this->currency ?? 'BRL') === 'BRL') {
+            return ['rate' => 1.0, 'type' => 'confirmed'];
+        }
+
+        // Tenta encontrar a taxa de um pagamento já confirmado
+        $firstConfirmedPayment = $this->payments()
+            ->whereNotNull('confirmed_at')
+            ->whereNotNull('exchange_rate')
+            ->orderBy('received_date_actual', 'asc')
+            ->first();
+
+        if ($firstConfirmedPayment && $firstConfirmedPayment->exchange_rate > 0) {
+            return [
+                'rate' => (float) $firstConfirmedPayment->exchange_rate,
+                'type' => 'confirmed', // A taxa é de um pagamento real
+            ];
+        }
+
+        // Se não encontrou, usa uma taxa de projeção do arquivo de configuração
+        $defaultRates = config('app.default_exchange_rates', []);
+        $rate = $defaultRates[strtoupper($this->currency)] ?? null;
+
+        return [
+            'rate' => $rate,
+            'type' => 'projected', // A taxa é uma estimativa
+        ];
+    }
+
+    /**
+     * Calcula o valor total efetivamente recebido em BRL.
+     * Este método é a "fonte da verdade" para o valor real em BRL,
+     * pois soma cada pagamento confirmado usando sua própria taxa de câmbio.
+     *
+     * @return float
+     */
+    public function getTotalReceivedBrlAttribute(): float
+    {
+        $this->loadMissing('payments');
+
+        return (float) $this->payments
+            ->whereNotNull('confirmed_at')
+            ->sum(function ($payment) {
+                // Se o pagamento confirmado foi em BRL, usa o valor recebido.
+                if (strtoupper($payment->currency) === 'BRL') {
+                    return $payment->received_value_actual;
+                }
+                // Se foi em outra moeda, converte usando a taxa de câmbio registrada NAQUELE pagamento.
+                if ($payment->exchange_rate) {
+                    return $payment->received_value_actual * $payment->exchange_rate;
+                }
+                // Retorna 0 se um pagamento confirmado em moeda estrangeira não tiver taxa (cenário de erro de dados).
+                return 0;
+            });
+    }
+
+    /**
+     * Accessor INTELIGENTE para o Valor do Contrato em BRL.
+     * Retorna um array com o valor, o tipo ('confirmed' ou 'projected') e a taxa usada.
+     *
+     * @return \Illuminate\Database\Eloquent\Casts\Attribute
+     */
+    protected function cacheValueBrlDetails(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $originalValue = (float) $this->cache_value;
+                $gigCurrency = strtoupper($this->currency ?? 'BRL');
+
+                // Se a moeda já é BRL, o valor é sempre "confirmado" e a taxa é 1.
+                if ($gigCurrency === 'BRL') {
+                    return [
+                        'value' => $originalValue,
+                        'type' => 'confirmed',
+                        'rate_used' => 1.0,
+                    ];
+                }
+
+                // Verifica se a Gig está totalmente paga
+                $isFullyPaid = $this->payment_status === 'pago';
+
+                if ($isFullyPaid) {
+                    // SE TOTALMENTE PAGO, o "Valor Contrato BRL" é a soma real de todos os pagamentos convertidos.
+                    $confirmedBrlValue = $this->total_received_brl; // Usa o accessor que acabamos de criar
+                    $effectiveRate = ($originalValue > 0) ? $confirmedBrlValue / $originalValue : null;
+
+                    Log::debug("[Accessor] Gig #{$this->id} está PAGA. Valor BRL confirmado: {$confirmedBrlValue}");
+                    
+                    return [
+                        'value' => $confirmedBrlValue,
+                        'type' => 'confirmed',
+                        'rate_used' => $effectiveRate, // Taxa de câmbio média efetiva
+                    ];
+                } else {
+                    // SE AINDA NÃO ESTÁ PAGO, usamos uma taxa de PROJEÇÃO.
+                    $defaultRates = config('app.default_exchange_rates', []);
+                    $projectionRate = $defaultRates[$gigCurrency] ?? null;
+                    
+                    if ($projectionRate) {
+                        $projectedValue = $originalValue * $projectionRate;
+                        Log::debug("[Accessor] Gig #{$this->id} está PENDENTE. Valor BRL projetado: {$projectedValue}");
+                        return [
+                            'value' => $projectedValue,
+                            'type' => 'projected',
+                            'rate_used' => $projectionRate,
+                        ];
+                    }
+                }
+
+                // Fallback: Se não está pago e não há taxa de projeção, não podemos calcular.
+                Log::warning("[Accessor] Não foi possível calcular valor BRL para Gig #{$this->id}.");
+                return [
+                    'value' => null,
+                    'type' => 'unavailable',
+                    'rate_used' => null,
+                ];
+            },
+        );
+    }
+
+    // Accessor antigo, agora DEPRECADO em favor de cacheValueBrlDetails['value'].
+    // Mantemos por retrocompatibilidade se outras partes ainda o usarem, mas ele usará a nova lógica.
+    public function getCacheValueBrlAttribute(): ?float
+    {
+        return $this->cacheValueBrlDetails['value'];
+    }
+    
+
 
     // Manteremos os campos `agency_commission_value`, `booker_commission_value`,
     // e `liquid_commission_value` como colunas no banco que serão preenchidas

@@ -467,6 +467,8 @@ public function update(UpdateGigRequest $request, Gig $gig): RedirectResponse
     {
         $gig->loadMissing(['costs.costCenter', 'artist', 'booker', 'payments']);
         $calculator = App::make(GigFinancialCalculatorService::class);
+        $cacheBrlDetails = $gig->cacheValueBrlDetails; // Chama o accessor do modelo Gig
+
 
         // Array de cálculos agora inclui os de pagamento
         $calculations = [
@@ -486,11 +488,16 @@ public function update(UpdateGigRequest $request, Gig $gig): RedirectResponse
             'calculateAgencyNetCommissionBrl'       => $calculator->calculateAgencyNetCommissionBrl($gig),
             'calculateArtistNetPayoutBrl'           => $calculator->calculateArtistNetPayoutBrl($gig),
             'calculateArtistInvoiceValueBrl'        => $calculator->calculateArtistInvoiceValueBrl($gig),
+            // Outros detalhes
+            'calculateTotalReceivedInOriginalCurrency' => $calculator->calculateTotalReceivedInOriginalCurrency($gig),
+            'calculateTotalReceivableInOriginalCurrency' => $calculator->calculateTotalReceivableInOriginalCurrency($gig),
+            
         ];
 
         return view('gigs.debug.financials', [
             'gig' => $gig,
-            'calculations' => $calculations
+            'calculations' => $calculations,
+            'cacheBrlDetails' => $cacheBrlDetails
         ]);
     }
 }

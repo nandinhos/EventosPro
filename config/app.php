@@ -111,9 +111,9 @@ return [
     */
 
     'default_exchange_rates' => [
-        'usd' => env('DEFAULT_EXCHANGE_RATE_USD', 5.20),
-        'eur' => env('DEFAULT_EXCHANGE_RATE_EUR', 5.60),
-        'gbp' => env('DEFAULT_EXCHANGE_RATE_GBP', 6.20),
+        'USD' => env('USD_EXCHANGE_RATE', 5.30),
+        'EUR' => env('EUR_EXCHANGE_RATE', 5.70),
+        'GBP' => env('GBP_EXCHANGE_RATE', 6.50),
     ],
 
     'previous_keys' => [
