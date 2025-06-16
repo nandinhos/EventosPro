@@ -5,6 +5,13 @@
 @endphp
 
 <div class="space-y-6 mt-4">
+    {{-- Botões de Exportação --}}
+    <div class="flex justify-end">
+        {{-- Aqui chamamos o nosso componente de botão --}}
+        <x-reports.slot-button type="overview" />
+    </div>
+
+
     {{-- Cards de Resumo (Opcional, pode usar os totais aqui) --}}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg">

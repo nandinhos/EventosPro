@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Services\FinancialProjectionService;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class FinancialProjectionController extends Controller
 {
@@ -31,4 +32,46 @@ class FinancialProjectionController extends Controller
             'period' => $period,
         ]);
     }
+
+    /**
+     * Exibe uma página de depuração com todos os cálculos de projeção.
+     *
+     * @param Request $request
+     * @return View
+     */
+    public function debug(Request $request): View
+    {
+        // Pega o período do request ou usa o default
+        $period = $request->input('period', '30_days');
+        $this->projectionService->setPeriod($period);
+
+        // Armazena todos os resultados dos cálculos em um array
+        $debugData = [
+            'Contas a Receber (Clientes)' => [
+                'value' => $this->projectionService->getAccountsReceivable(),
+                'items' => $this->projectionService->getUpcomingPayments('clients')
+            ],
+            'Contas a Pagar (Artistas)' => [
+                'value' => $this->projectionService->getAccountsPayableArtists(),
+                'items' => $this->projectionService->getUpcomingPayments('artists')
+            ],
+            'Contas a Pagar (Bookers)' => [
+                'value' => $this->projectionService->getAccountsPayableBookers(),
+                'items' => $this->projectionService->getUpcomingPayments('bookers')
+            ],
+            'Contas a Pagar (Despesas Previstas)' => [
+                'value' => $this->projectionService->getAccountsPayableExpenses(),
+                'items' => $this->projectionService->getProjectedExpensesByCostCenter()
+            ],
+            'Fluxo de Caixa Projetado' => [
+                'value' => $this->projectionService->getProjectedCashFlow(),
+                'items' => null // Não há itens detalhados para o total
+            ],
+        ];
+
+        return view('projections.debug', [
+            'debugData' => $debugData,
+            'period' => $period,
+        ]);
+}
 }

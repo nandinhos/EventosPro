@@ -79,88 +79,32 @@ class FinancialReportController extends Controller
     ]);
 }
 
-    public function export(Request $request)
+public function export(Request $request)
 {
-    $type = $request->input('type');
+    $type = $request->input('type', 'overview'); // 'overview' é o nosso detalhado
     $format = $request->input('format');
     $filters = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
 
-    // Validar e corrigir intervalo de datas
-    $startDate = $filters['start_date'] ?? now()->startOfMonth()->format('Y-m-d');
-    $endDate = $filters['end_date'] ?? now()->endOfMonth()->format('Y-m-d');
-    if ($startDate && $endDate && $startDate > $endDate) {
-        $temp = $startDate;
-        $startDate = $endDate;
-        $endDate = $temp;
-    }
-    $filters['start_date'] = $startDate;
-    $filters['end_date'] = $endDate;
-
     $this->reportService->setFilters($filters);
+    
+    // Gera um nome de arquivo padronizado
+    $fileName = "relatorio_{$type}_" . now()->format('Ymd_His');
 
-    switch ($type) {
-        case 'financial_report':
-            $data = $this->reportService->getFinancialReportData();
-            break;
-        case 'overview':
-            $data = collect([
-                'summary' => $this->reportService->getOverviewSummary(),
-                'table' => $this->reportService->getOverviewTableData(),
-            ]);
-            break;
-        case 'expenses':
-            $data = $this->reportService->getExpensesTableData();
-            break;
-        default:
-            return redirect()->back()->with('error', 'Tipo de relatório inválido');
+    if ($type === 'overview') {
+        $reportData = $this->reportService->getDetailedPerformanceData();
+
+        if ($format === 'xlsx') {
+            return Excel::download(new DetailedPerformanceReportExport($reportData['tableData']), "{$fileName}.xlsx");
+        }
+        if ($format === 'pdf') {
+            $pdf = Pdf::loadView('reports.exports.detailed_performance', ['reportData' => $reportData, 'filters' => $filters])
+                      ->setPaper('a4', 'landscape'); // Paisagem para caber as colunas
+            return $pdf->download("{$fileName}.pdf");
+        }
     }
+    
+    // TODO: Adicionar 'else if' para outros tipos de relatórios ('profitability', 'cashflow', etc.)
 
-    if ($format === 'xlsx') {
-        return Excel::download(new class($data) implements \Maatwebsite\Excel\Concerns\FromCollection {
-            protected $data;
-
-            public function __construct($data)
-            {
-                $this->data = $data;
-            }
-
-            public function collection()
-            {
-                if (isset($this->data['events_by_artist'])) {
-                    $rows = collect();
-                    foreach ($this->data['events_by_artist'] as $artist => $events) {
-                        foreach ($events as $event) {
-                            $rows->push([
-                                'Artista' => $artist,
-                                'Data' => $event['date'],
-                                'Local' => $event['location'],
-                                'Cachê Bruto' => $event['contract_value'],
-                                'Comissão Agência' => $event['agency_commission'],
-                                'Comissão Booker' => $event['booker_commission'],
-                                'Cachê Líquido' => $event['net_cache'],
-                            ]);
-                        }
-                    }
-                    return $rows;
-                }
-                if (isset($this->data['table'])) {
-                    return $this->data['table']->map(function ($row) {
-                        return collect($row);
-                    });
-                }
-                return $this->data->map(function ($group) {
-                    return collect($group)->except('expenses')->merge(['details' => $group['expenses']]);
-                });
-            }
-        }, ($type === 'financial_report' ? 'relatorio_financeiro' : $type) . '_' . now()->format('Ymd_His') . '.xlsx');
-    }
-
-    if ($format === 'pdf') {
-        $view = 'reports.exports.' . $type;
-        $pdf = Pdf::loadView($view, ['data' => $data, 'filters' => $filters]);
-        return $pdf->download(($type === 'financial_report' ? 'relatorio_financeiro' : $type) . '_' . now()->format('Ymd_His') . '.pdf');
-    }
-
-    return redirect()->back()->with('error', 'Formato inválido');
+    return redirect()->back()->with('error', 'Tipo de relatório ou formato inválido para exportação.');
 }
 }

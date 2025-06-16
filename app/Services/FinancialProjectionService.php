@@ -51,31 +51,48 @@ class FinancialProjectionService
         return $payments->sum('due_value_brl');
     }
 
-    // Contas a Pagar (Artistas)
-    public function getAccountsPayableArtists()
+    /**
+     * Calcula as contas a pagar para Artistas no período.
+     * Soma o valor final da NF de cada Gig pendente de pagamento.
+     *
+     * @return float
+     */
+    public function getAccountsPayableArtists(): float
     {
+        // Busca Gigs com pagamento ao artista pendente e data no período de projeção
         $gigs = Gig::where('artist_payment_status', 'pendente')
             ->whereBetween('gig_date', [$this->startDate, $this->endDate])
             ->get();
 
         $total = 0;
         foreach ($gigs as $gig) {
-            $total += $this->calculatorService->calculateArtistNetPayoutBrl($gig);
+            // ** A CORREÇÃO ESTÁ AQUI **
+            // Usamos `calculateArtistInvoiceValueBrl` que já inclui
+            // o cachê líquido do artista MAIS as despesas reembolsáveis.
+            $total += $this->calculatorService->calculateArtistInvoiceValueBrl($gig);
         }
 
         return (float) max(0, $total);
     }
 
-    // Contas a Pagar (Bookers)
-    public function getAccountsPayableBookers()
+    /**
+     * Calcula as contas a pagar para Bookers (comissões) no período.
+     *
+     * @return float
+     */
+    public function getAccountsPayableBookers(): float
     {
         $gigs = Gig::where('booker_payment_status', 'pendente')
+            ->whereNotNull('booker_id') // Garante que só pegamos gigs com booker
             ->whereBetween('gig_date', [$this->startDate, $this->endDate])
             ->get();
-
+        
         $total = 0;
         foreach ($gigs as $gig) {
-            $total += $this->calculatorService->calculateBookerCommissionBrl($gig);
+            $bookerCommission = $this->calculatorService->calculateBookerCommissionBrl($gig);
+            if ($bookerCommission > 0) {
+                $total += $bookerCommission;
+            }
         }
 
         return (float) max(0, $total);

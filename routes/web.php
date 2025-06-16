@@ -128,6 +128,9 @@ Route::middleware('auth')->group(function () {
     // Financial Projections
     Route::get('/projections', [FinancialProjectionController::class, 'index'])->name('projections.index');
 
+    // **NOVA ROTA PARA A DEPURAÇÃO DAS PROJEÇÕES**
+    Route::get('/projections/debug', [FinancialProjectionController::class, 'debug'])->name('projections.debug');
+
     // Gigs
     Route::resource('gigs', GigController::class);
     Route::get('gigs/{gig}/request-nf', [GigController::class, 'showRequestNfForm'])->name('gigs.request-nf');

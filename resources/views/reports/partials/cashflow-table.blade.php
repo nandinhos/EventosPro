@@ -34,9 +34,11 @@
             <thead class="bg-gray-50 dark:bg-gray-800">
                 <tr>
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Data</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Tipo</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Descrição</th>
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Gig / Artista</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Descrição</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Tipo</th>
+                    
+                   
                     <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Valor (BRL)</th>
                 </tr>
             </thead>
@@ -44,14 +46,6 @@
                 @foreach ($cashflowTable as $row)
                     <tr>
                         <td class="px-3 py-1.5 whitespace-nowrap">{{ $row['date']->format('d/m/Y') }}</td>
-                        <td class="px-3 py-1.5 whitespace-nowrap">
-                            @if($row['type'] === 'Entrada')
-                                <span class="font-semibold text-green-600 dark:text-green-400">{{ $row['type'] }}</span>
-                            @else
-                                <span class="font-semibold text-red-600 dark:text-red-400">{{ $row['type'] }}</span>
-                            @endif
-                        </td>
-                        <td class="px-3 py-1.5 whitespace-normal max-w-sm truncate">{{ $row['description'] }}</td>
                         <td class="px-3 py-1.5 whitespace-nowrap">
                             @if(isset($row['gig_id']))
                                 <a href="{{ route('gigs.show', $row['gig_id']) }}" class="font-semibold text-primary-600 hover:underline">
@@ -62,6 +56,16 @@
                                 <span>N/A</span>
                             @endif
                         </td>
+                        <td class="px-3 py-1.5 whitespace-normal max-w-sm truncate">{{ $row['description'] }}</td>
+                        <td class="px-3 py-1.5 whitespace-nowrap">
+                            @if($row['type'] === 'Entrada')
+                                <span class="font-semibold text-green-600 dark:text-green-400">{{ $row['type'] }}</span>
+                            @else
+                                <span class="font-semibold text-red-600 dark:text-red-400">{{ $row['type'] }}</span>
+                            @endif
+                        </td>
+                        
+                        
                         <td class="px-3 py-1.5 whitespace-nowrap text-right font-mono {{ $row['value'] > 0 ? 'text-green-600' : 'text-red-600' }}">
                             {{ ($row['value'] > 0 ? '+' : '') . number_format($row['value'], 2, ',', '.') }}
                         </td>
