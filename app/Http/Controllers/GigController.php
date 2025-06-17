@@ -68,7 +68,13 @@ class GigController extends Controller
         if ($request->filled('start_date')) { $query->where('gigs.gig_date', '>=', $request->input('start_date')); }
         if ($request->filled('end_date')) { $query->where('gigs.gig_date', '<=', $request->input('end_date')); }
         if ($request->filled('currency') && $request->input('currency') !== 'all') { $query->where('gigs.currency', $request->input('currency'));}
+        if ($request->filled('artist_payment_status')) {
+            $query->where('gigs.artist_payment_status', $request->input('artist_payment_status'));
+        }
 
+        if ($request->filled('booker_payment_status')) {
+            $query->where('gigs.booker_payment_status', $request->input('booker_payment_status'));
+        }
 
         $orderByColumn = match ($sortBy) {
             'artist_name' => 'artists.name',
