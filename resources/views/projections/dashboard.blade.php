@@ -63,43 +63,48 @@
     </div>
 
     {{-- Tabela de Próximos Pagamentos (Clientes) --}}
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">
-        <div class="p-4">
-            <h3 class="text-md font-semibold text-gray-800 dark:text-white">Próximos Pagamentos de Clientes</h3>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-                <thead class="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gig</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descrição</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data de Vencimento</th>
-                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Valor (BRL)</th>
-                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    @forelse ($upcoming_client_payments as $payment)
-                        <tr class="{{ $payment->inferred_status == 'vencido' ? 'bg-red-50 dark:bg-red-900/20' : ($payment->currency != 'BRL' ? 'bg-blue-50 dark:bg-blue-900/10' : '') }}">
-                            <td class="px-3 py-1.5 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">{{ $payment->gig->contract_number ?? 'N/A' }}</td>
-                            <td class="px-3 py-1.5 whitespace-normal text-gray-600 dark:text-gray-400">{{ $payment->description }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $payment->due_date->format('d/m/Y') }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">R$ {{ number_format($payment->due_value_brl, 2, ',', '.') }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-center">
-                                <x-status-badge :status="$payment->inferred_status" type="payment" />
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                                Nenhum pagamento de cliente previsto para o período selecionado.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">
+    <div class="p-4">
+        <h3 class="text-md font-semibold text-gray-800 dark:text-white">Contas a Receber (Clientes)</h3>
     </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gig</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descrição</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data de Vencimento</th>
+                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Valor (BRL)</th>
+                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                @forelse ($upcoming_client_payments as $payment)
+                    <tr class="{{ $payment->inferred_status == 'vencido' ? 'bg-red-50 dark:bg-red-900/20' : '' }}">
+                        <td class="px-3 py-1.5 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">
+                            <a href="{{ route('gigs.show', $payment->gig) }}" class="text-primary-600 hover:underline">
+                                {{ $payment->gig->contract_number ? 'Contrato #' . $payment->gig->contract_number : 'N/A' }}
+                            </a>
+                            <span class="block text-xxs text-gray-500">{{ optional($payment->gig->artist)->name }}</span>
+                        </td>
+                        <td class="px-3 py-1.5 whitespace-normal text-gray-600 dark:text-gray-400">{{ $payment->description }}</td>
+                        <td class="px-3 py-1.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $payment->due_date->format('d/m/Y') }}</td>
+                        <td class="px-3 py-1.5 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">R$ {{ number_format($payment->due_value_brl, 2, ',', '.') }}</td>
+                        <td class="px-3 py-1.5 whitespace-nowrap text-center">
+                            <x-status-badge :status="$payment->inferred_status" type="payment" />
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                            Nenhuma conta a receber encontrada.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
 
     {{-- Tabela de Próximos Pagamentos (Artistas) --}}
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">

@@ -25,9 +25,9 @@ class FinancialProjectionController extends Controller
             'accounts_payable_bookers' => $this->projectionService->getAccountsPayableBookers(),
             'accounts_payable_expenses' => $this->projectionService->getAccountsPayableExpenses(),
             'projected_cash_flow' => $this->projectionService->getProjectedCashFlow(),
-            'upcoming_client_payments' => $this->projectionService->getUpcomingPayments('clients'),
-            'upcoming_artist_payments' => $this->projectionService->getUpcomingPayments('artists'),
-            'upcoming_booker_payments' => $this->projectionService->getUpcomingPayments('bookers'),
+            'upcoming_client_payments' => $this->projectionService->getUpcomingClientPayments(),
+            'upcoming_artist_payments' => $this->projectionService->getUpcomingInternalPayments('artists'),
+            'upcoming_booker_payments' => $this->projectionService->getUpcomingInternalPayments('bookers'),
             'projected_expenses_by_cost_center' => $this->projectionService->getProjectedExpensesByCostCenter(),
             'period' => $period,
         ]);

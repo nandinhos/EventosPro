@@ -7,11 +7,20 @@ use App\Models\GigCost;
 use Carbon\Carbon;
 use App\Services\GigFinancialCalculatorService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * Service para calcular e agregar as projeções financeiras da agência.
+ */
 class FinancialProjectionService
 {
+    /** @var Carbon A data de início do período de projeção. */
     protected $startDate;
+
+    /** @var Carbon A data final do período de projeção. */
     protected $endDate;
+
+    /** @var GigFinancialCalculatorService Instância do service de cálculo financeiro. */
     protected $calculatorService;
 
     public function __construct(GigFinancialCalculatorService $calculatorService)
@@ -20,40 +29,70 @@ class FinancialProjectionService
         $this->setPeriod('30_days');
     }
 
-    public function setPeriod($period)
+    /**
+     * Define o período da projeção a partir de hoje.
+     *
+     * @param string $period Identificador do período (ex: '30_days').
+     */
+    public function setPeriod(string $period): void
     {
-        $this->startDate = Carbon::today();
+        $this->startDate = Carbon::today()->startOfDay();
         switch ($period) {
-            case '30_days':
-                $this->endDate = Carbon::today()->addDays(30);
-                break;
             case '60_days':
-                $this->endDate = Carbon::today()->addDays(60);
+                $this->endDate = Carbon::today()->addDays(60)->endOfDay();
                 break;
             case '90_days':
-                $this->endDate = Carbon::today()->addDays(90);
+                $this->endDate = Carbon::today()->addDays(90)->endOfDay();
                 break;
             case 'next_quarter':
-                $this->endDate = Carbon::today()->addQuarter();
+                $this->endDate = Carbon::today()->addMonths(3)->endOfDay();
                 break;
+            case '30_days':
             default:
-                $this->endDate = Carbon::today()->addDays(30);
+                $this->endDate = Carbon::today()->addDays(30)->endOfDay();
+                break;
         }
     }
 
-    // Contas a Receber (Clientes)
-    public function getAccountsReceivable()
+    /**
+     * Calcula o total de contas a receber de clientes.
+     * Soma o valor de TODAS as parcelas não confirmadas (vencidas ou a vencer).
+     *
+     * @return float O valor total a receber em BRL.
+     */
+    public function getAccountsReceivable(): float
     {
+        // Pega todos os pagamentos não confirmados, independente da data de vencimento.
         $payments = Payment::whereNull('confirmed_at')
-            ->whereBetween('due_date', [$this->startDate, $this->endDate])
+            ->whereHas('gig') // Garante que a gig não foi deletada
             ->get();
 
-        return $payments->sum('due_value_brl');
+        // O accessor 'due_value_brl' no modelo Payment garante a conversão correta.
+        return (float) $payments->sum('due_value_brl');
     }
 
     /**
-     * Calcula as contas a pagar para Artistas no período.
-     * Soma o valor final da NF de cada Gig pendente de pagamento.
+     * Retorna a lista detalhada de pagamentos pendentes de clientes.
+     * Inclui tanto os vencidos quanto os que estão no período de projeção.
+     *
+     * @return Collection
+     */
+    public function getUpcomingClientPayments(): Collection
+    {
+        return Payment::whereNull('confirmed_at')
+            ->whereHas('gig') // Garante que a gig não foi deletada
+            ->where(function ($query) {
+                // Pega pagamentos vencidos OU que vencerão no período da projeção
+                $query->where('due_date', '<', $this->startDate) // Vencidos
+                      ->orWhereBetween('due_date', [$this->startDate, $this->endDate]); // A vencer no período
+            })
+            ->with('gig')
+            ->orderBy('due_date')
+            ->get();
+    }
+
+    /**
+     * Calcula as contas a pagar para Artistas no período de projeção.
      *
      * @return float
      */
@@ -66,9 +105,6 @@ class FinancialProjectionService
 
         $total = 0;
         foreach ($gigs as $gig) {
-            // ** A CORREÇÃO ESTÁ AQUI **
-            // Usamos `calculateArtistInvoiceValueBrl` que já inclui
-            // o cachê líquido do artista MAIS as despesas reembolsáveis.
             $total += $this->calculatorService->calculateArtistInvoiceValueBrl($gig);
         }
 
@@ -180,5 +216,22 @@ class FinancialProjectionService
                     ->orderBy('gig_date')
                     ->get();
         }
+    }
+
+    /**
+     * Retorna a lista de Gigs com pagamentos pendentes a artistas ou bookers.
+     *
+     * @param string $type 'artists' ou 'bookers'
+     * @return Collection
+     */
+    public function getUpcomingInternalPayments(string $type): Collection
+    {
+        $statusColumn = ($type === 'artists') ? 'artist_payment_status' : 'booker_payment_status';
+
+        return Gig::where($statusColumn, 'pendente')
+            ->whereBetween('gig_date', [$this->startDate, $this->endDate])
+            ->with(['artist', 'booker']) // Eager load para performance
+            ->orderBy('gig_date')
+            ->get();
     }
 }
