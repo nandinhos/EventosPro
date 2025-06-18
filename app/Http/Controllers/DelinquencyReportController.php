@@ -18,7 +18,7 @@ class DelinquencyReportController extends Controller
             ->whereNull('confirmed_at')
             ->where('due_date', '<', Carbon::today())
             ->with(['gig' => function ($gigQuery) {
-                $gigQuery->with(['artist', 'booker'])
+                $gigQuery->with(['artist', 'booker', 'payments'])
                          ->whereNull('deleted_at');
             }])
             ->whereHas('gig', function ($gigQuery) {
@@ -76,29 +76,60 @@ class DelinquencyReportController extends Controller
         $bookers = Booker::orderBy('name')->pluck('name', 'id');
         $currencies = Payment::select('currency')->distinct()->orderBy('currency')->pluck('currency');
 
-        // Cálculo do Resumo Financeiro Geral para Gigs Inadimplentes (apenas as que aparecerão na lista agrupada)
-        $totalContractValueBRL = 0;
-        $totalReceivedValueBRL = 0;
-
+        // --- AJUSTE NO CÁLCULO DO RESUMO FINANCEIRO GERAL ---
+        $uniqueGigsWithDelinquency = new \Illuminate\Database\Eloquent\Collection();
         foreach ($delinquentPaymentsGroupedByGig as $group) {
-            if ($group['gig']) {
-                $totalContractValueBRL += $group['gig']->cache_value_brl;
-                $totalReceivedValueBRL += $group['gig']->payments->whereNotNull('confirmed_at')->sum(function($p){
-                    return $p->currency === 'BRL' ? $p->received_value_actual : ($p->received_value_actual * ($p->exchange_rate ?? 1));
-                });
+            if ($group['gig'] && !$uniqueGigsWithDelinquency->contains('id', $group['gig']->id)) {
+                $uniqueGigsWithDelinquency->push($group['gig']);
             }
         }
-        $totalPendingValueBRL = $totalContractValueBRL - $totalReceivedValueBRL;
+        
+        $totalContractValueConsolidatedBRL = 0; // Apenas BRL ou convertido confirmado
+        $totalReceivedValueBRL = 0;             // Sempre BRL
+        // Para pendências em outras moedas no resumo geral (Opcional)
+        $totalPendingByOtherCurrency = []; 
+
+        foreach ($uniqueGigsWithDelinquency as $gig) {
+            $cacheBrlDetails = $gig->cacheValueBrlDetails;
+
+            if (strtoupper($gig->currency) === 'BRL') {
+                $totalContractValueConsolidatedBRL += $gig->cache_value; // Já é BRL
+            } elseif ($cacheBrlDetails['type'] === 'confirmed' && $cacheBrlDetails['value'] !== null) {
+                $totalContractValueConsolidatedBRL += $cacheBrlDetails['value'];
+            }
+            // Se for moeda estrangeira e não confirmada, não adicionamos ao total BRL consolidado por enquanto.
+
+            // Total Recebido BRL (como antes, mas agora iterando sobre as gigs filtradas)
+            $gigTotalReceivedBRL = $gig->payments
+                                    ->whereNotNull('confirmed_at')
+                                    ->sum(function($p) {
+                                        if (strtoupper($p->currency) === 'BRL') return $p->received_value_actual;
+                                        return $p->received_value_actual * ($p->exchange_rate_received_actual ?: ($p->exchange_rate ?: 1));
+                                    });
+            $totalReceivedValueBRL += $gigTotalReceivedBRL;
+
+            // Para pendências em outras moedas (Opcional para o resumo geral)
+            if (strtoupper($gig->currency) !== 'BRL') {
+                $pendingOriginalForGig = $gig->cache_value - $gig->payments->whereNotNull('confirmed_at')->where('currency', $gig->currency)->sum('received_value_actual');
+                if ($pendingOriginalForGig > 0) {
+                    if (!isset($totalPendingByOtherCurrency[$gig->currency])) {
+                        $totalPendingByOtherCurrency[$gig->currency] = 0;
+                    }
+                    $totalPendingByOtherCurrency[$gig->currency] += $pendingOriginalForGig;
+                }
+            }
+        }
+        $totalPendingValueConsolidatedBRL = $totalContractValueConsolidatedBRL - $totalReceivedValueBRL;
 
         return view('reports.delinquency', compact(
-            'delinquentPaymentsGroupedByGig', // Passa a coleção agrupada
+            'delinquentPaymentsGroupedByGig',
             'artists',
             'bookers',
             'currencies',
-            // 'sortBy', 'sortDirection' // A ordenação agora é mais complexa dentro dos grupos
-            'totalContractValueBRL',
+            'totalContractValueConsolidatedBRL', // Nome da variável para o resumo
             'totalReceivedValueBRL',
-            'totalPendingValueBRL'
+            'totalPendingValueConsolidatedBRL',  // Nome da variável para o resumo
+            'totalPendingByOtherCurrency'        // Para exibir pendências em outras moedas no resumo
         ));
     }
 }

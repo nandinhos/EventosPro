@@ -1,6 +1,5 @@
 {{-- resources/views/reports/delinquency.blade.php --}}
 <x-app-layout>
-    {{-- ... (slot header e formulário de filtros permanecem os mesmos) ... --}}
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-white leading-tight">
             Relatório de Inadimplência
@@ -77,19 +76,30 @@
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Resumo das Gigs com Inadimplência (Filtradas)</h3>
                 </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                     <div>
-                        <span class="text-gray-500 dark:text-gray-400">Valor Contratado Total (BRL):</span>
-                        <span class="font-semibold text-gray-900 dark:text-white ml-1">R$ {{ number_format($totalContractValueBRL, 2, ',', '.') }}</span>
+                        <span class="text-gray-500 dark:text-gray-400">Contratado Total (BRL Consolidado*):</span>
+                        <span class="font-semibold text-gray-900 dark:text-white ml-1">R$ {{ number_format($totalContractValueConsolidatedBRL ?? 0, 2, ',', '.') }}</span>
                     </div>
                     <div>
-                        <span class="text-gray-500 dark:text-gray-400">Total Recebido (BRL):</span>
-                        <span class="font-semibold text-green-600 dark:text-green-400 ml-1">R$ {{ number_format($totalReceivedValueBRL, 2, ',', '.') }}</span>
+                        <span class="text-gray-500 dark:text-gray-400">Recebido Total (BRL):</span>
+                        <span class="font-semibold text-green-600 dark:text-green-400 ml-1">R$ {{ number_format($totalReceivedValueBRL ?? 0, 2, ',', '.') }}</span>
                     </div>
                     <div>
-                        <span class="text-gray-500 dark:text-gray-400">Saldo Pendente Total (BRL):</span>
-                        <span class="font-semibold text-red-600 dark:text-red-400 ml-1">R$ {{ number_format($totalPendingValueBRL, 2, ',', '.') }}</span>
+                        <span class="text-gray-500 dark:text-gray-400">Pendente Total (BRL Consolidado*):</span>
+                        <span class="font-semibold text-red-600 dark:text-red-400 ml-1">R$ {{ number_format($totalPendingValueConsolidatedBRL ?? 0, 2, ',', '.') }}</span>
                     </div>
+                    @if(!empty($totalPendingByOtherCurrency))
+                        <div class="md:col-span-3 mt-2 pt-2 border-t dark:border-gray-700">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                *Valores BRL consolidados consideram apenas contratos em BRL ou contratos em moeda estrangeira com taxa de câmbio já definida por pagamentos confirmados.
+                                <br>Pendências adicionais em outras moedas:
+                                @foreach($totalPendingByOtherCurrency as $currency => $amount)
+                                    <span class="font-semibold">{{ $currency }} {{ number_format($amount, 2, ',', '.') }}</span>@if(!$loop->last), @endif
+                                @endforeach
+                            </p>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -111,21 +121,33 @@
                         </thead>
                         <tbody class="bg-white dark:bg-gray-800">
                             @forelse ($delinquentPaymentsGroupedByGig as $gigId => $group)
-                                @php 
+                                @php
                                     $gig = $group['gig'];
-                                    // Calcula o total recebido para ESTA gig específica em BRL
-                                    $totalReceivedThisGigBRL = $gig->payments
-                                                                ->whereNotNull('confirmed_at')
-                                                                ->sum(function($p) {
-                                                                    if (strtoupper($p->currency) === 'BRL') {
-                                                                        return $p->received_value_actual;
-                                                                    }
-                                                                    return $p->received_value_actual * ($p->exchange_rate ?: 1); // Usa 1 se câmbio for nulo
-                                                                });
-                                    $contractValueThisGigBRL = $gig->cache_value_brl; // Usa o acessor que já calcula o valor do contrato em BRL
-                                    $pendingBalanceThisGigBRL = $contractValueThisGigBRL - $totalReceivedThisGigBRL;
                                 @endphp
+                                
                                 @if($gig)
+                                    @php
+                                        $cacheBrlDetails = $gig->cacheValueBrlDetails;
+
+                                        $totalReceivedThisGigBRL = $gig->payments
+                                                                    ->whereNotNull('confirmed_at')
+                                                                    ->sum(function($p) {
+                                                                        if (strtoupper($p->currency) === 'BRL') return $p->received_value_actual;
+                                                                        // Prioriza exchange_rate_received_actual, depois exchange_rate da parcela, depois 1
+                                                                        $rate = $p->exchange_rate_received_actual ?: ($p->exchange_rate ?: 1);
+                                                                        return $p->received_value_actual * $rate;
+                                                                    });
+                                        
+                                        // Valor do contrato em BRL (confirmado ou projetado)
+                                        $contractValueThisGigBRL = $cacheBrlDetails['value'] ?? ($gig->currency === 'BRL' ? $gig->cache_value : 0);
+                                        // Se for moeda estrangeira e a conversão for apenas projetada, não usamos para o pendente BRL
+                                        $displayableContractValueBRL = ($cacheBrlDetails['type'] === 'confirmed' || $gig->currency === 'BRL') ? $contractValueThisGigBRL : null;
+
+                                        $pendingBalanceThisGigBRL = ($displayableContractValueBRL !== null) ? ($displayableContractValueBRL - $totalReceivedThisGigBRL) : null;
+
+                                        $pendingOriginalCurrency = $gig->cache_value - $gig->payments->whereNotNull('confirmed_at')->where('currency', $gig->currency)->sum('received_value_actual');
+                                    @endphp
+
                                     {{-- Linha da Gig (cabeçalho do grupo) --}}
                                     <tr class="bg-gray-100 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-600/50">
                                         <td class="px-3 py-2 font-medium text-gray-800 dark:text-gray-100">
@@ -133,9 +155,9 @@
                                                 {{ $gig->contract_number ?: 'Gig #'.$gigId }}
                                             </a>
                                             @if($gig->location_event_details)
-                                            <span class="block text-xxs text-gray-500 dark:text-gray-400 italic truncate max-w-[200px]" title="{{ $gig->location_event_details }}">
-                                                {{ Str::limit($gig->location_event_details, 35) }}
-                                            </span>
+                                                <span class="block text-xxs text-gray-500 dark:text-gray-400 italic truncate max-w-[200px]" title="{{ $gig->location_event_details }}">
+                                                    {{ Str::limit($gig->location_event_details, 35) }}
+                                                </span>
                                             @endif
                                         </td>
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $gig->gig_date->format('d/m/Y') }}</td>
@@ -143,34 +165,38 @@
                                             <span class="font-semibold text-gray-900 dark:text-white block">{{ $gig->artist->name ?? 'N/A' }}</span>
                                             <span class="text-xs text-gray-500 dark:text-gray-400 block">{{ $gig->booker->name ?? 'Agência' }}</span>
                                         </td>
-                                        {{-- ***** INÍCIO DAS ALTERAÇÕES PARA RESUMO DA GIG ***** --}}
                                         <td class="px-3 py-2 text-xs text-gray-600 dark:text-gray-300 text-right" colspan="5">
                                             <div class="space-y-0.5">
                                                 <div>
                                                     Contrato: <span class="font-semibold">{{ $gig->currency }} {{ number_format($gig->cache_value, 2, ',', '.') }}</span>
-                                                    @if($gig->currency !== 'BRL')
-                                                        <span class="text-gray-500 dark:text-gray-400">(BRL {{ number_format($contractValueThisGigBRL, 2, ',', '.') }})</span>
+                                                    @if($gig->currency !== 'BRL' && $displayableContractValueBRL !== null)
+                                                        <span class="text-gray-500 dark:text-gray-400">(BRL {{ number_format($displayableContractValueBRL, 2, ',', '.') }})</span>
+                                                    @elseif($gig->currency !== 'BRL')
+                                                        <span class="text-gray-500 dark:text-gray-400">(BRL não consolidado)</span>
                                                     @endif
                                                 </div>
                                                 <div>
                                                     Recebido: <span class="font-semibold text-green-600 dark:text-green-400">BRL {{ number_format($totalReceivedThisGigBRL, 2, ',', '.') }}</span>
                                                 </div>
                                                 <div>
-                                                    Pendente Gig: <span class="font-semibold text-red-600 dark:text-red-400">BRL {{ number_format($pendingBalanceThisGigBRL, 2, ',', '.') }}</span>
+                                                    Pendente Gig: 
+                                                    <span class="font-semibold text-red-600 dark:text-red-400">
+                                                        {{ $gig->currency }} {{ number_format($pendingOriginalCurrency, 2, ',', '.') }}
+                                                    </span>
+                                                    @if($pendingBalanceThisGigBRL !== null && $gig->currency !== 'BRL')
+                                                         <span class="text-gray-500 dark:text-gray-400">(aprox. BRL {{ number_format($pendingBalanceThisGigBRL, 2, ',', '.') }})</span>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </td>
-                                        {{-- ***** FIM DAS ALTERAÇÕES PARA RESUMO DA GIG ***** --}}
                                     </tr>
+
                                     {{-- Parcelas da Gig --}}
                                     @foreach ($group['payments'] as $payment)
                                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                            {{-- Células vazias para alinhar com as colunas da Gig, se necessário --}}
-                                            <td class="px-3 py-1.5 border-l-4 border-transparent"></td> {{-- Coluna Gig/Local --}}
-                                            <td class="px-3 py-1.5"></td> {{-- Coluna Data Evento --}}
-                                            <td class="px-3 py-1.5"></td> {{-- Coluna Artista/Booker --}}
-                                            
-                                            {{-- Detalhes da Parcela --}}
+                                            <td class="px-3 py-1.5 border-l-4 border-transparent"></td>
+                                            <td class="px-3 py-1.5"></td>
+                                            <td class="px-3 py-1.5"></td>
                                             <td class="pl-6 pr-3 py-1.5 whitespace-normal max-w-xs truncate" title="{{ $payment->description }}">
                                                 {{ $payment->description ?: 'Parcela' }}
                                             </td>
@@ -182,6 +208,8 @@
                                             </td>
                                         </tr>
                                     @endforeach
+
+                                    {{-- Linha separadora entre grupos --}}
                                     <tr class="bg-white dark:bg-gray-800">
                                         <td colspan="8" class="py-1 border-t-2 border-gray-200 dark:border-gray-700"></td>
                                     </tr>
@@ -197,7 +225,6 @@
                     </table>
                 </div>
             </div>
-
         </div>
     </div>
 </x-app-layout>
