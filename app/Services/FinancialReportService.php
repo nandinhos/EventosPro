@@ -591,24 +591,25 @@ class FinancialReportService
     public function getProfitabilityAnalysisData(): array
     {
         // 1. Busca as Gigs com os filtros aplicados
-        $gigs = $this->applyFilters(Gig::query())
+        $gigs = $this->applyFilters(Gig::query()->whereNull('deleted_at'))
             ->with(['artist', 'booker']) // Eager load
             ->get();
 
         // 2. Agrupa as Gigs por Mês/Ano (formato 'YYYY-MM')
         $gigsByMonth = $gigs->groupBy(function ($gig) {
             return Carbon::parse($gig->gig_date)->format('Y-m');
-        });
+        })->sortKeys();
 
         $tableData = new Collection();
         $chartData = [
             'labels' => [],
             'netAgencyCommission' => [],
             'grossMarginPercentage' => [],
+            'commissionByBooker' => ['labels' => [], 'data' => []],
         ];
 
         // 3. Itera sobre cada grupo mensal para calcular as métricas
-        foreach ($gigsByMonth->sortKeys() as $month => $monthlyGigs) {
+        foreach ($gigsByMonth as $monthYearKey => $monthlyGigs) {
             $totalCacheLiquidoBase = 0;
             $totalRepasseArtista = 0;
             $totalComissaoAgencia = 0;
@@ -629,9 +630,12 @@ class FinancialReportService
                 ? ($totalComissaoAgenciaLiquida / $totalCacheLiquidoBase) * 100
                 : 0;
 
-            // Adiciona os dados agregados do mês à coleção da tabela
+            $carbonMonth = Carbon::createFromFormat('Y-m', $monthYearKey);
+            
+                // Adiciona os dados agregados do mês à coleção da tabela
             $tableData->push([
-                'month_label' => Carbon::parse($month)->translatedFormat('F/Y'),
+                'month_year_key' => $monthYearKey,
+                'month_label' => $carbonMonth->translatedFormat('F/Y'),
                 'num_gigs' => $monthlyGigs->count(),
                 'total_cache_liquido_base' => $totalCacheLiquidoBase,
                 'total_repasse_artista' => $totalRepasseArtista,
@@ -642,28 +646,59 @@ class FinancialReportService
             ]);
 
             // Prepara os dados para os gráficos
-            $chartData['labels'][] = Carbon::parse($month)->translatedFormat('M/y');
+            $chartData['labels'][] = $carbonMonth->translatedFormat('M/y');
             $chartData['netAgencyCommission'][] = round($totalComissaoAgenciaLiquida, 2);
             $chartData['grossMarginPercentage'][] = round($margemBrutaAgencia, 2);
         }
 
         // Prepara os dados para o gráfico comparativo por booker
-        // Prepara os dados para o gráfico comparativo por booker
-        $commissionByBooker = $gigs->groupBy('booker.name')
+        $commissionByBooker = $gigs
+            ->whereNotNull('booker_id') // Considera apenas gigs com booker
+            ->groupBy(function($gig) {
+                return $gig->booker->name ?? 'Booker Desconhecido'; // Agrupa pelo nome do booker
+            })
             ->map(function ($bookerGigs) {
                 return $bookerGigs->sum(function ($gig) {
+                    // Usa a comissão líquida da agência, mas podemos mudar para comissão do booker se o gráfico for específico dele
                     return $this->calculator->calculateAgencyNetCommissionBrl($gig);
                 });
             })
-            ->forget(''); // <<-- ADICIONE ESTA LINHA PARA REMOVER O GRUPO SEM NOME (Agência Direta)
+            // ***** ALTERAÇÃO AQUI para ORDENAR *****
+            ->sortByDesc(function ($commission) { // Ordena pela comissão em ordem decrescente
+                return $commission;
+            });
+
+        // Adiciona "Agência Direta" (Gigs sem booker) se houver
+        $directAgencyCommission = $gigs
+            ->whereNull('booker_id')
+            ->sum(function ($gig) {
+                return $this->calculator->calculateAgencyNetCommissionBrl($gig);
+            });
+
+        if ($directAgencyCommission > 0 || $commissionByBooker->isEmpty()) { // Adiciona se houver comissão direta ou se não houver nenhum booker
+            // Para garantir a ordem, podemos adicionar e reordenar se necessário,
+            // ou decidir onde "Agência Direta" deve aparecer (ex: no final se for pequena).
+            // Por simplicidade, se a ordenação é puramente por valor, e "Agência Direta" for um valor,
+            // ela será posicionada corretamente pelo sortByDesc.
+            // Se quisermos um tratamento especial, a lógica de inserção precisa ser mais cuidadosa.
+            // Vamos adicionar e deixar o sortByDesc tratar.
+            if($directAgencyCommission > 0) { // Só adiciona se tiver valor
+                 $commissionByBooker->put('Agência Direta', $directAgencyCommission);
+                 // Re-ordenar APÓS adicionar "Agência Direta" para garantir que ela entre na ordenação correta
+                 $commissionByBooker = $commissionByBooker->sortByDesc(function ($commission) {
+                    return $commission;
+                 });
+            }
+        }
+        // ***** FIM DA ALTERAÇÃO *****
 
         $chartData['commissionByBooker'] = [
-            'labels' => $commissionByBooker->keys(), // Não precisa mais do fallback 'Agência Direta'
-            'data' => $commissionByBooker->values(),
+            'labels' => $commissionByBooker->keys()->all(),
+            'data' => $commissionByBooker->values()->all(),
         ];
 
         return [
-            'tableData' => $tableData->sortBy('month_label'),
+            'tableData' => $tableData,
             'chartData' => $chartData,
         ];
     }

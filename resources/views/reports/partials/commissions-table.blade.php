@@ -36,7 +36,8 @@
                                 <tr>
                                     <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase">Data da Gig</th>
                                     <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase">Artista</th>
-                                    <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase">Gig</th>
+                                    {{-- ***** ALTERAÇÃO NO TÍTULO DA COLUNA ***** --}}
+                                    <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase">Gig / Local</th>
                                     <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase">Base de Cálculo (R$)</th>
                                     <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase">Comissão (R$)</th>
                                     <th class="px-3 py-2 text-center font-medium text-gray-500 dark:text-gray-400 uppercase">Status Pgto.</th>
@@ -48,11 +49,16 @@
                                         <td class="px-3 py-2 whitespace-nowrap">{{ $gig->gig_date ? $gig->gig_date->format('d/m/Y') : 'N/A' }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap font-semibold">{{ $gig->artist->name ?? 'N/A' }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap">
-                                            <a href="{{ route('gigs.show', $gig) }}" class="text-primary-600 hover:underline" title="{{ $gig->location_event_details ?? 'Ver Gig' }}">
+                                            {{-- ***** ALTERAÇÃO AQUI PARA EXIBIR LOCAL ***** --}}
+                                            <a href="{{ route('gigs.show', $gig) }}" class="text-primary-600 hover:underline" title="Ver detalhes da Gig">
                                                 Gig #{{ $gig->id }}
                                             </a>
+                                            @if($gig->location_event_details)
+                                                <span class="block text-gray-500 dark:text-gray-400 italic text-xxs truncate max-w-[150px]" title="{{ $gig->location_event_details }}">
+                                                    {{ Str::limit($gig->location_event_details, 50) }}
+                                                </span>
+                                            @endif
                                         </td>
-                                        {{-- CORREÇÃO AQUI: Usa a propriedade pré-calculada --}}
                                         <td class="px-3 py-2 whitespace-nowrap text-right text-gray-500">{{ number_format($gig->calculated_gross_cash_brl, 2, ',', '.') }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap text-right font-bold">{{ number_format($gig->calculated_booker_commission, 2, ',', '.') }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap text-center">
