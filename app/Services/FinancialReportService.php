@@ -48,6 +48,7 @@ class FinancialReportService
         if (isset($this->filters['artist_id'])) {
             $query->where('artist_id', $this->filters['artist_id']);
         }
+       
 
         return $query;
     }
