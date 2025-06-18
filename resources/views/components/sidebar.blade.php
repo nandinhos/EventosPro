@@ -54,10 +54,13 @@
     </a>
 </li>
             
-            <li>
-                <a href="#" class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 text-gray-600 dark:text-gray-300">
-                    <i class="fas fa-money-bill-wave w-6 text-center"></i>
-                    <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Pagamentos</span>
+<li>
+               
+                <a href="{{ route('reports.delinquency') }}"
+                   :class="window.location.pathname.startsWith('/reports/delinquency') ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
+                   class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+                    <i class="fas fa-file-invoice-dollar w-6 text-center"></i> {{-- Ícone alterado para algo mais relacionado a inadimplência --}}
+                    <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Inadimplência</span> {{-- Texto alterado --}}
                 </a>
             </li>
             <li>

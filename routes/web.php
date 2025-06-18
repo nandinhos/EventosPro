@@ -11,6 +11,7 @@ use App\Http\Controllers\GigCostController;
 use App\Http\Controllers\SettlementController;
 use App\Http\Controllers\FinancialProjectionController;
 use App\Http\Controllers\FinancialReportController;
+use App\Http\Controllers\DelinquencyReportController;
 
 use App\Models\Gig;
 use Carbon\Carbon;
@@ -117,6 +118,9 @@ Route::middleware('auth')->group(function () {
 
     // Rotas de Relatórios
     Route::get('/reports', [FinancialReportController::class, 'index'])->name('reports.index');
+    //Lista de inadimplentes
+    Route::get('/reports/delinquency', [DelinquencyReportController::class, 'index'])->name('reports.delinquency');
+    //para exportar em excel/pdf
     Route::get('/reports/export/{type}/{format}', [FinancialReportController::class, 'export'])->name('reports.export');
 
     // Artists
