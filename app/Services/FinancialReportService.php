@@ -832,11 +832,13 @@ class FinancialReportService
             ->map(function ($bookerGigs, $bookerName) {
                 return [
                     'booker_name' => $bookerName,
-                    'subtotal' => $bookerGigs->sum('calculated_booker_commission'),
+                    'gig_count' => $bookerGigs->count(),
+                    'total_commission_base' => $bookerGigs->sum('calculated_gross_cash_brl'),
+                    'total_commission_value' => $bookerGigs->sum('calculated_booker_commission'),
                     'gigs' => $bookerGigs, // A coleção de gigs agora contém a propriedade 'calculated_gross_cash_brl'
                 ];
             })
-            ->sortByDesc('subtotal');
+            ->sortByDesc('total_commission_value');
 
         return [
             'summary' => [

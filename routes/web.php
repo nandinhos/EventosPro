@@ -13,6 +13,7 @@ use App\Http\Controllers\FinancialProjectionController;
 use App\Http\Controllers\FinancialReportController;
 use App\Http\Controllers\DelinquencyReportController;
 
+
 use App\Models\Gig;
 use Carbon\Carbon;
 
@@ -120,6 +121,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports', [FinancialReportController::class, 'index'])->name('reports.index');
     //Lista de inadimplentes
     Route::get('/reports/delinquency', [DelinquencyReportController::class, 'index'])->name('reports.delinquency');
+    //pagamentos em massa
+    Route::post('/reports/commissions/settle-batch', [App\Http\Controllers\FinancialReportController::class, 'settleBatchBookerCommissions'])->name('reports.commissions.settleBatch');
+    //desfazer pagaementos em massa
+    Route::patch('/reports/commissions/unsettle-batch', [App\Http\Controllers\FinancialReportController::class, 'unsettleBatchBookerCommissions'])->name('reports.commissions.unsettleBatch');
     //para exportar em excel/pdf
     Route::get('/reports/export/{type}/{format}', [FinancialReportController::class, 'export'])->name('reports.export');
 
