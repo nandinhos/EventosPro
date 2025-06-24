@@ -14,81 +14,78 @@ class DelinquencyReportController extends Controller
 {
     public function index(Request $request)
     {
-        // Modifica a query para buscar TODAS as parcelas NÃO CONFIRMADAS
-        $query = Payment::query()
-             
-            ->with(['gig' => function ($gigQuery) {
-                $gigQuery->with(['artist', 'booker', 'payments'])
-                         ->whereNull('deleted_at');
-            }])
-            ->whereHas('gig', function ($gigQuery) { // Garante que a gig exista e não foi deletada
-                $gigQuery->whereNull('deleted_at');
+        // 1. Buscamos os IDs das Gigs que têm parcelas pendentes e que passam pelos filtros.
+        $gigIdsQuery = Gig::query()
+            ->whereNull('deleted_at') // Apenas gigs ativas
+            ->whereHas('payments', function ($query) {
+                $query->whereNull('confirmed_at'); // Que tenham ao menos uma parcela pendente
             });
 
-        // Aplicar filtros (a lógica de filtros pode ser mantida)
-        // Se um filtro de data de vencimento for aplicado, ele restringirá as parcelas.
-        // Se não, mostrará todas as pendentes.
+        // Aplicar filtros de Gig (data do evento, artista, booker)
         if ($request->filled('event_start_date')) {
-            $query->whereHas('gig', fn ($q) => $q->where('gig_date', '>=', $request->input('event_start_date')));
+            $gigIdsQuery->where('gig_date', '>=', $request->input('event_start_date'));
         }
         if ($request->filled('event_end_date')) {
-            $query->whereHas('gig', fn ($q) => $q->where('gig_date', '<=', $request->input('event_end_date')));
-        }
-        // Filtros de VENCIMENTO da parcela continuam úteis para focar em períodos específicos de vencimento
-        if ($request->filled('due_start_date')) {
-            $query->where('due_date', '>=', $request->input('due_start_date'));
-        }
-        if ($request->filled('due_end_date')) {
-            $query->where('due_date', '<=', $request->input('due_end_date'));
+            $gigIdsQuery->where('gig_date', '<=', $request->input('event_end_date'));
         }
         if ($request->filled('artist_id')) {
-            $query->whereHas('gig.artist', fn ($q) => $q->where('artists.id', $request->input('artist_id')));
+            $gigIdsQuery->where('artist_id', $request->input('artist_id'));
         }
         if ($request->filled('booker_id')) {
             if ($request->input('booker_id') === 'sem_booker') {
-                $query->whereHas('gig', fn ($q) => $q->whereNull('booker_id'));
+                $gigIdsQuery->whereNull('booker_id');
             } else {
-                $query->whereHas('gig.booker', fn ($q) => $q->where('bookers.id', $request->input('booker_id')));
+                $gigIdsQuery->where('booker_id', $request->input('booker_id'));
             }
         }
         if ($request->filled('currency') && $request->input('currency') !== 'all') {
-            $query->where('payments.currency', $request->input('currency'));
+            // Este filtro agora é na moeda do CONTRATO da Gig
+            $gigIdsQuery->where('currency', $request->input('currency'));
         }
 
-        // Ordena os pagamentos para que, ao agrupar, as Gigs apareçam e as parcelas dentro delas
-        // fiquem ordenadas por vencimento.
-        $allPendingPayments = $query->orderBy('gig_id')->orderBy('due_date', 'asc')->get();
-
-        // Agrupar pagamentos por Gig
-        $pendingPaymentsGroupedByGig = $allPendingPayments->groupBy('gig_id')
-            ->map(function ($paymentsForGig, $gigId) {
-                $firstPayment = $paymentsForGig->first();
-                if (!$firstPayment || !$firstPayment->gig) { // Checagem de segurança
-                    return null; 
+        // Se houver filtros de data de vencimento, aplicamos também
+        if ($request->filled('due_start_date') || $request->filled('due_end_date')) {
+            $gigIdsQuery->whereHas('payments', function ($q) use ($request) {
+                $q->whereNull('confirmed_at');
+                if ($request->filled('due_start_date')) {
+                    $q->where('due_date', '>=', $request->input('due_start_date'));
                 }
-                return [
-                    'gig' => $firstPayment->gig,
-                    'payments' => $paymentsForGig
-                ];
-            })->filter(); // Remove quaisquer entradas nulas se uma gig não pôde ser carregada
-
-        $artists = Artist::orderBy('name')->pluck('name', 'id');
-        $bookers = Booker::orderBy('name')->pluck('name', 'id');
-        $currencies = Payment::select('currency')->distinct()->orderBy('currency')->pluck('currency');
-
-        // Cálculo do Resumo Financeiro Geral para Gigs com Pendências
-        $uniqueGigsWithPending = new \Illuminate\Database\Eloquent\Collection();
-        foreach ($pendingPaymentsGroupedByGig as $group) {
-            if ($group['gig'] && !$uniqueGigsWithPending->contains('id', $group['gig']->id)) {
-                $uniqueGigsWithPending->push($group['gig']);
-            }
+                if ($request->filled('due_end_date')) {
+                    $q->where('due_date', '<=', $request->input('due_end_date'));
+                }
+            });
         }
         
+        $relevantGigIds = $gigIdsQuery->pluck('id');
+
+        // 2. Buscamos as Gigs completas, com seus relacionamentos, e ordenamos por Booker
+        $gigsWithPendingPayments = Gig::whereIn('id', $relevantGigIds)
+            ->with([
+                'artist', 
+                'booker', 
+                'payments' => function ($query) {
+                    $query->orderBy('due_date', 'asc'); // Ordena as parcelas de cada gig
+                }
+            ])
+            ->get()
+            ->sortBy('booker.name'); // Ordena as Gigs pelo nome do booker
+
+        // 3. Agrupamos as Gigs pelo nome do booker (ou 'Agência Direta')
+        $gigsGroupedByBooker = $gigsWithPendingPayments->groupBy(function ($gig) {
+            return $gig->booker->name ?? 'Agência Direta';
+        });
+
+        // Dados para os filtros
+        $artists = Artist::orderBy('name')->pluck('name', 'id');
+        $bookers = Booker::orderBy('name')->pluck('name', 'id');
+        $currencies = Gig::select('currency')->distinct()->orderBy('currency')->pluck('currency');
+
+        // Cálculo do Resumo Financeiro Geral (agora baseado nas Gigs filtradas)
         $totalContractValueConsolidatedBRL = 0;
         $totalReceivedValueBRL = 0;
-        $totalPendingByOtherCurrency = []; 
+        $totalPendingByOtherCurrency = [];
 
-        foreach ($uniqueGigsWithPending as $gig) {
+        foreach ($gigsWithPendingPayments as $gig) {
             $cacheBrlDetails = $gig->cacheValueBrlDetails;
 
             if (strtoupper($gig->currency) === 'BRL') {
@@ -115,14 +112,13 @@ class DelinquencyReportController extends Controller
         }
         $totalPendingValueConsolidatedBRL = $totalContractValueConsolidatedBRL - $totalReceivedValueBRL;
 
-        return view('reports.delinquency', compact(
-            'pendingPaymentsGroupedByGig', // Nome da variável alterado
+         return view('reports.delinquency', compact(
+            'gigsGroupedByBooker', // Passa a coleção agrupada por Booker
             'artists',
             'bookers',
             'currencies',
             'totalContractValueConsolidatedBRL',
             'totalReceivedValueBRL',
-            'totalPendingValueConsolidatedBRL',
             'totalPendingByOtherCurrency'
         ));
     }
