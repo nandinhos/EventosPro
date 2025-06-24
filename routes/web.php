@@ -121,6 +121,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports', [FinancialReportController::class, 'index'])->name('reports.index');
     //Lista de inadimplentes
     Route::get('/reports/delinquency', [DelinquencyReportController::class, 'index'])->name('reports.delinquency');
+    // Rota para exportação inadimplentes
+    Route::get('/reports/delinquency/export/pdf', [DelinquencyReportController::class, 'exportPdf'])->name('reports.delinquency.exportPdf');
     //pagamentos em massa
     Route::post('/reports/commissions/settle-batch', [App\Http\Controllers\FinancialReportController::class, 'settleBatchBookerCommissions'])->name('reports.commissions.settleBatch');
     //desfazer pagaementos em massa

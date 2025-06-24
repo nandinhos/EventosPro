@@ -65,6 +65,11 @@
                             <button type="submit" class="flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 w-full sm:w-auto">
                                 <i class="fas fa-filter mr-2"></i>Filtrar
                             </button>
+                            <a href="{{ route('reports.delinquency.exportPdf', request()->query()) }}" 
+                               target="_blank"
+                               class="flex items-center justify-center px-4 py-2 border border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-md shadow-sm text-sm font-medium w-full sm:w-auto">
+                                <i class="fas fa-file-pdf mr-2"></i>Exportar PDF
+                            </a>
                         </div>
                     </div>
                 </form>

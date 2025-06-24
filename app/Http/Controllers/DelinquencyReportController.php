@@ -9,6 +9,7 @@ use App\Models\Gig;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class DelinquencyReportController extends Controller
 {
@@ -122,4 +123,41 @@ class DelinquencyReportController extends Controller
             'totalPendingByOtherCurrency'
         ));
     }
+
+    public function exportPdf(Request $request)
+    {
+        // 1. Replicar a mesma lógica de busca e filtragem do método index()
+        $gigIdsQuery = Gig::query()->whereNull('deleted_at')->whereHas('payments', fn($q) => $q->whereNull('confirmed_at'));
+        
+        if ($request->filled('event_start_date')) $gigIdsQuery->where('gig_date', '>=', $request->input('event_start_date'));
+        if ($request->filled('event_end_date')) $gigIdsQuery->where('gig_date', '<=', $request->input('event_end_date'));
+        // ... (adicione aqui TODAS as outras lógicas de filtro do seu método index) ...
+        if ($request->filled('artist_id')) $gigIdsQuery->where('artist_id', $request->input('artist_id'));
+        if ($request->filled('booker_id')) {
+             if ($request->input('booker_id') === 'sem_booker') $gigIdsQuery->whereNull('booker_id');
+             else $gigIdsQuery->where('booker_id', $request->input('booker_id'));
+        }
+
+        $relevantGigIds = $gigIdsQuery->pluck('id');
+        
+        $gigsWithPendingPayments = Gig::whereIn('id', $relevantGigIds)
+            ->with(['artist', 'booker', 'payments' => fn($q) => $q->orderBy('due_date', 'asc')])
+            ->get()
+            ->sortBy('booker.name');
+        
+        $gigsGroupedByBooker = $gigsWithPendingPayments->groupBy(fn($gig) => $gig->booker->name ?? 'Agência Direta');
+        
+        $filters = $request->only(['event_start_date', 'event_end_date', 'due_start_date', 'due_end_date', 'artist_id', 'booker_id']);
+
+        // 2. Carregar a view do PDF com os dados
+        $pdf = Pdf::loadView('reports.exports.delinquency_pdf', [
+            'gigsGroupedByBooker' => $gigsGroupedByBooker,
+            'filters' => $filters
+        ]);
+
+        // 3. Definir o nome do arquivo e fazer o download
+        $fileName = 'relatorio_pendencias_' . now()->format('Y-m-d') . '.pdf';
+        return $pdf->download($fileName);
+    }
+
 }
