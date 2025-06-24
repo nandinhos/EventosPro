@@ -134,7 +134,7 @@
 
                 {{-- Valor Líquido Final para Nota Fiscal do Artista --}}
                 <div class="flex items-center justify-between py-2 mt-2 border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700/50 px-2 -mx-2 rounded">
-                    <span class="font-medium text-gray-700 dark:text-gray-300">= Valor Final para Nota Fiscal do Artista:</span>
+                    <span class="font-medium text-gray-700 dark:text-gray-300">= Valor Final Artista:</span>
                     <span class="font-bold text-lg text-primary-600 dark:text-primary-400">R$ {{ number_format($calculatedArtistInvoiceValueBrl, 2, ',', '.') }}</span>
                 </div>
             </div>

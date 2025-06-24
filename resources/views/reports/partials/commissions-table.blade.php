@@ -5,17 +5,22 @@
 
 <div x-data="commissionBatchManager" class="space-y-6 mt-4">
 
-    {{-- Cards de Resumo --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+    {{-- ***** INÍCIO DA ALTERAÇÃO NO GRID DE CARDS ***** --}}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg">
+            <h3 class="text-sm text-gray-500 dark:text-gray-400">Total Base de Cálculo</h3>
+            <p class="text-lg font-semibold text-blue-800 dark:text-blue-300">R$ {{ number_format($commissionsSummary['total_commission_base'] ?? 0, 2, ',', '.') }}</p>
+        </div>
         <div class="bg-indigo-100 dark:bg-indigo-900/20 p-4 rounded-lg">
             <h3 class="text-sm text-gray-500 dark:text-gray-400">Total de Comissões (Bookers)</h3>
             <p class="text-lg font-semibold text-indigo-800 dark:text-indigo-300">R$ {{ number_format($commissionsSummary['total_commissions'] ?? 0, 2, ',', '.') }}</p>
         </div>
-        <div class="bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg">
+        <div class="bg-cyan-100 dark:bg-cyan-900/20 p-4 rounded-lg">
             <h3 class="text-sm text-gray-500 dark:text-gray-400">Eventos com Comissão</h3>
-            <p class="text-lg font-semibold text-blue-800 dark:text-blue-300">{{ $commissionsSummary['events_with_commissions'] ?? 0 }}</p>
+            <p class="text-lg font-semibold text-cyan-800 dark:text-cyan-300">{{ $commissionsSummary['events_with_commissions'] ?? 0 }}</p>
         </div>
     </div>
+    {{-- ***** FIM DA ALTERAÇÃO NO GRID DE CARDS ***** --}}
 
     {{-- Formulário e Botões para Ações em Massa --}}
     <div class="mb-6">

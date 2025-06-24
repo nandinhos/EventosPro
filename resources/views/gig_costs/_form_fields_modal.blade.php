@@ -7,8 +7,8 @@
     <select id="modal_cost_center_id" x-model="costFormData.cost_center_id" x-ref="costCenterSelect" required
             class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
         <option value="">Selecione...</option>
-        <template x-for="(name, id) in costCentersData" :key="id">
-            <option :value="String(id)" x-text="name"></option>
+        <template x-for="(name, id) in {{ json_encode($costCenters->map(fn($name, $id) => __($name))) }}" :key="id">
+            <option :value="id" x-text="name"></option>
         </template>
     </select>
     {{-- TODO: Exibir erro de validação para este campo --}}

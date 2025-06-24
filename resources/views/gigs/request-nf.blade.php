@@ -5,10 +5,7 @@
             <h2 class="text-xl font-semibold text-gray-800 dark:text-white">
                 Solicitação de Nota Fiscal para Artista - Gig #{{ $gig->id }}
             </h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-                Artista: <span class="font-medium">{{ $gig->artist->name ?? 'N/A' }}</span> |
-                Evento: {{ $gig->gig_date->format('d/m/Y') }} - {{ $gig->location_event_details }}
-            </p>
+           
         </div>
         <a href="{{ route('gigs.show', $backUrlParams) }}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-md text-sm">
             <i class="fas fa-arrow-left mr-1"></i> Voltar para Detalhes da Gig
@@ -18,8 +15,11 @@
     {{-- Card com Detalhes para NF --}}
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden max-w-lg mx-auto">
         <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-base font-semibold text-gray-800 dark:text-white">Detalhes para Emissão da Nota Fiscal</h3>
+            <h3 class="text-base font-semibold text-gray-800 dark:text-white">FECHAMENTO</h3>
+            Artista: <span class="font-medium">{{ $gig->artist->name ?? 'N/A' }}</span> <br>
+                Evento: {{ $gig->gig_date->format('d/m/Y') }} - {{ $gig->location_event_details }}
         </div>
+
 
         <div class="p-4 space-y-3 text-xs sm:text-sm">
     <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Cálculo do Valor da NF:</h4>
@@ -41,8 +41,8 @@
         <div class="pl-2 space-y-1">
             @forelse($gig->costs->where('is_confirmed', true) as $cost)
                 <div class="flex justify-between text-[11px] sm:text-xs">
-                    <span class="text-gray-500 dark:text-gray-400">- {{ $cost->costCenter->name ?? 'N/A' }}: {{ $cost->description }}</span>
-                    <span class="font-medium text-red-500 dark:text-red-400">R$ {{ number_format($cost->value, 2, ',', '.') }}</span>
+                    <span class="text-gray-500 dark:text-gray-400">- {{ __('cost_centers.' . ($cost->costCenter->name ?? 'N/A')) }}: {{ $cost->description }}</span>
+                            <span class="font-medium text-red-500 dark:text-red-400">R$ {{ number_format($cost->value, 2, ',', '.') }}</span>
                 </div>
             @empty
                 <div class="text-gray-500 dark:text-gray-400 text-[11px] sm:text-xs">- Nenhuma despesa confirmada.</div>
@@ -75,8 +75,8 @@
             <div class="pl-2 space-y-1">
                 @foreach($gig->costs->where('is_confirmed', true)->where('is_invoice', true) as $cost)
                     <div class="flex justify-between text-[11px] sm:text-xs">
-                        <span class="text-gray-500 dark:text-gray-400">- {{ $cost->costCenter->name ?? 'N/A' }}: {{ $cost->description }}</span>
-                        <span class="font-medium text-green-600 dark:text-green-400">R$ {{ number_format($cost->value, 2, ',', '.') }}</span>
+                        <span class="text-gray-500 dark:text-gray-400">- {{ __('cost_centers.' . ($cost->costCenter->name ?? 'N/A')) }}: {{ $cost->description }}</span>
+                                <span class="font-medium text-green-600 dark:text-green-400">R$ {{ number_format($cost->value, 2, ',', '.') }}</span>
                     </div>
                 @endforeach
                 <div class="flex justify-between text-xs font-semibold pt-1 border-t border-dashed border-gray-200 dark:border-gray-600 mt-1">

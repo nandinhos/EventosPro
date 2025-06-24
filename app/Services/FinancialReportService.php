@@ -826,6 +826,7 @@ class FinancialReportService
         // 3. Calcula os totais para os cards de resumo
         $totalCommissions = $gigsWithCommission->sum('calculated_booker_commission');
         $eventsWithCommissionsCount = $gigsWithCommission->count();
+        $totalCommissionBase = $gigsWithCommission->sum('calculated_gross_cash_brl');
 
         // 4. Agrupa os resultados por Nome do Booker
         $groupedByBooker = $gigsWithCommission->groupBy('booker.name')
@@ -844,6 +845,7 @@ class FinancialReportService
             'summary' => [
                 'total_commissions' => $totalCommissions,
                 'events_with_commissions' => $eventsWithCommissionsCount,
+                'total_commission_base' => $totalCommissionBase,
             ],
             'groups' => $groupedByBooker,
         ];

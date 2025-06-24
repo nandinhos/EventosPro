@@ -197,7 +197,11 @@ class GigController extends Controller
             ->paginate(10, ['*'], 'logs_page')
             ->withQueryString();
 
-        $costCenters = CostCenter::orderBy('name')->get();
+        //$costCenters = CostCenter::orderBy('name')->get();
+$costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center) {
+            // A chave é o ID do centro, e o valor é o nome traduzido.
+            return [$center->id => __('cost_centers.' . $center->name)];
+        });
 
         return view('gigs.show', [
             'gig' => $gig,
