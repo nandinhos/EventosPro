@@ -2,123 +2,89 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\FinancialReportService;
-use Maatwebsite\Excel\Facades\Excel; // Importar Excel
-use Barryvdh\DomPDF\Facade\Pdf; // Importar PDF
-use Illuminate\Http\Request;
 use App\Models\Artist;
 use App\Models\Booker;
 use App\Models\CostCenter;
+use App\Models\Gig;
+use App\Models\Settlement;
+use App\Services\FinancialReportService;
 use App\Services\GigFinancialCalculatorService;
-use Illuminate\Support\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;
-use App\Models\Gig;
-use App\Models\Settlement;
-
+use Maatwebsite\Excel\Facades\Excel;
 
 class FinancialReportController extends Controller
 {
     protected $reportService;
-    protected $gigCalculatorService; // Adicionar propriedade
+    protected $gigCalculatorService;
 
-    // Modificar construtor para injetar GigFinancialCalculatorService
     public function __construct(FinancialReportService $reportService, GigFinancialCalculatorService $gigCalculatorService)
     {
         $this->reportService = $reportService;
-        $this->gigCalculatorService = $gigCalculatorService; // Atribuir
+        $this->gigCalculatorService = $gigCalculatorService;
     }
 
     public function index(Request $request)
-{
-    $filters = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
-    $activeTab = $request->input('tab', 'overview');
+    {
+        $filters = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id', 'contract_status']);
+        $activeTab = $request->input('tab', 'overview');
 
-    $this->reportService->setFilters($filters);
+        $this->reportService->setFilters($filters);
 
-    $overviewSummary = $this->reportService->getOverviewSummary();
-    $overviewTable = collect($this->reportService->getOverviewTableData());
-    $expensesTable = collect($this->reportService->getExpensesTableData());
-    $profitabilitySummary = $this->reportService->getProfitabilitySummary();
-    $profitabilityTable = collect($this->reportService->getProfitabilityTableData());
-    $groupedExpensesReport = $this->reportService->getGroupedExpensesData();
-    $commissionsReport = $this->reportService->getGroupedCommissionsData();
-    $cashflowSummary = $this->reportService->getCashflowSummary();
-    $cashflowTable = collect($this->reportService->getCashflowTableData());
-    $commissionsSummary = $this->reportService->getCommissionsSummary();
-    $commissionsTable = collect($this->reportService->getCommissionsTableData());
-    $detailedPerformanceReport = $this->reportService->getDetailedPerformanceData();
-    $profitabilityReport = $this->reportService->getProfitabilityAnalysisData();
-    $detailedExpenses = $this->reportService->getDetailedExpenses();
+        $commissionsReport = $this->reportService->getGroupedCommissionsData();
+        $detailedPerformanceReport = $this->reportService->getDetailedPerformanceData();
+        $profitabilityReport = $this->reportService->getProfitabilityAnalysisData();
+        // Adicione aqui a chamada para outros métodos de relatório que você usa na view
+        $cashflowSummary = $this->reportService->getCashflowSummary();
+        $cashflowTable = collect($this->reportService->getCashflowTableData());
+        $groupedExpensesReport = $this->reportService->getGroupedExpensesData();
 
+        $bookers = \App\Models\Booker::orderBy('name')->get();
+        $artists = \App\Models\Artist::withoutTrashed()->orderBy('name')->get();
 
-
-    // Depuração temporária
-    /*dd([
-        'overviewSummary' => $overviewSummary,
-        'profitabilitySummary' => $profitabilitySummary,
-        'cashflowSummary' => $cashflowSummary,
-        'filters' => $filters
-    ]);*/
-
-    $bookers = \App\Models\Booker::all();
-    $artists = \App\Models\Artist::withoutTrashed()->orderBy('name')->get();
-    $costCenters = CostCenter::orderBy('name')->get();
-
-    return view('reports.dashboard', [
-        'filters' => $filters,
-        'activeTab' => $activeTab,
-        'detailedExpenses' => $detailedExpenses,
-        'detailedPerformanceReport' => $detailedPerformanceReport,
-        'profitabilityReport' => $profitabilityReport,
-        'groupedExpensesReport' => $groupedExpensesReport,
-        'commissionsReport' => $commissionsReport,
-        'overviewSummary' => $overviewSummary,
-        'overviewTable' => $overviewTable,
-        'expensesTable' => $expensesTable,
-        'profitabilitySummary' => $profitabilitySummary,
-        'profitabilityTable' => $profitabilityTable,
-        'cashflowSummary' => $cashflowSummary,
-        'cashflowTable' => $cashflowTable,
-        'commissionsSummary' => $commissionsSummary,
-        'commissionsTable' => $commissionsTable,
-        'bookers' => $bookers,
-        'artists' => $artists,
-        'costCenters' => $costCenters,
-    ]);
-}
-
-public function export(Request $request)
-{
-    $type = $request->input('type', 'overview'); // 'overview' é o nosso detalhado
-    $format = $request->input('format');
-    $filters = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
-
-    $this->reportService->setFilters($filters);
-    
-    // Gera um nome de arquivo padronizado
-    $fileName = "relatorio_{$type}_" . now()->format('Ymd_His');
-
-    if ($type === 'overview') {
-        $reportData = $this->reportService->getDetailedPerformanceData();
-
-        if ($format === 'xlsx') {
-            return Excel::download(new DetailedPerformanceReportExport($reportData['tableData']), "{$fileName}.xlsx");
-        }
-        if ($format === 'pdf') {
-            $pdf = Pdf::loadView('reports.exports.detailed_performance', ['reportData' => $reportData, 'filters' => $filters])
-                      ->setPaper('a4', 'landscape'); // Paisagem para caber as colunas
-            return $pdf->download("{$fileName}.pdf");
-        }
+        return view('reports.dashboard', [
+            'filters' => $filters,
+            'activeTab' => $activeTab,
+            'detailedPerformanceReport' => $detailedPerformanceReport,
+            'profitabilityReport' => $profitabilityReport,
+            'groupedExpensesReport' => $groupedExpensesReport,
+            'commissionsReport' => $commissionsReport,
+            'cashflowSummary' => $cashflowSummary,
+            'cashflowTable' => $cashflowTable,
+            'bookers' => $bookers,
+            'artists' => $artists,
+        ]);
     }
-    
-    // TODO: Adicionar 'else if' para outros tipos de relatórios ('profitability', 'cashflow', etc.)
 
-    return redirect()->back()->with('error', 'Tipo de relatório ou formato inválido para exportação.');
-}
+    public function export(Request $request)
+    {
+        $type = $request->input('type', 'overview');
+        $format = $request->input('format');
+        $filters = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
 
-/**
+        $this->reportService->setFilters($filters);
+        
+        $fileName = "relatorio_{$type}_" . now()->format('Ymd_His');
+
+        if ($type === 'overview') {
+            $reportData = $this->reportService->getDetailedPerformanceData();
+            if ($format === 'xlsx') {
+                return Excel::download(new \App\Exports\DetailedPerformanceReportExport($reportData['tableData']), "{$fileName}.xlsx");
+            }
+            if ($format === 'pdf') {
+                $pdf = Pdf::loadView('reports.exports.detailed_performance', ['reportData' => $reportData, 'filters' => $filters])
+                          ->setPaper('a4', 'landscape');
+                return $pdf->download("{$fileName}.pdf");
+            }
+        }
+        return redirect()->back()->with('error', 'Tipo de relatório ou formato inválido para exportação.');
+    }
+
+    /**
      * Processa o pagamento em massa de comissões de bookers.
      */
     public function settleBatchBookerCommissions(Request $request)
@@ -150,7 +116,6 @@ public function export(Request $request)
 
                 $bookerCommissionValue = $this->gigCalculatorService->calculateBookerCommissionBrl($gig);
 
-                // Cria ou atualiza o registro de Settlement
                 $settlement = Settlement::firstOrNew(['gig_id' => $gig->id]);
                 $settlement->settlement_date = $settlement->settlement_date ?? $paymentDate;
                 $settlement->booker_commission_value_paid = $bookerCommissionValue;
@@ -158,7 +123,6 @@ public function export(Request $request)
                 $settlement->notes = trim(($settlement->notes ?? '') . "\n[Booker Batch " . now()->format('d/m/y H:i') . "]: Pago via lote.");
                 $settlement->save();
 
-                // Atualiza o status da Gig
                 $gig->booker_payment_status = 'pago';
                 $gig->save();
                 $settledCount++;
@@ -172,7 +136,6 @@ public function export(Request $request)
             return redirect()->back()->with('error', 'Ocorreu um erro inesperado ao processar os pagamentos.');
         }
 
-        // ***** REDIRECT CORRIGIDO - FORA DO CATCH E APÓS O COMMIT *****
         $redirectParams = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
         $redirectParams['tab'] = 'commissions';
 
@@ -205,7 +168,7 @@ public function export(Request $request)
         DB::beginTransaction();
         try {
             foreach ($gigIds as $gigId) {
-                $gig = Gig::with('settlement')->find($gigId); // Eager load settlement
+                $gig = Gig::with('settlement')->find($gigId);
 
                 if (!$gig || $gig->booker_payment_status !== 'pago') {
                     $errors[] = "Comissão da Gig #{$gigId} não pôde ser revertida (não encontrada ou não estava paga).";
@@ -231,7 +194,6 @@ public function export(Request $request)
             return redirect()->back()->with('error', 'Ocorreu um erro inesperado ao reverter os pagamentos.');
         }
         
-        // ***** REDIRECT CORRIGIDO - FORA DO CATCH E APÓS O COMMIT *****
         $redirectParams = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
         $redirectParams['tab'] = 'commissions';
 

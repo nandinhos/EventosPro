@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use App\Services\GigFinancialCalculatorService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class FinancialReportService
 {
@@ -100,7 +101,7 @@ class FinancialReportService
                     'net_profit' => $revenue - ($costs + $commission),
                 ];
             } catch (\Exception $e) {
-                \Log::error("Erro ao mapear dados da Gig ID {$gig->id}: " . $e->getMessage());
+                Log::error("Erro ao mapear dados da Gig ID {$gig->id}: " . $e->getMessage());
                 return [
                     'contract_number' => 'Erro',
                     'gig_date' => 'N/A',
@@ -140,7 +141,7 @@ class FinancialReportService
                     $profitableEvents++;
                 }
             } catch (\Exception $e) {
-                \Log::error("Erro ao calcular resumo de rentabilidade para Gig ID {$gig->id}: " . $e->getMessage());
+                Log::error("Erro ao calcular resumo de rentabilidade para Gig ID {$gig->id}: " . $e->getMessage());
             }
         }
 
@@ -178,7 +179,7 @@ class FinancialReportService
                     'margin' => $margin,
                 ];
             } catch (\Exception $e) {
-                \Log::error("Erro ao mapear dados de rentabilidade para Gig ID {$gig->id}: " . $e->getMessage());
+                Log::error("Erro ao mapear dados de rentabilidade para Gig ID {$gig->id}: " . $e->getMessage());
                 return [
                     'contract_number' => 'Erro',
                     'artist' => 'N/A',
@@ -328,7 +329,7 @@ class FinancialReportService
                     $eventsWithCommissionsCount++; // <<-- Incrementa o contador
                 }
             } catch (\Exception $e) {
-                \Log::error("Erro ao calcular resumo de comissões para Gig ID {$gig->id}: " . $e->getMessage());
+                Log::error("Erro ao calcular resumo de comissões para Gig ID {$gig->id}: " . $e->getMessage());
             }
         }
 
@@ -362,7 +363,7 @@ class FinancialReportService
                     'percentage' => $percentage,
                 ];
             } catch (\Exception $e) {
-                \Log::error("Erro ao mapear dados de comissões para Gig ID {$gig->id}: " . $e->getMessage());
+                Log::error("Erro ao mapear dados de comissões para Gig ID {$gig->id}: " . $e->getMessage());
                 return [
                     'contract_number' => 'Erro',
                     'gig_date' => 'N/A',
@@ -386,7 +387,7 @@ class FinancialReportService
                 return !is_null($expense->gig);
             })
             ->groupBy(function ($cost) {
-                return $cost->cost_center_id ? $cost->costCenter->name : 'Sem Centro de Custo';
+                return $cost->cost_center_id ? __('cost_centers.' . $cost->costCenter->name) : 'Sem Centro de Custo';
             });
 
         return $expenses->map(function ($group, $costCenterName) {
@@ -403,7 +404,7 @@ class FinancialReportService
                             'currency' => $expense->currency ?? 'BRL',
                         ];
                     } catch (\Exception $e) {
-                        \Log::error("Erro ao mapear despesa ID {$expense->id}: " . $e->getMessage());
+                        Log::error("Erro ao mapear despesa ID {$expense->id}: " . $e->getMessage());
                         return [
                             'gig_contract_number' => 'Erro',
                             'description' => 'N/A',
@@ -472,7 +473,7 @@ class FinancialReportService
                 $bookerName = $gig->booker->name ?? 'N/A';
                 $revenueByBooker[$bookerName][] = $contractValue;
             } catch (\Exception $e) {
-                \Log::error("Erro ao processar Gig ID {$gig->id}: " . $e->getMessage());
+                Log::error("Erro ao processar Gig ID {$gig->id}: " . $e->getMessage());
             }
         }
 
@@ -784,7 +785,7 @@ class FinancialReportService
         // 5. Agrupa os resultados por Centro de Custo
         $groupedCosts = $costs->groupBy(function ($cost) {
             return $cost->costCenter->name ?? 'Sem Centro de Custo';
-        })->map(function ($costsInGroup, $costCenterName) {
+        })->map(function ($costsInGroup, $costCenterName) { // $costCenterName aqui ainda é o nome original (inglês)
             // Para cada grupo, calcula o subtotal e mantém a coleção de custos
             return [
                 'cost_center_name' => $costCenterName,

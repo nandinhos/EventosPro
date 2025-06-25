@@ -57,6 +57,15 @@
                                 @endforeach
                             </select>
                         </div>
+                        {{-- ***** NOVO CHECKBOX AQUI ***** --}}
+                        <div class="flex items-center pt-5">
+                            <input type="checkbox" name="include_paid" id="include_paid" value="1" 
+                                   @if(request('include_paid')) checked @endif
+                                   class="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
+                            <label for="include_paid" class="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Incluir Gigs Pagas
+                            </label>
+                        </div>
                         <div class="flex items-center space-x-2 pt-5 xl:col-span-2">
                             <a href="{{ route('reports.delinquency') }}"
                                class="flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-500 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 w-full sm:w-auto">
@@ -130,7 +139,7 @@
                                                 </thead>
                                                 <tbody>
                                                     {{-- Loop para as Parcelas Pendentes desta Gig --}}
-                                                    @foreach ($gig->payments->whereNull('confirmed_at') as $payment)
+                                                    @foreach ($gig->payments as $payment)
                                                         <tr class="text-xs">
                                                             <td class="py-1 font-medium {{ $payment->due_date->isPast() ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300' }}">
                                                                 {{ $payment->due_date->format('d/m/Y') }}
