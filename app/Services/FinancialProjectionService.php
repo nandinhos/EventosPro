@@ -235,10 +235,17 @@ class FinancialProjectionService
 
         Log::info("[FinancialProjectionService] Quantidade de custos para getProjectedExpensesByCostCenter: " . $costs->count());
 
-        return $costs->groupBy('cost_center_id')->map(function ($group) {
-            $costCenter = $group->first()->costCenter;
-            $totalBrl = $group->sum('value_brl');
+        return $costs->groupBy('cost_center_id') // 1. Agrupa pelo ID
+        ->map(function ($group, $costCenterId) {
+            $firstCost = $group->first();
 
+            // 2. Determina o nome traduzido do grupo
+            $groupName = 'Sem Centro de Custo';
+            if ($firstCost && $firstCost->costCenter) {
+                $groupName = __('cost_centers.' . $firstCost->costCenter->name);
+            }
+            
+            $totalBrl = $group->sum('value_brl');
             $expenses = $group->map(function ($cost) {
                 $orderByDate = null;
                 $isGigDateFallback = false;
@@ -265,7 +272,7 @@ class FinancialProjectionService
             });
 
             return [
-                'cost_center_name' => $costCenter->name ?? 'Sem Centro de Custo',
+                'cost_center_name' => $groupName,
                 'total_brl' => $totalBrl,
                 'expenses' => $expenses->values(),
             ];

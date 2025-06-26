@@ -784,15 +784,15 @@ class FinancialReportService
 
         // 5. Agrupa os resultados por Centro de Custo
         $groupedCosts = $costs->groupBy(function ($cost) {
-            return $cost->costCenter->name ?? 'Sem Centro de Custo';
-        })->map(function ($costsInGroup, $costCenterName) { // $costCenterName aqui ainda é o nome original (inglês)
-            // Para cada grupo, calcula o subtotal e mantém a coleção de custos
+            // Agrupa pelo NOME TRADUZIDO
+            return $cost->costCenter ? __('cost_centers.' . $cost->costCenter->name) : 'Sem Centro de Custo';
+        })->map(function ($costsInGroup, $translatedCostCenterName) { // A chave agora é o nome traduzido
             return [
-                'cost_center_name' => $costCenterName,
-                'subtotal' => $costsInGroup->sum('value'),
+                'cost_center_name' => $translatedCostCenterName, // Usa a chave diretamente
+                'subtotal' => $costsInGroup->sum('value_brl'),
                 'costs' => $costsInGroup,
             ];
-        })->sortBy('cost_center_name'); // Ordena os grupos por nome
+        })->sortBy('cost_center_name');
 
         return [
             'groups' => $groupedCosts,

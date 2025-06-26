@@ -32,11 +32,11 @@ class GigCostController extends Controller
             ->groupBy('cost_center_id')
             ->map(function ($costsInGroup, $costCenterId) {
                 $firstCost = $costsInGroup->first();
+                $translatedName = $firstCost->costCenter ? __('cost_centers.' . $firstCost->costCenter->name) : 'Desconhecido';
                 return [
-                    'cost_center' => $firstCost->costCenter ? // Verifica se costCenter existe
-                                     ['id' => $firstCost->costCenter->id, 'name' => $firstCost->costCenter->name]
-                                     : ['id' => null, 'name' => 'Desconhecido'],
-                    'total_value' => $costsInGroup->sum('value'),
+                    'cost_center' => $firstCost->costCenter ?
+                                     ['id' => $firstCost->costCenter->id, 'name' => $translatedName] : ['id' => null, 'name' => 'Desconhecido'],
+                    'total_value' => $costsInGroup->sum('value_brl'),
                     'count' => $costsInGroup->count(),
                     'costs' => $costsInGroup->map(function ($cost) {
                         return [

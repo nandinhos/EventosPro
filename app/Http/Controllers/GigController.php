@@ -253,7 +253,9 @@ $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center
         $bookers = Booker::orderBy('name')->pluck('name', 'id');
         $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type');
         $selectedTags = $gig->tags()->pluck('id')->toArray();
-        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
+        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id')->map(function ($name, $id) {
+            return __('cost_centers.' . $name);
+        });
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
 
         $gig->load('costs');
