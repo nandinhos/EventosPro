@@ -52,3 +52,22 @@
     <textarea id="modal_notes" x-model="costFormData.notes" rows="2"
               class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500"></textarea>
 </div>
+
+{{-- ***** INÍCIO DA NOVA SEÇÃO DE CHECKBOXES ***** --}}
+<div class="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
+    <div class="flex items-center">
+        <input type="checkbox" id="modal_is_confirmed" x-model="costFormData.is_confirmed" value="1"
+               class="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
+        <label for="modal_is_confirmed" class="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Confirmada pela Agência?
+        </label>
+    </div>
+    <div class="flex items-center">
+        <input type="checkbox" id="modal_is_invoice" x-model="costFormData.is_invoice" value="1"
+               class="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
+        <label for="modal_is_invoice" class="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Reembolsável via NF do Artista?
+        </label>
+    </div>
+</div>
+{{-- ***** FIM DA NOVA SEÇÃO DE CHECKBOXES ***** --}}

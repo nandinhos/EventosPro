@@ -65,23 +65,31 @@ class GigCostController extends Controller
     /**
      * Armazena uma nova despesa para a Gig.
      */
-    public function store(StoreGigCostRequest $request, Gig $gig): JsonResponse // Retorna JSON para fetch
+    public function store(StoreGigCostRequest $request, Gig $gig): JsonResponse
     {
         try {
             $data = $request->validated();
             $data['gig_id'] = $gig->id;
-            $data['is_confirmed'] = false; // Novas despesas iniciam não confirmadas
-            $data['confirmed_by'] = null;
-            $data['confirmed_at'] = null;
+
+            // ***** LÓGICA PARA OS NOVOS CAMPOS *****
+            // Se 'is_confirmed' veio como true, preenche os dados de confirmação
+            if (!empty($data['is_confirmed'])) {
+                $data['confirmed_by'] = Auth::id();
+                $data['confirmed_at'] = Carbon::now();
+            } else {
+                $data['is_confirmed'] = false; // Garante que é false se não for enviado
+                $data['confirmed_by'] = null;
+                $data['confirmed_at'] = null;
+            }
+
+            // Garante que 'is_invoice' seja booleano
+            $data['is_invoice'] = !empty($data['is_invoice']);
 
             $cost = GigCost::create($data);
-
-            // Disparar evento para recalcular totais da Gig, se necessário
-            // event(new GigDataChanged($gig));
-
+            
             return response()->json(['message' => 'Despesa adicionada com sucesso!', 'cost' => $cost], 201);
         } catch (\Exception $e) {
-            Log::error("Erro ao adicionar despesa à Gig {$gig->id}: " . $e->getMessage());
+            Log::error("Erro ao adicionar despesa à Gig {$gig->id}: " . $e->getMessage(), ['exception' => $e, 'request_data' => $request->all()]);
             return response()->json(['message' => 'Erro ao adicionar despesa.'], 500);
         }
     }
@@ -99,8 +107,22 @@ class GigCostController extends Controller
         }
 
         try {
-            $cost->update($request->validated());
-            // event(new GigDataChanged($gig));
+            $data = $request->validated();
+            
+            // Lógica similar ao store para o update
+            $isConfirmedNow = !empty($data['is_confirmed']);
+            $wasConfirmedBefore = $cost->is_confirmed;
+
+            // Se o status de confirmação mudou de não-confirmado para confirmado
+            if ($isConfirmedNow && !$wasConfirmedBefore) {
+                $data['confirmed_by'] = Auth::id();
+                $data['confirmed_at'] = Carbon::now();
+            }
+
+            $data['is_invoice'] = !empty($data['is_invoice']);
+
+            $cost->update($data);
+            
             return response()->json(['message' => 'Despesa atualizada com sucesso!', 'cost' => $cost->fresh()]);
         } catch (\Exception $e) {
             Log::error("Erro ao atualizar despesa {$cost->id}: " . $e->getMessage());

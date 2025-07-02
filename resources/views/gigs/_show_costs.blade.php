@@ -204,13 +204,13 @@
             
             openNewCostModal() {
                 this.isEditMode = false;
-                this.costFormData = { id: null, cost_center_id: '', description: '', value: '', currency: 'BRL', expense_date: '{{ today()->format("Y-m-d") }}', notes: '' };
+                this.costFormData = { id: null, cost_center_id: '', description: '', value: '', currency: 'BRL', expense_date: '{{ today()->format("Y-m-d") }}', notes: '', is_confirmed: false, is_invoice: false };
                 this.showCostFormModal = true;
                 this.$nextTick(() => document.getElementById('modal_cost_center_id')?.focus());
             },
             openEditCostModal(cost) {
                 this.isEditMode = true;
-                this.costFormData = { 
+                this.costFormData = {
                     ...cost,
                     cost_center_id: String(cost.cost_center_id || '') 
                 };

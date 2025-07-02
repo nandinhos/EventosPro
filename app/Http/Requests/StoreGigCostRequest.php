@@ -36,8 +36,8 @@ class StoreGigCostRequest extends FormRequest
             // 'is_confirmed' e 'is_invoice' serão tratados pelo controller/observer ao criar,
             // ou podem vir do form se você quiser permitir que o usuário defina na criação via modal.
             // Se vierem do form, adicione:
-            // 'is_confirmed'   => ['sometimes', 'boolean'],
-            // 'is_invoice'     => ['sometimes', 'boolean'],
+             'is_confirmed'   => ['sometimes', 'boolean'],
+             'is_invoice'     => ['sometimes', 'boolean'],
         ];
     }
 

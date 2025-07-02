@@ -33,6 +33,8 @@ class UpdateGigCostRequest extends FormRequest
             'currency'       => ['sometimes', 'required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])],
             'expense_date'   => ['sometimes', 'nullable', 'date'],
             'notes'          => ['sometimes', 'nullable', 'string', 'max:65535'],
+            'is_confirmed'   => ['sometimes', 'boolean'],
+            'is_invoice'     => ['sometimes', 'boolean'],
             // 'is_confirmed' e 'is_invoice' não são tipicamente atualizados via form de edição de dados,
             // mas sim por ações específicas (confirmar, marcar como NF). Se forem, adicione 'sometimes' e 'boolean'.
         ];
