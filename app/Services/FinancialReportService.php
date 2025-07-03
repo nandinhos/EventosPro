@@ -11,6 +11,7 @@ use Illuminate\Support\Collection;
 use App\Services\GigFinancialCalculatorService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class FinancialReportService
 {
@@ -850,6 +851,50 @@ class FinancialReportService
             ],
             'groups' => $groupedByBooker,
         ];
+    }
+
+    /**
+     * Obtém os dados de rentabilidade por "venda" (Gig),
+     * ordenados pela data do contrato ou, na sua ausência, pela data do evento.
+     *
+     * @return \Illuminate\Support\Collection
+     */
+    public function getSalesProfitabilityData(): \Illuminate\Support\Collection
+    {
+        // 1. Define a "data da venda" usando COALESCE e aplica os filtros
+        $gigsQuery = $this->applyFilters(Gig::query()->whereNull('deleted_at'))
+            ->select(
+                'gigs.*', // Seleciona todas as colunas de gigs
+                DB::raw('COALESCE(gigs.contract_date, gigs.gig_date) as sale_date') // 2. Cria a coluna virtual 'sale_date'
+            )
+            ->with('costs'); // Carrega o relacionamento de custos para evitar N+1
+
+        // 3. Ordena pela "data da venda"
+        $gigs = $gigsQuery->orderBy('sale_date', 'desc')->get();
+
+        // 4. Mapeia os resultados para o formato final, calculando a rentabilidade
+        return $gigs->map(function ($gig) {
+            // Valor do contrato em BRL. Usamos o accessor que já lida com a conversão.
+            $revenue = $gig->cache_value_brl ?? 0;
+            
+            // Soma das despesas confirmadas da Gig
+            $totalCosts = $gig->costs->where('is_confirmed', true)->sum('value_brl');
+
+            // Cálculo da rentabilidade e margem
+            $profitability = $revenue - $totalCosts;
+            $margin = ($revenue > 0) ? ($profitability / $revenue) * 100 : 0;
+
+            return [
+                'sale_date' => \Carbon\Carbon::parse($gig->sale_date)->format('d/m/Y'),
+                'gig_id' => $gig->id,
+                'gig_name' => $gig->artist->name . ' @ ' . Str::limit($gig->location_event_details, 30),
+                'gig_contract_number' => $gig->contract_number,
+                'revenue' => $revenue,
+                'costs' => $totalCosts,
+                'profitability' => $profitability,
+                'margin' => $margin,
+            ];
+        });
     }
 
 }

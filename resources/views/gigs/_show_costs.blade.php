@@ -39,7 +39,7 @@
         <template x-for="group in costsByCenter" :key="group.cost_center.id">
             <div class="p-4">
                 <div class="flex justify-between items-center mb-3 bg-gray-100 dark:bg-gray-700/50 p-2 rounded-md">
-                    <h4 class="text-md font-medium text-gray-800 dark:text-white" x-text="'{{ __('cost_centers.') }}' + group.cost_center.name"></h4>
+                    <h4 class="text-md font-medium text-gray-800 dark:text-white" x-text="group.cost_center.name"></h4>
                     <span class="text-xs text-gray-600 dark:text-gray-300">
                         Total Centro: <span class="font-medium" x-text="formatCurrency(group.total_value)"></span>
                         (<span x-text="group.count"></span> itens)

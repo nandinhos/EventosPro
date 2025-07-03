@@ -12,6 +12,7 @@ use App\Http\Controllers\SettlementController;
 use App\Http\Controllers\FinancialProjectionController;
 use App\Http\Controllers\FinancialReportController;
 use App\Http\Controllers\DelinquencyReportController;
+use App\Http\Controllers\PerformanceReportController;
 
 
 use App\Models\Gig;
@@ -141,6 +142,10 @@ Route::middleware('auth')->group(function () {
 
     // **NOVA ROTA PARA A DEPURAÇÃO DAS PROJEÇÕES**
     Route::get('/projections/debug', [FinancialProjectionController::class, 'debug'])->name('projections.debug');
+
+    // Dentro do grupo de autenticação
+    Route::get('/desempenho', [PerformanceReportController::class, 'index'])->name('performance.index');
+    Route::get('/desempenho/exportar', [PerformanceReportController::class, 'exportPdf'])->name('performance.exportPdf');
 
     // Gigs
     Route::resource('gigs', GigController::class);

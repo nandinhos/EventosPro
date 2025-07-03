@@ -38,7 +38,10 @@ class FinancialReportController extends Controller
         $commissionsReport = $this->reportService->getGroupedCommissionsData();
         $detailedPerformanceReport = $this->reportService->getDetailedPerformanceData();
         $profitabilityReport = $this->reportService->getProfitabilityAnalysisData();
+
         // Adicione aqui a chamada para outros métodos de relatório que você usa na view
+        $salesProfitabilityData = $this->reportService->getSalesProfitabilityData();
+
         $cashflowSummary = $this->reportService->getCashflowSummary();
         $cashflowTable = collect($this->reportService->getCashflowTableData());
         $groupedExpensesReport = $this->reportService->getGroupedExpensesData();
@@ -49,6 +52,7 @@ class FinancialReportController extends Controller
         return view('reports.dashboard', [
             'filters' => $filters,
             'activeTab' => $activeTab,
+            'salesProfitabilityData' => $salesProfitabilityData,
             'detailedPerformanceReport' => $detailedPerformanceReport,
             'profitabilityReport' => $profitabilityReport,
             'groupedExpensesReport' => $groupedExpensesReport,

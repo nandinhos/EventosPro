@@ -32,10 +32,16 @@ class GigCostController extends Controller
             ->groupBy('cost_center_id')
             ->map(function ($costsInGroup, $costCenterId) {
                 $firstCost = $costsInGroup->first();
-                $translatedName = $firstCost->costCenter ? __('cost_centers.' . $firstCost->costCenter->name) : 'Desconhecido';
+                // 1. Determina o nome traduzido
+                $translatedName = $firstCost->costCenter 
+                    ? __('cost_centers.' . $firstCost->costCenter->name) 
+                    : 'Desconhecido';
+                
                 return [
                     'cost_center' => $firstCost->costCenter ?
-                                     ['id' => $firstCost->costCenter->id, 'name' => $translatedName] : ['id' => null, 'name' => 'Desconhecido'],
+                                     // 2. Passa o nome já traduzido no JSON
+                                     ['id' => $firstCost->costCenter->id, 'name' => $translatedName]
+                                     : ['id' => null, 'name' => 'Desconhecido'],
                     'total_value' => $costsInGroup->sum('value_brl'),
                     'count' => $costsInGroup->count(),
                     'costs' => $costsInGroup->map(function ($cost) {
@@ -46,14 +52,12 @@ class GigCostController extends Controller
                             'value' => $cost->value,
                             'currency' => $cost->currency,
                             'expense_date_formatted' => $cost->expense_date ? $cost->expense_date->format('d/m/Y') : 'N/A',
-                            'expense_date' => $cost->expense_date?->format('Y-m-d'), // Para formulários
+                            'expense_date' => $cost->expense_date?->format('Y-m-d'),
                             'is_confirmed' => $cost->is_confirmed,
                             'is_invoice' => $cost->is_invoice,
                             'confirmed_at_formatted' => $cost->confirmed_at ? $cost->confirmed_at->format('d/m/y H:i') : null,
-                            'confirmed_by_name' => $cost->confirmer?->name, // Usa o relacionamento 'confirmer'
+                            'confirmed_by_name' => $cost->confirmer?->name,
                             'notes' => $cost->notes,
-                            'payer_type' => $cost->payer_type,
-                            'payer_details' => $cost->payer_details,
                         ];
                     })
                 ];
