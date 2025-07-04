@@ -120,6 +120,8 @@ Route::middleware('auth')->group(function () {
 
     // Rotas de Relatórios
     Route::get('/reports', [FinancialReportController::class, 'index'])->name('reports.index');
+    // Relatório de Visão Geral
+    Route::get('/reports/overview/export/{format}', [FinancialReportController::class, 'exportOverview'])->name('reports.overview.export');
     //Lista de inadimplentes
     Route::get('/reports/delinquency', [DelinquencyReportController::class, 'index'])->name('reports.delinquency');
     // Rota para exportação inadimplentes

@@ -1,114 +1,99 @@
-{{-- Este parcial espera a variável $detailedPerformanceReport do controller --}}
 @php
-    $tableData = $detailedPerformanceReport['tableData'] ?? collect([]);
-    $totals = $detailedPerformanceReport['totals'] ?? [];
+    // Os dados agora vêm da variável $overviewData, passada pelo controller
+    $dataByArtist = $overviewData['dataByArtist'] ?? collect([]);
+    $grandTotals = $overviewData['grandTotals'] ?? [];
 @endphp
 
 <div class="space-y-6 mt-4">
     {{-- Botões de Exportação --}}
-    <div class="flex justify-end">
-        {{-- Aqui chamamos o nosso componente de botão --}}
-        <x-reports.slot-button type="overview" />
+    <div class="flex justify-end space-x-2">
+        <a href="{{ route('reports.overview.export', array_merge(request()->query(), ['format' => 'xlsx'])) }}" 
+           class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md flex items-center text-sm transition-colors duration-200">
+            <i class="fas fa-file-excel mr-2"></i> Exportar para Excel
+        </a>
+        <a href="{{ route('reports.overview.export', array_merge(request()->query(), ['format' => 'pdf'])) }}" 
+           target="_blank" 
+           class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-md flex items-center text-sm transition-colors duration-200">
+            <i class="fas fa-file-pdf mr-2"></i> Exportar para PDF
+        </a>
     </div>
 
-
-    {{-- Cards de Resumo (Opcional, pode usar os totais aqui) --}}
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg">
-            <h3 class="text-sm text-gray-500 dark:text-gray-400">Cachê Bruto (BRL)</h3>
-            <p class="text-lg font-semibold text-blue-800 dark:text-blue-300">R$ {{ number_format($totals['cache_bruto_brl'] ?? 0, 2, ',', '.') }}</p>
-        </div>
-        <div class="bg-red-100 dark:bg-red-900/20 p-4 rounded-lg">
-            <h3 class="text-sm text-gray-500 dark:text-gray-400">Total Despesas</h3>
-            <p class="text-lg font-semibold text-red-800 dark:text-red-300">R$ {{ number_format($totals['total_despesas_confirmadas_brl'] ?? 0, 2, ',', '.') }}</p>
-        </div>
-        <div class="bg-green-100 dark:bg-green-900/20 p-4 rounded-lg">
-            <h3 class="text-sm text-gray-500 dark:text-gray-400">Comissão Ag. Líquida</h3>
-            <p class="text-lg font-semibold text-green-800 dark:text-green-300">R$ {{ number_format($totals['comissao_agencia_liquida_brl'] ?? 0, 2, ',', '.') }}</p>
-        </div>
-        <div class="bg-indigo-100 dark:bg-indigo-900/20 p-4 rounded-lg">
-            <h3 class="text-sm text-gray-500 dark:text-gray-400">Repasse Artistas</h3>
-            <p class="text-lg font-semibold text-indigo-800 dark:text-indigo-300">R$ {{ number_format($totals['repasse_estimado_artista_brl'] ?? 0, 2, ',', '.') }}</p>
-        </div>
-    </div>
-
-
-    {{-- Tabela de Visão Geral Detalhada --}}
-    @if ($tableData->isNotEmpty())
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs">
-                <thead class="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                        <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data Gig</th>
-                        <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Artista</th>
-                        <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Booker</th>
-                        <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Local/Evento</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cachê (Orig)</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cachê (BRL)</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Despesas</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cachê Líq. Base</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Repasse Artista</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Com. Agência</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Com. Booker</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Com. Ag. Líq.</th>
-                        <th class="px-3 py-2 text-center font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status Contrato</th>
-                        <th class="px-3 py-2 text-center font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status Pgto.</th>
+    {{-- Tabela Agrupada por Artista --}}
+    <div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs">
+            <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                    <th class="px-2 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Data Gig</th>
+                    <th class="px-2 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Booker</th>
+                    <th class="px-2 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Local/Evento</th>
+                    <th class="px-2 py-2 text-right font-medium text-gray-500 dark:text-gray-400">Cachê (Orig)</th>
+                    <th class="px-2 py-2 text-right font-medium text-gray-500 dark:text-gray-400">Cachê (BRL)</th>
+                    <th class="px-2 py-2 text-right font-medium text-gray-500 dark:text-gray-400">Despesas</th>
+                    <th class="px-2 py-2 text-right font-medium text-gray-500 dark:text-gray-400">Cachê Líq. Base</th>
+                    <th class="px-2 py-2 text-right font-medium text-gray-500 dark:text-gray-400">Repasse Artista</th>
+                    <th class="px-2 py-2 text-right font-medium text-gray-500 dark:text-gray-400">Com. Agência</th>
+                    <th class="px-2 py-2 text-right font-medium text-gray-500 dark:text-gray-400">Com. Booker</th>
+                    <th class="px-2 py-2 text-right font-medium text-gray-500 dark:text-gray-400">Com. Ag. Líq.</th>
+                    <th class="px-2 py-2 text-center font-medium text-gray-500 dark:text-gray-400">Status Contrato</th>
+                    <th class="px-2 py-2 text-center font-medium text-gray-500 dark:text-gray-400">Status Pgto.</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-800">
+                @forelse ($dataByArtist as $artistData)
+                    {{-- Linha de Cabeçalho do Grupo de Artista --}}
+                    <tr class="bg-gray-100 dark:bg-gray-700/50">
+                        <td class="px-2 py-3 font-bold text-sm text-primary-700 dark:text-primary-400" colspan="13">
+                            <i class="fas fa-music fa-fw mr-2"></i>{{ $artistData['artist_name'] }}
+                        </td>
                     </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    @foreach ($tableData as $row)
-                        <tr>
-                            <td class="px-3 py-1.5 whitespace-nowrap">{{ $row['gig_date'] }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap font-semibold">{{ $row['artist_name'] }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap">{{ $row['booker_name'] }}</td>
-                            <td class="px-3 py-1.5 whitespace-normal max-w-xs truncate" title="{{ $row['location_event_details'] }}">{{ $row['location_event_details'] }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-right">{{ $row['cache_bruto_original'] }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-right">{{ number_format($row['cache_bruto_brl'], 2, ',', '.') }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-right text-red-600">{{ number_format($row['total_despesas_confirmadas_brl'], 2, ',', '.') }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-right font-bold">{{ number_format($row['cache_liquido_base_brl'], 2, ',', '.') }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-right">{{ number_format($row['repasse_estimado_artista_brl'], 2, ',', '.') }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-right">{{ number_format($row['comissao_agencia_brl'], 2, ',', '.') }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-right">{{ number_format($row['comissao_booker_brl'], 2, ',', '.') }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-right">{{ number_format($row['comissao_agencia_liquida_brl'], 2, ',', '.') }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-center"><x-status-badge :status="$row['contract_status']" type="contract" /></td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-center"><x-status-badge :status="$row['payment_status']" type="payment" /></td>
+                    
+                    {{-- Linhas de Gigs do Artista --}}
+                    @foreach ($artistData['gigs'] as $row)
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                            <td class="px-2 py-2 whitespace-nowrap">{{ $row['gig_date'] }}</td>
+                            <td class="px-2 py-2 whitespace-nowrap">{{ $row['booker_name'] }}</td>
+                            <td class="px-2 py-2 whitespace-normal max-w-xs truncate" title="{{ $row['location_event_details'] }}">{{ $row['location_event_details'] }}</td>
+                            <td class="px-2 py-2 text-right whitespace-nowrap">{{ $row['cache_bruto_original'] }}</td>
+                            <td class="px-2 py-2 text-right whitespace-nowrap">{{ number_format($row['cache_bruto_brl'], 2, ',', '.') }}</td>
+                            <td class="px-2 py-2 text-right whitespace-nowrap text-red-500">{{ number_format($row['total_despesas_confirmadas_brl'], 2, ',', '.') }}</td>
+                            <td class="px-2 py-2 text-right whitespace-nowrap font-semibold">{{ number_format($row['cache_liquido_base_brl'], 2, ',', '.') }}</td>
+                            <td class="px-2 py-2 text-right whitespace-nowrap">{{ number_format($row['repasse_estimado_artista_brl'], 2, ',', '.') }}</td>
+                            <td class="px-2 py-2 text-right whitespace-nowrap">{{ number_format($row['comissao_agencia_brl'], 2, ',', '.') }}</td>
+                            <td class="px-2 py-2 text-right whitespace-nowrap">{{ number_format($row['comissao_booker_brl'], 2, ',', '.') }}</td>
+                            <td class="px-2 py-2 text-right whitespace-nowrap font-semibold">{{ number_format($row['comissao_agencia_liquida_brl'], 2, ',', '.') }}</td>
+                            <td class="px-2 py-2 text-center whitespace-nowrap"><x-status-badge :status="$row['contract_status']" type="contract" /></td>
+                            <td class="px-2 py-2 text-center whitespace-nowrap"><x-status-badge :status="$row['payment_status']" type="payment" /></td>
                         </tr>
                     @endforeach
-                </tbody>
-                <thead class="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                        <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"></th>
-                        <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"></th>
-                        <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"></th>
-                        <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"></th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cachê (Orig)</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cachê (BRL)</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Despesas</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cachê Líq. Base</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Repasse Artista</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Com. Agência</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Com. Booker</th>
-                        <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Com. Ag. Líq.</th>
-                        <th class="px-3 py-2 text-center font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"></th>
-                        <th class="px-3 py-2 text-center font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"></th>
+
+                    {{-- Linha de Subtotal do Artista --}}
+                    <tr class="bg-gray-50 dark:bg-gray-800/80 font-bold border-b-2 border-gray-300 dark:border-gray-600">
+                        <td class="px-2 py-2 text-right" colspan="3">SUBTOTAL {{ strtoupper($artistData['artist_name']) }}:</td>
+                        <td class="px-2 py-2 text-center" colspan="1">{{ $artistData['gig_count'] }} Gigs</td>
+                        <td class="px-2 py-2 text-right">{{ number_format($artistData['subtotals']['cache_bruto_brl'], 2, ',', '.') }}</td>
+                        <td class="px-2 py-2 text-right">{{ number_format($artistData['subtotals']['total_despesas_confirmadas_brl'], 2, ',', '.') }}</td>
+                        <td class="px-2 py-2 text-right">{{ number_format($artistData['subtotals']['cache_liquido_base_brl'], 2, ',', '.') }}</td>
+                        {{-- Adicione outras colunas de subtotal aqui se necessário, mantendo o colspan correto --}}
+                        <td colspan="6"></td>
                     </tr>
-                </thead>
-                <tfoot class="bg-gray-50 dark:bg-gray-900 font-bold">
+                @empty
                     <tr>
-                        <td class="px-3 py-2 text-right" colspan="5">TOTAIS</td>
-                        <td class="px-3 py-2 text-right">{{ number_format($totals['cache_bruto_brl'] ?? 0, 2, ',', '.') }}</td>
-                        <td class="px-3 py-2 text-right">{{ number_format($totals['total_despesas_confirmadas_brl'] ?? 0, 2, ',', '.') }}</td>
-                        <td class="px-3 py-2 text-right">{{ number_format($totals['cache_liquido_base_brl'] ?? 0, 2, ',', '.') }}</td>
-                        <td class="px-3 py-2 text-right">{{ number_format($totals['repasse_estimado_artista_brl'] ?? 0, 2, ',', '.') }}</td>
-                        <td class="px-3 py-2 text-right">{{ number_format($totals['comissao_agencia_brl'] ?? 0, 2, ',', '.') }}</td>
-                        <td class="px-3 py-2 text-right">{{ number_format($totals['comissao_booker_brl'] ?? 0, 2, ',', '.') }}</td>
-                        <td class="px-3 py-2 text-right">{{ number_format($totals['comissao_agencia_liquida_brl'] ?? 0, 2, ',', '.') }}</td>
-                        <td class="px-3 py-2" colspan="2"></td>
+                        <td class="text-center py-10" colspan="13">Nenhum dado encontrado para os filtros selecionados.</td>
                     </tr>
-                </tfoot>
-            </table>
-        </div>
-    @else
-        <p class="text-center text-gray-500 dark:text-gray-400 mt-6">Nenhum dado de performance disponível para o período selecionado.</p>
-    @endif
+                @endforelse
+            </tbody>
+            {{-- Rodapé com Total Geral --}}
+            <tfoot class="bg-gray-200 dark:bg-gray-900 font-bold text-sm">
+                <tr>
+                    <td class="px-2 py-3 text-right" colspan="3">TOTAIS GERAIS:</td>
+                    <td class="px-2 py-3 text-center" colspan="1">{{ $grandTotals['gig_count'] ?? '0' }} Gigs</td>
+                    <td class="px-2 py-3 text-right">{{ number_format($grandTotals['cache_bruto_brl'] ?? 0, 2, ',', '.') }}</td>
+                    <td class="px-2 py-3 text-right">{{ number_format($grandTotals['total_despesas_confirmadas_brl'] ?? 0, 2, ',', '.') }}</td>
+                    <td class="px-2 py-3 text-right">{{ number_format($grandTotals['cache_liquido_base_brl'] ?? 0, 2, ',', '.') }}</td>
+                    {{-- Adicione outras colunas de total geral aqui --}}
+                    <td colspan="6"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
 </div>

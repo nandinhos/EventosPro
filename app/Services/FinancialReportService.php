@@ -897,4 +897,89 @@ class FinancialReportService
         });
     }
 
+    /**
+     * Obtém os dados detalhados para a Visão Geral, agrupados por artista.
+     *
+     * @return array
+     */
+    public function getOverviewData(): array
+    {
+        // 1. Aplica os filtros e busca as Gigs com seus relacionamentos
+        $gigs = $this->applyFilters(Gig::query()->whereNull('deleted_at'))
+            ->with(['artist', 'booker', 'costs']) // Eager load
+            ->orderBy('artist_id') // Ordena por artista para o agrupamento
+            ->orderBy('gig_date')   // Depois por data da gig
+            ->get();
+
+        // 2. Agrupa os resultados por nome do Artista
+        $dataByArtist = $gigs->groupBy('artist.name')->map(function ($artistGigs, $artistName) {
+            
+            // 3. Calcula os subtotais para este artista
+            $subtotals = [
+                'cache_bruto_brl' => 0,
+                'total_despesas_confirmadas_brl' => 0,
+                'cache_liquido_base_brl' => 0,
+                'repasse_estimado_artista_brl' => 0,
+                'comissao_agencia_brl' => 0,
+                'comissao_booker_brl' => 0,
+                'comissao_agencia_liquida_brl' => 0,
+            ];
+            
+            // 4. Mapeia cada gig, calculando seus valores e somando aos subtotais
+            $gigsData = $artistGigs->map(function ($gig) use (&$subtotals) {
+                $cacheBrutoBrl = $gig->cache_value_brl ?? 0;
+                $totalDespesasConfirmadasBrl = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
+                $cacheLiquidoBaseBrl = $this->calculator->calculateGrossCashBrl($gig);
+                $repasseEstimadoArtistaBrl = $this->calculator->calculateArtistNetPayoutBrl($gig);
+                $comissaoAgenciaBrl = $this->calculator->calculateAgencyGrossCommissionBrl($gig);
+                $comissaoBookerBrl = $this->calculator->calculateBookerCommissionBrl($gig);
+                $comissaoAgenciaLiquidaBrl = $this->calculator->calculateAgencyNetCommissionBrl($gig);
+
+                // Soma aos subtotais
+                $subtotals['cache_bruto_brl'] += $cacheBrutoBrl;
+                $subtotals['total_despesas_confirmadas_brl'] += $totalDespesasConfirmadasBrl;
+                $subtotals['cache_liquido_base_brl'] += $cacheLiquidoBaseBrl;
+                // ... (somar os outros campos se necessário no subtotal)
+                
+                return [
+                    'gig_date' => $gig->gig_date->format('d/m/Y'),
+                    'artist_name' => $gig->artist->name ?? 'N/A',
+                    'booker_name' => $gig->booker->name ?? 'N/A',
+                    'location_event_details' => $gig->location_event_details,
+                    'cache_bruto_original' => "{$gig->currency} " . number_format($gig->cache_value, 2, ',', '.'),
+                    'cache_bruto_brl' => $cacheBrutoBrl,
+                    'total_despesas_confirmadas_brl' => $totalDespesasConfirmadasBrl,
+                    'cache_liquido_base_brl' => $cacheLiquidoBaseBrl,
+                    'repasse_estimado_artista_brl' => $repasseEstimadoArtistaBrl,
+                    'comissao_agencia_brl' => $comissaoAgenciaBrl,
+                    'comissao_booker_brl' => $comissaoBookerBrl,
+                    'comissao_agencia_liquida_brl' => $comissaoAgenciaLiquidaBrl,
+                    'contract_status' => $gig->contract_status,
+                    'payment_status' => $gig->payment_status,
+                ];
+            });
+
+            return [
+                'artist_name' => $artistName,
+                'gigs' => $gigsData,
+                'subtotals' => $subtotals,
+                'gig_count' => $artistGigs->count()
+            ];
+        });
+
+        // 5. Calcula os totais gerais
+        $grandTotals = [
+            'cache_bruto_brl' => $dataByArtist->sum('subtotals.cache_bruto_brl'),
+            'total_despesas_confirmadas_brl' => $dataByArtist->sum('subtotals.total_despesas_confirmadas_brl'),
+            'cache_liquido_base_brl' => $dataByArtist->sum('subtotals.cache_liquido_base_brl'),
+            // ... (somar outros campos para o total geral)
+            'gig_count' => $dataByArtist->sum('gig_count'),
+        ];
+        
+        return [
+            'dataByArtist' => $dataByArtist,
+            'grandTotals' => $grandTotals
+        ];
+    }
+
 }

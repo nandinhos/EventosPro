@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\OverviewReportExport;
 
 class FinancialReportController extends Controller
 {
@@ -34,6 +35,8 @@ class FinancialReportController extends Controller
         $activeTab = $request->input('tab', 'overview');
 
         $this->reportService->setFilters($filters);
+
+        $overviewData = $this->reportService->getOverviewData();
 
         $commissionsReport = $this->reportService->getGroupedCommissionsData();
         $detailedPerformanceReport = $this->reportService->getDetailedPerformanceData();
@@ -61,6 +64,7 @@ class FinancialReportController extends Controller
             'cashflowTable' => $cashflowTable,
             'bookers' => $bookers,
             'artists' => $artists,
+            'overviewData' => $overviewData,
         ]);
     }
 
@@ -207,5 +211,36 @@ class FinancialReportController extends Controller
             return Redirect::route('reports.index', $redirectParams)->with('warning', $message);
         }
         return Redirect::route('reports.index', $redirectParams)->with('success', $message);
+    }
+
+    /**
+     * Lida com a exportação da Visão Geral para PDF ou Excel.
+     */
+    public function exportOverview(Request $request, $format)
+    {
+        // 1. Coleta os filtros do request
+        $filters = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
+        
+        // 2. Passa os filtros para o service
+        $this->reportService->setFilters($filters);
+        $overviewData = $this->reportService->getOverviewData();
+        
+        $fileName = 'relatorio_visao_geral_' . now()->format('Y-m-d');
+
+        if ($format === 'pdf') {
+            // 3. Passa AMBOS $overviewData e $filters para a view do PDF
+            $pdf = Pdf::loadView('reports.exports.overview_pdf', [
+                'overviewData' => $overviewData,
+                'filters' => $filters // <-- CORREÇÃO AQUI
+            ])->setPaper('a4', 'landscape');
+            
+            return $pdf->download("{$fileName}.pdf");
+        }
+        
+        if ($format === 'xlsx') {
+            return Excel::download(new \App\Exports\OverviewReportExport($overviewData), "{$fileName}.xlsx");
+        }
+
+        return redirect()->back()->with('error', 'Formato de exportação inválido.');
     }
 }
