@@ -904,29 +904,27 @@ class FinancialReportService
      */
     public function getOverviewData(): array
     {
-        // 1. Aplica os filtros e busca as Gigs com seus relacionamentos
         $gigs = $this->applyFilters(Gig::query()->whereNull('deleted_at'))
-            ->with(['artist', 'booker', 'costs']) // Eager load
-            ->orderBy('artist_id') // Ordena por artista para o agrupamento
-            ->orderBy('gig_date')   // Depois por data da gig
+            ->with(['artist', 'booker', 'costs'])
             ->get();
 
-        // 2. Agrupa os resultados por nome do Artista
-        $dataByArtist = $gigs->groupBy('artist.name')->map(function ($artistGigs, $artistName) {
+        $dataByArtist = $gigs->groupBy('artist.name')
+            ->sortBy(function ($gigs, $artistName) {
+                return $artistName; // Ordena os grupos de artistas em ordem alfabética
+            })
+            ->map(function ($artistGigs, $artistName) {
+
+            // Ordena as gigs dentro do grupo do artista
+            $sortedGigs = $artistGigs->sortBy('gig_date');
             
-            // 3. Calcula os subtotais para este artista
             $subtotals = [
-                'cache_bruto_brl' => 0,
-                'total_despesas_confirmadas_brl' => 0,
-                'cache_liquido_base_brl' => 0,
-                'repasse_estimado_artista_brl' => 0,
-                'comissao_agencia_brl' => 0,
-                'comissao_booker_brl' => 0,
+                'cache_bruto_brl' => 0, 'total_despesas_confirmadas_brl' => 0,
+                'cache_liquido_base_brl' => 0, 'repasse_estimado_artista_brl' => 0,
+                'comissao_agencia_brl' => 0, 'comissao_booker_brl' => 0,
                 'comissao_agencia_liquida_brl' => 0,
             ];
-            
-            // 4. Mapeia cada gig, calculando seus valores e somando aos subtotais
-            $gigsData = $artistGigs->map(function ($gig) use (&$subtotals) {
+
+            $gigsData = $sortedGigs->map(function ($gig) use (&$subtotals) {
                 $cacheBrutoBrl = $gig->cache_value_brl ?? 0;
                 $totalDespesasConfirmadasBrl = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
                 $cacheLiquidoBaseBrl = $this->calculator->calculateGrossCashBrl($gig);
@@ -939,11 +937,13 @@ class FinancialReportService
                 $subtotals['cache_bruto_brl'] += $cacheBrutoBrl;
                 $subtotals['total_despesas_confirmadas_brl'] += $totalDespesasConfirmadasBrl;
                 $subtotals['cache_liquido_base_brl'] += $cacheLiquidoBaseBrl;
-                // ... (somar os outros campos se necessário no subtotal)
+                $subtotals['repasse_estimado_artista_brl'] += $repasseEstimadoArtistaBrl;
+                $subtotals['comissao_agencia_brl'] += $comissaoAgenciaBrl;
+                $subtotals['comissao_booker_brl'] += $comissaoBookerBrl;
+                $subtotals['comissao_agencia_liquida_brl'] += $comissaoAgenciaLiquidaBrl;
                 
                 return [
                     'gig_date' => $gig->gig_date->format('d/m/Y'),
-                    'artist_name' => $gig->artist->name ?? 'N/A',
                     'booker_name' => $gig->booker->name ?? 'N/A',
                     'location_event_details' => $gig->location_event_details,
                     'cache_bruto_original' => "{$gig->currency} " . number_format($gig->cache_value, 2, ',', '.'),
@@ -954,6 +954,7 @@ class FinancialReportService
                     'comissao_agencia_brl' => $comissaoAgenciaBrl,
                     'comissao_booker_brl' => $comissaoBookerBrl,
                     'comissao_agencia_liquida_brl' => $comissaoAgenciaLiquidaBrl,
+                    // ***** CORREÇÃO: ADICIONANDO AS CHAVES FALTANTES *****
                     'contract_status' => $gig->contract_status,
                     'payment_status' => $gig->payment_status,
                 ];
@@ -967,12 +968,15 @@ class FinancialReportService
             ];
         });
 
-        // 5. Calcula os totais gerais
+        // Lógica de cálculo dos totais gerais (como antes)
         $grandTotals = [
             'cache_bruto_brl' => $dataByArtist->sum('subtotals.cache_bruto_brl'),
             'total_despesas_confirmadas_brl' => $dataByArtist->sum('subtotals.total_despesas_confirmadas_brl'),
             'cache_liquido_base_brl' => $dataByArtist->sum('subtotals.cache_liquido_base_brl'),
-            // ... (somar outros campos para o total geral)
+            'repasse_estimado_artista_brl' => $dataByArtist->sum('subtotals.repasse_estimado_artista_brl'),
+            'comissao_agencia_brl' => $dataByArtist->sum('subtotals.comissao_agencia_brl'),
+            'comissao_booker_brl' => $dataByArtist->sum('subtotals.comissao_booker_brl'),
+            'comissao_agencia_liquida_brl' => $dataByArtist->sum('subtotals.comissao_agencia_liquida_brl'),
             'gig_count' => $dataByArtist->sum('gig_count'),
         ];
         

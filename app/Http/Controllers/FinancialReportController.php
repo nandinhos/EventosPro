@@ -218,22 +218,20 @@ class FinancialReportController extends Controller
      */
     public function exportOverview(Request $request, $format)
     {
-        // 1. Coleta os filtros do request
-        $filters = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
-        
-        // 2. Passa os filtros para o service
-        $this->reportService->setFilters($filters);
+        $this->reportService->setFilters($request->all());
         $overviewData = $this->reportService->getOverviewData();
+        $filters = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
         
         $fileName = 'relatorio_visao_geral_' . now()->format('Y-m-d');
 
         if ($format === 'pdf') {
-            // 3. Passa AMBOS $overviewData e $filters para a view do PDF
             $pdf = Pdf::loadView('reports.exports.overview_pdf', [
                 'overviewData' => $overviewData,
-                'filters' => $filters // <-- CORREÇÃO AQUI
-            ])->setPaper('a4', 'landscape');
-            
+                'filters' => $filters
+            ])
+            // ***** ALTERAÇÃO AQUI *****
+            ->setPaper('a4', 'landscape'); // Define a orientação para paisagem
+
             return $pdf->download("{$fileName}.pdf");
         }
         

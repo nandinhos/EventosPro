@@ -1,5 +1,4 @@
 @php
-    // Os dados agora vêm da variável $overviewData, passada pelo controller
     $dataByArtist = $overviewData['dataByArtist'] ?? collect([]);
     $grandTotals = $overviewData['grandTotals'] ?? [];
 @endphp
@@ -68,31 +67,37 @@
 
                     {{-- Linha de Subtotal do Artista --}}
                     <tr class="bg-gray-50 dark:bg-gray-800/80 font-bold border-b-2 border-gray-300 dark:border-gray-600">
-                        <td class="px-2 py-2 text-right" colspan="3">SUBTOTAL {{ strtoupper($artistData['artist_name']) }}:</td>
-                        <td class="px-2 py-2 text-center" colspan="1">{{ $artistData['gig_count'] }} Gigs</td>
-                        <td class="px-2 py-2 text-right">{{ number_format($artistData['subtotals']['cache_bruto_brl'], 2, ',', '.') }}</td>
-                        <td class="px-2 py-2 text-right">{{ number_format($artistData['subtotals']['total_despesas_confirmadas_brl'], 2, ',', '.') }}</td>
-                        <td class="px-2 py-2 text-right">{{ number_format($artistData['subtotals']['cache_liquido_base_brl'], 2, ',', '.') }}</td>
-                        {{-- Adicione outras colunas de subtotal aqui se necessário, mantendo o colspan correto --}}
-                        <td colspan="6"></td>
+                        <td class="px-2 py-2 text-right" colspan="3">SUBTOTAL ({{ $artistData['gig_count'] }} Gigs):</td>
+                        <td></td> {{-- Célula vazia para alinhar Cachê (Orig) --}}
+                        <td class="px-2 py-2 text-right">R$ {{ number_format($artistData['subtotals']['cache_bruto_brl'], 2, ',', '.') }}</td>
+                        <td class="px-2 py-2 text-right">R$ {{ number_format($artistData['subtotals']['total_despesas_confirmadas_brl'], 2, ',', '.') }}</td>
+                        <td class="px-2 py-2 text-right">R$ {{ number_format($artistData['subtotals']['cache_liquido_base_brl'], 2, ',', '.') }}</td>
+                        <td class="px-2 py-2 text-right">R$ {{ number_format($artistData['subtotals']['repasse_estimado_artista_brl'], 2, ',', '.') }}</td>
+                        <td class="px-2 py-2 text-right">R$ {{ number_format($artistData['subtotals']['comissao_agencia_brl'], 2, ',', '.') }}</td>
+                        <td class="px-2 py-2 text-right">R$ {{ number_format($artistData['subtotals']['comissao_booker_brl'], 2, ',', '.') }}</td>
+                        <td class="px-2 py-2 text-right">R$ {{ number_format($artistData['subtotals']['comissao_agencia_liquida_brl'], 2, ',', '.') }}</td>
+                        <td colspan="2"></td> {{-- Células vazias para status --}}
                     </tr>
                 @empty
-                    <tr>
-                        <td class="text-center py-10" colspan="13">Nenhum dado encontrado para os filtros selecionados.</td>
-                    </tr>
+                    <tr><td class="text-center py-10" colspan="13">Nenhum dado encontrado para os filtros selecionados.</td></tr>
                 @endforelse
             </tbody>
             {{-- Rodapé com Total Geral --}}
             <tfoot class="bg-gray-200 dark:bg-gray-900 font-bold text-sm">
-                <tr>
-                    <td class="px-2 py-3 text-right" colspan="3">TOTAIS GERAIS:</td>
-                    <td class="px-2 py-3 text-center" colspan="1">{{ $grandTotals['gig_count'] ?? '0' }} Gigs</td>
-                    <td class="px-2 py-3 text-right">{{ number_format($grandTotals['cache_bruto_brl'] ?? 0, 2, ',', '.') }}</td>
-                    <td class="px-2 py-3 text-right">{{ number_format($grandTotals['total_despesas_confirmadas_brl'] ?? 0, 2, ',', '.') }}</td>
-                    <td class="px-2 py-3 text-right">{{ number_format($grandTotals['cache_liquido_base_brl'] ?? 0, 2, ',', '.') }}</td>
-                    {{-- Adicione outras colunas de total geral aqui --}}
-                    <td colspan="6"></td>
-                </tr>
+                @if (!empty($grandTotals) && $grandTotals['gig_count'] > 0)
+                    <tr>
+                        <td class="px-2 py-3 text-right" colspan="3">TOTAIS GERAIS:</td>
+                        <td class="px-2 py-3 text-center">{{ $grandTotals['gig_count'] }} Gigs</td>
+                        <td class="px-2 py-3 text-right">R$ {{ number_format($grandTotals['cache_bruto_brl'], 2, ',', '.') }}</td>
+                        <td class="px-2 py-3 text-right">R$ {{ number_format($grandTotals['total_despesas_confirmadas_brl'], 2, ',', '.') }}</td>
+                        <td class="px-2 py-3 text-right">R$ {{ number_format($grandTotals['cache_liquido_base_brl'], 2, ',', '.') }}</td>
+                        <td class="px-2 py-3 text-right">R$ {{ number_format($grandTotals['repasse_estimado_artista_brl'], 2, ',', '.') }}</td>
+                        <td class="px-2 py-3 text-right">R$ {{ number_format($grandTotals['comissao_agencia_brl'], 2, ',', '.') }}</td>
+                        <td class="px-2 py-3 text-right">R$ {{ number_format($grandTotals['comissao_booker_brl'], 2, ',', '.') }}</td>
+                        <td class="px-2 py-3 text-right">R$ {{ number_format($grandTotals['comissao_agencia_liquida_brl'], 2, ',', '.') }}</td>
+                        <td colspan="2"></td>
+                    </tr>
+                @endif
             </tfoot>
         </table>
     </div>
