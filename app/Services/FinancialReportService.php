@@ -944,6 +944,7 @@ class FinancialReportService
                 
                 return [
                     'gig_date' => $gig->gig_date->format('d/m/Y'),
+                    'artist_name' => $gig->artist->name ?? 'N/A',
                     'booker_name' => $gig->booker->name ?? 'N/A',
                     'location_event_details' => $gig->location_event_details,
                     'cache_bruto_original' => "{$gig->currency} " . number_format($gig->cache_value, 2, ',', '.'),
