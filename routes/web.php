@@ -13,6 +13,7 @@ use App\Http\Controllers\FinancialProjectionController;
 use App\Http\Controllers\FinancialReportController;
 use App\Http\Controllers\DelinquencyReportController;
 use App\Http\Controllers\PerformanceReportController;
+use App\Models\Payment;
 
 
 use App\Models\Gig;
@@ -52,6 +53,7 @@ Route::middleware('auth')->group(function () {
         $pendingArtistPaymentsCount = Gig::where('artist_payment_status', 'pendente')->count();
         $pendingBookerPaymentsCount = Gig::where('booker_payment_status', 'pendente')->count();
 
+        $totalGigsCount = Gig::count();
         $gigsThisMonth = Gig::whereBetween('gig_date', [$startOfMonth, $endOfMonth])->get();
         $totalCacheThisMonth = $gigsThisMonth->sum(fn($gig) => $gig->cache_value_brl);
         $totalAgencyCommissionThisMonth = $gigsThisMonth->sum('agency_commission_value');
@@ -104,6 +106,7 @@ Route::middleware('auth')->group(function () {
             'overdueClientPaymentsCount',
             'pendingArtistPaymentsCount',
             'pendingBookerPaymentsCount',
+            'totalGigsCount',
             'totalCacheThisMonth',
             'totalAgencyCommissionThisMonth',
             'totalBookerCommissionThisMonth',

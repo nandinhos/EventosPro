@@ -8,7 +8,19 @@
 
     <div class="space-y-6">
         {{-- Linha de Cards de KPIs --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            {{-- ***** NOVO CARD: Total de Gigs ***** --}}
+            <a href="{{ route('gigs.index') }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+                <div class="flex items-center">
+                    <div class="bg-indigo-100 dark:bg-indigo-900/30 p-3 rounded-lg">
+                        <i class="fas fa-compact-disc text-indigo-600 dark:text-indigo-400 text-xl fa-fw"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Total de Gigs</h3>
+                        <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ $totalGigsCount }}</p>
+                    </div>
+                </div>
+            </a>    
             {{-- Card Gigs Ativas/Futuras --}}
             <a href="{{ route('gigs.index', ['start_date' => today()->format('Y-m-d')]) }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
                 <div class="flex items-center">
