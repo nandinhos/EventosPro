@@ -17,8 +17,16 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB; // Para transação, se necessário
 use App\Services\BookerFinancialsService;
 
+
 class BookerController extends Controller
 {
+    protected BookerFinancialsService $financialService;
+
+    public function __construct(BookerFinancialsService $financialService)
+    {
+        $this->financialService = $financialService;
+    }
+    
     /** Display a listing of the resource. */
     public function index(Request $request): View
     {
@@ -51,31 +59,31 @@ class BookerController extends Controller
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param Booker $booker
-     * @param Request $request
-     * @param BookerFinancialsService $financialsService // Injeção de dependência
-     * @return View
+     * Display the specified resource as a performance dashboard.
      */
-    public function show(Booker $booker, Request $request, BookerFinancialsService $financialsService): View
+    public function show(Booker $booker): View
     {
-        // Inicia a query para as gigs do booker, permitindo filtros
-        $gigsQuery = $booker->gigs()->with('artist')->latest('gig_date');
+        $periodStart = now()->subYear();
+        $periodEnd = now();
 
-        // Aplicar filtros da requisição, se houver
-        // Ex: if ($request->filled('period')) { ... }
+        // ***** CORREÇÃO: Passa $booker como primeiro argumento para cada método *****
+        $salesKpis = $this->financialService->getSalesKpis($booker, $periodStart, $periodEnd);
+        $commissionKpis = $this->financialService->getCommissionMetrics($booker);
+        $chart = $this->financialService->getCommissionChartData($booker);
+        $topArtists = $this->financialService->getTopArtists($booker);
+        $recentGigs = $this->financialService->getRecentGigs($booker);
 
-        $gigs = $gigsQuery->paginate(15)->withQueryString();
-
-        // **A LÓGICA DE CÁLCULO AGORA É DELEGADA PARA O SERVICE**
-        $allGigs = $booker->gigs; // Busca todas as gigs para métricas totais
-        $metrics = $financialsService->getCommissionMetrics($booker, $allGigs);
-
-        // $artists é usado para filtros na view, se houver
-        $artists = \App\Models\Artist::orderBy('name')->pluck('name', 'id');
-
-        return view('bookers.show', compact('booker', 'gigs', 'metrics', 'artists'));
+        return view('bookers.show', [
+            'booker' => $booker,
+            'totalSoldValue' => $salesKpis['total_sold_value'],
+            'totalGigsSold' => $salesKpis['total_gigs_sold'],
+            'commissionReceived' => $commissionKpis['commission_received'],
+            'commissionToReceive' => $commissionKpis['commission_to_receive'],
+            'chartLabels' => $chart['labels'],
+            'chartData' => $chart['data'],
+            'topArtists' => $topArtists,
+            'recentGigs' => $recentGigs,
+        ]);
     }
 
     /** Show the form for editing the specified resource. */

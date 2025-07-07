@@ -1,90 +1,143 @@
 <x-app-layout>
-    {{-- Header --}}
-    <div class="mb-6 flex flex-wrap justify-between items-center gap-4">
-        <div>
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white">{{ $booker->name }}</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Detalhes e Gigs do Booker</p>
-             @if($booker->default_commission_rate)
-                 <p class="text-xs text-gray-500 dark:text-gray-400">Comissão Padrão: {{ number_format($booker->default_commission_rate, 2, ',', '.') }}%</p>
-             @endif
+    <x-slot name="header">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+            {{-- Título --}}
+            <div>
+                <h2 class="font-semibold text-2xl text-gray-800 dark:text-white leading-tight">
+                    Central de Desempenho: <span class="text-primary-600 dark:text-primary-400">{{ $booker->name }}</span>
+                </h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Hub de informações de performance, comissões e atividades.</p>
+            </div>
+            
+            {{-- Ações Rápidas --}}
+            <div class="flex space-x-2 mt-4 md:mt-0">
+                <a href="{{ route('gigs.create', ['booker_id' => $booker->id]) }}" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-semibold flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Adicionar Nova Gig
+                </a>
+                <a href="{{ route('bookers.edit', $booker) }}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white px-4 py-2 rounded-md text-sm font-semibold">
+                    Editar Cadastro
+                </a>
+            </div>
         </div>
-        <div class="flex space-x-2">
-            <a href="{{ route('bookers.index') }}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150 ease-in-out"> <i class="fas fa-arrow-left mr-1"></i> Voltar</a>
-            <a href="{{ route('bookers.edit', $booker) }}" class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150 ease-in-out"> <i class="fas fa-edit mr-1"></i> Editar Booker</a>
+    </x-slot>
+
+    <div class="py-8">
+        <div class="max-w-full mx-auto sm:px-6 lg:px-8 space-y-6">
+            
+            {{-- Componente 1: Cards de Resumo --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                    <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Vendido (12 meses)</h4>
+                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">R$ {{ number_format($totalSoldValue, 2, ',', '.') }}</p>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                    <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Gigs Vendidas (12 meses)</h4>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1">{{ $totalGigsSold }}</p>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                    <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Comissão Total Recebida</h4>
+                    <p class="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">R$ {{ number_format($commissionReceived, 2, ',', '.') }}</p>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                    <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Comissão a Receber</h4>
+                    <p class="text-2xl font-bold text-yellow-500 dark:text-yellow-400 mt-1">R$ {{ number_format($commissionToReceive, 2, ',', '.') }}</p>
+                </div>
+            </div>
+
+            {{-- Componente 2: Gráfico --}}
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Evolução de Comissões Pagas (Últimos 12 Meses)</h3>
+                <div class="h-72">
+                    <canvas id="commissionsChart"></canvas>
+                </div>
+            </div>
+
+            {{-- Componente 3: Tabelas --}}
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {{-- Coluna Esquerda: Artistas em Destaque --}}
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Artistas em Destaque</h3>
+                    <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                        @forelse($topArtists as $item)
+                            <li class="py-3 flex justify-between items-center">
+                                <span class="font-medium text-gray-900 dark:text-white">{{ $item->artist->name }}</span>
+                                <div class="text-right">
+                                    <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ $item->gigs_count }} Gigs</span>
+                                    <span class="text-xs block text-gray-500 dark:text-gray-400">R$ {{ number_format($item->total_value, 2, ',', '.') }}</span>
+                                </div>
+                            </li>
+                        @empty
+                            <p class="text-sm text-gray-500">Nenhum dado de artista para exibir.</p>
+                        @endforelse
+                    </ul>
+                </div>
+
+                {{-- Coluna Direita: Gigs Recentes --}}
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Gigs Recentes</h3>
+                     <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                        @forelse($recentGigs as $gig)
+                            <li class="py-3">
+                                <a href="{{ route('gigs.show', $gig) }}" class="block hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 -m-2 rounded-md">
+                                    <div class="flex items-center justify-between">
+                                        <div class="text-sm">
+                                            <p class="font-medium text-gray-900 dark:text-white">{{ $gig->artist->name ?? 'N/A' }}</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ Str::limit($gig->location_event_details, 35) }}</p>
+                                        </div>
+                                        <div class="text-sm text-right">
+                                            <p class="text-gray-700 dark:text-gray-300">{{ \Carbon\Carbon::parse($gig->sale_date)->format('d/m/Y') }}</p>
+                                            <p class="text-xs font-semibold text-gray-500">R$ {{ number_format($gig->cache_value_brl, 2, ',', '.') }}</p>
+                                        </div>
+                                    </div>
+                                </a>
+                            </li>
+                        @empty
+                             <p class="text-sm text-gray-500">Nenhuma gig recente para exibir.</p>
+                        @endforelse
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 
-    {{-- Cards de Métricas ATUALIZADOS --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        {{-- Card Total de Gigs (Mantido) --}}
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">Total de Gigs</h4>
-            <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ $metrics['total_gigs'] }}</p>
-        </div>
-         {{-- NOVO Card: Comissão Recebida --}}
-         <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">Comissão Recebida (BRL)</h4>
-            <p class="text-2xl font-bold text-green-600 dark:text-green-400">
-                R$ {{ number_format($metrics['commission_received_brl'], 2, ',', '.') }}
-            </p>
-        </div>
-         {{-- NOVO Card: Comissão Pendente --}}
-         <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">Comissão Pendente (BRL)</h4>
-            <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                 R$ {{ number_format($metrics['commission_pending_brl'], 2, ',', '.') }}
-            </p>
-        </div>
-    </div>
-
-    {{-- Tabela de Gigs (Ajustar cabeçalho se necessário - já removemos cachê total antes) --}}
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
-         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-             <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Gigs Agendadas por {{ $booker->name }}</h3>
-             {{-- TODO: Adicionar filtros específicos --}}
-         </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-                 <thead class="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Artista</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Local / Evento</th>
-                        {{-- <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cachê (BRL)</th> --}} {{-- Removido? Ou manter? --}}
-                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Comissão (BRL)</th>
-                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pgto Cliente</th>
-                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pgto Comissão</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ações</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                     {{-- Loop @forelse (sem alterações na lógica interna, apenas colunas) --}}
-                     @forelse ($gigs as $gig)
-                         <tr class="{{ $gig->payment_status == 'vencido' ? 'bg-red-50 dark:bg-red-900/20' : ($gig->currency != 'BRL' ? 'bg-blue-50 dark:bg-blue-900/10' : '') }}">
-                            <td class="px-3 py-1.5 whitespace-nowrap">{{ $gig->gig_date->format('d/m/Y') }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap font-semibold">{{ $gig->artist->name ?? 'N/A' }}</td>
-                            <td class="px-3 py-1.5 whitespace-normal">{{ $gig->location_event_details }}</td>
-                            {{-- <td class="px-3 py-1.5 whitespace-nowrap text-right">{{ number_format($gig->cache_value_brl, 2, ',', '.') }}</td> --}} {{-- Cachê BRL --}}
-                            <td class="px-3 py-1.5 whitespace-nowrap text-right">{{ number_format($gig->booker_commission_value ?? 0, 2, ',', '.') }}</td>
-                            <td class="px-3 py-1.5 text-center"><x-status-badge :status="$gig->payment_status" type="payment" /></td>
-                            <td class="px-3 py-1.5 text-center"><x-status-badge :status="$gig->booker_payment_status" type="payment-booker" /></td>
-                            <td class="px-3 py-1.5 whitespace-nowrap">
-                                <a href="{{ route('gigs.show', $gig) }}" title="Ver Gig Completa" class="text-blue-500 hover:text-blue-700"><i class="fas fa-eye fa-fw"></i></a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Nenhuma gig encontrada para este booker.</td> {{-- Ajustar colspan --}}
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-         {{-- Paginação --}}
-         <div class="bg-white dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 sm:px-6 mt-4">
-             @if ($gigs->hasPages())
-                {{ $gigs->appends(request()->query())->links() }}
-            @endif
-        </div>
-    </div>
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('commissionsChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'line', // ou 'bar'
+                data: {
+                    labels: @json($chartLabels),
+                    datasets: [{
+                        label: 'Comissão Paga (R$)',
+                        data: @json($chartData),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) { return 'R$ ' + value.toLocaleString('pt-BR'); }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+    });
+</script>
+@endpush
 </x-app-layout>
