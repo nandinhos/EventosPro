@@ -1,5 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
+        {{-- ***** 1. CABEÇALHO REORGANIZADO COM FLEXBOX ***** --}}
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
             {{-- Título --}}
             <div>
@@ -9,12 +10,15 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400">Hub de informações de performance, comissões e atividades.</p>
             </div>
             
-            {{-- Ações Rápidas --}}
-            <div class="flex space-x-2 mt-4 md:mt-0">
-                <a href="{{ route('gigs.create', ['booker_id' => $booker->id]) }}" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-semibold flex items-center">
-                    <i class="fas fa-plus mr-2"></i> Adicionar Nova Gig
+            {{-- Ações Rápidas (Alinhadas à Direita) --}}
+            <div class="flex items-center space-x-2 mt-4 md:mt-0">
+                <a href="{{ route('bookers.index') }}" class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-md text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-arrow-left fa-fw"></i>
                 </a>
-                <a href="{{ route('bookers.edit', $booker) }}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white px-4 py-2 rounded-md text-sm font-semibold">
+                <a href="{{ route('gigs.create', ['booker_id' => $booker->id]) }}" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-semibold flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Adicionar Gig
+                </a>
+                <a href="{{ route('bookers.edit', $booker) }}" class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-800 dark:text-white px-4 py-2 rounded-md text-sm font-semibold">
                     Editar Cadastro
                 </a>
             </div>
@@ -24,27 +28,34 @@
     <div class="py-8">
         <div class="max-w-full mx-auto sm:px-6 lg:px-8 space-y-6">
             
-            {{-- Componente 1: Cards de Resumo --}}
+            {{-- ***** 2. CARDS DE RESUMO (COLORIDOS E CLICÁVEIS) ***** --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
-                    <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Vendido (12 meses)</h4>
-                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">R$ {{ number_format($totalSoldValue, 2, ',', '.') }}</p>
-                </div>
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
-                    <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Gigs Vendidas (12 meses)</h4>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1">{{ $totalGigsSold }}</p>
-                </div>
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
-                    <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Comissão Total Recebida</h4>
-                    <p class="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">R$ {{ number_format($commissionReceived, 2, ',', '.') }}</p>
-                </div>
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
-                    <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Comissão a Receber</h4>
-                    <p class="text-2xl font-bold text-yellow-500 dark:text-yellow-400 mt-1">R$ {{ number_format($commissionToReceive, 2, ',', '.') }}</p>
-                </div>
+                {{-- Card: Total Vendido --}}
+                <a href="{{ route('gigs.index', ['booker_id' => $booker->id, 'start_date' => now()->subYear()->format('Y-m-d'), 'end_date' => now()->format('Y-m-d')]) }}" class="block bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg shadow hover:shadow-lg transition-shadow">
+                    <h3 class="text-sm text-gray-500 dark:text-gray-400">Total Vendido (12 meses)</h3>
+                    <p class="text-lg font-semibold text-blue-800 dark:text-blue-300 mt-1">R$ {{ number_format($totalSoldValue, 2, ',', '.') }}</p>
+                </a>
+                
+                {{-- Card: Gigs Vendidas --}}
+                <a href="{{ route('gigs.index', ['booker_id' => $booker->id, 'start_date' => now()->subYear()->format('Y-m-d'), 'end_date' => now()->format('Y-m-d')]) }}" class="block bg-yellow-100 dark:bg-yellow-900/20 p-4 rounded-lg shadow hover:shadow-lg transition-shadow">
+                    <h3 class="text-sm text-gray-500 dark:text-gray-400">Gigs Vendidas (12 meses)</h3>
+                    <p class="text-lg font-semibold text-yellow-800 dark:text-yellow-300 mt-1">{{ $totalGigsSold }}</p>
+                </a>
+
+                {{-- Card: Comissão Recebida --}}
+                <a href="{{ route('reports.index', ['tab' => 'commissions', 'booker_id' => $booker->id]) }}" class="block bg-green-100 dark:bg-green-900/20 p-4 rounded-lg shadow hover:shadow-lg transition-shadow">
+                    <h3 class="text-sm text-gray-500 dark:text-gray-400">Comissão Total Recebida</h3>
+                    <p class="text-lg font-semibold text-green-800 dark:text-green-300 mt-1">R$ {{ number_format($commissionReceived, 2, ',', '.') }}</p>
+                </a>
+
+                {{-- Card: Comissão a Receber --}}
+                <a href="{{ route('reports.index', ['tab' => 'commissions', 'booker_id' => $booker->id]) }}" class="block bg-orange-100 dark:bg-orange-900/20 p-4 rounded-lg shadow hover:shadow-lg transition-shadow">
+                    <h3 class="text-sm text-gray-500 dark:text-gray-400">Comissão a Receber</h3>
+                    <p class="text-lg font-semibold text-orange-800 dark:text-orange-300 mt-1">R$ {{ number_format($commissionToReceive, 2, ',', '.') }}</p>
+                </a>
             </div>
 
-            {{-- Componente 2: Gráfico --}}
+            {{-- Componente Gráfico (sem alterações) --}}
             <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Evolução de Comissões Pagas (Últimos 12 Meses)</h3>
                 <div class="h-72">
@@ -52,7 +63,7 @@
                 </div>
             </div>
 
-            {{-- Componente 3: Tabelas --}}
+            {{-- Componente Tabelas (sem alterações) --}}
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {{-- Coluna Esquerda: Artistas em Destaque --}}
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
@@ -101,13 +112,14 @@
     </div>
 
 @push('scripts')
+{{-- Script do Chart.js (sem alterações) --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const ctx = document.getElementById('commissionsChart');
         if (ctx) {
             new Chart(ctx, {
-                type: 'line', // ou 'bar'
+                type: 'line',
                 data: {
                     labels: @json($chartLabels),
                     datasets: [{
