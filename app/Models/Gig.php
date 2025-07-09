@@ -350,6 +350,21 @@ class Gig extends Model
     {
         return $this->cacheValueBrlDetails['value'];
     }
+
+    /**
+     * Accessor para verificar se todas as despesas da gig foram confirmadas.
+     *
+     * @return bool
+     */
+    public function getAreAllCostsConfirmedAttribute(): bool
+    {
+        // Se não houver custos, consideramos que "todos" estão confirmados.
+        if ($this->costs->isEmpty()) {
+            return true;
+        }
+        // Retorna true apenas se NÃO EXISTIR nenhum custo com is_confirmed = false.
+        return $this->costs()->where('is_confirmed', false)->doesntExist();
+    }
     
 
 

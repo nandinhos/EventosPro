@@ -21,7 +21,7 @@
         </div>
     </x-slot>
 
-    <div class="py-8">
+    <div class="py-0">
         <div class="max-w-full mx-auto sm:px-6 lg:px-8 space-y-6">
             
             <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
@@ -163,28 +163,75 @@
                                 </div>
                             </div>
                             <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
-                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Gigs Mais Recentes</h3>
-                                <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-                                    @forelse($recentGigs as $gig)
-                                        <li class="py-3">
-                                            <a href="{{ route('gigs.show', $gig) }}" class="block hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 -m-2 rounded-md">
-                                                <div class="flex items-center justify-between">
-                                                    <div class="text-sm">
-                                                        <p class="font-medium text-gray-900 dark:text-white">{{ $gig->artist->name ?? 'N/A' }}</p>
-                                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ $gig->location_event_details }}</p>
-                                                    </div>
-                                                    <div class="text-sm text-right">
-                                                        <p class="text-gray-700 dark:text-gray-300">{{ \Carbon\Carbon::parse($gig->contract_date ?? $gig->gig_date)->format('d/m/Y') }}</p>
-                                                        <p class="text-xs font-semibold text-gray-500">R$ {{ number_format($gig->cache_value_brl, 2, ',', '.') }}</p>
-                                                    </div>
-                                                </div>
-                                            </a>
-                                        </li>
-                                    @empty
-                                         <p class="text-sm text-gray-500">Nenhuma gig recente para exibir.</p>
-                                    @endforelse
-                                </ul>
+    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Gigs Mais Recentes</h3>
+    
+    {{-- Container para a lista de gigs --}}
+    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        @forelse($recentGigs as $gig)
+            {{-- Cada item da lista agora é um componente Alpine para controlar a expansão --}}
+            <div x-data="{ open: false }" class="py-3">
+                {{-- Linha Resumida Clicável --}}
+                <div @click="open = !open" class="flex items-center justify-between cursor-pointer group">
+                    {{-- Coluna Esquerda: Gig, Artista, Local --}}
+                    <div class="flex items-center space-x-4">
+                        {{-- Coluna 1: Link da Gig --}}
+                        <a href="{{ route('gigs.show', $gig) }}" @click.stop class="text-sm font-semibold text-primary-600 hover:underline" title="Ver detalhes completos da Gig">
+                            #{{ $gig->id }}
+                        </a>
+                        {{-- Coluna 2: Artista e Local --}}
+                        <div>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ $gig->artist->name ?? 'N/A' }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ Str::limit($gig->location_event_details, 35) }}</p>
+                        </div>
+                    </div>
+
+                    {{-- Coluna Direita: Status, Data, Valor --}}
+                    <div class="flex items-center space-x-4">
+                        {{-- Coluna 3: Ícones de Status --}}
+                        <div class="flex space-x-2" title="Status do Ciclo Financeiro (Cliente | Despesas | Artista | Booker)">
+                            {{-- Status Pagamento Cliente --}}
+                            <i class="fas fa-dollar-sign fa-fw {{ $gig->payment_status === 'pago' ? 'text-green-500' : ($gig->payment_status === 'vencido' ? 'text-red-500' : 'text-gray-400') }}"></i>
+                            {{-- Status Pagamento Despesas --}}
+                            <i class="fas fa-receipt fa-fw {{ $gig->are_all_costs_confirmed ? 'text-green-500' : 'text-gray-400' }}"></i>
+                            {{-- Status Pagamento Artista --}}
+                            <i class="fas fa-user-check fa-fw {{ $gig->artist_payment_status === 'pago' ? 'text-green-500' : 'text-gray-400' }}"></i>
+                             {{-- Status Pagamento Booker --}}
+                            <i class="fas fa-user-tag fa-fw {{ $gig->booker_payment_status === 'pago' ? 'text-green-500' : 'text-gray-400' }}"></i>
+                        </div>
+                        {{-- Coluna 4: Data e Valor --}}
+                        <div class="text-sm text-right">
+                            <p class="text-gray-700 dark:text-gray-300">{{ \Carbon\Carbon::parse($gig->contract_date ?? $gig->gig_date)->format('d/m/Y') }}</p>
+                            <p class="text-xs font-semibold text-gray-500">R$ {{ number_format($gig->cache_value_brl, 2, ',', '.') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Área Expandida com Detalhes --}}
+                <div x-show="open" x-transition class="mt-4 pl-8 border-l-2 border-gray-200 dark:border-gray-700 ml-2">
+                    <div class="space-y-2 text-xs">
+                        @php
+                            $statuses = [
+                                'Pagamento Cliente' => ['status' => $gig->payment_status, 'color' => ($gig->payment_status === 'pago' ? 'green' : ($gig->payment_status === 'vencido' ? 'red' : 'gray'))],
+                                'Pagamento Despesas' => ['status' => $gig->are_all_costs_confirmed ? 'OK' : 'Pendente', 'color' => $gig->are_all_costs_confirmed ? 'green' : 'gray'],
+                                'Repasse Artista' => ['status' => $gig->artist_payment_status, 'color' => $gig->artist_payment_status === 'pago' ? 'green' : 'gray'],
+                                'Comissão Booker' => ['status' => $gig->booker_payment_status, 'color' => $gig->booker_payment_status === 'pago' ? 'green' : 'gray'],
+                            ];
+                        @endphp
+                        @foreach($statuses as $label => $info)
+                            <div class="flex items-center">
+                                <span class="w-3 h-3 rounded-full bg-{{ $info['color'] }}-500 mr-2"></span>
+                                <span class="font-medium text-gray-600 dark:text-gray-400 w-32">{{ $label }}:</span>
+                                <span class="font-semibold text-gray-800 dark:text-white">{{ ucfirst($info['status']) }}</span>
                             </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        @empty
+            <p class="text-sm text-gray-500">Nenhuma gig recente para exibir.</p>
+        @endforelse
+    </div>
+</div>
                         </div>
                     </div>
                 </div>

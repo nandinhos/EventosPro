@@ -118,7 +118,8 @@ class BookerFinancialsService
     public function getRecentGigs(Booker $booker, int $limit = 10): Collection
     {
         return $booker->gigs()->whereNull('deleted_at')
-            ->with('artist:id,name')
+            // ***** ALTERAÇÃO AQUI: Eager load dos custos *****
+            ->with(['artist:id,name', 'costs'])
             ->orderByDesc(DB::raw('COALESCE(contract_date, gig_date)'))
             ->limit($limit)
             ->get();
