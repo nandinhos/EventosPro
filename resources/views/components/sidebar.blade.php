@@ -90,12 +90,16 @@
         <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Projeções</span>
     </a>
 </li>
-            <li>
-                <a href="#" class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 text-gray-600 dark:text-gray-300">
-                    <i class="fas fa-users w-6 text-center"></i>
+        
+<li>
+                <a href="{{ route('users.index') }}"
+                   :class="window.location.pathname.startsWith('/users') ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
+                   class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+                    <i class="fas fa-users-cog w-6 text-center"></i>
                     <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Usuários</span>
                 </a>
             </li>
+
         </ul>
     </nav>
 

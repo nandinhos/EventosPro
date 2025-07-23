@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany; // <-- Importar HasMany
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+
 class Booker extends Model
 {
     use HasFactory, SoftDeletes;
@@ -29,4 +30,9 @@ class Booker extends Model
     {
         return $this->hasMany(Gig::class);
     }
+
+    public function user()
+{
+    return $this->hasOne(User::class);
+}
 }

@@ -14,6 +14,7 @@ use App\Http\Controllers\FinancialReportController;
 use App\Http\Controllers\DelinquencyReportController;
 use App\Http\Controllers\PerformanceReportController;
 use App\Models\Payment;
+use App\Http\Controllers\UserController;
 
 
 use App\Models\Gig;
@@ -116,6 +117,11 @@ Route::middleware('auth')->group(function () {
         ));
     })->name('dashboard');
 
+    Route::resource('users', UserController::class);
+
+    // Nova Rota para o Portal do Booker
+    Route::get('/meu-desempenho', [BookerController::class, 'portal'])->name('booker.portal');
+
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -179,7 +185,11 @@ Route::middleware('auth')->group(function () {
         Route::post('settle-booker', [SettlementController::class, 'settleBookerCommission'])->name('settlements.booker');
         Route::patch('unsettle-artist', [SettlementController::class, 'unsettleArtistPayment'])->name('settlements.artist.unsettle');
         Route::patch('unsettle-booker', [SettlementController::class, 'unsettleBookerCommission'])->name('settlements.booker.unsettle');
+
+        
     });
+
+    
 
     // ROTA DE DEPURAÇÃO FINANCEIRA PARA UMA GIG ESPECÍFICA
     // Coloque esta rota dentro do grupo de autenticação para que só usuários logados possam acessá-la.

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Auth;
 
 class BookerController extends Controller
 {
@@ -90,5 +91,47 @@ class BookerController extends Controller
         // Lógica para soft delete
         $booker->delete();
         return redirect()->route('bookers.index')->with('success', 'Booker removido com sucesso.');
+    }
+
+    /**
+     * Mostra o portal de desempenho para o booker logado.
+     */
+    public function portal(Request $request): View|RedirectResponse
+    {
+        // 1. Pega o usuário logado
+        $user = Auth::user();
+
+        // 2. Verifica se o usuário tem um booker associado
+        if (!$user->booker_id) {
+            // Se não for um booker, redireciona para o dashboard principal com um erro.
+            return redirect()->route('dashboard')->with('error', 'Acesso não permitido.');
+        }
+
+        // 3. Pega a entidade Booker associada
+        $booker = $user->booker;
+
+        // 4. Reutiliza a mesma lógica do método show() para buscar os dados
+        $filters = $request->only(['start_date', 'end_date']);
+        $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : null;
+        $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : null;
+
+        $salesKpis = $this->financialService->getSalesKpis($booker, $startDate, $endDate);
+        $commissionKpis = $this->financialService->getCommissionKpis($booker);
+        $chart = $this->financialService->getCommissionChartData($booker);
+        $topArtists = $this->financialService->getTopArtists($booker);
+        $recentGigs = $this->financialService->getRecentGigs($booker);
+        $analyticalTableData = ($startDate && $endDate) ? $this->financialService->getGigsForPeriod($booker, $startDate, $endDate) : collect();
+
+        // 5. Renderiza uma NOVA view, específica para o portal
+        return view('bookers.portal', [
+            'booker' => $booker,
+            'filters' => $filters,
+            'salesKpis' => $salesKpis,
+            'commissionKpis' => $commissionKpis,
+            'chart' => $chart,
+            'topArtists' => $topArtists,
+            'recentGigs' => $recentGigs,
+            'analyticalTableData' => $analyticalTableData
+        ]);
     }
 }
