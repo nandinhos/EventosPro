@@ -9,9 +9,16 @@ use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use App\Services\GigFinancialCalculatorService;
 
 class PerformanceReportController extends Controller
 {
+    // ***** PASSO 2: Injetar o Service no construtor *****
+    public function __construct(GigFinancialCalculatorService $gigCalculator)
+    {
+        $this->gigCalculator = $gigCalculator;
+    }
+    
     /**
      * Exibe a página principal de desempenho.
      */
@@ -78,30 +85,40 @@ class PerformanceReportController extends Controller
         $totalGigsSold = $gigs->count();
         $totalContractValue = $gigs->sum('cache_value_brl'); // Usando o acessor BRL
 
+        $grandTotalGrossCash = $gigs->sum(fn($gig) => $this->gigCalculator->calculateGrossCashBrl($gig));
+
         // 6. Agrupar por Booker e preparar a estrutura de dados final
-        $dataByBooker = $gigs->groupBy(function($gig) {
-            return $gig->booker->name ?? 'Agência Direta';
-        })
-        ->map(function($gigsForBooker, $bookerName) {
+        $dataByBooker = $gigs->groupBy(fn($gig) => $gig->booker->name ?? 'Agência Direta')
+        ->map(function($gigsForBooker) {
+            
+            $totalGrossCash = $gigsForBooker->sum(fn($gig) => $this->gigCalculator->calculateGrossCashBrl($gig));
+
             return [
-                'booker_name' => $bookerName,
-                'total_cache' => $gigsForBooker->sum('cache_value_brl'),
+                'booker_name' => $gigsForBooker->first()->booker->name ?? 'Agência Direta',
+                'total_contract' => $gigsForBooker->sum('cache_value_brl'),
+                'total_gross_cash' => $totalGrossCash, // Nova variável para o subtotal
                 'gigs_count' => $gigsForBooker->count(),
                 'gigs' => $gigsForBooker->map(function($gig) {
+                    
+                    $gross_cash_brl = $this->gigCalculator->calculateGrossCashBrl($gig);
+
                     return [
                         'sale_date' => Carbon::parse($gig->sale_date)->format('d/m/Y'),
-                        'artist_local' => $gig->artist->name . ' @ ' . Str::limit($gig->location_event_details, 40),
+                        'gig_date' => $gig->gig_date->format('d/m/Y'),
+                        'artist_local' => $gig->artist->name . ' @ ' . Str::limit($gig->location_event_details, 90),
                         'contract_value' => $gig->cache_value_brl,
+                        'gross_cash_brl' => $gross_cash_brl, // Nova variável para a linha
                     ];
                 })
             ];
         })
-        ->sortByDesc('total_cache'); // Ordena os bookers pelo total do cachê
+        ->sortByDesc('total_contract');
 
         return [
             'summaryCards' => [
-                'total_gigs' => $totalGigsSold,
-                'total_value' => $totalContractValue,
+                'total_gigs' => $gigs->count(),
+                'total_value' => $gigs->sum('cache_value_brl'),
+                'total_gross_cash' => $grandTotalGrossCash, // Nova variável para o card de resumo
             ],
             'tableData' => $dataByBooker
         ];
