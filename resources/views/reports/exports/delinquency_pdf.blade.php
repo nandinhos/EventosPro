@@ -9,17 +9,30 @@
         @page { margin: 25px; }
         body { font-family: 'DejaVu Sans', sans-serif; color: #333; font-size: 10px; }
         
-        /* ***** INÍCIO DAS ALTERAÇÕES NO CSS ***** */
         .header { position: relative; text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; }
         .header .logo { position: absolute; top: -10px; left: 0; max-height: 100px; }
         .header h1 { font-size: 18px; margin-bottom: 5px; color: #4a5568; }
         .header .filters { font-size: 11px; margin-top: 0; color: #718096; }
         .header .generation-date { font-size: 9px; font-style: italic; color: #a0aec0; margin-top: 5px; }
-        /* ***** FIM DAS ALTERAÇÕES NO CSS ***** */
         
         .booker-header { background-color: #f7fafc; border: 1px solid #e2e8f0; padding: 8px 12px; font-size: 14px; font-weight: bold; margin-top: 20px; color: #2d3748; page-break-before: auto; }
-        .gig-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; page-break-inside: avoid; }
-        .gig-table > tbody > tr > td { border-bottom: 2px solid #e2e8f0; padding: 10px 8px; vertical-align: top; }
+        
+        /* ***** INÍCIO DA CORREÇÃO NO CSS ***** */
+        .gig-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 10px; /* Espaçamento entre as tabelas de gig */
+        }
+        .gig-table > tbody > tr {
+            page-break-inside: avoid !important; /* A diretiva importante está na linha (tr) */
+        }
+        .gig-table > tbody > tr > td { 
+            border-bottom: 2px solid #e2e8f0; 
+            padding: 10px 8px; 
+            vertical-align: top;
+        }
+        /* ***** FIM DA CORREÇÃO NO CSS ***** */
+        
         .artist-info-cell { width: 35%; }
         .artist-name { font-size: 14px; font-weight: bold; color: #4c1d95; margin-bottom: 2px; }
         .event-date { font-size: 10px; color: #718096; margin-bottom: 10px; }
@@ -44,12 +57,8 @@
 </head>
 <body>
     <div class="header">
-        {{-- ***** LOGO ADICIONADA ***** --}}
-        {{-- public_path() gera o caminho absoluto no servidor para a imagem --}}
         <img src="{{ public_path('img/coral_360_logo.png') }}" alt="Logo" class="logo">
-        
         <h1>Relatório de Gigs</h1>
-        
         @if(!empty(array_filter($filters)))
             <p class="filters">
                 Período: 
@@ -58,26 +67,28 @@
                 {{ isset($filters['event_end_date']) ? \Carbon\Carbon::parse($filters['event_end_date'])->format('d/m/Y') : 'N/A' }}
             </p>
         @endif
-
-        {{-- ***** DATA DE GERAÇÃO ADICIONADA ***** --}}
-        <p class="generation-date">
-            Relatório gerado em: {{ now()->format('d/m/Y H:i:s') }}
+        <p class="generation-date" style="font-size: 8px; color: #9ca3af;">
+            Gerado em: {{ now()->format('d/m/Y H:i') }}
+            @if(auth()->check())
+                por: {{ auth()->user()->name }}
+            @endif
         </p>
     </div>
 
     @forelse ($gigsGroupedByBooker as $bookerName => $gigs)
         <div class="booker-header">{{ $bookerName }}</div>
         
-        <table class="gig-table">
-            <tbody>
-                @foreach ($gigs as $gig)
+        {{-- ***** INÍCIO DA CORREÇÃO NO HTML ***** --}}
+        {{-- Agora o loop de gigs cria uma tabela para CADA gig --}}
+        @foreach ($gigs as $gig)
+            <table class="gig-table">
+                <tbody>
                     @php
-                        // Lógica de cálculo para cada gig
+                        // Lógica de cálculo movida para dentro do loop
                         $totalReceivedThisGigBRL = $gig->payments->whereNotNull('confirmed_at')->sum(fn($p) => $p->currency === 'BRL' ? $p->received_value_actual : ($p->received_value_actual * ($p->exchange_rate_received_actual ?: ($p->exchange_rate ?: 1))));
                         $pendingOriginalCurrency = $gig->cache_value - $gig->payments->whereNotNull('confirmed_at')->where('currency', $gig->currency)->sum('received_value_actual');
                     @endphp
                     <tr>
-                        {{-- COLUNA 1: Artista, Data e Resumo Financeiro --}}
                         <td class="artist-info-cell">
                             <div class="artist-name">{{ $gig->artist->name ?? 'N/A' }}</div>
                             <div class="event-date">{{ $gig->gig_date->format('d/m/Y') }}</div>
@@ -95,13 +106,11 @@
                             </div>
                         </td>
 
-                        {{-- COLUNA 2: Local --}}
                         <td class="location-cell">
-                            <div>Local</div>
+                            <div><strong>Local</strong></div>
                             <div>{{ $gig->location_event_details }}</div>
                         </td>
 
-                        {{-- COLUNA 3: Histórico de Parcelas --}}
                         <td class="payments-cell">
                             <table class="payments-table">
                                 <thead>
@@ -122,7 +131,7 @@
                                             </td>
                                             <td class="text-center">
                                                 <span class="status-badge status-{{$payment->inferred_status}}">
-                                                    {{ ucfirst($payment->inferred_status) }}
+                                                    {{ ucfirst(str_replace('_', ' ', $payment->inferred_status)) }}
                                                 </span>
                                             </td>
                                         </tr>
@@ -131,9 +140,11 @@
                             </table>
                         </td>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        @endforeach
+        {{-- ***** FIM DA CORREÇÃO NO HTML ***** --}}
+        
     @empty
         <p style="text-align: center; padding: 20px;">Nenhuma pendência encontrada para os filtros aplicados.</p>
     @endforelse

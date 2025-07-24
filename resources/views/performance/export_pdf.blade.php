@@ -147,7 +147,12 @@
         <img src="{{ public_path('img/coral_360_logo.png') }}" alt="Logo" class="logo">
         <h1>Relatório de Desempenho de Vendas</h1>
         <p>Período: {{ \Carbon\Carbon::parse($filters['start_date'] ?? now()->startOfMonth())->format('d/m/Y') }} a {{ \Carbon\Carbon::parse($filters['end_date'] ?? now()->endOfMonth())->format('d/m/Y') }}</p>
-        <p style="font-size: 8px; color: #9ca3af;">Gerado em: {{ now()->format('d/m/Y H:i') }}</p>
+        <p style="font-size: 8px; color: #9ca3af;">
+            Gerado em: {{ now()->format('d/m/Y H:i') }}
+            @if(auth()->check())
+                por: {{ auth()->user()->name }}
+            @endif
+        </p>
     </div>
 
     <!-- RESUMO POR BOOKER -->
