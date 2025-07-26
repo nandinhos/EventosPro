@@ -7,9 +7,14 @@ use App\Models\Gig;
 use App\Models\GigCost;
 use App\Observers\GigObserver;
 use App\Observers\GigCostObserver;
+use App\Policies\GigPolicy;
 
 class AppServiceProvider extends ServiceProvider
 {
+    
+    protected $policies = [
+    Gig::class => GigPolicy::class,
+    ];
     /**
      * Register any application services.
      */

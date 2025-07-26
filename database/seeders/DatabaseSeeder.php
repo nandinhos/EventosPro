@@ -10,6 +10,8 @@ use Database\Seeders\BookerSeeder;
 use Database\Seeders\TagSeeder;
 use Database\Seeders\CostCenterSeeder; // <-- Importar
 use Database\Seeders\GigSeeder;
+use Database\Seeders\SettlementSeeder;
+use Database\Seeders\RolesAndPermissionsSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -26,11 +28,12 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call([
-            ArtistSeeder::class,
-            BookerSeeder::class,
-            TagSeeder::class,
-            CostCenterSeeder::class, // <-- Chamar ANTES de GigSeeder
-            GigSeeder::class,        // <-- Agora importa Gigs e GigCosts
+            //ArtistSeeder::class,
+            //BookerSeeder::class,
+            //TagSeeder::class,
+            //CostCenterSeeder::class, // <-- Chamar ANTES de GigSeeder
+            //GigSeeder::class,        // <-- Agora importa Gigs e GigCosts
+            RolesAndPermissionsSeeder::class,
             // SettlementSeeder::class,
         ]);
     }
