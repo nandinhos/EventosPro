@@ -13,6 +13,7 @@ use App\Http\Controllers\FinancialProjectionController;
 use App\Http\Controllers\FinancialReportController;
 use App\Http\Controllers\DelinquencyReportController;
 use App\Http\Controllers\PerformanceReportController;
+use App\Http\Controllers\DashboardController;
 use App\Models\Payment;
 use App\Http\Controllers\UserController;
 
@@ -45,78 +46,7 @@ Route::get('/', function () {
 Route::middleware('auth')->group(function () {
 
     // Dashboard
-    Route::get('/dashboard', function (): View {
-        $today = Carbon::today();
-        $startOfMonth = Carbon::now()->startOfMonth();
-        $endOfMonth = Carbon::now()->endOfMonth();
-
-        $activeFutureGigsCount = Gig::where('gig_date', '>=', $today)->count();
-        $overdueClientPaymentsCount = Gig::where('payment_status', 'vencido')->count();
-        $pendingArtistPaymentsCount = Gig::where('artist_payment_status', 'pendente')->count();
-        $pendingBookerPaymentsCount = Gig::where('booker_payment_status', 'pendente')->count();
-
-        $totalGigsCount = Gig::count();
-        $gigsThisMonth = Gig::whereBetween('gig_date', [$startOfMonth, $endOfMonth])->get();
-        $totalCacheThisMonth = $gigsThisMonth->sum(fn($gig) => $gig->cache_value_brl);
-        $totalAgencyCommissionThisMonth = $gigsThisMonth->sum('agency_commission_value');
-        $totalBookerCommissionThisMonth = $gigsThisMonth->sum('booker_commission_value');
-
-        $nextGigs = Gig::with('artist')
-            ->where('gig_date', '>=', $today)
-            ->orderBy('gig_date', 'asc')
-            ->limit(5)
-            ->get();
-
-        // Dados para gráfico de faturamento mensal
-        $endDateForChart = Carbon::now()->endOfMonth();
-        $startDateForChart = Carbon::now()->subMonths(11)->startOfMonth();
-
-        $monthlyRevenueData = Gig::select(
-                \DB::raw("YEAR(gig_date) as year"),
-                \DB::raw("MONTH(gig_date) as month"),
-                \DB::raw("SUM(cache_value) as total_revenue_brl")
-            )
-            ->where('gig_date', '>=', $startDateForChart)
-            ->where('gig_date', '<=', $endDateForChart)
-            ->whereIn('contract_status', ['assinado', 'concluido', 'para_assinatura', 'n/a'])
-            ->groupBy('year', 'month')
-            ->orderBy('year', 'asc')
-            ->orderBy('month', 'asc')
-            ->get();
-
-        $chartLabels = [];
-        $chartData = [];
-
-        $currentMonthIterator = $startDateForChart->copy();
-        while ($currentMonthIterator->lessThanOrEqualTo($endDateForChart)) {
-            $year = $currentMonthIterator->year;
-            $month = $currentMonthIterator->month;
-
-            $chartLabels[] = $currentMonthIterator->translatedFormat('M/y');
-
-            $revenueForMonth = $monthlyRevenueData->first(function ($item) use ($year, $month) {
-                return $item->year == $year && $item->month == $month;
-            });
-
-            $chartData[] = $revenueForMonth ? (float) $revenueForMonth->total_revenue_brl : 0;
-
-            $currentMonthIterator->addMonth();
-        }
-
-        return view('dashboard', compact(
-            'activeFutureGigsCount',
-            'overdueClientPaymentsCount',
-            'pendingArtistPaymentsCount',
-            'pendingBookerPaymentsCount',
-            'totalGigsCount',
-            'totalCacheThisMonth',
-            'totalAgencyCommissionThisMonth',
-            'totalBookerCommissionThisMonth',
-            'nextGigs',
-            'chartLabels',
-            'chartData'
-        ));
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('users', UserController::class);
 
@@ -155,9 +85,9 @@ Route::middleware('auth')->group(function () {
     // **NOVA ROTA PARA A DEPURAÇÃO DAS PROJEÇÕES**
     Route::get('/projections/debug', [FinancialProjectionController::class, 'debug'])->name('projections.debug');
 
-    // Dentro do grupo de autenticação
-    Route::get('/desempenho', [PerformanceReportController::class, 'index'])->name('performance.index');
-    Route::get('/desempenho/exportar', [PerformanceReportController::class, 'exportPdf'])->name('performance.exportPdf');
+    // Performance Reports
+    Route::get('/reports/performance', [PerformanceReportController::class, 'index'])->name('reports.performance.index');
+    Route::get('/reports/performance/export', [PerformanceReportController::class, 'exportPdf'])->name('reports.performance.export');
 
     // Gigs
     Route::resource('gigs', GigController::class);

@@ -56,27 +56,27 @@
             
 <li>
                
-                <a href="{{ route('reports.delinquency') }}"
-                   :class="window.location.pathname.startsWith('/reports/delinquency') ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
-                   class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                    <i class="fas fa-file-invoice-dollar w-6 text-center"></i> {{-- Ícone alterado para algo mais relacionado a inadimplência --}}
-                    <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Status Financeiro</span> 
-                </a>
-            </li>
+    <a href="{{ route('reports.delinquency') }}"
+        :class="window.location.pathname.startsWith('/reports/delinquency') ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
+        class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+        <i class="fas fa-file-invoice-dollar w-6 text-center"></i> {{-- Ícone alterado para algo mais relacionado a inadimplência --}}
+        <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Status Financeiro</span> 
+    </a>
+</li>
 <li>
-                <a href="{{ route('performance.index') }}"
-                   :class="window.location.pathname.startsWith('/desempenho') ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
-                   class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                    <i class="fas fa-rocket w-6 text-center"></i>
-                    <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Desempenho</span>
-                </a>
-            </li>
+    <a href="{{ route('reports.performance.index') }}"
+        :class="window.location.pathname.startsWith('/reports/performance') ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
+        class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+        <i class="fas fa-rocket w-6 text-center"></i>
+       <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Performance</span>
+    </a>
+</li>
 
             <li>
                 {{-- Link para Relatório Financeiro (Dashboard de Relatórios) --}}
                 {{-- ***** ALTERAÇÃO PRINCIPAL AQUI ***** --}}
                 <a href="{{ route('reports.index') }}"
-                   :class="(window.location.pathname === '/reports' || (window.location.pathname.startsWith('/reports') && !window.location.pathname.startsWith('/reports/delinquency'))) ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
+                   :class="window.location.pathname === '/reports' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400' : 'text-gray-600 dark:text-gray-300'"
                    class="flex items-center py-3 px-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                     <i class="fas fa-chart-bar w-6 text-center"></i>
                     <span :class="sidebarOpen ? 'ml-3 block' : 'hidden'">Relatório Financeiro</span>

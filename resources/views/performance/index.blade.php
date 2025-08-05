@@ -11,7 +11,7 @@
 
             {{-- Formulário de Filtros (Oculto na impressão) --}}
             <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md print:hidden">
-                <form method="GET" action="{{ route('performance.index') }}">
+                <form method="GET" action="{{ route('reports.performance.index') }}">
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                         <div>
                             <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Data Inicial</label>
@@ -32,7 +32,7 @@
                         </div>
                         <div class="flex items-center space-x-2">
                             <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-md shadow w-full transition-colors duration-200"><i class="fas fa-filter mr-2"></i>Filtrar</button>
-                            <a href="{{ route('performance.exportPdf', request()->query()) }}" target="_blank" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-md shadow w-full transition-colors duration-200"><i class="fas fa-file-pdf mr-2"></i>PDF</a>
+                            <a href="{{ route('reports.performance.export', request()->query()) }}" target="_blank" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-md shadow w-full transition-colors duration-200"><i class="fas fa-file-pdf mr-2"></i>PDF</a>
                         </div>
                     </div>
                 </form>
