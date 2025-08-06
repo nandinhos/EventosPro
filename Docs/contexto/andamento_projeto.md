@@ -11,6 +11,31 @@ Este documento apresenta o estado atual do **EventosPro**, um sistema de gestão
 
 O sistema está em **fase avançada de desenvolvimento**, com a maior parte das funcionalidades principais já implementadas e em operação. A arquitetura atual permite uma fácil expansão para novas funcionalidades e integrações futuras.
 
+### **Últimas Atualizações (Agosto/2025)**
+
+#### **Melhorias no Dashboard Principal**
+- **Reestruturação do Layout**:
+  - Cards fixos de totais no topo (Visão Geral)
+  - Filtros de período otimizados
+  - Seção dinâmica com métricas detalhadas
+- **Gráfico de Faturamento Mensal Interativo**:
+  - Visualização clara do desempenho por mês
+  - Tooltips informativos com detalhes de faturamento e quantidade de eventos
+  - Navegação direta para relatórios mensais com um clique
+- **Cards de Métricas Aprimorados**:
+  - Total de Gigs (com indicador de crescimento)
+  - Gigs Ativas/Futuras (com contagem por status)
+  - Pagamentos Pendentes (Cliente e Booker)
+  - Vendas do Mês (com valor total e quantidade)
+  - Cachê Bruto (mês atual)
+  - Comissões (mês atual)
+
+#### **Otimizações no Sistema de Relatórios**
+- Consolidação da lógica de cálculos financeiros no `DashboardService`
+- Melhoria na precisão dos dados entre diferentes visualizações
+- Sincronização entre o dashboard e relatórios detalhados
+- Melhor tratamento de períodos e filtros
+
 ---
 
 ## **Escopo Global do Sistema: EventosPro**

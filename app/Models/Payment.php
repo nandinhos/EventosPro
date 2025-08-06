@@ -99,4 +99,12 @@ class Payment extends Model
 
         return (float) $this->due_value * $exchangeRate;
     }
+    
+    /**
+     * Verifica se o pagamento foi confirmado/recebido
+     */
+    public function getIsPaidAttribute(): bool
+    {
+        return !is_null($this->confirmed_at);
+    }
 }

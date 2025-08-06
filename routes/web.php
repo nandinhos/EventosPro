@@ -89,6 +89,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/performance', [PerformanceReportController::class, 'index'])->name('reports.performance.index');
     Route::get('/reports/performance/export', [PerformanceReportController::class, 'exportPdf'])->name('reports.performance.export');
 
+    // Due Dates Reports
+    Route::get('/reports/due-dates', [FinancialReportController::class, 'dueDatesReport'])->name('reports.due-dates');
+    Route::get('/reports/due-dates/export/pdf', [FinancialReportController::class, 'exportDueDatesPdf'])->name('reports.due-dates.exportPdf');
+    
     // Gigs
     Route::resource('gigs', GigController::class);
     Route::get('gigs/{gig}/request-nf', [GigController::class, 'showRequestNfForm'])->name('gigs.request-nf');

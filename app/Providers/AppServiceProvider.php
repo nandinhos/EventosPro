@@ -36,5 +36,6 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Blade::component('reports.components.tab-nav', 'tab-nav');
         \Illuminate\Support\Facades\Blade::component('reports.components.chart', 'chart');
         \Illuminate\Support\Facades\Blade::component('reports.components.slot-button', 'slot-button');
+        \Illuminate\Support\Facades\Blade::component('components.status-dot', 'status-dot');
     }
 }

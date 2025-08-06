@@ -25,12 +25,23 @@
     {{-- Estilos adicionais específicos da página (raro, mas possível) --}}
     @stack('styles')
 </head>
-<body class="font-sans antialiased bg-gray-100 dark:bg-gray-200"> {{-- Cor de fundo padrão ajustada --}}
+<body class="font-sans antialiased bg-gray-100 dark:bg-gray-900">
 
-    {{-- Estado global mínimo para Alpine (sidebar) --}}
-    <div x-data="{ sidebarOpen: localStorage.getItem('sidebarOpen') === 'true' || true }"
+    {{-- Estado global para Alpine (sidebar e funções auxiliares) --}}
+    <div x-data="{
+            sidebarOpen: localStorage.getItem('sidebarOpen') === 'true' || true,
+            inArray(needle, haystack) {
+                if (Array.isArray(haystack)) {
+                    return haystack.includes(needle);
+                }
+                if (typeof haystack === 'string') {
+                    return haystack === needle;
+                }
+                return false;
+            }
+        }"
          x-init="$watch('sidebarOpen', val => localStorage.setItem('sidebarOpen', val))"
-         class="flex h-screen bg-gray-100 dark:bg-gray-900" {{-- Container Flex Principal --}}
+         class="min-h-screen flex flex-col md:flex-row bg-gray-100 dark:bg-gray-900" {{-- Container Flex Principal --}}
     >
         <!-- Sidebar -->
         {{-- Inclui o componente da sidebar, passando o estado via prop --}}
@@ -38,7 +49,7 @@
         <x-sidebar />
 
         <!-- Área de Conteúdo Principal -->
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden md:ml-64 transition-all duration-300" :class="{ 'md:ml-20': !sidebarOpen }">
 
             <!-- Header Principal (dentro da área de conteúdo) -->
             <header class="bg-white dark:bg-gray-800 shadow-md z-10">

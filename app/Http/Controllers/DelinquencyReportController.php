@@ -140,4 +140,218 @@ class DelinquencyReportController extends Controller
         return $pdf->download($fileName);
     }
 
+    /**
+     * Exibe o relatório de vencimentos (pagamentos a vencer e vencidos)
+     */
+    public function dueDates(Request $request)
+    {
+        // Validação dos parâmetros de data
+        $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'status' => 'nullable|in:paid,pending,overdue',
+            'currency' => 'nullable|string|size:3',
+        ]);
+
+        // Instanciar o serviço de cálculo financeiro
+        $financialService = app(\App\Services\GigFinancialCalculatorService::class);
+
+        // Consulta para obter pagamentos com data de vencimento e carregar relacionamentos necessários
+        $payments = Payment::query()
+            ->with([
+                'gig.artist', 
+                'gig.booker',
+                'gig.costs',
+                'gig.payments'
+            ])
+            ->whereNotNull('due_date')
+            ->when($request->filled('start_date'), function ($query) use ($request) {
+                return $query->where('due_date', '>=', $request->input('start_date'));
+            })
+            ->when($request->filled('end_date'), function ($query) use ($request) {
+                return $query->where('due_date', '<=', $request->input('end_date'));
+            })
+            ->when($request->filled('currency'), function ($query) use ($request) {
+                return $query->where('currency', $request->input('currency'));
+            })
+            ->orderBy('due_date', 'asc')
+            ->get();
+
+        // Processar cada pagamento para adicionar os valores calculados
+        $payments->each(function ($payment) use ($financialService) {
+            if ($payment->gig) {
+                // Calcular o valor em BRL usando o serviço financeiro
+                $gig = $payment->gig;
+                
+                // Se o pagamento já estiver pago, usar o valor confirmado se disponível
+                if ($payment->is_paid && $payment->confirmed_value) {
+                    $payment->calculated_value = $payment->confirmed_value;
+                    $payment->calculated_brl = $payment->currency === 'BRL' 
+                        ? $payment->confirmed_value 
+                        : $payment->confirmed_value * ($payment->exchange_rate ?: 1);
+                } else {
+                    // Para pagamentos não confirmados, calcular com base no valor original
+                    $payment->calculated_value = $payment->value;
+                    
+                    // Se não for BRL, converter para BRL usando a taxa de câmbio
+                    if ($payment->currency !== 'BRL' && $payment->exchange_rate) {
+                        $payment->calculated_brl = $payment->value * $payment->exchange_rate;
+                    } else {
+                        $payment->calculated_brl = $payment->value;
+                    }
+                }
+                
+                // Adicionar informações adicionais para exibição
+                // Garantir que os valores sejam numéricos antes de formatar
+                $payment->formatted_value = number_format(floatval($payment->calculated_value ?? 0), 2, ',', '.');
+                $payment->formatted_brl = number_format(floatval($payment->calculated_brl ?? 0), 2, ',', '.');
+            }
+        });
+
+        // Classificar pagamentos por status
+        $groupedPayments = [
+            'overdue' => $payments->filter(fn($payment) => $payment->due_date < now() && !$payment->is_paid),
+            'pending' => $payments->filter(fn($payment) => 
+                $payment->due_date >= now() && 
+                $payment->due_date <= now()->addDays(30) && 
+                !$payment->is_paid
+            ),
+            'paid' => $payments->filter(fn($payment) => $payment->is_paid),
+        ];
+
+        // Aplicar filtro de status se especificado
+        if ($request->filled('status')) {
+            $groupedPayments = [$request->input('status') => $groupedPayments[$request->input('status')] ?? collect()];
+        }
+
+        // Calcular totais usando os valores calculados
+        $totals = [];
+        foreach ($groupedPayments as $status => $payments) {
+            $totals[$status] = [
+                'count' => $payments->count(),
+                'amount' => $payments->sum('calculated_value'),
+                'amount_brl' => $payments->sum('calculated_brl')
+            ];
+        }
+
+        // Obter moedas disponíveis para filtro
+        $currencies = Payment::select('currency')
+            ->distinct()
+            ->whereNotNull('currency')
+            ->orderBy('currency')
+            ->pluck('currency');
+
+        return view('reports.due_dates.index', [
+            'groupedPayments' => $groupedPayments,
+            'totals' => $totals,
+            'filters' => $request->only(['start_date', 'end_date', 'status', 'currency']),
+            'currencies' => $currencies,
+        ]);
+    }
+
+    /**
+     * Exporta o relatório de vencimentos para PDF
+     */
+    public function exportDueDates(Request $request)
+    {
+        // Validação dos parâmetros
+        $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'status' => 'nullable|in:paid,pending,overdue',
+            'currency' => 'nullable|string|size:3',
+        ]);
+
+        // Instanciar o serviço de cálculo financeiro
+        $financialService = app(\App\Services\GigFinancialCalculatorService::class);
+
+        // Consulta para obter pagamentos com data de vencimento e carregar relacionamentos necessários
+        $payments = Payment::query()
+            ->with([
+                'gig.artist', 
+                'gig.booker',
+                'gig.costs',
+                'gig.payments'
+            ])
+            ->whereNotNull('due_date')
+            ->when($request->filled('start_date'), function ($query) use ($request) {
+                return $query->where('due_date', '>=', $request->input('start_date'));
+            })
+            ->when($request->filled('end_date'), function ($query) use ($request) {
+                return $query->where('due_date', '<=', $request->input('end_date'));
+            })
+            ->when($request->filled('currency'), function ($query) use ($request) {
+                return $query->where('currency', $request->input('currency'));
+            })
+            ->orderBy('due_date', 'asc')
+            ->get();
+            
+        // Processar cada pagamento para adicionar os valores calculados
+        $payments->each(function ($payment) use ($financialService) {
+            if ($payment->gig) {
+                // Calcular o valor em BRL usando o serviço financeiro
+                $gig = $payment->gig;
+                
+                // Se o pagamento já estiver pago, usar o valor confirmado se disponível
+                if ($payment->is_paid && $payment->confirmed_value) {
+                    $payment->calculated_value = $payment->confirmed_value;
+                    $payment->calculated_brl = $payment->currency === 'BRL' 
+                        ? $payment->confirmed_value 
+                        : $payment->confirmed_value * ($payment->exchange_rate ?: 1);
+                } else {
+                    // Para pagamentos não confirmados, calcular com base no valor original
+                    $payment->calculated_value = $payment->value;
+                    
+                    // Se não for BRL, converter para BRL usando a taxa de câmbio
+                    if ($payment->currency !== 'BRL' && $payment->exchange_rate) {
+                        $payment->calculated_brl = $payment->value * $payment->exchange_rate;
+                    } else {
+                        $payment->calculated_brl = $payment->value;
+                    }
+                }
+                
+                // Adicionar informações adicionais para exibição
+                // Garantir que os valores sejam numéricos antes de formatar
+                $payment->formatted_value = number_format(floatval($payment->calculated_value ?? 0), 2, ',', '.');
+                $payment->formatted_brl = number_format(floatval($payment->calculated_brl ?? 0), 2, ',', '.');
+            }
+        });
+
+        // Classificar pagamentos por status
+        $groupedPayments = [
+            'overdue' => $payments->filter(fn($payment) => $payment->due_date < now() && !$payment->is_paid),
+            'pending' => $payments->filter(fn($payment) => 
+                $payment->due_date >= now() && 
+                $payment->due_date <= now()->addDays(30) && 
+                !$payment->is_paid
+            ),
+            'paid' => $payments->filter(fn($payment) => $payment->is_paid),
+        ];
+
+        // Aplicar filtro de status se especificado
+        if ($request->filled('status')) {
+            $groupedPayments = [$request->input('status') => $groupedPayments[$request->input('status')] ?? collect()];
+        }
+
+        // Calcular totais usando os valores calculados
+        $totals = [];
+        foreach ($groupedPayments as $status => $payments) {
+            $totals[$status] = [
+                'count' => $payments->count(),
+                'amount' => $payments->sum('calculated_value'),
+                'amount_brl' => $payments->sum('calculated_brl')
+            ];
+        }
+
+        // Gerar PDF
+        $pdf = Pdf::loadView('reports.exports.due_dates_pdf', [
+            'groupedPayments' => $groupedPayments,
+            'totals' => $totals,
+            'filters' => $request->only(['start_date', 'end_date', 'status', 'currency']),
+            'generated_at' => now()->format('d/m/Y H:i'),
+        ]);
+
+        $fileName = 'relatorio_vencimentos_' . now()->format('Y-m-d') . '.pdf';
+        return $pdf->download($fileName);
+    }
 }

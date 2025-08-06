@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\OverviewReportExport;
+use App\Models\Payment;
+use Illuminate\Support\Str;
 
 class FinancialReportController extends Controller
 {
@@ -240,5 +242,125 @@ class FinancialReportController extends Controller
         }
 
         return redirect()->back()->with('error', 'Formato de exportação inválido.');
+    }
+
+    /**
+     * Exibe o relatório de vencimentos com foco em parcelas PENDENTES.
+     */
+    public function dueDatesReport(Request $request)
+    {
+        $filters = $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'status' => 'nullable|in:a_vencer,vencido', // Apenas estes status são filtráveis
+            'currency' => 'nullable|string',
+        ]);
+
+        // 1. Query base JÁ FILTRADA para parcelas NÃO CONFIRMADAS
+        $query = Payment::query()
+            ->whereNull('confirmed_at') // Foco apenas no que está em aberto
+            ->with(['gig.artist', 'gig.booker']);
+
+        // 2. Aplicar filtros de data e moeda
+        if ($startDate = $filters['start_date'] ?? null) $query->where('due_date', '>=', $startDate);
+        if ($endDate = $filters['end_date'] ?? null) $query->where('due_date', '<=', $endDate);
+        if ($currency = $filters['currency'] ?? null) $query->where('currency', $currency);
+        
+        $pendingPayments = $query->orderBy('due_date')->get();
+
+        // 3. Calcular totais APENAS para vencidos e a vencer
+        $totals = [
+            'vencido' => ['count' => 0, 'amount_brl' => 0],
+            'a_vencer' => ['count' => 0, 'amount_brl' => 0],
+        ];
+
+        foreach ($pendingPayments as $payment) {
+            $status = $payment->inferred_status;
+            if (isset($totals[$status])) {
+                $totals[$status]['count']++;
+                $totals[$status]['amount_brl'] += $payment->due_value_brl;
+            }
+        }
+        
+        // 4. Filtrar para a tabela
+        $statusFilter = $filters['status'] ?? null;
+        $paymentsForTable = $statusFilter ? $pendingPayments->filter(fn($p) => $p->inferred_status === $statusFilter) : $pendingPayments;
+
+        // 5. Retorna a view com os dados focados
+        return view('reports.due_dates.index', [
+            'payments' => $paymentsForTable,
+            'totals' => $totals,
+            'currencies' => Payment::select('currency')->distinct()->orderBy('currency')->pluck('currency'),
+        ]);
+    }
+
+    /**
+     * Exporta o relatório de vencimentos para PDF.
+     */
+    /**
+     * Exporta o relatório de vencimentos para PDF.
+     */
+    public function exportDueDatesPdf(Request $request)
+    {
+        // 1. Aumenta os limites de execução ANTES de qualquer processamento pesado
+        try {
+            ini_set('memory_limit', '512M'); // Aumenta para 512MB
+            set_time_limit(300);             // Aumenta para 5 minutos
+        } catch (\Exception $e) {
+            Log::warning('Não foi possível aumentar os limites de execução para PDF: ' . $e->getMessage());
+        }
+
+        $filters = $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'status' => 'nullable|in:a_vencer,vencido',
+            'currency' => 'nullable|string',
+        ]);
+
+        // 2. Query otimizada com 'select' explícito para reduzir uso de memória
+        $query = Payment::query()
+            ->with([
+                // Carrega apenas as colunas que a view do PDF REALMENTE precisa
+                'gig:id,artist_id,booker_id,location_event_details,gig_date',
+                'gig.artist:id,name',
+                'gig.booker:id,name'
+            ])
+            ->whereNull('confirmed_at');
+
+        // Aplicar filtros
+        if ($startDate = $filters['start_date'] ?? null) $query->where('due_date', '>=', $startDate);
+        if ($endDate = $filters['end_date'] ?? null) $query->where('due_date', '<=', $endDate);
+        if ($currency = $filters['currency'] ?? null) $query->where('currency', $currency);
+
+        $pendingPayments = $query->orderBy('due_date')->get();
+
+        // Calcular totais
+        $totals = [
+            'vencido' => ['count' => 0, 'amount_brl' => 0],
+            'a_vencer' => ['count' => 0, 'amount_brl' => 0],
+        ];
+        foreach ($pendingPayments as $payment) {
+            $status = $payment->inferred_status;
+            if (isset($totals[$status])) {
+                $totals[$status]['count']++;
+                $totals[$status]['amount_brl'] += $payment->due_value_brl;
+            }
+        }
+
+        $statusFilter = $filters['status'] ?? null;
+        $paymentsForReport = $statusFilter ? $pendingPayments->filter(fn($p) => $p->inferred_status === $statusFilter) : $pendingPayments;
+
+        $groupedPayments = $paymentsForReport->groupBy('inferred_status');
+
+        // 3. Gera o PDF
+        $pdf = Pdf::loadView('reports.exports.due_dates_pdf', [
+            'groupedPayments' => $groupedPayments,
+            'totals' => $totals,
+            'filters' => array_filter($filters), // Remove filtros vazios
+            'generated_at' => now()->format('d/m/Y H:i'),
+        ]);
+
+        $fileName = 'relatorio_vencimentos_' . now()->format('Ymd_His') . '.pdf';
+        return $pdf->download($fileName);
     }
 }

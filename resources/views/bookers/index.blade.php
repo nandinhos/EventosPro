@@ -1,16 +1,24 @@
 <x-app-layout>
     {{-- Header --}}
-    <div class="mb-6 flex flex-wrap justify-between items-center gap-4">
+    <x-slot name="header">
         <div>
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Gerenciamento de Bookers</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Adicione, edite ou remova bookers.</p>
+            <h2 class="font-semibold text-xl text-gray-800 dark:text-white leading-tight">
+                {{ __('Gerenciamento de Bookers') }}
+            </h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Adicione, edite ou remova bookers.
+            </p>
         </div>
-        <a href="{{ route('bookers.create') }}" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md flex items-center text-sm shrink-0">
+    </x-slot>
+
+    {{-- Botão no topo, alinhado à direita --}}
+    <div class="max-w-4xl mx-auto mt-6 mb-4 flex justify-end">
+        <a href="{{ route('bookers.create') }}"
+           class="bg-primary-600 hover:bg-primary-700 text-white font-medium px-5 py-2 rounded-md flex items-center text-sm shadow-md transition">
             <i class="fas fa-plus mr-2"></i> Novo Booker
         </a>
     </div>
-
-    {{-- Tabela --}}
+        
     <div class="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
