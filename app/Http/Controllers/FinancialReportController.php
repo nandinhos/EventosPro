@@ -249,26 +249,54 @@ class FinancialReportController extends Controller
      */
     public function dueDatesReport(Request $request)
     {
+        // Log dos parâmetros recebidos
+        \Log::info('Parâmetros da requisição:', $request->all());
+        
         $filters = $request->validate([
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
-            'status' => 'nullable|in:a_vencer,vencido', // Apenas estes status são filtráveis
+            'contract_status' => 'nullable|in:assinado,cancelado,concluido,expirado,n/a,para_assinatura',
+            'status' => 'nullable|in:a_vencer,vencido',
             'currency' => 'nullable|string',
         ]);
 
-        // 1. Query base JÁ FILTRADA para parcelas NÃO CONFIRMADAS
+        // 1. Query base para parcelas NÃO CONFIRMADAS e que NÃO estão em gigs excluídas
         $query = Payment::query()
             ->whereNull('confirmed_at') // Foco apenas no que está em aberto
+            ->whereHas('gig', function($q) {
+                $q->whereNull('deleted_at'); // Exclui gigs com soft delete
+            })
             ->with(['gig.artist', 'gig.booker']);
 
         // 2. Aplicar filtros de data e moeda
-        if ($startDate = $filters['start_date'] ?? null) $query->where('due_date', '>=', $startDate);
-        if ($endDate = $filters['end_date'] ?? null) $query->where('due_date', '<=', $endDate);
-        if ($currency = $filters['currency'] ?? null) $query->where('currency', $currency);
+        if ($startDate = $filters['start_date'] ?? null) {
+            $query->where('due_date', '>=', $startDate);
+            \Log::info('Filtrando por data inicial: ' . $startDate);
+        }
         
-        $pendingPayments = $query->orderBy('due_date')->get();
+        if ($endDate = $filters['end_date'] ?? null) {
+            $query->where('due_date', '<=', $endDate);
+            \Log::info('Filtrando por data final: ' . $endDate);
+        }
+        
+        if ($currency = $filters['currency'] ?? null) {
+            $query->where('currency', $currency);
+            \Log::info('Filtrando por moeda: ' . $currency);
+        }
 
-        // 3. Calcular totais APENAS para vencidos e a vencer
+        // 3. Aplicar filtro de status do contrato se fornecido
+        if ($contractStatus = $filters['contract_status'] ?? null) {
+            $query->whereHas('gig', function($q) use ($contractStatus) {
+                $q->where('contract_status', $contractStatus);
+            });
+            \Log::info('Filtrando por status do contrato: ' . $contractStatus);
+        }
+
+        // 4. Obter pagamentos pendentes
+        $pendingPayments = $query->orderBy('due_date')->get();
+        \Log::info('Total de pagamentos encontrados: ' . $pendingPayments->count());
+
+        // 5. Calcular totais APENAS para vencidos e a vencer
         $totals = [
             'vencido' => ['count' => 0, 'amount_brl' => 0],
             'a_vencer' => ['count' => 0, 'amount_brl' => 0],
@@ -278,13 +306,20 @@ class FinancialReportController extends Controller
             $status = $payment->inferred_status;
             if (isset($totals[$status])) {
                 $totals[$status]['count']++;
-                $totals[$status]['amount_brl'] += $payment->due_value_brl;
+                $totals[$status]['amount_brl'] += $payment->due_value_brl ?? 0;
             }
         }
         
-        // 4. Filtrar para a tabela
+        // 6. Filtrar para a tabela (status de vencimento)
         $statusFilter = $filters['status'] ?? null;
-        $paymentsForTable = $statusFilter ? $pendingPayments->filter(fn($p) => $p->inferred_status === $statusFilter) : $pendingPayments;
+        $paymentsForTable = $pendingPayments;
+        
+        if ($statusFilter) {
+            $paymentsForTable = $pendingPayments->filter(function($payment) use ($statusFilter) {
+                return $payment->inferred_status === $statusFilter;
+            });
+            \Log::info('Filtrando por status de vencimento: ' . $statusFilter . '. Total: ' . $paymentsForTable->count());
+        }
 
         // 5. Retorna a view com os dados focados
         return view('reports.due_dates.index', [
@@ -310,9 +345,13 @@ class FinancialReportController extends Controller
             Log::warning('Não foi possível aumentar os limites de execução para PDF: ' . $e->getMessage());
         }
 
+        // Log dos parâmetros recebidos
+        \Log::info('Parâmetros da requisição (PDF):', $request->all());
+
         $filters = $request->validate([
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
+            'contract_status' => 'nullable|in:assinado,cancelado,concluido,expirado,n/a,para_assinatura',
             'status' => 'nullable|in:a_vencer,vencido',
             'currency' => 'nullable|string',
         ]);
@@ -321,34 +360,66 @@ class FinancialReportController extends Controller
         $query = Payment::query()
             ->with([
                 // Carrega apenas as colunas que a view do PDF REALMENTE precisa
-                'gig:id,artist_id,booker_id,location_event_details,gig_date',
+                'gig:id,artist_id,booker_id,location_event_details,gig_date,contract_status',
                 'gig.artist:id,name',
                 'gig.booker:id,name'
             ])
-            ->whereNull('confirmed_at');
+            ->whereNull('confirmed_at')
+            ->whereHas('gig', function($q) {
+                $q->whereNull('deleted_at'); // Exclui gigs com soft delete
+            });
 
         // Aplicar filtros
-        if ($startDate = $filters['start_date'] ?? null) $query->where('due_date', '>=', $startDate);
-        if ($endDate = $filters['end_date'] ?? null) $query->where('due_date', '<=', $endDate);
-        if ($currency = $filters['currency'] ?? null) $query->where('currency', $currency);
+        if ($startDate = $filters['start_date'] ?? null) {
+            $query->where('due_date', '>=', $startDate);
+            \Log::info('PDF - Filtrando por data inicial: ' . $startDate);
+        }
+        
+        if ($endDate = $filters['end_date'] ?? null) {
+            $query->where('due_date', '<=', $endDate);
+            \Log::info('PDF - Filtrando por data final: ' . $endDate);
+        }
+        
+        if ($currency = $filters['currency'] ?? null) {
+            $query->where('currency', $currency);
+            \Log::info('PDF - Filtrando por moeda: ' . $currency);
+        }
+
+        // Aplicar filtro de status do contrato se fornecido
+        if ($contractStatus = $filters['contract_status'] ?? null) {
+            $query->whereHas('gig', function($q) use ($contractStatus) {
+                $q->where('contract_status', $contractStatus);
+            });
+            \Log::info('PDF - Filtrando por status do contrato: ' . $contractStatus);
+        }
 
         $pendingPayments = $query->orderBy('due_date')->get();
+        \Log::info('PDF - Total de pagamentos encontrados: ' . $pendingPayments->count());
 
         // Calcular totais
         $totals = [
             'vencido' => ['count' => 0, 'amount_brl' => 0],
             'a_vencer' => ['count' => 0, 'amount_brl' => 0],
         ];
+        
         foreach ($pendingPayments as $payment) {
             $status = $payment->inferred_status;
             if (isset($totals[$status])) {
                 $totals[$status]['count']++;
-                $totals[$status]['amount_brl'] += $payment->due_value_brl;
+                $totals[$status]['amount_brl'] += $payment->due_value_brl ?? 0;
             }
         }
 
+        // Aplicar filtro de status de vencimento
         $statusFilter = $filters['status'] ?? null;
-        $paymentsForReport = $statusFilter ? $pendingPayments->filter(fn($p) => $p->inferred_status === $statusFilter) : $pendingPayments;
+        $paymentsForReport = $pendingPayments;
+        
+        if ($statusFilter) {
+            $paymentsForReport = $pendingPayments->filter(function($payment) use ($statusFilter) {
+                return $payment->inferred_status === $statusFilter;
+            });
+            \Log::info('PDF - Filtrando por status de vencimento: ' . $statusFilter . '. Total: ' . $paymentsForReport->count());
+        }
 
         $groupedPayments = $paymentsForReport->groupBy('inferred_status');
 

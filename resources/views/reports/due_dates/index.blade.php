@@ -25,12 +25,16 @@
 
                     {{-- Filtros Adicionais --}}
                     <div class="lg:col-span-2">
-                        <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-                        <select name="status" id="status" 
+                        <label for="contract_status" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status do Contrato</label>
+                        <select name="contract_status" id="contract_status" 
                                 class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white text-sm">
-                            <option value="">Todos (Pendentes)</option>
-                            <option value="a_vencer" {{ request('status') === 'a_vencer' ? 'selected' : '' }}>A Vencer</option>
-                            <option value="vencido" {{ request('status') === 'vencido' ? 'selected' : '' }}>Vencidos</option>
+                            <option value="">Todos os Status</option>
+                            <option value="assinado" {{ request('contract_status') === 'assinado' ? 'selected' : '' }}>Assinado</option>
+                            <option value="cancelado" {{ request('contract_status') === 'cancelado' ? 'selected' : '' }}>Cancelado</option>
+                            <option value="concluido" {{ request('contract_status') === 'concluido' ? 'selected' : '' }}>Concluído</option>
+                            <option value="expirado" {{ request('contract_status') === 'expirado' ? 'selected' : '' }}>Expirado</option>
+                            <option value="n/a" {{ request('contract_status') === 'n/a' ? 'selected' : '' }}>N/A</option>
+                            <option value="para_assinatura" {{ request('contract_status') === 'para_assinatura' ? 'selected' : '' }}>Para Assinatura</option>
                         </select>
                     </div>
                     
@@ -92,7 +96,7 @@
                                 <span class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $totals[$statusKey]['count'] ?? 0 }}</span>
                                 <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">parcelas</span>
                             </dd>
-                            <dd class="text-sm text-gray-500 dark:text-gray-400">
+                            <dd class="text-x font-bold text-gray-500 dark:text-gray-400">
                                 Total: R$ {{ number_format($totals[$statusKey]['amount_brl'] ?? 0, 2, ',', '.') }}
                             </dd>
                         </div>
@@ -103,6 +107,8 @@
 
         {{-- Tabela de Vencimentos --}}
         @include('partials.table-vencimentos', ['payments' => $payments])
+        
+       
     </div>
     @push('scripts')
 {{-- Script Refatorado e Mais Seguro --}}
