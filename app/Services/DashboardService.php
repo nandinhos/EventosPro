@@ -39,11 +39,40 @@ class DashboardService
         $this->endDate = Carbon::now()->endOfMonth();
     }
 
+    /**
+     * Obtém o primeiro e o último mês com dados de gigs
+     *
+     * @return array
+     */
+    public function getFirstAndLastMonth()
+    {
+        // Obtém a data da primeira e última gig cadastrada
+        $firstGig = Gig::orderBy('gig_date', 'asc')->first();
+        $lastGig = Gig::orderBy('gig_date', 'desc')->first();
+        
+        // Se não houver gigs, retorna o mês atual
+        if (!$firstGig || !$lastGig) {
+            $now = Carbon::now();
+            return [
+                'first_month' => $now->copy()->startOfMonth()->format('Y-m-d'),
+                'last_month' => $now->copy()->endOfMonth()->format('Y-m-d')
+            ];
+        }
+        
+        return [
+            'first_month' => $firstGig->gig_date->copy()->startOfMonth()->format('Y-m-d'),
+            'last_month' => $lastGig->gig_date->copy()->endOfMonth()->format('Y-m-d')
+        ];
+    }
+    
     public function getDashboardData()
     {
         $today = Carbon::today();
         $startOfMonth = $this->startDate->copy()->startOfMonth();
         $endOfMonth = $this->endDate->copy()->endOfMonth();
+        
+        // Obtém o primeiro e último mês disponível para o link do relatório completo
+        $dateRange = $this->getFirstAndLastMonth();
 
         // Dados para cards superiores
         $data = [
@@ -91,10 +120,16 @@ class DashboardService
             return $this->gigCalculator->calculateGrossCashBrl($gig);
         });
         
-        // Adiciona datas formatadas para o link do relatório de desempenho
+        // Adiciona URLs para os relatórios
         $data['performanceReportUrl'] = route('reports.performance.index', [
             'start_date' => $startOfMonth->format('Y-m-d'),
             'end_date' => $endOfMonth->format('Y-m-d')
+        ]);
+        
+        // URL para o relatório completo (todo o período disponível)
+        $data['fullPerformanceReportUrl'] = route('reports.performance.index', [
+            'start_date' => $dateRange['first_month'],
+            'end_date' => $dateRange['last_month']
         ]);
 
         // Próximas gigs

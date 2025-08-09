@@ -93,7 +93,16 @@
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                             <td class="px-2 py-2 whitespace-nowrap">{{ $row['gig_date'] }}</td>
                             <td class="px-2 py-2 whitespace-nowrap">{{ $row['booker_name'] }}</td>
-                            <td class="px-2 py-2 whitespace-normal max-w-xs truncate" title="{{ $row['location_event_details'] }}">{{ $row['location_event_details'] }}</td>
+                            <td class="px-2 py-2 whitespace-nowrap">
+                                <a href="{{ route('gigs.show', $row['gig_id']) }}" class="text-primary-600 hover:underline" title="Ver detalhes da Gig">
+                                    Gig #{{ $row['gig_id'] }}
+                                </a>
+                                @if($row['location_event_details'])
+                                    <span class="block text-gray-500 dark:text-gray-400 italic text-xxs truncate max-w-[150px]" title="{{ $row['location_event_details'] }}">
+                                        {{ Str::limit($row['location_event_details'], 30) }}
+                                    </span>
+                                @endif
+                            </td>
                             <td class="px-2 py-2 text-right whitespace-nowrap">{{ $row['cache_bruto_original'] }}</td>
                             <td class="px-2 py-2 text-right whitespace-nowrap">{{ number_format($row['cache_bruto_brl'], 2, ',', '.') }}</td>
                             <td class="px-2 py-2 text-right whitespace-nowrap text-red-500">{{ number_format($row['total_despesas_confirmadas_brl'], 2, ',', '.') }}</td>

@@ -17,7 +17,7 @@
         {{-- Linha de Cards de KPIs --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             {{-- Card Total de Gigs --}}
-            <a href="{{ route('gigs.index') }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+            <a href="{{ route('gigs.index') }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] border-l-4 border-indigo-500">
                 <div class="flex items-center">
                     <div class="bg-indigo-100 dark:bg-indigo-900/30 p-3 rounded-lg">
                         <i class="fas fa-compact-disc text-indigo-600 dark:text-indigo-400 text-xl fa-fw"></i>
@@ -30,7 +30,7 @@
             </a>
 
             {{-- Card Gigs Ativas/Futuras --}}
-            <a href="{{ route('gigs.index', ['start_date' => today()->format('Y-m-d')]) }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+            <a href="{{ route('gigs.index', ['start_date' => today()->format('Y-m-d')]) }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] border-l-4 border-blue-500">
                 <div class="flex items-center">
                     <div class="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg">
                         <i class="fas fa-calendar-alt text-blue-600 dark:text-blue-400 text-xl fa-fw"></i>
@@ -43,7 +43,7 @@
             </a>
 
             {{-- Card Pagamentos de Cliente Vencidos - Redireciona para Status Financeiro --}}
-            <a href="{{ route('reports.delinquency') }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+            <a href="{{ route('reports.delinquency') }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] border-l-4 border-red-500">
                 <div class="flex items-center">
                     <div class="bg-red-100 dark:bg-red-900/30 p-3 rounded-lg">
                         <i class="fas fa-file-invoice-dollar text-red-600 dark:text-red-400 text-xl fa-fw"></i>
@@ -56,7 +56,7 @@
             </a>
 
             {{-- Card Pagamentos de Artista Pendentes --}}
-            <a href="{{ route('gigs.index', ['artist_payment_status' => 'pendente']) }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+            <a href="{{ route('gigs.index', ['artist_payment_status' => 'pendente']) }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] border-l-4 border-yellow-500">
                 <div class="flex items-center">
                     <div class="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-lg">
                         <i class="fas fa-user-clock text-yellow-600 dark:text-yellow-400 text-xl fa-fw"></i>
@@ -226,15 +226,15 @@
             </div>
 
             {{-- Gráfico de Faturamento Mensal --}}
-            <a href="{{ route('reports.performance.index') }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow transform hover:scale-[1.005] group">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
                 <div class="flex justify-between items-start mb-4">
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Faturamento Mensal</h3>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Faturamento Mensal</h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400">{{ now()->subMonths(11)->format('M/Y') }} - {{ now()->format('M/Y') }}</p>
                     </div>
-                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-colors">
-                        <i class="fas fa-external-link-alt mr-1"></i> Ver relatório
-                    </span>
+                    <a href="{{ $fullPerformanceReportUrl }}" class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">
+                        <i class="fas fa-external-link-alt mr-1"></i> Ver relatório completo
+                    </a>
                 </div>
                 <div class="h-72 relative">
                     <canvas id="monthlyRevenueChart"></canvas>
@@ -250,7 +250,7 @@
                         </div>
                     </div>
                 </div>
-            </a>
+            </div>
         </div>
     </div>
 

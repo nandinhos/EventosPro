@@ -943,6 +943,7 @@ class FinancialReportService
                 $subtotals['comissao_agencia_liquida_brl'] += $comissaoAgenciaLiquidaBrl;
                 
                 return [
+                    'gig_id' => $gig->id,
                     'gig_date' => $gig->gig_date->format('d/m/Y'),
                     'artist_name' => $gig->artist->name ?? 'N/A',
                     'booker_name' => $gig->booker->name ?? 'N/A',
