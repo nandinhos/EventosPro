@@ -13,7 +13,19 @@ use App\Services\GigFinancialCalculatorService;
 
 class PerformanceReportController extends Controller
 {
-    // ***** PASSO 2: Injetar o Service no construtor *****
+    /**
+     * O serviço de cálculo financeiro
+     *
+     * @var GigFinancialCalculatorService
+     */
+    protected $gigCalculator;
+
+    /**
+     * Cria uma nova instância do controlador
+     *
+     * @param GigFinancialCalculatorService $gigCalculator
+     * @return void
+     */
     public function __construct(GigFinancialCalculatorService $gigCalculator)
     {
         $this->gigCalculator = $gigCalculator;
@@ -103,11 +115,13 @@ class PerformanceReportController extends Controller
                     $gross_cash_brl = $this->gigCalculator->calculateGrossCashBrl($gig);
 
                     return [
+                        'gig_id' => $gig->id,
                         'sale_date' => Carbon::parse($gig->sale_date)->format('d/m/Y'),
                         'gig_date' => $gig->gig_date->format('d/m/Y'),
                         'artist_local' => $gig->artist->name . ' @ ' . Str::limit($gig->location_event_details, 90),
+                        'location_event_details' => $gig->location_event_details,
                         'contract_value' => $gig->cache_value_brl,
-                        'gross_cash_brl' => $gross_cash_brl, // Nova variável para a linha
+                        'gross_cash_brl' => $gross_cash_brl,
                     ];
                 })
             ];

@@ -147,10 +147,10 @@
                 </a>
 
                 {{-- Card Cachê Bruto (Mês) - Baseado na data do evento --}}
-                <a href="{{ route('gigs.index', ['start_date' => $startOfMonth->format('Y-m-d'), 'end_date' => $endOfMonth->format('Y-m-d')]) }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow border-l-4 border-blue-500">
+                <a href="{{ route('reports.index', ['tab' => 'overview', 'start_date' => $startOfMonth->format('Y-m-d'), 'end_date' => $endOfMonth->format('Y-m-d')]) }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow border-l-4 border-blue-500">
                     <div class="flex justify-between items-start">
                         <div>
-                            <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Cachê Bruto (Mês)</h4>
+                            <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Cachê Líquido (Mês)</h4>
                             <p class="text-2xl font-bold text-gray-800 dark:text-white">R$ {{ number_format($totalCacheThisMonth, 2, ',', '.') }}</p>
                             <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">{{ $gigsThisMonthCount }} {{ Str::plural('gig', $gigsThisMonthCount) }}</p>
                             <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Gigs com data de evento em {{ \Carbon\Carbon::now()->translatedFormat('F/Y') }}</p>
@@ -162,7 +162,7 @@
                 </a>
 
                 {{-- Card Comissão Agência (Mês) --}}
-                <a href="{{ route('reports.performance.index') }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow border-l-4 border-purple-500">
+                <a href="{{ route('reports.index', ['tab' => 'overview', 'start_date' => $startOfMonth->format('Y-m-d'), 'end_date' => $endOfMonth->format('Y-m-d')]) }}" class="block bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow border-l-4 border-purple-500">
                     <div class="flex justify-between items-start">
                         <div>
                             <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Comissão Agência (Mês)</h4>

@@ -110,7 +110,7 @@
                                                         <th class="py-2 px-2 text-left w-[15%]">Data Venda</th>
                                                         <th class="py-2 px-2 text-left w-[15%]">Data Evento</th>
                                                         <th class="py-2 px-2 text-left w-[40%]">Artista - Local</th>
-                                                        <th class="py-2 px-2 text-right w-[15%]">Valor Contrato</th>
+                                                        <th class="py-2 px-2 text-left w-[15%]">Valor Contrato</th>
                                                         <th class="py-2 px-2 text-right w-[15%]">Cachê Bruto</th>
                                                     </tr>
                                                 </thead>
@@ -119,8 +119,17 @@
                                                     <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
                                                         <td class="py-2 px-2">{{ $gig['sale_date'] }}</td>
                                                         <td class="py-2 px-2">{{ $gig['gig_date'] }}</td>
-                                                        <td class="py-2 px-2 truncate">{{ $gig['artist_local'] }}</td>
-                                                        <td class="py-2 px-2 text-right">R$ {{ number_format($gig['contract_value'], 2, ',', '.') }}</td>
+                                                        <td class="py-2 px-2">
+                                                            <a href="{{ route('gigs.show', $gig['gig_id']) }}" class="text-primary-600 hover:underline" title="Ver detalhes da Gig">
+                                                                Gig #{{ $gig['gig_id'] }}
+                                                            </a>
+                                                            @if(!empty($gig['location_event_details']))
+                                                                <div class="text-gray-500 dark:text-gray-400 italic text-xxs whitespace-normal break-words -mt-1">
+                                                                    {{ $gig['location_event_details'] }}
+                                                                </div>
+                                                            @endif
+                                                        </td>
+                                                        <td class="py-2 px-2">R$ {{ number_format($gig['contract_value'], 2, ',', '.') }}</td>
                                                         {{-- ***** VARIÁVEL CORRETA USADA AQUI ***** --}}
                                                         <td class="py-2 px-2 text-right font-semibold text-teal-700 dark:text-teal-400">
                                                             R$ {{ number_format($gig['gross_cash_brl'], 2, ',', '.') }}

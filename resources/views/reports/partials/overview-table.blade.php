@@ -10,13 +10,21 @@
     <div class="flex flex-col md:flex-row justify-between items-start gap-6 mb-6">
         
         {{-- Container para os Cards com o novo estilo --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-grow w-full">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 flex-grow w-full">
             
             {{-- Card Azul: Cachê Líquido Base --}}
             <div class="bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg">
                 <h3 class="text-sm text-gray-500 dark:text-gray-400">Cachê Líquido Base</h3>
                 <p class="text-lg font-semibold text-blue-800 dark:text-blue-300">
                     R$ {{ number_format($grandTotals['cache_liquido_base_brl'] ?? 0, 2, ',', '.') }}
+                </p>
+            </div>
+
+            {{-- Card Roxo: Comissão Bruta Agência --}}
+            <div class="bg-purple-100 dark:bg-purple-900/20 p-4 rounded-lg">
+                <h3 class="text-sm text-gray-500 dark:text-gray-400">Comissão Bruta Agência</h3>
+                <p class="text-lg font-semibold text-purple-800 dark:text-purple-300">
+                    R$ {{ number_format($grandTotals['comissao_agencia_brl'] ?? 0, 2, ',', '.') }}
                 </p>
             </div>
 
