@@ -14,10 +14,10 @@ use App\Http\Requests\UpdateGigRequest;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\App; // Adicionado para usar o App::make()
 // O GigFinancialCalculatorService não é chamado diretamente pelo controller para salvar,
 // pois o GigObserver já faz esse papel. Mas pode ser usado para buscar dados para a view, se necessário.

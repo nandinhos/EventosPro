@@ -77,7 +77,7 @@
                 <li class="px-4 pt-4 pb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase" x-show="sidebarOpen">Análise</li>
 
                 <!-- Financeiro -->
-                <li x-data="{ open: @js(request()->routeIs('reports.delinquency') || request()->routeIs('reports.index') || request()->routeIs('projections.index') || request()->routeIs('reports.due-dates')) }"
+                <li x-data="{ open: @js(request()->routeIs('reports.delinquency') || request()->routeIs('reports.index') || request()->routeIs('projections.index') || request()->routeIs('reports.due-dates') || request()->routeIs('finance.monthly-closing')) }"
     :class="open ? 'text-primary-600 dark:text-primary-300' : ''">
     <button @click="open = !open" class="w-full flex items-center justify-between py-2.5 px-4 rounded-md transition-colors duration-200 text-left"
             :class="open ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'">
@@ -104,6 +104,10 @@
         <a href="{{ route('reports.due-dates') }}" class="flex items-center py-2 px-4 text-sm rounded-md transition-colors
            {{ request()->routeIs('reports.due-dates') ? 'text-primary-600 dark:text-primary-400 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
             <i class="fas fa-calendar-day fa-fw w-4 mr-2 text-center"></i> Vencimentos
+        </a>
+        <a href="{{ route('finance.monthly-closing') }}" class="flex items-center py-2 px-4 text-sm rounded-md transition-colors
+           {{ request()->routeIs('finance.monthly-closing') ? 'text-primary-600 dark:text-primary-400 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+            <i class="fas fa-file-invoice-dollar fa-fw w-4 mr-2 text-center"></i> Fechamento Mensal
         </a>
     </div>
 </li>

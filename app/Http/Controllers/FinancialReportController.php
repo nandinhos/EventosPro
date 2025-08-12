@@ -54,6 +54,19 @@ class FinancialReportController extends Controller
         $bookers = \App\Models\Booker::orderBy('name')->get();
         $artists = \App\Models\Artist::withoutTrashed()->orderBy('name')->get();
 
+        // Dados para os relatórios
+        $monthlyClosingReport = [
+            'total_gigs' => 0,
+            'total_cache_brl' => 0,
+            'total_booker_commission' => 0,
+            'total_agency_commission' => 0,
+            'booker_data' => collect([]),
+            'artist_data' => collect([]),
+            'gigs' => collect([]),
+            'start_date' => now()->startOfMonth(),
+            'end_date' => now()->endOfMonth()
+        ];
+
         return view('reports.dashboard', [
             'filters' => $filters,
             'activeTab' => $activeTab,
@@ -67,6 +80,7 @@ class FinancialReportController extends Controller
             'bookers' => $bookers,
             'artists' => $artists,
             'overviewData' => $overviewData,
+            'monthlyClosingReport' => $monthlyClosingReport,
         ]);
     }
 

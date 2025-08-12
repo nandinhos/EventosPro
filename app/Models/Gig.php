@@ -96,7 +96,7 @@ class Gig extends Model
      * @param Carbon $date
      * @return float|null
      */
-    protected function getExchangeRateForCurrency(string $currencyCode, Carbon $date): ?float
+    public function getExchangeRateForCurrency(string $currencyCode, Carbon $date): ?float
     {
         // Lógica de Projeção: Tentar pegar a taxa de câmbio do primeiro pagamento confirmado, se houver.
         // Se não, usar uma taxa de placeholder/configurável.

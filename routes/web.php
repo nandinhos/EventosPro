@@ -93,6 +93,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/due-dates', [FinancialReportController::class, 'dueDatesReport'])->name('reports.due-dates');
     Route::get('/reports/due-dates/export/pdf', [FinancialReportController::class, 'exportDueDatesPdf'])->name('reports.due-dates.exportPdf');
     
+    // Monthly Closing Reports
+    // Rotas de Fechamento Mensal (movidas para o grupo financeiro)
+    Route::get('/financeiro/fechamento-mensal', [App\Http\Controllers\MonthlyClosingController::class, 'index'])->name('finance.monthly-closing');
+    Route::get('/financeiro/fechamento-mensal/exportar/pdf', [App\Http\Controllers\MonthlyClosingController::class, 'exportPdf'])->name('finance.monthly-closing.exportPdf');
+    
     // Gigs
     Route::resource('gigs', GigController::class);
     Route::get('gigs/{gig}/request-nf', [GigController::class, 'showRequestNfForm'])->name('gigs.request-nf');
