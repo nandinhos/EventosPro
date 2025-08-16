@@ -26,186 +26,145 @@ class AuditController extends Controller
      */
     public function index(Request $request): View
     {
-        // Query base com eager loading para otimização
-        $query = Gig::with(['artist', 'booker', 'payments'])
-            ->select('gigs.*')
-            ->leftJoin('artists', 'gigs.artist_id', '=', 'artists.id')
-            ->leftJoin('bookers', 'gigs.booker_id', '=', 'bookers.id');
+        $filters = [
+            'search' => $request->input('search'),
+            'start_date' => $request->input('start_date'),
+            'end_date' => $request->input('end_date'),
+            'currency' => $request->input('currency'),
+        ];
 
-        // Filtros
-        if ($request->filled('search')) {
-            $searchTerm = $request->input('search');
-            $query->where(function ($q) use ($searchTerm) {
-                $q->where('gigs.contract_number', 'like', "%{$searchTerm}%")
-                  ->orWhere('gigs.location_event_details', 'like', "%{$searchTerm}%")
-                  ->orWhere('artists.name', 'like', "%{$searchTerm}%")
-                  ->orWhere('bookers.name', 'like', "%{$searchTerm}%");
+        // Query base - ordenação ascendente por data de vencimento
+        $query = Gig::with(['artist', 'booker', 'payments'])
+            ->whereNotNull('gig_date')
+            ->orderBy('gig_date', 'asc');
+
+        // Aplicar filtros
+        if ($filters['search']) {
+            $query->where(function ($q) use ($filters) {
+                $q->where('contract_number', 'like', '%' . $filters['search'] . '%')
+                  ->orWhere('location_event_details', 'like', '%' . $filters['search'] . '%')
+                  ->orWhereHas('artist', function ($artistQuery) use ($filters) {
+                      $artistQuery->where('name', 'like', '%' . $filters['search'] . '%');
+                  });
             });
         }
 
-        if ($request->filled('start_date')) {
-            $query->where('gigs.gig_date', '>=', $request->input('start_date'));
+        if ($filters['start_date']) {
+            $query->where('gig_date', '>=', $filters['start_date']);
         }
 
-        if ($request->filled('end_date')) {
-            $query->where('gigs.gig_date', '<=', $request->input('end_date'));
+        if ($filters['end_date']) {
+            $query->where('gig_date', '<=', $filters['end_date']);
         }
 
-        if ($request->filled('currency') && $request->input('currency') !== 'all') {
-            $query->where('gigs.currency', $request->input('currency'));
+        if ($filters['currency'] && $filters['currency'] !== 'all') {
+            $query->where('currency', $filters['currency']);
         }
 
-        // Filtro por status de pagamento será aplicado após o cálculo dos dados
-        // pois precisa analisar os pagamentos relacionados
-
-        // Filtro por divergência
-        if ($request->filled('has_divergence')) {
-            $hasDivergence = $request->boolean('has_divergence');
-            if ($hasDivergence) {
-                // Aplicar filtro para mostrar apenas gigs com divergência
-                // Isso será feito após o cálculo, por enquanto mantemos todas
-            }
-        }
-
-        // Ordenação
-        $sortBy = $request->input('sort_by', 'gig_date');
-        $sortDirection = $request->input('sort_direction', 'desc');
-        
-        $orderByColumn = match ($sortBy) {
-            'artist_name' => 'artists.name',
-            'booker_name' => 'bookers.name',
-            'contract_number' => 'gigs.contract_number',
-            'location' => 'gigs.location_event_details',
-            'currency' => 'gigs.currency',
-            default => 'gigs.' . $sortBy,
-        };
-        
-        $query->orderBy($orderByColumn, $sortDirection);
-
-        // Buscar todos os registros sem paginação
         $gigs = $query->get();
 
-        // Calcular dados de auditoria para cada gig
-        $auditData = [];
+        // Processar cada gig com nova lógica de negócio
+        $auditResults = [];
         foreach ($gigs as $gig) {
-            $auditInfo = $this->calculateAuditData($gig);
-            $auditData[$gig->id] = $auditInfo;
-        }
-
-        // Separar gigs totalmente pagos dos que possuem divergências
-        $fullyPaidGigs = collect();
-        $gigsWithIssues = collect();
-        
-        foreach ($gigs as $gig) {
-            $data = $auditData[$gig->id] ?? null;
-            if ($data) {
-                // Verificar se está totalmente pago (sem divergência e sem pendências)
-                $isFullyPaid = abs($data['divergencia']) <= 0.01 && $data['total_pendente'] <= 0.01;
-                
-                if ($isFullyPaid) {
-                    $fullyPaidGigs->push($gig);
-                } else {
-                    $gigsWithIssues->push($gig);
-                }
+            $result = $this->processGigAudit($gig);
+            if ($result['needs_audit']) {
+                $auditResults[] = $result;
             }
         }
 
-        // Filtrar por divergência se solicitado (apenas nos gigs com problemas)
-        if ($request->filled('has_divergence') && $request->boolean('has_divergence')) {
-            $gigsWithIssues = $gigsWithIssues->filter(function ($gig) use ($auditData) {
-                return abs($auditData[$gig->id]['divergencia']) > 0.01;
-            });
-        }
-
-        // Filtrar por status de pagamento baseado nos pagamentos relacionados
-        if ($request->filled('payment_status')) {
-            $paymentStatus = $request->input('payment_status');
-            $gigsWithIssues = $gigsWithIssues->filter(function ($gig) use ($paymentStatus) {
-                $totalPaid = $gig->payments->where('status', 'confirmed')->sum('amount_brl');
-                $totalDue = $gig->payments->sum('amount_brl');
-                
-                if ($paymentStatus === 'paid') {
-                    return $totalPaid >= $totalDue && $totalDue > 0;
-                } elseif ($paymentStatus === 'partial') {
-                    return $totalPaid > 0 && $totalPaid < $totalDue;
-                } elseif ($paymentStatus === 'pending') {
-                    return $totalPaid == 0 && $totalDue > 0;
-                }
-                
-                return true;
-            });
-        }
-
-        // Agrupar apenas os gigs com problemas por status de pagamento
-        $groupedGigs = $this->groupGigsByPaymentStatus($gigsWithIssues, $auditData);
+        // Agrupar por categorias
+        $groupedResults = $this->groupAuditResults($auditResults);
 
         // Dados para filtros
-        $currencies = DB::table('gigs')->select('currency')->distinct()->orderBy('currency')->pluck('currency');
+        $currencies = Gig::distinct('currency')->whereNotNull('currency')->pluck('currency')->sort();
 
-        return view('audit.index', [
-            'gigs' => $gigs,
-            'auditData' => $auditData,
-            'groupedGigs' => $groupedGigs,
-            'fullyPaidGigs' => $fullyPaidGigs,
-            'gigsWithIssues' => $gigsWithIssues,
-            'currencies' => $currencies,
-            'sortBy' => $sortBy,
-            'sortDirection' => $sortDirection,
-            'filters' => $request->only(['search', 'start_date', 'end_date', 'currency', 'payment_status', 'has_divergence'])
-        ]);
+        return view('audit.index', compact(
+            'groupedResults',
+            'currencies',
+            'filters'
+        ));
     }
 
     /**
-     * Calcula os dados de auditoria para uma gig específica.
-     * Fórmula da Divergência: Valor do Contrato - (Total Pago + Total Pendente)
+     * Processa auditoria de uma gig específica com nova lógica de negócio.
      *
      * @param Gig $gig
      * @return array
      */
-    private function calculateAuditData(Gig $gig): array
+    private function processGigAudit(Gig $gig): array
     {
-        try {
-            // Valor do contrato na moeda original
-            $valorContrato = (float) ($gig->cache_value ?? 0);
-            
-            // Total já recebido (confirmado) na moeda original
-            $totalPago = $this->financialCalculator->calculateTotalReceivedInOriginalCurrency($gig);
-            
-            // Total ainda a receber (pendente) na moeda original
-            $totalPendente = $this->financialCalculator->calculateTotalReceivableInOriginalCurrency($gig);
-            
-            // Cálculo da divergência
-            // Divergência = Valor Contrato - (Total Pago + Total Pendente)
-            $divergencia = $valorContrato - ($totalPago + $totalPendente);
-            
-            // Observações baseadas na análise
-            $observacao = $this->generateObservation($gig, $divergencia, $totalPago, $totalPendente, $valorContrato);
-            
-            Log::debug("[AuditController] Gig ID {$gig->id}: Contrato={$valorContrato}, Pago={$totalPago}, Pendente={$totalPendente}, Divergência={$divergencia}");
-            
-            return [
-                'valor_contrato' => $valorContrato,
-                'total_pago' => $totalPago,
-                'total_pendente' => $totalPendente,
-                'divergencia' => $divergencia,
-                'observacao' => $observacao,
-                'tem_divergencia' => abs($divergencia) > 0.01, // Considera divergência significativa > R$ 0,01
-                'status_divergencia' => $this->getStatusDivergencia($divergencia)
-            ];
-            
-        } catch (\Exception $e) {
-            Log::error("[AuditController] Erro ao calcular auditoria para Gig ID {$gig->id}: " . $e->getMessage());
-            
-            return [
-                'valor_contrato' => 0,
-                'total_pago' => 0,
-                'total_pendente' => 0,
-                'divergencia' => 0,
-                'observacao' => 'Erro no cálculo: ' . $e->getMessage(),
-                'tem_divergencia' => false,
-                'status_divergencia' => 'erro'
-            ];
+        $valorContrato = $gig->cache_value ?? 0;
+        
+        // Somatório de parcelas pagas (confirmed_at != null)
+        $totalPago = $gig->payments->whereNotNull('confirmed_at')->sum('received_value_actual') ?? 0;
+        
+        // Somatório de parcelas não pagas (confirmed_at = null)
+        $totalNaoPago = $gig->payments->whereNull('confirmed_at')->sum('due_value') ?? 0;
+        
+        // Confronto inicial: soma de pagas + não pagas deve ser igual ao valor do contrato
+        $somaTotal = $totalPago + $totalNaoPago;
+        $confrontoOk = abs($valorContrato - $somaTotal) <= 0.01;
+        
+        // Cálculo da diferença para exibição
+        $diferenca = $valorContrato - $somaTotal;
+        
+        $categoria = null;
+        $observacao = '';
+        $needsAudit = true;
+        
+        if (!$confrontoOk) {
+            // 1) Discrepância de valores onde a conta não bate
+            if ($somaTotal == 0) {
+                $categoria = 'falta_lancamento';
+                $observacao = 'Não há lançamentos de pagamento';
+            } else {
+                $categoria = 'discrepancia_valores';
+                $observacao = $diferenca > 0 ? 
+                    'Falta R$ ' . number_format($diferenca, 2, ',', '.') : 
+                    'Excesso de R$ ' . number_format(abs($diferenca), 2, ',', '.');
+            }
+        } else {
+            // Confronto OK - verificar payment_status
+            if ($gig->payment_status === 'pago') {
+                // Totalmente OK - não precisa ser listado
+                $needsAudit = false;
+            } else {
+                // 3) ou 4) Verificar se evento já aconteceu
+                $hoje = now()->startOfDay();
+                $gigDate = $gig->gig_date ? \Carbon\Carbon::parse($gig->gig_date)->startOfDay() : null;
+                
+                if ($gigDate && $gigDate->lt($hoje)) {
+                    $categoria = 'gigs_vencidas';
+                    // Refinar observação baseada no tipo de pagamento
+                    if (abs($valorContrato - $totalPago) <= 0.01) {
+                        // Caso 1: Contrato = Total Pago
+                        $observacao = 'Evento já aconteceu - Alterar status para "pago"';
+                    } else if (abs($valorContrato - $totalNaoPago) <= 0.01) {
+                        // Caso 2: Contrato = Total Não Pago
+                        $observacao = 'Evento já aconteceu - Verificar pagamento';
+                    } else {
+                        $observacao = 'Evento já aconteceu - Alterar status para "pago"';
+                    }
+                } else {
+                    $categoria = 'gigs_a_vencer';
+                    $observacao = 'Evento ainda não aconteceu - Aguardando';
+                }
+            }
         }
+        
+        return [
+            'gig' => $gig,
+            'valor_contrato' => $valorContrato,
+            'total_pago' => $totalPago,
+            'total_nao_pago' => $totalNaoPago,
+            'diferenca' => $diferenca,
+            'soma_total' => $somaTotal,
+            'confronto_ok' => $confrontoOk,
+            'categoria' => $categoria,
+            'observacao' => $observacao,
+            'needs_audit' => $needsAudit,
+            'payment_status' => $gig->payment_status
+        ];
     }
 
     /**
@@ -415,48 +374,101 @@ class AuditController extends Controller
     }
 
     /**
-     * Agrupa as gigs por status de pagamento baseado nas parcelas vencidas.
+     * Agrupa os resultados de auditoria por categorias.
      *
-     * @param \Illuminate\Support\Collection $gigs
-     * @param array $auditData
+     * @param array $auditResults
      * @return array
      */
-    private function groupGigsByPaymentStatus($gigs, array $auditData): array
+    private function groupAuditResults(array $auditResults): array
     {
         $groups = [
-            'multiple_overdue' => ['title' => 'Pagamentos com duas ou mais parcelas vencidas', 'gigs' => collect()],
-            'single_overdue' => ['title' => 'Pagamentos vencidos (uma parcela vencida)', 'gigs' => collect()],
-            'future_payments' => ['title' => 'Pagamentos a vencer', 'gigs' => collect()]
+            'discrepancia_valores' => [
+                'title' => 'Gigs com Discrepância de Valores',
+                'description' => 'Confronto entre payments e contrato não confere',
+                'items' => [],
+                'color' => 'red'
+            ],
+            'falta_lancamento' => [
+                'title' => 'Falta Lançamento de Pagamento',
+                'description' => 'Não há lançamentos de pagamento para o gig',
+                'items' => [],
+                'color' => 'orange'
+            ],
+            'gigs_vencidas' => [
+                'title' => 'Gigs Vencidas',
+                'description' => 'Evento já aconteceu mas status não é "pago"',
+                'items' => [],
+                'color' => 'yellow'
+            ],
+            'gigs_a_vencer' => [
+                'title' => 'Gigs a Vencer',
+                'description' => 'Evento ainda não aconteceu',
+                'items' => [],
+                'color' => 'blue'
+            ]
         ];
 
-        foreach ($gigs as $gig) {
-            $overdueCount = $this->countOverduePayments($gig);
-            
-            if ($overdueCount >= 2) {
-                $groups['multiple_overdue']['gigs']->push($gig);
-            } elseif ($overdueCount == 1) {
-                $groups['single_overdue']['gigs']->push($gig);
-            } else {
-                $groups['future_payments']['gigs']->push($gig);
+        foreach ($auditResults as $result) {
+            if ($result['categoria'] && isset($groups[$result['categoria']])) {
+                $groups[$result['categoria']]['items'][] = $result;
             }
         }
 
-        return $groups;
+        // Remover grupos vazios
+        return array_filter($groups, function($group) {
+            return count($group['items']) > 0;
+        });
     }
 
     /**
-     * Conta o número de parcelas vencidas para uma gig.
+     * Calcula os dados de auditoria para uma gig específica (método mantido para compatibilidade).
      *
      * @param Gig $gig
-     * @return int
+     * @return array
      */
-    private function countOverduePayments(Gig $gig): int
+    private function calculateAuditData(Gig $gig): array
     {
-        $today = now()->startOfDay();
-        
-        return $gig->payments()
-            ->whereNull('confirmed_at')
-            ->where('due_date', '<', $today)
-            ->count();
+        try {
+            // Valor do contrato na moeda original
+            $valorContrato = (float) ($gig->cache_value ?? 0);
+            
+            // Total já recebido (confirmado) na moeda original
+            $totalPago = $this->financialCalculator->calculateTotalReceivedInOriginalCurrency($gig);
+            
+            // Total ainda a receber (pendente) na moeda original
+            $totalPendente = $this->financialCalculator->calculateTotalReceivableInOriginalCurrency($gig);
+            
+            // Cálculo da divergência
+            // Divergência = Valor Contrato - (Total Pago + Total Pendente)
+            $divergencia = $valorContrato - ($totalPago + $totalPendente);
+            
+            // Observações baseadas na análise
+            $observacao = $this->generateObservation($gig, $divergencia, $totalPago, $totalPendente, $valorContrato);
+            
+            Log::debug("[AuditController] Gig ID {$gig->id}: Contrato={$valorContrato}, Pago={$totalPago}, Pendente={$totalPendente}, Divergência={$divergencia}");
+            
+            return [
+                'valor_contrato' => $valorContrato,
+                'total_pago' => $totalPago,
+                'total_pendente' => $totalPendente,
+                'divergencia' => $divergencia,
+                'observacao' => $observacao,
+                'tem_divergencia' => abs($divergencia) > 0.01, // Considera divergência significativa > R$ 0,01
+                'status_divergencia' => $this->getStatusDivergencia($divergencia)
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error("[AuditController] Erro ao calcular auditoria para Gig ID {$gig->id}: " . $e->getMessage());
+            
+            return [
+                'valor_contrato' => 0,
+                'total_pago' => 0,
+                'total_pendente' => 0,
+                'divergencia' => 0,
+                'observacao' => 'Erro no cálculo: ' . $e->getMessage(),
+                'tem_divergencia' => false,
+                'status_divergencia' => 'erro'
+            ];
+        }
     }
 }
