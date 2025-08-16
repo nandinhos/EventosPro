@@ -111,6 +111,27 @@
         </a>
     </div>
 </li>
+
+                <!-- AUDITORIA -->
+                <li x-data="{ open: @js(request()->routeIs('audit.*')) }"
+    :class="open ? 'text-primary-600 dark:text-primary-300' : ''">
+    <button @click="open = !open" class="w-full flex items-center justify-between py-2.5 px-4 rounded-md transition-colors duration-200 text-left"
+            :class="open ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'">
+        <div class="flex items-center">
+            <i class="fas fa-search-dollar fa-fw w-6 text-center text-lg"
+               :class="open ? 'text-primary-600 dark:text-primary-300' : ''"></i>
+            <span x-show="sidebarOpen" class="ml-3">AUDITORIA</span>
+        </div>
+        <i x-show="sidebarOpen" :class="open ? 'rotate-90' : ''" class="fas fa-chevron-right text-xs transition-transform"></i>
+    </button>
+    <div x-show="sidebarOpen && open" x-collapse class="ml-6 mt-1 space-y-1 border-l border-gray-200 dark:border-gray-700">
+        <a href="{{ route('audit.index') }}" class="flex items-center py-2 px-4 text-sm rounded-md transition-colors
+           {{ request()->routeIs('audit.index') || request()->routeIs('audit.show') ? 'text-primary-600 dark:text-primary-400 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+            <i class="fas fa-search fa-fw w-4 mr-2 text-center"></i>
+            Auditar Pagamentos
+        </a>
+    </div>
+</li>
             </ul>
         </nav>
     </div>

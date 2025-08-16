@@ -16,6 +16,7 @@ use App\Http\Controllers\PerformanceReportController;
 use App\Http\Controllers\DashboardController;
 use App\Models\Payment;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\AuditController;
 
 
 
@@ -88,6 +89,11 @@ Route::middleware('auth')->group(function () {
     // Performance Reports
     Route::get('/reports/performance', [PerformanceReportController::class, 'index'])->name('reports.performance.index');
     Route::get('/reports/performance/export', [PerformanceReportController::class, 'exportPdf'])->name('reports.performance.export');
+
+    // Audit routes
+    Route::get('/auditoria', [AuditController::class, 'index'])->name('audit.index');
+    Route::get('/auditoria/{gig}', [AuditController::class, 'show'])->name('audit.show');
+    Route::get('/auditoria/export/csv', [AuditController::class, 'export'])->name('audit.export');
 
     // Due Dates Reports
     Route::get('/reports/due-dates', [FinancialReportController::class, 'dueDatesReport'])->name('reports.due-dates');
