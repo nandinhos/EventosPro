@@ -1,24 +1,21 @@
 {{-- resources/views/gigs/_expenses_form.blade.php --}}
-@props(['gig', 'costCenters']) {{-- Adicionado $gig como prop se necessário para 'old' --}}
+@props(['gig', 'costCenters', 'expensesDataForView']) {{-- Adicionado expensesDataForView como prop --}}
 
 <div x-data="{
     costCenters: {{ json_encode($costCenters ?? [], JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) }},
-    expenses: {{ json_encode(old('expenses', $gig->exists && $gig->costs ? $gig->costs->map(fn($cost) => [
-        'id' => $cost->id,
-        'cost_center_id' => (string)($cost->cost_center_id ?? ''),
-        'description' => $cost->description ?? '',
-        'value' => $cost->value ?? '',
-        'currency' => $cost->currency ?: 'BRL',
-        'expense_date' => $cost->expense_date ? $cost->expense_date->format('Y-m-d') : now()->format('Y-m-d'),
-        'notes' => $cost->notes ?? '',
-        'is_confirmed' => (bool)($cost->is_confirmed ?? false),
-        'is_invoice' => (bool)($cost->is_invoice ?? false),
-        '_deleted' => false
-    ])->toArray() : []), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) }},
+    expenses: {{ json_encode($expensesDataForView ?? [], JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) }},
     totalExpensesValue: 0,
+    originalExpenses: {{ json_encode($expensesDataForView ?? [], JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) }},
 
     init() {
+        // Garantir que expenses seja sempre um array válido
+        if (!Array.isArray(this.expenses)) {
+            this.expenses = [];
+        }
+        // Manter uma cópia dos dados originais para referência
+        this.originalExpenses = JSON.parse(JSON.stringify(this.expenses));
         this.calculateTotalExpenses();
+        console.log('Expenses initialized:', this.expenses);
         const isNewGig = !{{ $gig->exists ? 'true' : 'false' }};
         const hasOldExpenses = {{ count(old('expenses', [])) > 0 ? 'true' : 'false' }};
         if (isNewGig && this.expenses.length === 0 && !hasOldExpenses) {
@@ -27,18 +24,19 @@
     },
 
     addExpense() {
-        this.expenses.push({
+        const newExpense = {
             id: null,
             cost_center_id: '',
             description: '',
             value: '',
             currency: 'BRL',
-            expense_date: '{{ now()->format('Y-m-d') }}',
+            expense_date: new Date().toISOString().split('T')[0],
             notes: '',
             is_confirmed: false,
             is_invoice: false,
             _deleted: false
-        });
+        };
+        this.expenses.push(newExpense);
         this.$nextTick(() => {
             const lastIndex = this.expenses.length - 1;
             const firstInput = document.getElementById(`expenses[${lastIndex}][cost_center_id]`);
@@ -47,15 +45,21 @@
             }
         });
         this.calculateTotalExpenses();
+        console.log('Expense added:', newExpense);
     },
 
     removeExpense(index) {
         const expense = this.expenses[index];
-        if (!expense) return;
+        if (!expense) {
+            console.warn('Expense not found at index:', index);
+            return;
+        }
 
         if (expense.id) {
+            // Despesa existente no banco - marcar para exclusão
             if (confirm('Tem certeza que deseja marcar esta despesa salva para remoção? A remoção efetiva ocorrerá ao salvar a Gig.')) {
                 this.expenses[index]._deleted = true;
+                console.log('Expense marked for deletion:', expense);
                 this.$nextTick(() => {
                     const hiddenInput = document.querySelector(`input[name='expenses[${index}][_deleted]']`);
                     if (hiddenInput) {
@@ -64,15 +68,38 @@
                 });
             }
         } else {
-            this.expenses.splice(index, 1);
+            // Despesa nova - remover do array
+            if (confirm('Tem certeza que deseja remover esta despesa?')) {
+                console.log('Removing new expense at index:', index);
+                this.expenses.splice(index, 1);
+            }
         }
         this.calculateTotalExpenses();
+    },
+
+    restoreExpense(index) {
+        const expense = this.expenses[index];
+        if (expense && expense._deleted) {
+            this.expenses[index]._deleted = false;
+            console.log('Expense restored:', expense);
+            this.$nextTick(() => {
+                const hiddenInput = document.querySelector(`input[name='expenses[${index}][_deleted]']`);
+                if (hiddenInput) {
+                    hiddenInput.value = '0';
+                }
+            });
+            this.calculateTotalExpenses();
+        }
     },
 
     calculateTotalExpenses() {
         this.totalExpensesValue = this.expenses
             .filter(expense => !expense._deleted)
-            .reduce((sum, expense) => sum + (parseFloat(expense.value) || 0), 0);
+            .reduce((sum, expense) => {
+                const value = parseFloat(expense.value) || 0;
+                return sum + value;
+            }, 0);
+        console.log('Total expenses calculated:', this.totalExpensesValue);
     },
 
     formatCurrency(value) {
@@ -80,6 +107,30 @@
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         });
+    },
+
+    validateExpense(expense, index) {
+        const errors = [];
+        
+        if (!expense.cost_center_id) {
+            errors.push('Centro de custo é obrigatório');
+        }
+        
+        if (!expense.value || parseFloat(expense.value) <= 0) {
+            errors.push('Valor deve ser maior que zero');
+        }
+        
+        if (errors.length > 0) {
+            console.warn(`Validation errors for expense ${index}:`, errors);
+        }
+        
+        return errors;
+    },
+
+    getExpenseStatus(expense) {
+        if (expense._deleted) return 'deleted';
+        if (expense.id) return 'existing';
+        return 'new';
     }
 }" class="space-y-4">
 
@@ -105,9 +156,12 @@
     <div class="space-y-4 max-h-96 overflow-y-auto pr-2">
         <template x-for="(expense, index) in expenses" :key="index">
             {{-- Adiciona um ID à div da linha para manipulação visual se necessário --}}
-            <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm bg-gray-50 dark:bg-gray-700/30 relative"
+            <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm bg-gray-50 dark:bg-gray-700/30 relative transition-all duration-200"
                  :id="`expense_row_${index}`"
-                 :class="{ 'opacity-60 !bg-red-50 dark:!bg-red-900/20': expense._deleted }">
+                 :class="{
+                     'opacity-60 !bg-red-50 dark:!bg-red-900/20 !border-red-200 dark:!border-red-800': expense._deleted,
+                     'ring-2 ring-red-500': expense._deleted
+                 }">
 
                 {{-- Campo hidden para marcar como deletado --}}
                 <input type="hidden" :name="'expenses['+index+'][_deleted]'" :value="expense._deleted ? 1 : 0">
@@ -129,6 +183,7 @@
                         <label :for="'expense_cost_center_id_'+index" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">Centro de Custo <span class="text-red-500">*</span></label>
                         <select :name="'expenses['+index+'][cost_center_id]'" :id="'expense_cost_center_id_'+index" x-model="expense.cost_center_id" required
         :disabled="expense._deleted"
+        @change="validateExpense(expense, index)"
         class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500"
         :class="{ 'border-red-500 dark:border-red-600': $store.errors?.has('expenses.'+index+'.cost_center_id') }">
     <option value="">Selecione...</option>
@@ -157,7 +212,8 @@
                     {{-- Valor --}}
                     <div>
                         <label :for="'expense_value_'+index" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">Valor <span class="text-red-500">*</span></label>
-                        <input type="number" step="0.01" :name="'expenses['+index+'][value]'" :id="'expense_value_'+index" x-model.number="expense.value" @input="calculateTotalExpenses()" required
+                        <input type="number" step="0.01" :name="'expenses['+index+'][value]'" :id="'expense_value_'+index" x-model.number="expense.value" 
+                               @input="calculateTotalExpenses(); validateExpense(expense, index)" required
                                :disabled="expense._deleted"
                                class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500"
                                :class="{ 'border-red-500 dark:border-red-600': $store.errors?.has('expenses.'+index+'.value') }">
@@ -213,12 +269,31 @@
                     </div>
                 </div>
 
-                <button type="button" @click="removeExpense(index)" title="Remover Despesa"
-                        :disabled="expense._deleted"
-                        class="absolute top-2 right-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-800/50 transition-colors"
-                        :class="{'opacity-50 cursor-not-allowed': expense._deleted}">
-                    <i class="fas fa-times fa-sm"></i>
-                </button>
+                <!-- Botões de ação -->
+                <div class="absolute top-2 right-2 flex space-x-1">
+                    <!-- Botão de restaurar (só aparece se marcado para exclusão) -->
+                    <template x-if="expense._deleted">
+                        <button type="button" @click="restoreExpense(index)" title="Restaurar Despesa"
+                                class="text-green-500 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 p-1 rounded-full hover:bg-green-100 dark:hover:bg-green-800/50 transition-colors">
+                            <i class="fas fa-undo fa-sm"></i>
+                        </button>
+                    </template>
+                    
+                    <!-- Botão de remover -->
+                    <button type="button" @click="removeExpense(index)" title="Remover Despesa"
+                            :disabled="expense._deleted"
+                            class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-800/50 transition-colors"
+                            :class="{'opacity-50 cursor-not-allowed': expense._deleted}">
+                        <i class="fas fa-times fa-sm"></i>
+                    </button>
+                </div>
+                
+                <!-- Indicador visual de status -->
+                <template x-if="expense._deleted">
+                    <div class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        <i class="fas fa-trash fa-xs mr-1"></i>Marcada para exclusão
+                    </div>
+                </template>
             </div>
         </template>
     </div>

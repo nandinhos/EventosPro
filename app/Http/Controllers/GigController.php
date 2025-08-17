@@ -266,8 +266,15 @@ $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center
 
         $gig->load('costs');
 
-        $expensesDataForView = old('expenses');
-        if (is_null($expensesDataForView) && $gig->exists && $gig->costs) {
+        // Preservar dados originais das despesas em caso de erro de validação
+        $oldExpenses = old('expenses');
+        
+        // Priorizar dados old() se existirem e tiverem conteúdo válido, caso contrário usar dados do banco
+        if ($oldExpenses !== null && is_array($oldExpenses) && count($oldExpenses) > 0) {
+            // Usar dados old() quando disponíveis (erro de validação com dados preenchidos)
+            $expensesDataForView = $oldExpenses;
+        } elseif ($gig->exists && $gig->costs->isNotEmpty()) {
+            // Usar dados originais do banco quando old() está vazio ou não existe
             $expensesDataForView = $gig->costs->map(function($cost) {
                 return [
                     'id' => $cost->id,
@@ -282,8 +289,10 @@ $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center
                     '_deleted'       => false
                 ];
             })->toArray();
+        } else {
+            // Fallback para array vazio quando não há dados old() nem despesas no banco
+            $expensesDataForView = [];
         }
-        $expensesDataForView = $expensesDataForView ?? [];
 
         // --- CORREÇÃO AQUI para initialCommissionData ---
         $agency_input_value_for_form = null;
@@ -394,12 +403,9 @@ public function update(UpdateGigRequest $request, Gig $gig): RedirectResponse
             }
         }
 
-        // Deletar custos que estavam no banco mas não vieram no formulário
-        $costsToDelete = array_diff($existingCostIds, $formCostIds);
-        if (!empty($costsToDelete)) {
-            GigCost::whereIn('id', $costsToDelete)->where('gig_id', $gig->id)->delete(); // Soft delete
-            Log::info("[GigController@update] Despesas IDs: " . implode(', ', $costsToDelete) . " removidas (soft delete) da Gig ID: {$gig->id}.");
-        }
+        // REMOVIDO: Lógica de soft delete automático de despesas existentes
+        // As despesas existentes são preservadas e só são removidas quando explicitamente marcadas como _deleted
+        Log::info("[GigController@update] Despesas existentes preservadas. Apenas despesas marcadas como _deleted foram removidas para Gig ID: {$gig->id}.");
         Log::info("[GigController@update] Despesas sincronizadas para Gig ID: {$gig->id}.");
 
         DB::commit();
