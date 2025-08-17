@@ -105,8 +105,12 @@
             @endforeach
         </div>
 
-        {{-- Tabela de Vencimentos --}}
-        @include('partials.table-vencimentos', ['payments' => $payments])
+        {{-- Tabela de Vencimentos com Agrupamento Personalizado --}}
+        @if(isset($groupedPayments) && !empty($groupedPayments))
+            @include('partials.table-vencimentos-grouped', ['groupedPayments' => $groupedPayments])
+        @else
+            @include('partials.table-vencimentos', ['payments' => $payments])
+        @endif
         
        
     </div>

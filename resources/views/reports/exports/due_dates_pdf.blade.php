@@ -189,11 +189,182 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($groupedPayments as $status => $payments)
-                <tr class="group-header">
-                    <td colspan="8">{{ ucfirst($status) }} ({{ count($payments) }} {{ Str::plural('item', count($payments)) }})</td>
-                </tr>
-                @foreach($payments as $payment)
+            @if(isset($customGroupedPayments) && !empty($customGroupedPayments))
+                @php
+                    $groupTitles = [
+                        'evento_realizado_vencimento_pendente' => [
+                            'title' => 'Eventos Realizados com Vencimento Pendente',
+                            'description' => 'Prioridade máxima - Eventos já aconteceram mas ainda têm parcelas em aberto',
+                            'priority' => 1
+                        ],
+                        'evento_futuro_multiplas_vencidas' => [
+                            'title' => 'Eventos Futuros com Múltiplas Parcelas Vencidas',
+                            'description' => 'Alta prioridade - Eventos futuros com mais de uma parcela vencida',
+                            'priority' => 2
+                        ],
+                        'evento_futuro_parcela_vencida' => [
+                            'title' => 'Eventos Futuros com Parcela Vencida',
+                            'description' => 'Média prioridade - Eventos futuros com parcela vencida',
+                            'priority' => 3
+                        ],
+                        'evento_futuro_parcela_a_vencer' => [
+                            'title' => 'Eventos Futuros com Parcela a Vencer',
+                            'description' => 'Baixa prioridade - Eventos futuros com parcelas ainda não vencidas',
+                            'priority' => 4
+                        ]
+                    ];
+                @endphp
+                
+                @foreach($customGroupedPayments as $groupKey => $groupPayments)
+                    @if($groupKey === 'evento_futuro_multiplas_vencidas' && is_array($groupPayments))
+                        {{-- Grupo especial com sub-agrupamentos por Gig --}}
+                        @php
+                            $groupInfo = $groupTitles[$groupKey] ?? ['title' => 'Grupo Desconhecido', 'description' => '', 'priority' => 5];
+                            $totalItems = collect($groupPayments)->sum(function($gig) { return count($gig['payments']); });
+                        @endphp
+                        <tr class="group-header">
+                            <td colspan="8">
+                                <strong>{{ $groupInfo['title'] }}</strong> ({{ $totalItems }} {{ Str::plural('item', $totalItems) }} em {{ count($groupPayments) }} {{ Str::plural('evento', count($groupPayments)) }})
+                                <br><small style="font-weight: normal; font-size: 6px;">{{ $groupInfo['description'] }}</small>
+                            </td>
+                        </tr>
+                        
+                        @foreach($groupPayments as $gigData)
+                            {{-- Cabeçalho do sub-agrupamento por Gig --}}
+                            <tr style="background-color: #f8fafc; border-left: 3px solid #6366f1;">
+                                <td colspan="8" style="padding: 6px; font-size: 7px;">
+                                    <strong>{{ $gigData['gig']->artist->name ?? 'N/A' }}</strong> - {{ $gigData['gig']->location_event_details ?? 'Local não informado' }}
+                                    <br><small>{{ $gigData['gig']->gig_date?->format('d/m/Y') ?? 'Data não informada' }} | 
+                                     {{ $gigData['parcelas_vencidas_count'] }} vencida(s), {{ $gigData['parcelas_a_vencer_count'] }} a vencer | 
+                                     Subtotal: R$ {{ number_format($gigData['subtotal'], 2, ',', '.') }}</small>
+                                </td>
+                            </tr>
+                            
+                            @foreach($gigData['payments'] as $payment)
+                                @php
+                                    $gig = $payment->gig;
+                                    $contractStatus = $gig?->contract_status ?? 'rascunho';
+                                    
+                                    $statusMap = [
+                                        'assinado' => ['title' => 'Assinado', 'color' => 'green'],
+                                        'cancelado' => ['title' => 'Cancelado', 'color' => 'red'],
+                                        'concluido' => ['title' => 'Concluído', 'color' => 'green'],
+                                        'expirado' => ['title' => 'Expirado', 'color' => 'orange'],
+                                        'n/a' => ['title' => 'N/A', 'color' => 'gray'],
+                                        'para_assinatura' => ['title' => 'Para Assinatura', 'color' => 'yellow'],
+                                        'rascunho' => ['title' => 'Rascunho', 'color' => 'gray'],
+                                    ];
+                                    
+                                    $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray'];
+                                    $dueStatus = $payment->inferred_status;
+                                @endphp
+                                <tr>
+                                    <td>
+                                        <span class="status-badge status-{{ $statusInfo['color'] }}">
+                                            {{ $statusInfo['title'] }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="font-bold">{{ $gig?->booker?->name ?? 'Agência' }}</div>
+                                        <div class="text-xs">{{ $gig?->booker?->email ?? '' }}</div>
+                                    </td>
+                                    <td>{{ $gig?->artist?->name ?? 'N/A' }}</td>
+                                    <td>
+                                        <div class="text-xs">{{ $gig?->location_event_details ?? '' }}</div>
+                                    </td>
+                                    <td>{{ $gig?->gig_date?->format('d/m/Y') ?? 'N/A' }}</td>
+                                    <td class="{{ $dueStatus === 'vencido' ? 'text-red' : 'text-yellow' }}">
+                                        <div>{{ $payment->due_date?->format('d/m/Y') }}</div>
+                                        <div class="text-xs">{{ $payment->due_date?->diffForHumans() }}</div>
+                                    </td>
+                                    <td style="word-wrap: break-word;">
+                                        <div style="max-width: 120px; font-size: 7px; line-height: 1.2;">
+                                            {{ $payment->description ?: 'Parcela' }}
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="font-bold">
+                                            {{ $payment->currency }} {{ number_format($payment->due_value, 2, ',', '.') }} 
+                                        </div>
+                                        @if($payment->currency !== 'BRL')
+                                            <div class="text-xs">
+                                                ~R$ {{ number_format($payment->due_value_brl, 2, ',', '.') }}
+                                            </div>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        @endforeach
+                    @elseif(is_object($groupPayments) && $groupPayments->count() > 0)
+                        {{-- Grupos normais --}}
+                        @php
+                            $groupInfo = $groupTitles[$groupKey] ?? ['title' => 'Grupo Desconhecido', 'description' => '', 'priority' => 5];
+                        @endphp
+                        <tr class="group-header">
+                            <td colspan="8">
+                                <strong>{{ $groupInfo['title'] }}</strong> ({{ $groupPayments->count() }} {{ Str::plural('item', $groupPayments->count()) }})
+                                <br><small style="font-weight: normal; font-size: 6px;">{{ $groupInfo['description'] }}</small>
+                            </td>
+                        </tr>
+                        @foreach($groupPayments as $payment)
+                            @php
+                                $gig = $payment->gig;
+                                $contractStatus = $gig?->contract_status ?? 'rascunho';
+                                
+                                // Mapeamento de status do contrato com base nos valores reais do banco
+                                $statusMap = [
+                                    'assinado' => ['title' => 'Assinado', 'color' => 'green'],
+                                    'cancelado' => ['title' => 'Cancelado', 'color' => 'red'],
+                                    'concluido' => ['title' => 'Concluído', 'color' => 'green'],
+                                    'expirado' => ['title' => 'Expirado', 'color' => 'orange'],
+                                    'n/a' => ['title' => 'N/A', 'color' => 'gray'],
+                                    'para_assinatura' => ['title' => 'Para Assinatura', 'color' => 'yellow'],
+                                    'rascunho' => ['title' => 'Rascunho', 'color' => 'gray'], // Mantido para compatibilidade
+                                ];
+                                
+                                $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray'];
+                                $dueStatus = $payment->inferred_status;
+                            @endphp
+                            <tr>
+                                <td>
+                                    <span class="status-badge status-{{ $statusInfo['color'] }}">
+                                        {{ $statusInfo['title'] }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="font-bold">{{ $gig?->booker?->name ?? 'Agência' }}</div>
+                                    <div class="text-xs">{{ $gig?->booker?->email ?? '' }}</div>
+                                </td>
+                                <td>{{ $gig?->artist?->name ?? 'N/A' }}</td>
+                                <td>
+                                    <div class="text-xs">{{ $gig?->location_event_details ?? '' }}</div>
+                                </td>
+                                <td>{{ $gig?->gig_date?->format('d/m/Y') ?? 'N/A' }}</td>
+                                <td class="{{ $dueStatus === 'vencido' ? 'text-red' : 'text-yellow' }}">
+                                    <div>{{ $payment->due_date?->format('d/m/Y') }}</div>
+                                    <div class="text-xs">{{ $payment->due_date?->diffForHumans() }}</div>
+                                </td>
+                                <td style="word-wrap: break-word;">
+                                    <div style="max-width: 120px; font-size: 7px; line-height: 1.2;">
+                                        {{ $payment->description ?: 'Parcela' }}
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="font-bold">
+                                        {{ $payment->currency }} {{ number_format($payment->due_value, 2, ',', '.') }} 
+                                    </div>
+                                    @if($payment->currency !== 'BRL')
+                                        <div class="text-xs">
+                                            ~R$ {{ number_format($payment->due_value_brl, 2, ',', '.') }}
+                                        </div>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    @endif
+                @endforeach
+            @else
+                @forelse($payments as $payment)
                     @php
                         $gig = $payment->gig;
                         $contractStatus = $gig?->contract_status ?? 'rascunho';
@@ -206,7 +377,7 @@
                             'expirado' => ['title' => 'Expirado', 'color' => 'orange'],
                             'n/a' => ['title' => 'N/A', 'color' => 'gray'],
                             'para_assinatura' => ['title' => 'Para Assinatura', 'color' => 'yellow'],
-                            'rascunho' => ['title' => 'Rascunho', 'color' => 'gray'], // Mantido para compatibilidade
+                            'rascunho' => ['title' => 'Rascunho', 'color' => 'gray'],
                         ];
                         
                         $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray'];
@@ -224,7 +395,6 @@
                         </td>
                         <td>{{ $gig?->artist?->name ?? 'N/A' }}</td>
                         <td>
-                            
                             <div class="text-xs">{{ $gig?->location_event_details ?? '' }}</div>
                         </td>
                         <td>{{ $gig?->gig_date?->format('d/m/Y') ?? 'N/A' }}</td>
@@ -238,23 +408,22 @@
                             </div>
                         </td>
                         <td class="text-center">
-    <div class="font-bold">
-    {{ $payment->currency }} {{ number_format($payment->due_value, 2, ',', '.') }} 
-    </div>
-    @if($payment->currency !== 'BRL')
-        <div class="text-xs">
-        {{ $payment->currency }} {{ number_format($payment->due_value_brl, 2, ',', '.') }}
-        </div>
-    @endif
-</td>
-
+                            <div class="font-bold">
+                                {{ $payment->currency }} {{ number_format($payment->due_value, 2, ',', '.') }} 
+                            </div>
+                            @if($payment->currency !== 'BRL')
+                                <div class="text-xs">
+                                    ~R$ {{ number_format($payment->due_value_brl, 2, ',', '.') }}
+                                </div>
+                            @endif
+                        </td>
                     </tr>
-                @endforeach
-            @empty
-                <tr>
-                    <td colspan="8" style="text-align: center; padding: 20px;">Nenhum vencimento encontrado para os filtros selecionados.</td>
-                </tr>
-            @endforelse
+                @empty
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 20px;">Nenhum vencimento encontrado para os filtros selecionados.</td>
+                    </tr>
+                @endforelse
+            @endif
         </tbody>
     </table>
 </body>

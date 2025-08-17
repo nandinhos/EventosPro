@@ -335,12 +335,129 @@ class FinancialReportController extends Controller
             \Log::info('Filtrando por status de vencimento: ' . $statusFilter . '. Total: ' . $paymentsForTable->count());
         }
 
-        // 5. Retorna a view com os dados focados
+        // 7. Aplicar agrupamento personalizado por prioridades
+        $groupedPayments = $this->applyCustomGrouping($paymentsForTable);
+
+        // Para manter compatibilidade, criar uma lista linear dos pagamentos ordenados por prioridade
+        $prioritizedPayments = collect();
+        foreach ($groupedPayments as $groupKey => $groupPayments) {
+            if ($groupKey === 'evento_futuro_multiplas_vencidas') {
+                // Para sub-agrupamentos, extrair todos os pagamentos
+                foreach ($groupPayments as $subGroup) {
+                    $prioritizedPayments = $prioritizedPayments->merge($subGroup['payments']);
+                }
+            } else {
+                // Para grupos simples, adicionar diretamente
+                $prioritizedPayments = $prioritizedPayments->merge($groupPayments);
+            }
+        }
+
+        // Paginar os resultados priorizados
+        $currentPage = request()->get('page', 1);
+        $perPage = 50;
+        $payments = new \Illuminate\Pagination\LengthAwarePaginator(
+            $prioritizedPayments->forPage($currentPage, $perPage),
+            $prioritizedPayments->count(),
+            $perPage,
+            $currentPage,
+            ['path' => request()->url(), 'pageName' => 'page']
+        );
+        $payments->withQueryString();
+
+        // 8. Retorna a view com os dados focados
         return view('reports.due_dates.index', [
-            'payments' => $paymentsForTable,
+            'payments' => $payments,
+            'groupedPayments' => $groupedPayments,
             'totals' => $totals,
             'currencies' => Payment::select('currency')->distinct()->orderBy('currency')->pluck('currency'),
         ]);
+    }
+
+    /**
+     * Aplica agrupamento personalizado por prioridades nos pagamentos.
+     * Prioridades:
+     * 1. Evento realizado com vencimento pendente
+     * 2. Evento futuro com mais de 1 parcela vencida (sub-agrupado por Gig)
+     * 3. Evento futuro com parcela vencida
+     * 4. Evento futuro com parcela a vencer
+     */
+    private function applyCustomGrouping($payments)
+    {
+        $grouped = [
+            'evento_realizado_vencimento_pendente' => collect(),
+            'evento_futuro_multiplas_vencidas' => [],
+            'evento_futuro_parcela_vencida' => collect(),
+            'evento_futuro_parcela_a_vencer' => collect(),
+        ];
+
+        $today = now()->startOfDay();
+        
+        // Agrupar pagamentos por gig para análise
+        $paymentsByGig = $payments->groupBy('gig_id');
+
+        foreach ($paymentsByGig as $gigId => $gigPayments) {
+            $gig = $gigPayments->first()->gig;
+            $gigDate = \Carbon\Carbon::parse($gig->gig_date)->startOfDay();
+            $isEventRealized = $gigDate->lt($today);
+            
+            // Contar parcelas vencidas para esta gig
+            $parcelasVencidas = $gigPayments->filter(function($payment) use ($today) {
+                return \Carbon\Carbon::parse($payment->due_date)->startOfDay()->lt($today);
+            });
+            
+            $parcelasAVencer = $gigPayments->filter(function($payment) use ($today) {
+                return \Carbon\Carbon::parse($payment->due_date)->startOfDay()->gte($today);
+            });
+
+            // Verificar se é evento futuro com múltiplas parcelas vencidas
+            if (!$isEventRealized && $parcelasVencidas->count() > 1) {
+                // Criar sub-agrupamento por Gig com subtotal
+                $subtotal = $gigPayments->sum('due_value_brl');
+                $grouped['evento_futuro_multiplas_vencidas'][] = [
+                    'gig' => $gig,
+                    'payments' => $gigPayments->sortBy('due_date'),
+                    'subtotal' => $subtotal,
+                    'parcelas_vencidas_count' => $parcelasVencidas->count(),
+                    'parcelas_a_vencer_count' => $parcelasAVencer->count()
+                ];
+            } else {
+                // Processar pagamentos individualmente para outros grupos
+                foreach ($gigPayments as $payment) {
+                    $dueDate = \Carbon\Carbon::parse($payment->due_date)->startOfDay();
+                    $isVencido = $dueDate->lt($today);
+
+                    if ($isEventRealized && $isVencido) {
+                        // Prioridade 1: Evento realizado com vencimento pendente
+                        $grouped['evento_realizado_vencimento_pendente']->push($payment);
+                    } elseif (!$isEventRealized && $isVencido) {
+                        // Prioridade 3: Evento futuro com parcela vencida
+                        $grouped['evento_futuro_parcela_vencida']->push($payment);
+                    } elseif (!$isEventRealized && !$isVencido) {
+                        // Prioridade 4: Evento futuro com parcela a vencer
+                        $grouped['evento_futuro_parcela_a_vencer']->push($payment);
+                    }
+                }
+            }
+        }
+
+        // Ordenar grupos simples por data de vencimento e depois por valor
+        foreach ($grouped as $key => $group) {
+            if ($key !== 'evento_futuro_multiplas_vencidas' && is_object($group)) {
+                $grouped[$key] = $group->sortBy([
+                    ['due_date', 'asc'],
+                    ['due_value_brl', 'desc']
+                ]);
+            }
+        }
+
+        // Ordenar sub-agrupamentos de múltiplas parcelas por subtotal (maior primeiro)
+        if (!empty($grouped['evento_futuro_multiplas_vencidas'])) {
+            usort($grouped['evento_futuro_multiplas_vencidas'], function($a, $b) {
+                return $b['subtotal'] <=> $a['subtotal'];
+            });
+        }
+
+        return $grouped;
     }
 
     /**
@@ -435,11 +552,16 @@ class FinancialReportController extends Controller
             \Log::info('PDF - Filtrando por status de vencimento: ' . $statusFilter . '. Total: ' . $paymentsForReport->count());
         }
 
+        // Aplicar agrupamento personalizado por prioridades para o PDF
+        $customGroupedPayments = $this->applyCustomGrouping($paymentsForReport);
+        
+        // Manter agrupamento original para compatibilidade
         $groupedPayments = $paymentsForReport->groupBy('inferred_status');
 
         // 3. Gera o PDF
         $pdf = Pdf::loadView('reports.exports.due_dates_pdf', [
             'groupedPayments' => $groupedPayments,
+            'customGroupedPayments' => $customGroupedPayments,
             'totals' => $totals,
             'filters' => array_filter($filters), // Remove filtros vazios
             'generated_at' => now()->format('d/m/Y H:i'),
