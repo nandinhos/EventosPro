@@ -40,23 +40,26 @@
         this.showConfirmModalId = null;
     }
 }"
-class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mt-6">
+class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
 
     {{-- Header do Card --}}
-    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap justify-between items-center gap-2 bg-gray-50 dark:bg-gray-700/50">
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Parcelas / Recebimentos</h3>
+    <div class="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white flex items-center">
+            <i class="fas fa-credit-card mr-2 text-green-500"></i>
+            Gerenciar Pagamentos
+        </h3>
         <button type="button" @click="editingPaymentId === 'new_payment_form' ? cancelForm() : initiateNew()"
-                class="text-white px-3 py-1.5 rounded-md text-xs flex items-center"
+                class="text-white px-3 py-2 rounded-md text-sm flex items-center whitespace-nowrap transition-colors duration-200"
                 :class="editingPaymentId === 'new_payment_form' ? 'bg-gray-500 hover:bg-gray-600' : 'bg-green-500 hover:bg-green-600'">
-            <i class="fas mr-1" :class="editingPaymentId === 'new_payment_form' ? 'fa-times' : 'fa-plus'"></i>
+            <i class="fas mr-2" :class="editingPaymentId === 'new_payment_form' ? 'fa-times' : 'fa-plus'"></i>
             <span x-text="editingPaymentId === 'new_payment_form' ? 'Cancelar Novo' : 'Adicionar Parcela Prevista'"></span>
         </button>
     </div>
 
     {{-- Formulário para Adicionar Nova Parcela Prevista (controlado pelo Alpine) --}}
     <div x-show="editingPaymentId === 'new_payment_form'" x-transition id="new_payment_form_container"
-         class="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-b-md">
-        <h4 class="text-md font-semibold mb-3 text-gray-700 dark:text-gray-200">Adicionar Parcela Prevista</h4>
+         class="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+        <h4 class="text-base sm:text-lg font-semibold mb-4 text-gray-700 dark:text-gray-200">Adicionar Parcela Prevista</h4>
         <form action="{{ route('gigs.payments.store', $gig) }}" method="POST" class="space-y-4">
             @csrf
             @include('payments._form', [
@@ -65,8 +68,8 @@ class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mt-6">
     'prefix' => 'new_payment_', // Prefixo para evitar conflito de ID
     'errorBag' => 'paymentStore' // Error bag para o form de store
 ])
-            <div class="flex justify-end">
-                <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm">Salvar Parcela</button>
+            <div class="flex flex-col sm:flex-row justify-end gap-2">
+                <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm transition-colors duration-200 w-full sm:w-auto">Salvar Parcela</button>
             </div>
         </form>
         @if ($errors->paymentStore->any()) {{-- Exibe erros para este form --}}
@@ -78,84 +81,99 @@ class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mt-6">
     </div>
 
     {{-- Lista de Pagamentos Existentes --}}
-    <div class="p-6">
+    <div class="p-4 sm:p-6">
         @if($payments->isEmpty())
-            <p class="text-sm text-gray-500 dark:text-gray-400">Nenhuma parcela de pagamento registrada para esta Gig.</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-8">Nenhuma parcela de pagamento registrada para esta Gig.</p>
         @else
-            <ul class="space-y-3">
+            <ul class="space-y-4">
                 @foreach($payments as $payment)
-                <li class="p-3 rounded-md border dark:border-gray-700 {{ $payment->confirmed_at ? 'bg-green-50 dark:bg-green-800/20 border-green-200 dark:border-green-600/30' : ($payment->due_date->isPast() && !$payment->confirmed_at ? 'bg-red-50 dark:bg-red-800/20 border-red-200 dark:border-red-600/30' : 'bg-gray-50 dark:bg-gray-700/30 border-gray-200 dark:border-gray-600/30') }}"
+                <li class="p-4 sm:p-5 rounded-lg border dark:border-gray-700 transition-all duration-200 {{ $payment->confirmed_at ? 'bg-green-50 dark:bg-green-800/20 border-green-200 dark:border-green-600/30' : ($payment->due_date->isPast() && !$payment->confirmed_at ? 'bg-red-50 dark:bg-red-800/20 border-red-200 dark:border-red-600/30' : 'bg-gray-50 dark:bg-gray-700/30 border-gray-200 dark:border-gray-600/30') }}"
                     id="payment-item-{{ $payment->id }}">
 
                     {{-- Div para EXIBIR dados (quando não editando nem confirmando este item) --}}
                     <div x-show="editingPaymentId !== {{ $payment->id }} && showConfirmModalId !== {{ $payment->id }}" x-transition.opacity
-                         class="flex flex-wrap justify-between items-start text-sm gap-4">
-                        <div class="flex-1 min-w-[200px]">
-                            <span class="font-semibold text-gray-800 dark:text-gray-100 block">
+                         class="flex flex-col lg:flex-row justify-between items-start gap-4">
+                        <div class="flex-1 min-w-0 space-y-2">
+                            <div class="font-semibold text-gray-800 dark:text-gray-100 text-sm sm:text-base break-words">
                                 {{ $payment->description ?: 'Parcela Prevista' }} -
-                                {{ $payment->currency }} {{ number_format($payment->due_value ?? 0, 2, ',', '.') }}
+                                <span class="text-primary-600 dark:text-primary-400">{{ $payment->currency }} {{ number_format($payment->due_value ?? 0, 2, ',', '.') }}</span>
                                 @if($payment->currency !== 'BRL')
-                                    <span class="text-sm text-gray-600 dark:text-gray-300">
-                                        (Taxa: {{ number_format($payment->exchange_rate ?? 0, 4, ',', '.') }} - 
-                                        BRL {{ number_format(($payment->due_value ?? 0) * ($payment->exchange_rate ?? 0), 2, ',', '.') }})
-                                    </span>
+                                    <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-1">
+                                        Taxa: {{ number_format($payment->exchange_rate ?? 0, 4, ',', '.') }} - 
+                                        BRL {{ number_format(($payment->due_value ?? 0) * ($payment->exchange_rate ?? 0), 2, ',', '.') }}
+                                    </div>
                                 @endif
-                            </span>
-                            <span class="block text-xs text-gray-500 dark:text-gray-400">
-                                Vencimento: {{ $payment->due_date ? $payment->due_date->format('d/m/Y') : 'N/A' }}
-                            </span>
-                            <span class="block text-xs">
-                                Status: <x-status-badge :status="$payment->inferred_status" type="payment" />
-                            </span>
-                            @if($payment->confirmed_at)
-                                <span class="block text-xs mt-1 text-green-700 dark:text-green-300">
-                                    <i class="fas fa-check-circle fa-fw"></i>
-                                    Recebido: {{ $payment->currency_received_actual ?? $payment->currency }} {{ number_format($payment->received_value_actual ?? 0, 2, ',', '.') }}
-                                    em {{ $payment->received_date_actual?->format('d/m/Y') ?? 'N/A' }}
-                                    @if(($payment->currency_received_actual ?? $payment->currency) !== 'BRL' && $payment->exchange_rate_received_actual)
-                                        (Câmbio: {{ rtrim(rtrim(number_format($payment->exchange_rate_received_actual, 6, ',', '.'),'0'),',') }})
-                                    @endif
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-2 text-xs">
+                                <span class="text-gray-500 dark:text-gray-400">
+                                    <i class="fas fa-calendar-alt mr-1"></i>
+                                    Vencimento: {{ $payment->due_date ? $payment->due_date->format('d/m/Y') : 'N/A' }}
                                 </span>
-                                <span class="block text-xxs text-gray-400 dark:text-gray-500">Confirmado por {{ $payment->confirmer?->name ?? '?' }} em {{ $payment->confirmed_at->format('d/m/y H:i') }}</span>
+                                <span class="flex items-center">
+                                    <span class="text-gray-500 dark:text-gray-400 mr-2">Status:</span>
+                                    <x-status-badge :status="$payment->inferred_status" type="payment" />
+                                </span>
+                            </div>
+                            @if($payment->confirmed_at)
+                                <div class="mt-2 p-2 bg-green-100 dark:bg-green-900/30 rounded-md border border-green-200 dark:border-green-700">
+                                    <div class="text-xs text-green-700 dark:text-green-300">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        <span class="font-medium">Recebido:</span> {{ $payment->currency_received_actual ?? $payment->currency }} {{ number_format($payment->received_value_actual ?? 0, 2, ',', '.') }}
+                                        em {{ $payment->received_date_actual?->format('d/m/Y') ?? 'N/A' }}
+                                        @if(($payment->currency_received_actual ?? $payment->currency) !== 'BRL' && $payment->exchange_rate_received_actual)
+                                            <div class="mt-1">Câmbio: {{ rtrim(rtrim(number_format($payment->exchange_rate_received_actual, 6, ',', '.'),'0'),',') }}</div>
+                                        @endif
+                                    </div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        Confirmado por {{ $payment->confirmer?->name ?? '?' }} em {{ $payment->confirmed_at->format('d/m/y H:i') }}
+                                    </div>
+                                </div>
                             @endif
                             @if($payment->notes)
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 italic border-t border-gray-100 dark:border-gray-700 pt-1">Nota: {{ $payment->notes }}</p>
+                                <div class="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+                                    <p class="text-xs text-gray-600 dark:text-gray-400 italic">
+                                        <i class="fas fa-sticky-note mr-1"></i>
+                                        <span class="font-medium">Nota:</span> {{ $payment->notes }}
+                                    </p>
+                                </div>
                             @endif
                         </div>
 
                         {{-- Botões de Ação --}}
-                        <div class="flex items-center space-x-2 flex-shrink-0">
-                            @if(!$payment->confirmed_at)
-                            <button type="button" @click="initiateConfirm({{ $payment->toJson() }})" title="Confirmar Recebimento"
-                                    class="text-green-500 hover:text-green-600 dark:hover:text-green-400 p-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 rounded-md transition-colors duration-200">
-                                <i class="fas fa-check-circle fa-fw"></i>
-                            </button>
-                            <button type="button" @click="initiateEdit({{ $payment->id }})" title="Editar Parcela Prevista"
-                                    class="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 p-1 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50 rounded-md transition-colors duration-200">
-                                <i class="fas fa-edit fa-fw"></i>
-                            </button>
-                            @else
-                            <form action="{{ route('gigs.payments.unconfirm', ['gig' => $gig, 'payment' => $payment]) }}" method="POST" class="inline" onsubmit="return confirm('Reverter confirmação deste pagamento?');">
-                                @csrf @method('PATCH')
-                                <button type="submit" title="Reverter Confirmação" class="text-yellow-500 hover:text-yellow-600 dark:hover:text-yellow-400 p-1 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50 rounded-md transition-colors duration-200">
-                                    <i class="fas fa-undo-alt fa-fw"></i>
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-3 lg:mt-0 lg:flex-shrink-0">
+                            <div class="flex items-center space-x-2">
+                                @if(!$payment->confirmed_at)
+                                <button type="button" @click="initiateConfirm({{ $payment->toJson() }})" title="Confirmar Recebimento"
+                                        class="text-green-500 hover:text-green-600 dark:hover:text-green-400 p-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 rounded-md transition-colors duration-200">
+                                    <i class="fas fa-check-circle"></i>
                                 </button>
-                            </form>
-                            {{-- Botão Editar Desabilitado --}}
-                            <span title="Edição desabilitada para pagamentos confirmados" class="text-gray-400 p-1 cursor-not-allowed opacity-50"><i class="fas fa-edit fa-fw"></i></span>
-                            @endif
-                            <form action="{{ route('gigs.payments.destroy', ['gig' => $gig, 'payment' => $payment]) }}" method="POST" onsubmit="return confirm('Excluir esta parcela de pagamento?');" class="inline">
-                                @csrf @method('DELETE')
-                                <button type="submit" title="Excluir Parcela"
-                                        :disabled="Boolean({{ $payment->confirmed_at ? 'true' : 'false' }})"
-                                        class="p-1 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded-md transition-colors duration-200"
-                                        :class="{
-                                            'text-red-500 hover:text-red-600 dark:hover:text-red-400': !Boolean({{ $payment->confirmed_at ? 'true' : 'false' }}),
-                                            'text-gray-400 opacity-50 cursor-not-allowed focus:ring-0': Boolean({{ $payment->confirmed_at ? 'true' : 'false' }})
-                                        }">
-                                    <i class="fas fa-trash-alt fa-fw"></i>
+                                <button type="button" @click="initiateEdit({{ $payment->id }})" title="Editar Parcela Prevista"
+                                        class="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400 p-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50 rounded-md transition-colors duration-200">
+                                    <i class="fas fa-edit"></i>
                                 </button>
-                            </form>
+                                @else
+                                <form action="{{ route('gigs.payments.unconfirm', ['gig' => $gig, 'payment' => $payment]) }}" method="POST" class="inline" onsubmit="return confirm('Reverter confirmação deste pagamento?');">
+                                    @csrf @method('PATCH')
+                                    <button type="submit" title="Reverter Confirmação" class="text-yellow-500 hover:text-yellow-600 dark:hover:text-yellow-400 p-2 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50 rounded-md transition-colors duration-200">
+                                        <i class="fas fa-undo-alt"></i>
+                                    </button>
+                                </form>
+                                {{-- Botão Editar Desabilitado --}}
+                                <span title="Edição desabilitada para pagamentos confirmados" class="text-gray-400 p-2 cursor-not-allowed opacity-50"><i class="fas fa-edit"></i></span>
+                                @endif
+                                <form action="{{ route('gigs.payments.destroy', ['gig' => $gig, 'payment' => $payment]) }}" method="POST" onsubmit="return confirm('Excluir esta parcela de pagamento?');" class="inline">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" title="Excluir Parcela"
+                                            :disabled="Boolean({{ $payment->confirmed_at ? 'true' : 'false' }})"
+                                            class="p-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded-md transition-colors duration-200"
+                                            :class="{
+                                                'text-red-500 hover:text-red-600 dark:hover:text-red-400': !Boolean({{ $payment->confirmed_at ? 'true' : 'false' }}),
+                                                'text-gray-400 opacity-50 cursor-not-allowed focus:ring-0': Boolean({{ $payment->confirmed_at ? 'true' : 'false' }})
+                                            }">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
 

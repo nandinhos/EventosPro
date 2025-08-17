@@ -126,8 +126,18 @@ class AuditController extends Controller
         } else {
             // Confronto OK - verificar payment_status
             if ($gig->payment_status === 'pago') {
-                // Totalmente OK - não precisa ser listado
-                $needsAudit = false;
+                // Verificar se há parcelas pendentes mesmo com status 'pago'
+                $parcelasPendentes = $gig->payments->whereNull('confirmed_at')->count();
+                
+                if ($parcelasPendentes > 0) {
+                    // Nova categoria: Gig marcada como paga mas tem parcelas em aberto
+                    $categoria = 'gigs_pago_com_parcelas_abertas';
+                    $observacao = "Status 'pago' mas possui {$parcelasPendentes} parcela(s) não confirmada(s)";
+                    $needsAudit = true;
+                } else {
+                    // Totalmente OK - não precisa ser listado
+                    $needsAudit = false;
+                }
             } else {
                 // 3) ou 4) Verificar se evento já aconteceu
                 $hoje = now()->startOfDay();
@@ -393,6 +403,12 @@ class AuditController extends Controller
                 'description' => 'Não há lançamentos de pagamento para o gig',
                 'items' => [],
                 'color' => 'orange'
+            ],
+            'gigs_pago_com_parcelas_abertas' => [
+                'title' => 'Gigs com Status Pago, com Parcelas em Aberto',
+                'description' => 'Gigs marcadas como "pago" mas possuem parcelas não confirmadas',
+                'items' => [],
+                'color' => 'purple'
             ],
             'gigs_vencidas' => [
                 'title' => 'Gigs Vencidas',
