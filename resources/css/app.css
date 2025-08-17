@@ -8,3 +8,8 @@
 
 /* SweetAlert2 */
 @import 'sweetalert2/dist/sweetalert2.min.css';
+
+/* Alpine.js x-cloak - Esconde elementos até o Alpine.js carregar */
+[x-cloak] {
+    display: none !important;
+}

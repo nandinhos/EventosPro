@@ -3,6 +3,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
       x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }"
       x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))"
+      x-cloak
       :class="{ 'dark': darkMode }">
 <head>
     <meta charset="utf-8">
@@ -10,6 +11,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ config('app.name', 'EventosPro') }}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/%3E%3C/svg%3E">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -41,6 +45,7 @@
             }
         }"
          x-init="$watch('sidebarOpen', val => localStorage.setItem('sidebarOpen', val))"
+         x-cloak
          class="min-h-screen flex flex-col md:flex-row bg-gray-100 dark:bg-gray-900" {{-- Container Flex Principal --}}
     >
         <!-- Sidebar -->

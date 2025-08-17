@@ -1,5 +1,5 @@
 {{-- resources/views/gigs/_form.blade.php --}}
-{{-- Variáveis esperadas: $gig, $artists, $bookers, $tags, $selectedTags (opc), $costCenters, $expensesDataForView, $initialCommissionData --}}
+{{-- Variáveis esperadas: $gig, $artists, $bookers, $bookersForSelect, $bookersData, $tags, $selectedTags (opc), $costCenters, $expensesDataForView, $initialCommissionData --}}
 
 @php
     // $currentSelectedTags ainda é útil para o select de Tags
@@ -11,7 +11,8 @@
         {{ Js::from($initialCommissionData['agency_input_value']) }},
         {{ Js::from($initialCommissionData['booker_type']) }},
         {{ Js::from($initialCommissionData['booker_input_value']) }},
-        {{ Js::from($initialCommissionData['cache_value']) }}
+        {{ Js::from($initialCommissionData['cache_value']) }},
+        {{ Js::from($bookersData ?? []) }}
     )"
     x-init="
         activeTab = parseInt(new URLSearchParams(window.location.search).get('active_tab') || {{ old('active_tab', 1) }});
@@ -86,10 +87,10 @@
             {{-- Booker --}}
             <div>
                 <label for="booker_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Booker</label>
-                <select id="booker_id" name="booker_id"
+                <select id="booker_id" name="booker_id" x-model="selectedBookerId" @change="onBookerChange()"
                         class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('booker_id') border-red-500 dark:border-red-600 @enderror">
                     <option value="">Agência / Sem Booker</option>
-                    @foreach($bookers as $id => $name)
+                    @foreach($bookersForSelect as $id => $name)
                          <option value="{{ $id }}" @selected(old('booker_id', $gig->booker_id) == $id)>
                             {{ $name }}
                         </option>
@@ -279,7 +280,7 @@
         }
     });
 
-    function gigFormManager(agencyTypeInitial, agencyValueInitial, bookerTypeInitial, bookerValueInitial, cacheValueInitial) {
+    function gigFormManager(agencyTypeInitial, agencyValueInitial, bookerTypeInitial, bookerValueInitial, cacheValueInitial, bookersData) {
         return {
             activeTab: parseInt(new URLSearchParams(window.location.search).get('active_tab') || {{ old('active_tab', 1) }}),
             agencyType: agencyTypeInitial,
@@ -287,6 +288,8 @@
             bookerType: bookerTypeInitial,
             bookerDisplayValue: bookerValueInitial,
             baseCacheValueForCommissions: parseFloat(cacheValueInitial) || 0, // Input do cachê original da gig
+            bookersData: bookersData || {},
+            selectedBookerId: '{{ old('booker_id', $gig->booker_id) }}',
 
             // Estimativa da base de comissão para a Agência (Cachê Original - Despesas da Agência)
             // Esta é uma estimativa visual, o cálculo real é no backend.
@@ -320,11 +323,27 @@
                 return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             },
 
+            onBookerChange() {
+                if (this.selectedBookerId && this.bookersData[this.selectedBookerId]) {
+                    const booker = this.bookersData[this.selectedBookerId];
+                    if (booker.default_commission_rate) {
+                        // Atribui automaticamente a taxa padrão do booker
+                        this.bookerType = 'percent';
+                        this.bookerDisplayValue = parseFloat(booker.default_commission_rate);
+                    }
+                } else {
+                    // Se não há booker selecionado, limpa os campos de comissão
+                    this.bookerType = '';
+                    this.bookerDisplayValue = null;
+                }
+            },
+
             init() {
                 //console.log('gigFormManager init');
                 //console.log('Initial Agency Type:', this.agencyType, 'Initial Agency Value:', this.agencyDisplayValue);
                 //console.log('Initial Booker Type:', this.bookerType, 'Initial Booker Value:', this.bookerDisplayValue);
                 //console.log('Initial Cache Value:', this.baseCacheValueForCommissions);
+                //console.log('Bookers Data:', this.bookersData);
 
                 this.$watch('activeTab', value => { // Atualiza URL ao mudar de aba
                     const url = new URL(window.location);

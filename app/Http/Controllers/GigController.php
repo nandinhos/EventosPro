@@ -215,7 +215,9 @@ $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center
     public function create(Request $request): View
     {
         $artists = Artist::orderBy('name')->pluck('name', 'id');
-        $bookers = Booker::orderBy('name')->pluck('name', 'id');
+        $bookers = Booker::orderBy('name')->select('id', 'name', 'default_commission_rate')->get();
+        $bookersForSelect = $bookers->pluck('name', 'id');
+        $bookersData = $bookers->keyBy('id')->toArray();
         $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type');
         $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
@@ -236,6 +238,8 @@ $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center
             'gig',
             'artists',
             'bookers',
+            'bookersForSelect',
+            'bookersData',
             'tags',
             'costCenters',
             'expensesDataForView',
@@ -250,7 +254,9 @@ $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center
     public function edit(Gig $gig, Request $request): View
     {
         $artists = Artist::orderBy('name')->pluck('name', 'id');
-        $bookers = Booker::orderBy('name')->pluck('name', 'id');
+        $bookers = Booker::orderBy('name')->select('id', 'name', 'default_commission_rate')->get();
+        $bookersForSelect = $bookers->pluck('name', 'id');
+        $bookersData = $bookers->keyBy('id')->toArray();
         $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type');
         $selectedTags = $gig->tags()->pluck('id')->toArray();
         $costCenters = CostCenter::orderBy('name')->pluck('name', 'id')->map(function ($name, $id) {
@@ -313,11 +319,13 @@ $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center
             'gig',
             'artists',
             'bookers',
+            'bookersForSelect',
+            'bookersData',
             'tags',
             'selectedTags',
             'costCenters',
             'expensesDataForView',
-            'initialCommissionData',
+            'initialCommissionData', // <<-- ADICIONADO
             'backUrlParams'
         ));
     }
