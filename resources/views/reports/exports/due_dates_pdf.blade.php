@@ -111,16 +111,97 @@
         .status-badge.status-orange { background-color: #ffedd5; color: #f97316; }
         .status-badge.status-gray { background-color: #e5e7eb; color: #4b5563; }
 
-        /* ESTILO PARA LINHAS ESPECIAIS */
-        .group-header td {
-            background-color: #eef2ff;
-            color: #4338ca; 
-            font-size: 8px;
-            font-weight: bold;
-            padding: 4px 6px;
-            border-bottom: 1px solid #c7d2fe;
-            border-top: 2px solid #a5b4fc;
+        /* ESTILO PARA CARDS DE GRUPOS */
+        .group-card {
+            margin: 15px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
+        
+        .group-header {
+            padding: 12px 15px;
+            font-weight: bold;
+            font-size: 9px;
+            border-left: 4px solid;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* Cores específicas para cada grupo */
+        .group-red {
+            background-color: #fee2e2;
+            border-left-color: #ef4444;
+            color: #7f1d1d;
+        }
+        
+        .group-orange {
+            background-color: #ffedd5;
+            border-left-color: #f97316;
+            color: #9a3412;
+        }
+        
+        .group-yellow {
+            background-color: #fef3c7;
+            border-left-color: #f59e0b;
+            color: #92400e;
+        }
+        
+        .group-blue {
+            background-color: #dbeafe;
+            border-left-color: #3b82f6;
+            color: #1e3a8a;
+        }
+        
+        /* Sub-agrupamentos por Gig */
+        .subgroup-header {
+            background-color: #f8fafc;
+            border-left: 3px solid #6366f1;
+            padding: 8px 12px;
+            font-size: 8px;
+            margin: 5px 0;
+        }
+        
+        .subgroup-title {
+            font-weight: bold;
+            font-size: 8px;
+            color: #374151;
+        }
+        
+        .subgroup-details {
+            font-size: 7px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+        
+        .subgroup-stats {
+            font-size: 7px;
+            color: #4338ca;
+            margin-top: 2px;
+        }
+        
+        /* Tabelas dentro dos cards */
+        .group-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+        
+        .group-table th {
+            background-color: #f9fafb;
+            padding: 6px 8px;
+            font-size: 7px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .group-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 7px;
+        }
+        
         .subtotal-row td {
             background-color: #f9fafb;
             font-weight: bold;
@@ -221,22 +302,46 @@
                         @php
                             $groupInfo = $groupTitles[$groupKey] ?? ['title' => 'Grupo Desconhecido', 'description' => '', 'priority' => 5];
                             $totalItems = collect($groupPayments)->sum(function($gig) { return count($gig['payments']); });
+                            $groupColorClass = [
+                                'evento_realizado_vencimento_pendente' => 'group-red',
+                                'evento_futuro_multiplas_vencidas' => 'group-orange',
+                                'evento_futuro_parcela_vencida' => 'group-yellow',
+                                'evento_futuro_parcela_a_vencer' => 'group-blue'
+                            ][$groupKey] ?? 'group-blue';
                         @endphp
-                        <tr class="group-header">
-                            <td colspan="8">
-                                <strong>{{ $groupInfo['title'] }}</strong> ({{ $totalItems }} {{ Str::plural('item', $totalItems) }} em {{ count($groupPayments) }} {{ Str::plural('evento', count($groupPayments)) }})
-                                <br><small style="font-weight: normal; font-size: 6px;">{{ $groupInfo['description'] }}</small>
+                        <tr>
+                            <td colspan="8" style="padding: 0; border: none;">
+                                <div class="group-card">
+                                    <div class="group-header {{ $groupColorClass }}">
+                                        <div>
+                                            <div style="font-size: 9px; font-weight: bold;">{{ $groupInfo['title'] }}</div>
+                                            <div style="font-size: 6px; margin-top: 2px; opacity: 0.8;">{{ $groupInfo['description'] }}</div>
+                                        </div>
+                                        <div style="text-align: right; font-size: 7px;">
+                                            {{ $totalItems }} {{ Str::plural('item', $totalItems) }} em {{ count($groupPayments) }} {{ Str::plural('evento', count($groupPayments)) }}
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                         
                         @foreach($groupPayments as $gigData)
                             {{-- Cabeçalho do sub-agrupamento por Gig --}}
-                            <tr style="background-color: #f8fafc; border-left: 3px solid #6366f1;">
-                                <td colspan="8" style="padding: 6px; font-size: 7px;">
-                                    <strong>{{ $gigData['gig']->artist->name ?? 'N/A' }}</strong> - {{ $gigData['gig']->location_event_details ?? 'Local não informado' }}
-                                    <br><small>{{ $gigData['gig']->gig_date?->format('d/m/Y') ?? 'Data não informada' }} | 
-                                     {{ $gigData['parcelas_vencidas_count'] }} vencida(s), {{ $gigData['parcelas_a_vencer_count'] }} a vencer | 
-                                     Subtotal: R$ {{ number_format($gigData['subtotal'], 2, ',', '.') }}</small>
+                            <tr>
+                                <td colspan="8" style="padding: 0; border: none;">
+                                    <div class="subgroup-header">
+                                        <div class="subgroup-title">
+                                            Gig #{{ $gigData['gig']->id }} - {{ $gigData['gig']->artist->name ?? 'N/A' }}
+                                        </div>
+                                        <div class="subgroup-details">
+                                            {{ $gigData['gig']->location_event_details ?? 'Local não informado' }} • 
+                                            {{ $gigData['gig']->gig_date?->format('d/m/Y') ?? 'Data não informada' }}
+                                        </div>
+                                        <div class="subgroup-stats">
+                                            {{ $gigData['parcelas_vencidas_count'] }} vencida(s), {{ $gigData['parcelas_a_vencer_count'] }} a vencer • 
+                                            Subtotal: R$ {{ number_format($gigData['subtotal'], 2, ',', '.') }}
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                             
@@ -299,11 +404,26 @@
                         {{-- Grupos normais --}}
                         @php
                             $groupInfo = $groupTitles[$groupKey] ?? ['title' => 'Grupo Desconhecido', 'description' => '', 'priority' => 5];
+                            $groupColorClass = [
+                                'evento_realizado_vencimento_pendente' => 'group-red',
+                                'evento_futuro_multiplas_vencidas' => 'group-orange',
+                                'evento_futuro_parcela_vencida' => 'group-yellow',
+                                'evento_futuro_parcela_a_vencer' => 'group-blue'
+                            ][$groupKey] ?? 'group-blue';
                         @endphp
-                        <tr class="group-header">
-                            <td colspan="8">
-                                <strong>{{ $groupInfo['title'] }}</strong> ({{ $groupPayments->count() }} {{ Str::plural('item', $groupPayments->count()) }})
-                                <br><small style="font-weight: normal; font-size: 6px;">{{ $groupInfo['description'] }}</small>
+                        <tr>
+                            <td colspan="8" style="padding: 0; border: none;">
+                                <div class="group-card">
+                                    <div class="group-header {{ $groupColorClass }}">
+                                        <div>
+                                            <div style="font-size: 9px; font-weight: bold;">{{ $groupInfo['title'] }}</div>
+                                            <div style="font-size: 6px; margin-top: 2px; opacity: 0.8;">{{ $groupInfo['description'] }}</div>
+                                        </div>
+                                        <div style="text-align: right; font-size: 7px;">
+                                            {{ $groupPayments->count() }} {{ Str::plural('item', $groupPayments->count()) }}
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                         @foreach($groupPayments as $payment)
