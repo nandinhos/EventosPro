@@ -284,27 +284,27 @@ Gig::create($request->validated()); // Seguro
 
 ### Estrutura de Blade
 ```blade
-@extends('layouts.app')
+<x-app-layout>
+    <x-slot name="title">
+        Título da Página
+    </x-slot>
 
-@section('title', 'Título da Página')
+    <div class="container mx-auto px-4 py-6">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">
+                Título Principal
+            </h1>
+        </div>
 
-@section('content')
-<div class="container mx-auto px-4 py-6">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">
-            Título Principal
-        </h1>
+        {{-- Conteúdo principal --}}
     </div>
-    
-    {{-- Conteúdo principal --}}
-</div>
-@endsection
 
-@push('scripts')
-<script>
-    // Scripts específicos da página
-</script>
-@endpush
+    <x-slot name="scripts">
+        <script>
+            // Scripts específicos da página
+        </script>
+    </x-slot>
+</x-app-layout>
 ```
 
 ### Componentes Reutilizáveis
