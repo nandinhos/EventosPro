@@ -17,7 +17,9 @@ class BookerFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'name' => $this->faker->company(),
+            'default_commission_rate' => $this->faker->randomFloat(2, 5.0, 25.0),
+            'contact_info' => $this->faker->email(),
         ];
     }
 }

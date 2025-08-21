@@ -1,3 +1,5 @@
+# EventosPro
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">
@@ -6,6 +8,58 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
+
+## 🐳 Ambiente de Desenvolvimento - Laravel Sail
+
+**⚠️ IMPORTANTE**: Este projeto utiliza Laravel Sail como ambiente de desenvolvimento padrão. Todos os comandos devem ser executados através do Sail para garantir consistência.
+
+### Configuração Inicial
+
+```bash
+# Clonar o repositório
+git clone <repository-url>
+cd EventosPro
+
+# Instalar dependências (primeira vez)
+composer install
+
+# Copiar arquivo de ambiente
+cp .env.example .env
+
+# Iniciar containers
+./vendor/bin/sail up -d
+
+# Gerar chave da aplicação
+./vendor/bin/sail artisan key:generate
+
+# Executar migrações
+./vendor/bin/sail artisan migrate
+
+# Instalar dependências frontend
+./vendor/bin/sail npm install
+./vendor/bin/sail npm run dev
+```
+
+### Comandos Essenciais
+
+```bash
+# Alias recomendado (adicione ao ~/.bashrc ou ~/.zshrc)
+alias sail='./vendor/bin/sail'
+
+# Comandos básicos
+sail up -d          # Iniciar containers
+sail down           # Parar containers
+sail artisan test   # Executar testes
+sail artisan tinker # Console interativo
+sail shell          # Acessar shell do container
+```
+
+### 📚 Documentação Completa
+
+- **[Comandos Laravel Sail](docs/LARAVEL_SAIL_COMMANDS.md)** - Guia completo de comandos
+- **[Testes e Cobertura](docs/TESTING.md)** - Configuração de testes
+- **[APIs dos Services](docs/SERVICES_API.md)** - Documentação dos services
+- **[Stack Tecnológico](docs/ai_context/3_stack.md)** - Tecnologias utilizadas
 
 ## About Laravel
 

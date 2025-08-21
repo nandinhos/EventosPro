@@ -33,7 +33,7 @@ class GigFinancialCalculatorService
 
         $contractValueBrl = $contractBrlDetails['value'];
 
-        $totalConfirmedExpensesBrl = $gig->costs->where('is_confirmed', true)->sum('value');
+        $totalConfirmedExpensesBrl = $gig->costs->where('is_confirmed', true)->sum('value_brl');
 
         $grossCashBrl = $contractValueBrl - $totalConfirmedExpensesBrl;
 
@@ -144,10 +144,10 @@ class GigFinancialCalculatorService
     /**
      * Calcula o total de todas as despesas confirmadas para a Gig.
      */
-    public function calculateTotalConfirmedExpensesBrl(Gig $gig): float // Este método já estava correto
+    public function calculateTotalConfirmedExpensesBrl(Gig $gig): float
     {
         $gig->loadMissing('costs');
-        $total = $gig->costs->where('is_confirmed', true)->sum('value');
+        $total = $gig->costs->where('is_confirmed', true)->sum('value_brl');
         Log::debug("[GigFinancialCalculatorService] Total TODAS Despesas Confirmadas BRL para Gig ID {$gig->id}: {$total}");
 
         return (float) $total;
@@ -156,13 +156,13 @@ class GigFinancialCalculatorService
     /**
      * Calcula o total de despesas confirmadas E marcadas como reembolsáveis via NF do artista (is_invoice = true).
      */
-    public function calculateTotalReimbursableExpensesBrl(Gig $gig): float // Este método já estava correto
+    public function calculateTotalReimbursableExpensesBrl(Gig $gig): float
     {
         $gig->loadMissing('costs');
         $total = $gig->costs
             ->where('is_confirmed', true)
             ->where('is_invoice', true)
-            ->sum('value');
+            ->sum('value_brl');
         Log::debug("[GigFinancialCalculatorService] Total Despesas Reembolsáveis (NF Artista) BRL para Gig ID {$gig->id}: {$total}");
 
         return (float) $total;

@@ -37,8 +37,12 @@ class GigObserver
             $agencyCommissionInputValue = $gig->agency_commission_value; // Valor/Taxa do input
 
             if (strtoupper($gig->agency_commission_type ?? '') === 'PERCENT') {
-                // O valor do input é a TAXA. Salva em `rate`.
-                $gig->agency_commission_rate = (float) $agencyCommissionInputValue;
+                // Só reinterpreta se agency_commission_value não for null/vazio
+                // e agency_commission_rate estiver vazio/null
+                if ($agencyCommissionInputValue !== null && $agencyCommissionInputValue !== '' && 
+                    ($gig->agency_commission_rate === null || $gig->agency_commission_rate === '')) {
+                    $gig->agency_commission_rate = (float) $agencyCommissionInputValue;
+                }
             } else { // Tipo é FIXED
                 // O valor do input é o VALOR FIXO. Limpa a taxa.
                 $gig->agency_commission_rate = null;
@@ -52,7 +56,12 @@ class GigObserver
 
             if ($gig->booker_id) {
                 if (strtoupper($gig->booker_commission_type ?? '') === 'PERCENT') {
-                    $gig->booker_commission_rate = (float) $bookerCommissionInputValue;
+                    // Só reinterpreta se booker_commission_value não for null/vazio
+                    // e booker_commission_rate estiver vazio/null
+                    if ($bookerCommissionInputValue !== null && $bookerCommissionInputValue !== '' && 
+                        ($gig->booker_commission_rate === null || $gig->booker_commission_rate === '')) {
+                        $gig->booker_commission_rate = (float) $bookerCommissionInputValue;
+                    }
                 } else { // Tipo é FIXED
                     $gig->booker_commission_rate = null;
                 }

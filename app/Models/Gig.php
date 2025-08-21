@@ -108,39 +108,43 @@ class Gig extends Model
     // --- Accessors (Atributos Calculados Dinamicamente) ---
 
     /**
-     * Função auxiliar para buscar taxa de câmbio.
-     * SUBSTITUIR POR LÓGICA REAL OU CONFIGURÁVEL.
-     * Por ora, usamos valores fixos para ilustração e a regra de pegar câmbio do pagamento.
-     * Para projeções, podemos ter um default.
+     * Função para buscar taxa de câmbio usando ExchangeRateService.
+     * Prioriza taxas de pagamentos confirmados, depois usa o service para obter taxas atualizadas.
      */
     public function getExchangeRateForCurrency(string $currencyCode, Carbon $date): ?float
     {
-        // Lógica de Projeção: Tentar pegar a taxa de câmbio do primeiro pagamento confirmado, se houver.
-        // Se não, usar uma taxa de placeholder/configurável.
+        $currencyCode = strtoupper($currencyCode);
+        
+        // BRL sempre retorna 1.0
+        if ($currencyCode === 'BRL') {
+            return 1.0;
+        }
+
+        // Prioridade 1: Tentar pegar a taxa de câmbio do primeiro pagamento confirmado na mesma moeda
         $firstConfirmedPaymentWithRate = $this->payments()
             ->whereNotNull('confirmed_at')
-            ->where('currency', $currencyCode) // Considerar se a parcela confirmada está na mesma moeda da Gig
-            ->whereNotNull('exchange_rate') // Usar a coluna exchange_rate existente
+            ->where('currency', $currencyCode)
+            ->whereNotNull('exchange_rate')
+            ->where('exchange_rate', '>', 0)
             ->orderBy('received_date_actual', 'asc')
             ->first();
 
-        if ($firstConfirmedPaymentWithRate && $firstConfirmedPaymentWithRate->exchange_rate > 0) {
-            // Usar a taxa de câmbio do pagamento confirmado
+        if ($firstConfirmedPaymentWithRate) {
             Log::info("[Gig ID {$this->id}] Usando taxa de câmbio do pagamento confirmado {$firstConfirmedPaymentWithRate->id} para {$currencyCode}: {$firstConfirmedPaymentWithRate->exchange_rate}");
-
             return (float) $firstConfirmedPaymentWithRate->exchange_rate;
         }
 
-        // Placeholder/Configurável para projeção se não houver pagamento confirmado com taxa
-        $defaultRates = [
-            'USD' => (float) (config('app.default_exchange_rates.usd') ?? 5.20),
-            'EUR' => (float) (config('app.default_exchange_rates.eur') ?? 5.60),
-            'GBP' => (float) (config('app.default_exchange_rates.gbp') ?? 6.20),
-            'GPB' => (float) (config('app.default_exchange_rates.gbp') ?? 6.20), // Alias para GBP (correção de erro de digitação)
-        ];
-        Log::info("[Gig ID {$this->id}] Usando taxa de câmbio padrão para projeção para {$currencyCode}: ".($defaultRates[strtoupper($currencyCode)] ?? null));
+        // Prioridade 2: Usar ExchangeRateService para obter taxa atualizada
+        $exchangeRateService = app(\App\Services\ExchangeRateService::class);
+        $rate = $exchangeRateService->getExchangeRate($currencyCode, $date);
+        
+        if ($rate !== null) {
+            Log::info("[Gig ID {$this->id}] Usando taxa de câmbio do ExchangeRateService para {$currencyCode}: {$rate}");
+            return $rate;
+        }
 
-        return $defaultRates[strtoupper($currencyCode)] ?? null; // Retorna a taxa ou null
+        Log::warning("[Gig ID {$this->id}] Não foi possível obter taxa de câmbio para {$currencyCode} na data {$date->format('Y-m-d')}");
+        return null;
     }
 
     /**

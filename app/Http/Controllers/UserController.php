@@ -8,6 +8,7 @@ use App\Models\Booker;
 use App\Models\User;
 use App\Services\UserManagementService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
@@ -114,7 +115,7 @@ class UserController extends Controller
     public function destroy(User $user): RedirectResponse
     {
         // Proteção para não permitir que o usuário logado se auto-delete.
-        if ($user->getAttribute('id') == auth()->user()->getAttribute('id')) {
+        if ($user->getAttribute('id') == Auth::id()) {
             return redirect()->route('users.index')->with('error', 'Você não pode remover seu próprio usuário.');
         }
 

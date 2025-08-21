@@ -14,6 +14,7 @@ class Booker extends Model
     protected $fillable = [
         'name',
         'default_commission_rate',
+        'contact_info',
     ];
 
     protected $casts = [

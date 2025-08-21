@@ -120,6 +120,11 @@
                                                 {{ Str::limit($gig->location_event_details, 50) }}
                                             </span>
                                             @endif
+                                            @if($gig->contract_status)
+                                            <div class="block mt-1">
+                                                <x-status-badge :status="$gig->contract_status" type="contract" />
+                                            </div>
+                                            @endif
                                         </td>
                                         {{-- Célula com Info do Artista e Data --}}
                                         <td class="px-3 py-3 align-middle">
