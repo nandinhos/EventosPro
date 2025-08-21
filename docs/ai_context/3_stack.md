@@ -71,7 +71,9 @@
 ## Bancos de Dados e Persistência
 
 ### Banco de Dados Principal
-- **SQLite**: Configuração padrão para desenvolvimento
+- **MySQL**: Configuração padrão para desenvolvimento via docker usando laravel sail
+  - Versão recomendada: 8.0+
+  - Configuração via variáveis de ambiente
 - **MySQL**: Suporte configurado para produção
   - Versão recomendada: 8.0+
   - Configuração via variáveis de ambiente
@@ -101,7 +103,7 @@
   - Roles e permissions
   - Cache automático de permissões
 
-### Interface Administrativa
+### Interface Administrativa (Painel de Controle para implementação futura)
 - **filament/filament**: 3.2.115
   - Painel administrativo moderno
   - Componentes pré-construídos
@@ -135,7 +137,7 @@
 ### Ambiente de Desenvolvimento
 - **Artisan Serve**: Servidor de desenvolvimento local
 - **Vite Dev Server**: Hot reload para assets
-- **SQLite**: Banco local para desenvolvimento
+- **MySQL via Docker**: Banco local para desenvolvimento
 
 ### Configuração de Produção
 - **Apache/Nginx**: Servidor web recomendado
@@ -159,8 +161,12 @@
 APP_NAME=EventosPro
 APP_ENV=production
 APP_DEBUG=false
-DB_CONNECTION=sqlite
-DB_DATABASE=database/database.sqlite
+DB_CONNECTION=mysql
+DB_DATABASE=laravel
+DB_HOST=mysql
+DB_PORT=3306
+DB_USERNAME=user
+DB_PASSWORD=password
 SESSION_DRIVER=database
 BROADCAST_DRIVER=log
 FILESYSTEM_DISK=local
