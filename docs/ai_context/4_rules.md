@@ -309,7 +309,7 @@ Gig::create($request->validated()); // Seguro
 
 ### Componentes Reutilizáveis
 - Criar componentes para elementos repetitivos
-- Usar `@component` ou `<x-component>` syntax
+- Usar `<x-component>` syntax
 - Documentar props e slots
 
 ## Performance e Otimização
