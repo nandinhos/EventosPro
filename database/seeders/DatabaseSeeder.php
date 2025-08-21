@@ -8,8 +8,9 @@ use Illuminate\Support\Facades\Hash;
 use Database\Seeders\ArtistSeeder;
 use Database\Seeders\BookerSeeder;
 use Database\Seeders\TagSeeder;
-use Database\Seeders\CostCenterSeeder; // <-- Importar
+use Database\Seeders\CostCenterSeeder;
 use Database\Seeders\GigSeeder;
+use Database\Seeders\PaymentSeeder;
 use Database\Seeders\SettlementSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 
@@ -28,13 +29,30 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call([
-            //ArtistSeeder::class,
-            //BookerSeeder::class,
-            //TagSeeder::class,
-            //CostCenterSeeder::class, // <-- Chamar ANTES de GigSeeder
-            //GigSeeder::class,        // <-- Agora importa Gigs e GigCosts
+            // Seeders de dados básicos (executar primeiro)
             RolesAndPermissionsSeeder::class,
+            CostCenterSeeder::class,
+            TagSeeder::class,
+            
+            // Seeders de entidades principais
+            ArtistSeeder::class,
+            BookerSeeder::class,
+            
+            // Seeders que dependem das entidades acima
+            GigSeeder::class,
+            PaymentSeeder::class,
+            
+            // Outros seeders
             // SettlementSeeder::class,
         ]);
+        
+        $this->command->info('\n=== SEEDS DE MÚSICA ELETRÔNICA CRIADOS COM SUCESSO! ===');
+        $this->command->info('✓ Artistas brasileiros de música eletrônica');
+        $this->command->info('✓ Bookers e agências especializadas');
+        $this->command->info('✓ Tags específicas para eventos eletrônicos');
+        $this->command->info('✓ Centros de custo para eventos');
+        $this->command->info('✓ Gigs realistas em locais brasileiros');
+        $this->command->info('✓ Pagamentos e custos variados');
+        $this->command->info('\nExecute: php artisan db:seed para popular o banco!');
     }
 }
