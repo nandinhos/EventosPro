@@ -2,10 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Artist;
-use App\Models\Booker;
-use App\Models\CostCenter;
 use App\Models\Gig;
+use App\Models\Payment;
 use App\Models\Settlement;
 use App\Services\FinancialReportService;
 use App\Services\GigFinancialCalculatorService;
@@ -16,13 +14,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\OverviewReportExport;
-use App\Models\Payment;
-use Illuminate\Support\Str;
 
 class FinancialReportController extends Controller
 {
     protected $reportService;
+
     protected $gigCalculatorService;
 
     public function __construct(FinancialReportService $reportService, GigFinancialCalculatorService $gigCalculatorService)
@@ -64,7 +60,7 @@ class FinancialReportController extends Controller
             'artist_data' => collect([]),
             'gigs' => collect([]),
             'start_date' => now()->startOfMonth(),
-            'end_date' => now()->endOfMonth()
+            'end_date' => now()->endOfMonth(),
         ];
 
         return view('reports.dashboard', [
@@ -91,8 +87,8 @@ class FinancialReportController extends Controller
         $filters = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
 
         $this->reportService->setFilters($filters);
-        
-        $fileName = "relatorio_{$type}_" . now()->format('Ymd_His');
+
+        $fileName = "relatorio_{$type}_".now()->format('Ymd_His');
 
         if ($type === 'overview') {
             $reportData = $this->reportService->getDetailedPerformanceData();
@@ -101,10 +97,12 @@ class FinancialReportController extends Controller
             }
             if ($format === 'pdf') {
                 $pdf = Pdf::loadView('reports.exports.detailed_performance', ['reportData' => $reportData, 'filters' => $filters])
-                          ->setPaper('a4', 'landscape');
+                    ->setPaper('a4', 'landscape');
+
                 return $pdf->download("{$fileName}.pdf");
             }
         }
+
         return redirect()->back()->with('error', 'Tipo de relatório ou formato inválido para exportação.');
     }
 
@@ -133,8 +131,9 @@ class FinancialReportController extends Controller
             foreach ($gigIds as $gigId) {
                 $gig = Gig::find($gigId);
 
-                if (!$gig || !$gig->booker_id || $gig->booker_payment_status === 'pago') {
+                if (! $gig || ! $gig->booker_id || $gig->booker_payment_status === 'pago') {
                     $errors[] = "Comissão da Gig #{$gigId} não pôde ser paga (não encontrada, sem booker ou já paga).";
+
                     continue;
                 }
 
@@ -144,7 +143,7 @@ class FinancialReportController extends Controller
                 $settlement->settlement_date = $settlement->settlement_date ?? $paymentDate;
                 $settlement->booker_commission_value_paid = $bookerCommissionValue;
                 $settlement->booker_commission_paid_at = $paymentDate;
-                $settlement->notes = trim(($settlement->notes ?? '') . "\n[Booker Batch " . now()->format('d/m/y H:i') . "]: Pago via lote.");
+                $settlement->notes = trim(($settlement->notes ?? '')."\n[Booker Batch ".now()->format('d/m/y H:i').']: Pago via lote.');
                 $settlement->save();
 
                 $gig->booker_payment_status = 'pago';
@@ -156,7 +155,8 @@ class FinancialReportController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Erro ao processar pagamento em massa de comissões: " . $e->getMessage(), ['exception' => $e]);
+            Log::error('Erro ao processar pagamento em massa de comissões: '.$e->getMessage(), ['exception' => $e]);
+
             return redirect()->back()->with('error', 'Ocorreu um erro inesperado ao processar os pagamentos.');
         }
 
@@ -164,10 +164,12 @@ class FinancialReportController extends Controller
         $redirectParams['tab'] = 'commissions';
 
         $message = "{$settledCount} comissões foram marcadas como pagas.";
-        if (!empty($errors)) {
-            $message .= " Avisos: " . implode(', ', $errors);
+        if (! empty($errors)) {
+            $message .= ' Avisos: '.implode(', ', $errors);
+
             return Redirect::route('reports.index', $redirectParams)->with('warning', $message);
         }
+
         return Redirect::route('reports.index', $redirectParams)->with('success', $message);
     }
 
@@ -194,8 +196,9 @@ class FinancialReportController extends Controller
             foreach ($gigIds as $gigId) {
                 $gig = Gig::with('settlement')->find($gigId);
 
-                if (!$gig || $gig->booker_payment_status !== 'pago') {
+                if (! $gig || $gig->booker_payment_status !== 'pago') {
                     $errors[] = "Comissão da Gig #{$gigId} não pôde ser revertida (não encontrada ou não estava paga).";
+
                     continue;
                 }
 
@@ -214,18 +217,21 @@ class FinancialReportController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Erro ao reverter pagamento em massa de comissões: " . $e->getMessage(), ['exception' => $e]);
+            Log::error('Erro ao reverter pagamento em massa de comissões: '.$e->getMessage(), ['exception' => $e]);
+
             return redirect()->back()->with('error', 'Ocorreu um erro inesperado ao reverter os pagamentos.');
         }
-        
+
         $redirectParams = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
         $redirectParams['tab'] = 'commissions';
 
         $message = "{$unsettledCount} comissões foram revertidas para 'Pendente'.";
-        if (!empty($errors)) {
-            $message .= " Avisos: " . implode(', ', $errors);
+        if (! empty($errors)) {
+            $message .= ' Avisos: '.implode(', ', $errors);
+
             return Redirect::route('reports.index', $redirectParams)->with('warning', $message);
         }
+
         return Redirect::route('reports.index', $redirectParams)->with('success', $message);
     }
 
@@ -237,20 +243,20 @@ class FinancialReportController extends Controller
         $this->reportService->setFilters($request->all());
         $overviewData = $this->reportService->getOverviewData();
         $filters = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
-        
-        $fileName = 'relatorio_visao_geral_' . now()->format('Y-m-d');
+
+        $fileName = 'relatorio_visao_geral_'.now()->format('Y-m-d');
 
         if ($format === 'pdf') {
             $pdf = Pdf::loadView('reports.exports.overview_pdf', [
                 'overviewData' => $overviewData,
-                'filters' => $filters
+                'filters' => $filters,
             ])
             // ***** ALTERAÇÃO AQUI *****
-            ->setPaper('a4', 'landscape'); // Define a orientação para paisagem
+                ->setPaper('a4', 'landscape'); // Define a orientação para paisagem
 
             return $pdf->download("{$fileName}.pdf");
         }
-        
+
         if ($format === 'xlsx') {
             return Excel::download(new \App\Exports\OverviewReportExport($overviewData), "{$fileName}.xlsx");
         }
@@ -265,7 +271,7 @@ class FinancialReportController extends Controller
     {
         // Log dos parâmetros recebidos
         \Log::info('Parâmetros da requisição:', $request->all());
-        
+
         $filters = $request->validate([
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -277,7 +283,7 @@ class FinancialReportController extends Controller
         // 1. Query base para parcelas NÃO CONFIRMADAS e que NÃO estão em gigs excluídas
         $query = Payment::query()
             ->whereNull('confirmed_at') // Foco apenas no que está em aberto
-            ->whereHas('gig', function($q) {
+            ->whereHas('gig', function ($q) {
                 $q->whereNull('deleted_at'); // Exclui gigs com soft delete
             })
             ->with(['gig.artist', 'gig.booker']);
@@ -285,30 +291,30 @@ class FinancialReportController extends Controller
         // 2. Aplicar filtros de data e moeda
         if ($startDate = $filters['start_date'] ?? null) {
             $query->where('due_date', '>=', $startDate);
-            \Log::info('Filtrando por data inicial: ' . $startDate);
+            \Log::info('Filtrando por data inicial: '.$startDate);
         }
-        
+
         if ($endDate = $filters['end_date'] ?? null) {
             $query->where('due_date', '<=', $endDate);
-            \Log::info('Filtrando por data final: ' . $endDate);
+            \Log::info('Filtrando por data final: '.$endDate);
         }
-        
+
         if ($currency = $filters['currency'] ?? null) {
             $query->where('currency', $currency);
-            \Log::info('Filtrando por moeda: ' . $currency);
+            \Log::info('Filtrando por moeda: '.$currency);
         }
 
         // 3. Aplicar filtro de status do contrato se fornecido
         if ($contractStatus = $filters['contract_status'] ?? null) {
-            $query->whereHas('gig', function($q) use ($contractStatus) {
+            $query->whereHas('gig', function ($q) use ($contractStatus) {
                 $q->where('contract_status', $contractStatus);
             });
-            \Log::info('Filtrando por status do contrato: ' . $contractStatus);
+            \Log::info('Filtrando por status do contrato: '.$contractStatus);
         }
 
         // 4. Obter pagamentos pendentes
         $pendingPayments = $query->orderBy('due_date')->get();
-        \Log::info('Total de pagamentos encontrados: ' . $pendingPayments->count());
+        \Log::info('Total de pagamentos encontrados: '.$pendingPayments->count());
 
         // 5. Calcular totais APENAS para vencidos e a vencer
         $totals = [
@@ -323,16 +329,16 @@ class FinancialReportController extends Controller
                 $totals[$status]['amount_brl'] += $payment->due_value_brl ?? 0;
             }
         }
-        
+
         // 6. Filtrar para a tabela (status de vencimento)
         $statusFilter = $filters['status'] ?? null;
         $paymentsForTable = $pendingPayments;
-        
+
         if ($statusFilter) {
-            $paymentsForTable = $pendingPayments->filter(function($payment) use ($statusFilter) {
+            $paymentsForTable = $pendingPayments->filter(function ($payment) use ($statusFilter) {
                 return $payment->inferred_status === $statusFilter;
             });
-            \Log::info('Filtrando por status de vencimento: ' . $statusFilter . '. Total: ' . $paymentsForTable->count());
+            \Log::info('Filtrando por status de vencimento: '.$statusFilter.'. Total: '.$paymentsForTable->count());
         }
 
         // 7. Aplicar agrupamento personalizado por prioridades
@@ -391,7 +397,7 @@ class FinancialReportController extends Controller
         ];
 
         $today = now()->startOfDay();
-        
+
         // Agrupar pagamentos por gig para análise
         $paymentsByGig = $payments->groupBy('gig_id');
 
@@ -399,18 +405,18 @@ class FinancialReportController extends Controller
             $gig = $gigPayments->first()->gig;
             $gigDate = \Carbon\Carbon::parse($gig->gig_date)->startOfDay();
             $isEventRealized = $gigDate->lt($today);
-            
+
             // Contar parcelas vencidas para esta gig
-            $parcelasVencidas = $gigPayments->filter(function($payment) use ($today) {
+            $parcelasVencidas = $gigPayments->filter(function ($payment) use ($today) {
                 return \Carbon\Carbon::parse($payment->due_date)->startOfDay()->lt($today);
             });
-            
-            $parcelasAVencer = $gigPayments->filter(function($payment) use ($today) {
+
+            $parcelasAVencer = $gigPayments->filter(function ($payment) use ($today) {
                 return \Carbon\Carbon::parse($payment->due_date)->startOfDay()->gte($today);
             });
 
             // Verificar se é evento futuro com múltiplas parcelas vencidas
-            if (!$isEventRealized && $parcelasVencidas->count() > 1) {
+            if (! $isEventRealized && $parcelasVencidas->count() > 1) {
                 // Criar sub-agrupamento por Gig com subtotal
                 $subtotal = $gigPayments->sum('due_value_brl');
                 $grouped['evento_futuro_multiplas_vencidas'][] = [
@@ -418,7 +424,7 @@ class FinancialReportController extends Controller
                     'payments' => $gigPayments->sortBy('due_date'),
                     'subtotal' => $subtotal,
                     'parcelas_vencidas_count' => $parcelasVencidas->count(),
-                    'parcelas_a_vencer_count' => $parcelasAVencer->count()
+                    'parcelas_a_vencer_count' => $parcelasAVencer->count(),
                 ];
             } else {
                 // Processar pagamentos individualmente para outros grupos
@@ -429,10 +435,10 @@ class FinancialReportController extends Controller
                     if ($isEventRealized && $isVencido) {
                         // Prioridade 1: Evento realizado com vencimento pendente
                         $grouped['evento_realizado_vencimento_pendente']->push($payment);
-                    } elseif (!$isEventRealized && $isVencido) {
+                    } elseif (! $isEventRealized && $isVencido) {
                         // Prioridade 3: Evento futuro com parcela vencida
                         $grouped['evento_futuro_parcela_vencida']->push($payment);
-                    } elseif (!$isEventRealized && !$isVencido) {
+                    } elseif (! $isEventRealized && ! $isVencido) {
                         // Prioridade 4: Evento futuro com parcela a vencer
                         $grouped['evento_futuro_parcela_a_vencer']->push($payment);
                     }
@@ -445,14 +451,14 @@ class FinancialReportController extends Controller
             if ($key !== 'evento_futuro_multiplas_vencidas' && is_object($group)) {
                 $grouped[$key] = $group->sortBy([
                     ['due_date', 'asc'],
-                    ['due_value_brl', 'desc']
+                    ['due_value_brl', 'desc'],
                 ]);
             }
         }
 
         // Ordenar sub-agrupamentos de múltiplas parcelas por subtotal (maior primeiro)
-        if (!empty($grouped['evento_futuro_multiplas_vencidas'])) {
-            usort($grouped['evento_futuro_multiplas_vencidas'], function($a, $b) {
+        if (! empty($grouped['evento_futuro_multiplas_vencidas'])) {
+            usort($grouped['evento_futuro_multiplas_vencidas'], function ($a, $b) {
                 return $b['subtotal'] <=> $a['subtotal'];
             });
         }
@@ -473,7 +479,7 @@ class FinancialReportController extends Controller
             ini_set('memory_limit', '512M'); // Aumenta para 512MB
             set_time_limit(300);             // Aumenta para 5 minutos
         } catch (\Exception $e) {
-            Log::warning('Não foi possível aumentar os limites de execução para PDF: ' . $e->getMessage());
+            Log::warning('Não foi possível aumentar os limites de execução para PDF: '.$e->getMessage());
         }
 
         // Log dos parâmetros recebidos
@@ -493,46 +499,46 @@ class FinancialReportController extends Controller
                 // Carrega apenas as colunas que a view do PDF REALMENTE precisa
                 'gig:id,artist_id,booker_id,location_event_details,gig_date,contract_status',
                 'gig.artist:id,name',
-                'gig.booker:id,name'
+                'gig.booker:id,name',
             ])
             ->whereNull('confirmed_at')
-            ->whereHas('gig', function($q) {
+            ->whereHas('gig', function ($q) {
                 $q->whereNull('deleted_at'); // Exclui gigs com soft delete
             });
 
         // Aplicar filtros
         if ($startDate = $filters['start_date'] ?? null) {
             $query->where('due_date', '>=', $startDate);
-            \Log::info('PDF - Filtrando por data inicial: ' . $startDate);
+            \Log::info('PDF - Filtrando por data inicial: '.$startDate);
         }
-        
+
         if ($endDate = $filters['end_date'] ?? null) {
             $query->where('due_date', '<=', $endDate);
-            \Log::info('PDF - Filtrando por data final: ' . $endDate);
+            \Log::info('PDF - Filtrando por data final: '.$endDate);
         }
-        
+
         if ($currency = $filters['currency'] ?? null) {
             $query->where('currency', $currency);
-            \Log::info('PDF - Filtrando por moeda: ' . $currency);
+            \Log::info('PDF - Filtrando por moeda: '.$currency);
         }
 
         // Aplicar filtro de status do contrato se fornecido
         if ($contractStatus = $filters['contract_status'] ?? null) {
-            $query->whereHas('gig', function($q) use ($contractStatus) {
+            $query->whereHas('gig', function ($q) use ($contractStatus) {
                 $q->where('contract_status', $contractStatus);
             });
-            \Log::info('PDF - Filtrando por status do contrato: ' . $contractStatus);
+            \Log::info('PDF - Filtrando por status do contrato: '.$contractStatus);
         }
 
         $pendingPayments = $query->orderBy('due_date')->get();
-        \Log::info('PDF - Total de pagamentos encontrados: ' . $pendingPayments->count());
+        \Log::info('PDF - Total de pagamentos encontrados: '.$pendingPayments->count());
 
         // Calcular totais
         $totals = [
             'vencido' => ['count' => 0, 'amount_brl' => 0],
             'a_vencer' => ['count' => 0, 'amount_brl' => 0],
         ];
-        
+
         foreach ($pendingPayments as $payment) {
             $status = $payment->inferred_status;
             if (isset($totals[$status])) {
@@ -544,17 +550,17 @@ class FinancialReportController extends Controller
         // Aplicar filtro de status de vencimento
         $statusFilter = $filters['status'] ?? null;
         $paymentsForReport = $pendingPayments;
-        
+
         if ($statusFilter) {
-            $paymentsForReport = $pendingPayments->filter(function($payment) use ($statusFilter) {
+            $paymentsForReport = $pendingPayments->filter(function ($payment) use ($statusFilter) {
                 return $payment->inferred_status === $statusFilter;
             });
-            \Log::info('PDF - Filtrando por status de vencimento: ' . $statusFilter . '. Total: ' . $paymentsForReport->count());
+            \Log::info('PDF - Filtrando por status de vencimento: '.$statusFilter.'. Total: '.$paymentsForReport->count());
         }
 
         // Aplicar agrupamento personalizado por prioridades para o PDF
         $customGroupedPayments = $this->applyCustomGrouping($paymentsForReport);
-        
+
         // Manter agrupamento original para compatibilidade
         $groupedPayments = $paymentsForReport->groupBy('inferred_status');
 
@@ -567,7 +573,8 @@ class FinancialReportController extends Controller
             'generated_at' => now()->format('d/m/Y H:i'),
         ]);
 
-        $fileName = 'relatorio_vencimentos_' . now()->format('Ymd_His') . '.pdf';
+        $fileName = 'relatorio_vencimentos_'.now()->format('Ymd_His').'.pdf';
+
         return $pdf->download($fileName);
     }
 }

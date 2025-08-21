@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Gig;
 use App\Models\Booker;
-use App\Models\Artist;
+use App\Models\Gig;
 use App\Services\GigFinancialCalculatorService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
 
 class MonthlyClosingController extends Controller
@@ -65,9 +64,9 @@ class MonthlyClosingController extends Controller
             'month' => $startDate->format('m/Y'),
         ]);
 
-        return $pdf->download(sprintf('fechamento-mensal-%s%s.pdf', 
-            $startDate->format('m-Y'), 
-            $booker ? '-' . Str::slug($booker->name) : ''
+        return $pdf->download(sprintf('fechamento-mensal-%s%s.pdf',
+            $startDate->format('m-Y'),
+            $booker ? '-'.Str::slug($booker->name) : ''
         ));
     }
 
@@ -85,29 +84,29 @@ class MonthlyClosingController extends Controller
 
         // Calcular totais e agregações
         $totalGigs = $gigs->count();
-        
+
         // Usar o serviço para calcular os valores corretos
-        $totalCacheLiquidoBase = $gigs->sum(function($gig) {
+        $totalCacheLiquidoBase = $gigs->sum(function ($gig) {
             return $this->gigCalculator->calculateGrossCashBrl($gig);
         });
-        
-        $totalBookerCommission = $gigs->sum(function($gig) {
+
+        $totalBookerCommission = $gigs->sum(function ($gig) {
             return $this->gigCalculator->calculateBookerCommissionBrl($gig);
         });
-        
-        $totalAgencyCommission = $gigs->sum(function($gig) {
+
+        $totalAgencyCommission = $gigs->sum(function ($gig) {
             return $this->gigCalculator->calculateAgencyNetCommissionBrl($gig);
         });
-        
+
         $totalCacheBrl = $gigs->sum('cache_value_brl');
-        $totalDespesas = $gigs->sum(function($gig) {
+        $totalDespesas = $gigs->sum(function ($gig) {
             return $gig->costs->where('is_confirmed', true)->sum('value');
         });
 
         // Agrupar por booker para o gráfico e tabela
         $bookerData = $gigs->groupBy('booker_id')->map(function ($bookerGigs) {
             $booker = $bookerGigs->first()->booker;
-            
+
             // Calcular totais usando o serviço para cada gig
             $totalCacheLiquidoBase = 0;
             $totalBookerCommission = 0;
@@ -116,14 +115,14 @@ class MonthlyClosingController extends Controller
             $totalDespesas = 0;
             $totalPago = 0;
             $totalPendente = 0;
-            
+
             foreach ($bookerGigs as $gig) {
                 $cacheLiquido = $this->gigCalculator->calculateGrossCashBrl($gig);
                 $bookerCommission = $this->gigCalculator->calculateBookerCommissionBrl($gig);
                 $agencyCommission = $this->gigCalculator->calculateAgencyNetCommissionBrl($gig);
                 $pago = $gig->payments->sum('amount_paid_brl');
                 $despesas = $gig->costs->where('is_confirmed', true)->sum('value');
-                
+
                 $totalCacheLiquidoBase += $cacheLiquido;
                 $totalBookerCommission += $bookerCommission;
                 $totalAgencyCommission += $agencyCommission;
@@ -132,9 +131,9 @@ class MonthlyClosingController extends Controller
                 $totalPago += $pago;
                 $totalPendente += ($gig->cache_value_brl - $pago) > 0 ? ($gig->cache_value_brl - $pago) : 0;
             }
-            
+
             $lucroLiquido = $totalCacheLiquidoBase - $totalBookerCommission - $totalAgencyCommission;
-            
+
             return [
                 'booker' => $booker,
                 'total_gigs' => $bookerGigs->count(),
@@ -154,10 +153,10 @@ class MonthlyClosingController extends Controller
         $artistGigs = $gigs->groupBy('artist_id')
             ->map(function ($gigs) {
                 $artist = $gigs->first()->artist;
-                
+
                 // Ordenar as gigs por data
                 $sortedGigs = $gigs->sortBy('gig_date');
-                
+
                 return [
                     'artist' => $artist,
                     'gigs' => $sortedGigs,
@@ -188,7 +187,7 @@ class MonthlyClosingController extends Controller
             '01' => 'Janeiro', '02' => 'Fevereiro', '03' => 'Março',
             '04' => 'Abril', '05' => 'Maio', '06' => 'Junho',
             '07' => 'Julho', '08' => 'Agosto', '09' => 'Setembro',
-            '10' => 'Outubro', '11' => 'Novembro', '12' => 'Dezembro'
+            '10' => 'Outubro', '11' => 'Novembro', '12' => 'Dezembro',
         ];
     }
 

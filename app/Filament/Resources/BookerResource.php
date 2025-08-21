@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\BookerResource\Pages;
 use App\Filament\Resources\BookerResource\Widgets; // Adicionar este use
 use App\Models\Booker;
-use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -14,11 +13,12 @@ use Filament\Tables\Table;
 class BookerResource extends Resource
 {
     protected static ?string $model = Booker::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
     public static function form(Form $form): Form
     {
-        return $form->schema([ /* ... campos se necessário ... */ ]);
+        return $form->schema([/* ... campos se necessário ... */]);
     }
 
     public static function table(Table $table): Table
@@ -53,15 +53,15 @@ class BookerResource extends Resource
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
-{
-    $user = auth()->user();
+    {
+        $user = auth()->user();
 
-    if ($user->hasRole('BOOKER')) {
-        // Booker só pode ver a si mesmo na lista
-        return parent::getEloquentQuery()->where('id', $user->booker_id);
+        if ($user->hasRole('BOOKER')) {
+            // Booker só pode ver a si mesmo na lista
+            return parent::getEloquentQuery()->where('id', $user->booker_id);
+        }
+
+        // Admin e Diretor veem todos os bookers
+        return parent::getEloquentQuery();
     }
-    
-    // Admin e Diretor veem todos os bookers
-    return parent::getEloquentQuery();
-}
 }

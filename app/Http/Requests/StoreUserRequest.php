@@ -4,7 +4,6 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
-use Illuminate\Validation\Rule;
 
 class StoreUserRequest extends FormRequest
 {
@@ -29,13 +28,13 @@ class StoreUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::defaults()],
-            
+
             // Campos do booker
             // 'is_booker' deve ser um booleano. O valor '1' do checkbox é convertido automaticamente pelo Laravel.
             'is_booker' => ['boolean'],
             // 'booker_creation_type' é obrigatório se 'is_booker' for verdadeiro e deve ser 'existing' ou 'new'.
             'booker_creation_type' => ['required_if:is_booker,true', 'in:existing,new'],
-            
+
             // Campos para booker existente
             // 'existing_booker_id' é obrigatório se 'booker_creation_type' for 'existing'.
             // É proibido se 'booker_creation_type' for 'new'.
@@ -43,17 +42,17 @@ class StoreUserRequest extends FormRequest
             'existing_booker_id' => [
                 'required_if:booker_creation_type,existing',
                 'prohibited_if:booker_creation_type,new',
-                'exists:bookers,id'
+                'exists:bookers,id',
             ],
-            
+
             // Campos para novo booker
             // 'booker_name' é obrigatório se 'booker_creation_type' for 'new'.
             // É proibido se 'booker_creation_type' for 'existing'.
             'booker_name' => [
                 'required_if:booker_creation_type,new',
                 'prohibited_if:booker_creation_type,existing',
-                'string', 
-                'max:255'
+                'string',
+                'max:255',
             ],
             // 'default_commission_rate' é obrigatório se 'booker_creation_type' for 'new'.
             // É proibido se 'booker_creation_type' for 'existing'.
@@ -61,13 +60,13 @@ class StoreUserRequest extends FormRequest
                 'required_if:booker_creation_type,new',
                 'prohibited_if:booker_creation_type,existing',
                 'numeric',
-                'between:0,100'
+                'between:0,100',
             ],
             // 'contact_info' é opcional.
             'contact_info' => [
                 'nullable',
                 'string',
-                'max:255'
+                'max:255',
             ],
         ];
     }

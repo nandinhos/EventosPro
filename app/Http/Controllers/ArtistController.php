@@ -2,17 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Artist;
-use App\Models\Tag;
 use App\Http\Requests\StoreArtistRequest;
 use App\Http\Requests\UpdateArtistRequest;
-use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
+use App\Models\Artist;
+use App\Models\Tag;
 use App\Services\ArtistFinancialsService;
-
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 
 class ArtistController extends Controller
 {
@@ -26,6 +25,7 @@ class ArtistController extends Controller
         }
 
         $artists = $query->paginate(20)->withQueryString();
+
         return view('artists.index', compact('artists'));
     }
 
@@ -33,6 +33,7 @@ class ArtistController extends Controller
     public function create(): View
     {
         $tags = Tag::orderBy('name')->get()->groupBy('type');
+
         return view('artists.create', compact('tags'));
     }
 
@@ -46,10 +47,12 @@ class ArtistController extends Controller
                 $artist->tags()->sync($request->input('tags'));
             }
             DB::commit();
+
             return redirect()->route('artists.index')->with('success', 'Artista criado com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Erro ao criar Artista: ' . $e->getMessage());
+            Log::error('Erro ao criar Artista: '.$e->getMessage());
+
             return back()->withInput()->with('error', 'Erro ao criar artista.');
         }
     }
@@ -59,6 +62,7 @@ class ArtistController extends Controller
     {
         $tags = Tag::orderBy('name')->get()->groupBy('type');
         $selectedTags = $artist->tags()->pluck('id')->toArray();
+
         return view('artists.edit', compact('artist', 'tags', 'selectedTags'));
     }
 
@@ -70,10 +74,12 @@ class ArtistController extends Controller
             $artist->update($request->validated());
             $artist->tags()->sync($request->input('tags', []));
             DB::commit();
+
             return redirect()->route('artists.index')->with('success', 'Artista atualizado com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Erro ao atualizar Artista: ' . $e->getMessage());
+            Log::error('Erro ao atualizar Artista: '.$e->getMessage());
+
             return back()->withInput()->with('error', 'Erro ao atualizar artista.');
         }
     }
@@ -81,12 +87,14 @@ class ArtistController extends Controller
     /** Remove the specified resource from storage. */
     public function destroy(Artist $artist): RedirectResponse
     {
-         // Adicionar verificação se o artista tem gigs futuras antes de excluir?
+        // Adicionar verificação se o artista tem gigs futuras antes de excluir?
         try {
             $artist->delete(); // Soft delete
+
             return redirect()->route('artists.index')->with('success', 'Artista excluído com sucesso!');
         } catch (\Exception $e) {
-             Log::error('Erro ao excluir Artista: ' . $e->getMessage());
+            Log::error('Erro ao excluir Artista: '.$e->getMessage());
+
             return back()->with('error', 'Erro ao excluir artista.');
         }
     }
@@ -94,10 +102,7 @@ class ArtistController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param Artist $artist
-     * @param Request $request
-     * @param ArtistFinancialsService $financialsService // Injeção de dependência
-     * @return View
+     * @param  ArtistFinancialsService  $financialsService  // Injeção de dependência
      */
     public function show(Artist $artist, Request $request, ArtistFinancialsService $financialsService): View
     {

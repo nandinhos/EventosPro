@@ -52,7 +52,7 @@ class Contract extends Model
      */
     public function event(): HasOne
     {
-         // Laravel assume 'contract_id' como chave estrangeira em 'events'
+        // Laravel assume 'contract_id' como chave estrangeira em 'events'
         return $this->hasOne(Event::class);
     }
 }

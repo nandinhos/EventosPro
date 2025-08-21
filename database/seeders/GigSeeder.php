@@ -2,29 +2,30 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Gig;
 use App\Models\Artist;
 use App\Models\Booker;
+use App\Models\Gig;
 use Faker\Factory as Faker;
+use Illuminate\Database\Seeder;
 
 class GigSeeder extends Seeder
 {
     public function run()
     {
         echo "Criando gigs realistas de música eletrônica em locais brasileiros...\n";
-        
+
         $faker = Faker::create('pt_BR');
-        
+
         // Obter IDs dos artistas e bookers existentes
         $artistIds = Artist::pluck('id')->toArray();
         $bookerIds = Booker::pluck('id')->toArray();
-        
+
         if (empty($artistIds) || empty($bookerIds)) {
             echo "Erro: É necessário ter artistas e bookers cadastrados antes de criar gigs.\n";
+
             return;
         }
-        
+
         $venues = [
             'Rock in Rio - Rio de Janeiro/RJ',
             'Lollapalooza Brasil - São Paulo/SP',
@@ -45,28 +46,28 @@ class GigSeeder extends Seeder
             'Universo Paralello - Bahia/BA',
             'Tribe Festival - São Paulo/SP',
             'Atmosphere Festival - Florianópolis/SC',
-            'Dekmantel São Paulo - SP'
+            'Dekmantel São Paulo - SP',
         ];
-        
+
         // Status baseados nas regras de negócio do sistema
         $contractStatuses = ['assinado', 'para_assinatura', 'expirado', 'n/a', 'cancelado', 'concluido'];
         $paymentStatuses = ['a_vencer', 'vencido', 'pago', 'parcial'];
         $internalPaymentStatuses = ['pendente', 'pago']; // Para artist_payment_status e booker_payment_status
         $currencies = ['BRL', 'USD', 'EUR', 'GBP'];
-        
+
         $gigsCreated = 0;
         $totalGigs = 50;
-        
+
         for ($i = 0; $i < $totalGigs; $i++) {
             $contractDate = $faker->dateTimeBetween('-6 months', '+3 months');
             $gigDate = $faker->dateTimeBetween($contractDate, '+6 months');
             $currency = $faker->randomElement($currencies);
             $cacheValue = $faker->randomFloat(2, 5000, 150000);
-            
+
             $gig = Gig::create([
                 'artist_id' => $faker->randomElement($artistIds),
                 'booker_id' => $faker->randomElement($bookerIds),
-                'contract_number' => 'CTR-' . $faker->unique()->numberBetween(100000, 999999),
+                'contract_number' => 'CTR-'.$faker->unique()->numberBetween(100000, 999999),
                 'contract_date' => $contractDate,
                 'gig_date' => $gigDate,
                 'location_event_details' => $faker->randomElement($venues),
@@ -82,10 +83,10 @@ class GigSeeder extends Seeder
                 'booker_payment_status' => $faker->randomElement($internalPaymentStatuses),
                 'notes' => $faker->optional(0.3)->sentence(),
             ]);
-            
+
             $gigsCreated++;
         }
-        
+
         echo "$gigsCreated gigs criados com sucesso!\n";
     }
 }

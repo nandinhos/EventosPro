@@ -3,8 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\Event; // Importar Event
-use Illuminate\Database\Eloquent\Factories\Factory;
-use Carbon\Carbon; // Importar Carbon
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Factories\Factory; // Importar Carbon
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Settlement>

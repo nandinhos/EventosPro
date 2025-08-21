@@ -18,9 +18,6 @@ class DetailedPerformanceReportExport implements FromCollection, WithHeadings, W
         $this->data = $data;
     }
 
-    /**
-    * @return \Illuminate\Support\Collection
-    */
     public function collection(): Collection
     {
         return $this->data;
@@ -28,8 +25,6 @@ class DetailedPerformanceReportExport implements FromCollection, WithHeadings, W
 
     /**
      * Define os cabeçalhos das colunas na planilha.
-     *
-     * @return array
      */
     public function headings(): array
     {
@@ -54,8 +49,7 @@ class DetailedPerformanceReportExport implements FromCollection, WithHeadings, W
     /**
      * Mapeia os dados de cada linha da coleção para o formato desejado na planilha.
      *
-     * @param mixed $row
-     * @return array
+     * @param  mixed  $row
      */
     public function map($row): array
     {
@@ -80,15 +74,12 @@ class DetailedPerformanceReportExport implements FromCollection, WithHeadings, W
 
     /**
      * Aplica estilos à planilha.
-     *
-     * @param Worksheet $sheet
-     * @return array
      */
     public function styles(Worksheet $sheet): array
     {
         return [
             // Estiliza a primeira linha (cabeçalhos)
-            1    => ['font' => ['bold' => true]],
+            1 => ['font' => ['bold' => true]],
         ];
     }
 }

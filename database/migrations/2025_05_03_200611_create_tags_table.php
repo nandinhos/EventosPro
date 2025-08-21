@@ -1,4 +1,5 @@
 <?php
+
 // Código completo da migration create_tags_table (Item 8 da resposta anterior)
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;

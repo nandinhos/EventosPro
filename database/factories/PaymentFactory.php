@@ -3,8 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\Contract; // Importar Contract
-use Illuminate\Database\Eloquent\Factories\Factory;
-use Carbon\Carbon; // Importar Carbon para manipulação de datas
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Factories\Factory; // Importar Carbon para manipulação de datas
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Payment>
@@ -43,7 +43,7 @@ class PaymentFactory extends Factory
         $status = 'pendente';
         if ($isPaid) {
             $status = 'pago';
-        } elseif ($dueDate->isPast() && !$isPaid) { // Usar Carbon para checar se está no passado
+        } elseif ($dueDate->isPast() && ! $isPaid) { // Usar Carbon para checar se está no passado
             $status = 'atrasado';
         }
 

@@ -1,9 +1,11 @@
 <?php
+
 namespace Database\Seeders;
-use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
+
 use App\Models\User;
+use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
@@ -28,7 +30,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $roleBooker = Role::firstOrCreate(['name' => 'BOOKER']);
         $roleBooker->givePermissionTo(['view own gigs', 'view booker dashboard']);
-        
+
         // (Opcional) Atribui o papel ADMIN ao seu primeiro usuário
         $adminUser = User::where('email', 'seu-email-de-admin@exemplo.com')->first();
         if ($adminUser) {

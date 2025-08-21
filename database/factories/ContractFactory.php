@@ -20,7 +20,7 @@ class ContractFactory extends Factory
 
         return [
             // Não precisa mais de booker/artist/location aqui, eles estão no Evento
-            'contract_number' => 'CT-' . $this->faker->unique()->randomNumber(6), // Prefixo CT
+            'contract_number' => 'CT-'.$this->faker->unique()->randomNumber(6), // Prefixo CT
             'contract_date' => $contractDate->format('Y-m-d'),
             'value' => $this->faker->randomFloat(2, 1000, 50000), // Valor entre 1k e 50k
             'currency' => $this->faker->randomElement(['BRL']), // Começar só com BRL

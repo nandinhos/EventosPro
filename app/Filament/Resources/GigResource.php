@@ -3,15 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\GigResource\Pages;
-use App\Filament\Resources\GigResource\RelationManagers;
 use App\Models\Gig;
-use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class GigResource extends Resource
 {
@@ -28,34 +25,33 @@ class GigResource extends Resource
     }
 
     public static function table(Table $table): Table
-{
-    return $table
-        ->columns([
-            Tables\Columns\TextColumn::make('contract_date')->label('Data Contrato')->date('d/m/Y')->sortable(),
-            Tables\Columns\TextColumn::make('gig_date')->label('Data Evento')->date('d/m/Y')->sortable(),
-            Tables\Columns\TextColumn::make('artist.name')->sortable(),
-            Tables\Columns\TextColumn::make('booker.name')->sortable(),
-            Tables\Columns\TextColumn::make('cache_value_brl')->label('Valor (BRL)')->money('BRL')->sortable(),
-        ])
-        ->filters([
-            // Filtros de data, etc.
-        ])
-        ->actions([]) // Sem ações de linha
-        ->bulkActions([]); // Sem ações em massa
-}
-
-
-    
-    public static function getEloquentQuery(): Builder
-{
-    $user = auth()->user();
-    if ($user->hasRole('BOOKER')) {
-        // Se for booker, filtra as gigs pelo seu booker_id
-        return parent::getEloquentQuery()->where('booker_id', $user->booker_id);
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('contract_date')->label('Data Contrato')->date('d/m/Y')->sortable(),
+                Tables\Columns\TextColumn::make('gig_date')->label('Data Evento')->date('d/m/Y')->sortable(),
+                Tables\Columns\TextColumn::make('artist.name')->sortable(),
+                Tables\Columns\TextColumn::make('booker.name')->sortable(),
+                Tables\Columns\TextColumn::make('cache_value_brl')->label('Valor (BRL)')->money('BRL')->sortable(),
+            ])
+            ->filters([
+                // Filtros de data, etc.
+            ])
+            ->actions([]) // Sem ações de linha
+            ->bulkActions([]); // Sem ações em massa
     }
-    // Admin e Diretor veem tudo
-    return parent::getEloquentQuery();
-}
+
+    public static function getEloquentQuery(): Builder
+    {
+        $user = auth()->user();
+        if ($user->hasRole('BOOKER')) {
+            // Se for booker, filtra as gigs pelo seu booker_id
+            return parent::getEloquentQuery()->where('booker_id', $user->booker_id);
+        }
+
+        // Admin e Diretor veem tudo
+        return parent::getEloquentQuery();
+    }
 
     public static function getRelations(): array
     {

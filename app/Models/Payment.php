@@ -1,11 +1,12 @@
 <?php
+
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Carbon\Carbon; // Importar Carbon
+use Illuminate\Database\Eloquent\SoftDeletes; // Importar Carbon
 
 class Payment extends Model
 {
@@ -24,7 +25,7 @@ class Payment extends Model
         'confirmed_by',
         'notes',
     ];
-    
+
     protected $casts = [
         'due_value' => 'decimal:2',
         'due_date' => 'date',
@@ -62,20 +63,21 @@ class Payment extends Model
         if ($this->due_date && Carbon::parse($this->due_date)->isPast()) {
             return 'vencido';
         }
+
         return 'a_vencer';
     }
 
-     /**
+    /**
      * Accessor para obter a cor do status inferido.
      */
     public function getStatusColorAttribute(): string
     {
-         switch ($this->inferred_status) { // Usa o accessor acima
-             case 'confirmado': return 'green';
-             case 'vencido': return 'red';
-             case 'a_vencer': return 'blue';
-             default: return 'gray';
-         }
+        switch ($this->inferred_status) { // Usa o accessor acima
+            case 'confirmado': return 'green';
+            case 'vencido': return 'red';
+            case 'a_vencer': return 'blue';
+            default: return 'gray';
+        }
     }
 
     /**
@@ -94,17 +96,18 @@ class Payment extends Model
 
         if ($exchangeRate === null) {
             \Log::warning("Taxa de câmbio não encontrada para moeda {$this->currency} na data {$this->due_date} para Payment ID {$this->id}.");
+
             return (float) $this->due_value;
         }
 
         return (float) $this->due_value * $exchangeRate;
     }
-    
+
     /**
      * Verifica se o pagamento foi confirmado/recebido
      */
     public function getIsPaidAttribute(): bool
     {
-        return !is_null($this->confirmed_at);
+        return ! is_null($this->confirmed_at);
     }
 }

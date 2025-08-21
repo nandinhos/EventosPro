@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Gig;
 use App\Models\Settlement;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage; // Para lidar com uploads
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB; // Para lidar com uploads
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator; // Para validação manual no controller
 
 class SettlementController extends Controller
@@ -51,7 +51,7 @@ class SettlementController extends Controller
                 }
                 $settlement->artist_payment_proof = $request->file('artist_payment_proof_file')->store('settlements/artist_proofs', 'public');
             }
-            $settlement->notes = trim(($settlement->notes ?? '') . "\n[Artista " . now()->format('d/m/y H:i') . "]: " . ($validated['artist_payment_notes'] ?? 'Pagamento registrado.'));
+            $settlement->notes = trim(($settlement->notes ?? '')."\n[Artista ".now()->format('d/m/y H:i').']: '.($validated['artist_payment_notes'] ?? 'Pagamento registrado.'));
             $settlement->save();
 
             // Atualiza o status da Gig
@@ -59,10 +59,12 @@ class SettlementController extends Controller
             $gig->save();
 
             DB::commit();
+
             return redirect()->route('gigs.show', $gig)->with('success', 'Pagamento ao artista registrado com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Erro ao registrar pagamento ao artista para Gig {$gig->id}: " . $e->getMessage(), ['exception' => $e]);
+            Log::error("Erro ao registrar pagamento ao artista para Gig {$gig->id}: ".$e->getMessage(), ['exception' => $e]);
+
             return back()->withInput()->with('error', 'Erro ao registrar pagamento ao artista.')->with('open_modal', 'settleArtist');
         }
     }
@@ -72,7 +74,7 @@ class SettlementController extends Controller
      */
     public function settleBookerCommission(Request $request, Gig $gig): RedirectResponse
     {
-        if (!$gig->booker_id) { // Segurança extra
+        if (! $gig->booker_id) { // Segurança extra
             return back()->with('error', 'Esta Gig não possui um booker associado.');
         }
 
@@ -81,7 +83,7 @@ class SettlementController extends Controller
             'booker_commission_value_paid' => ['required', 'numeric', 'min:0'], // Valor efetivamente pago
             'booker_commission_notes' => ['nullable', 'string', 'max:65535'],
             'booker_commission_proof_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
-        ], [ /* ... mensagens ... */ ]);
+        ], [/* ... mensagens ... */]);
 
         if ($validator->fails()) {
             return back()->withErrors($validator, 'settleBooker')->withInput()->with('open_modal', 'settleBooker');
@@ -102,17 +104,19 @@ class SettlementController extends Controller
                 }
                 $settlement->booker_commission_proof = $request->file('booker_commission_proof_file')->store('settlements/booker_proofs', 'public');
             }
-            $settlement->notes = $settlement->notes . "\n[Booker " . now()->format('d/m/y H:i') . "]: " . ($validated['booker_commission_notes'] ?? '');
+            $settlement->notes = $settlement->notes."\n[Booker ".now()->format('d/m/y H:i').']: '.($validated['booker_commission_notes'] ?? '');
             $settlement->save();
 
             $gig->update(['booker_payment_status' => 'pago']);
             $gig->save();
 
             DB::commit();
+
             return redirect()->route('gigs.show', $gig)->with('success', 'Pagamento da comissão do booker registrado!');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Erro ao registrar comissão do booker para Gig {$gig->id}: " . $e->getMessage(), ['exception' => $e]);
+            Log::error("Erro ao registrar comissão do booker para Gig {$gig->id}: ".$e->getMessage(), ['exception' => $e]);
+
             return back()->withInput()->with('error', 'Erro ao registrar comissão do booker.')->with('open_modal', 'settleBooker');
         }
     }
@@ -145,10 +149,12 @@ class SettlementController extends Controller
             $gig->save();
 
             DB::commit();
+
             return redirect()->route('gigs.show', $gig)->with('success', 'Pagamento ao artista revertido para pendente!');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Erro ao reverter pagamento ao artista para Gig {$gig->id}: " . $e->getMessage(), ['exception' => $e]);
+            Log::error("Erro ao reverter pagamento ao artista para Gig {$gig->id}: ".$e->getMessage(), ['exception' => $e]);
+
             return back()->with('error', 'Erro ao reverter pagamento ao artista.');
         }
     }
@@ -158,7 +164,7 @@ class SettlementController extends Controller
      */
     public function unsettleBookerCommission(Request $request, Gig $gig): RedirectResponse
     {
-        if (!$gig->booker_id) {
+        if (! $gig->booker_id) {
             return back()->with('error', 'Esta Gig não possui um booker associado para reverter comissão.');
         }
 
@@ -182,10 +188,12 @@ class SettlementController extends Controller
             $gig->save();
 
             DB::commit();
+
             return redirect()->route('gigs.show', $gig)->with('success', 'Pagamento da comissão do booker revertido para pendente!');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Erro ao reverter comissão do booker para Gig {$gig->id}: " . $e->getMessage(), ['exception' => $e]);
+            Log::error("Erro ao reverter comissão do booker para Gig {$gig->id}: ".$e->getMessage(), ['exception' => $e]);
+
             return back()->with('error', 'Erro ao reverter comissão do booker.');
         }
     }

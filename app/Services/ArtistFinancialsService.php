@@ -13,9 +13,6 @@ class ArtistFinancialsService
 {
     protected GigFinancialCalculatorService $gigCalculator;
 
-    /**
-     * @param \App\Services\GigFinancialCalculatorService $gigCalculator
-     */
     public function __construct(GigFinancialCalculatorService $gigCalculator)
     {
         $this->gigCalculator = $gigCalculator;
@@ -24,9 +21,7 @@ class ArtistFinancialsService
     /**
      * Calcula as principais métricas financeiras para um artista.
      *
-     * @param Artist $artist
-     * @param Collection|null $gigs Uma coleção de gigs pré-filtradas (opcional, para performance).
-     * @return array
+     * @param  Collection|null  $gigs  Uma coleção de gigs pré-filtradas (opcional, para performance).
      */
     public function getFinancialMetrics(Artist $artist, ?Collection $gigs = null): array
     {

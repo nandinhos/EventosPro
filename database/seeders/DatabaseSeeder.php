@@ -2,17 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Database\Seeders\ArtistSeeder;
-use Database\Seeders\BookerSeeder;
-use Database\Seeders\TagSeeder;
-use Database\Seeders\CostCenterSeeder;
-use Database\Seeders\GigSeeder;
-use Database\Seeders\PaymentSeeder;
-use Database\Seeders\SettlementSeeder;
-use Database\Seeders\RolesAndPermissionsSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -33,19 +25,19 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             CostCenterSeeder::class,
             TagSeeder::class,
-            
+
             // Seeders de entidades principais
             ArtistSeeder::class,
             BookerSeeder::class,
-            
+
             // Seeders que dependem das entidades acima
             GigSeeder::class,
             PaymentSeeder::class,
-            
+
             // Outros seeders
             // SettlementSeeder::class,
         ]);
-        
+
         $this->command->info('\n=== SEEDS DE MÚSICA ELETRÔNICA CRIADOS COM SUCESSO! ===');
         $this->command->info('✓ Artistas brasileiros de música eletrônica');
         $this->command->info('✓ Bookers e agências especializadas');

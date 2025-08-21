@@ -8,7 +8,6 @@ use App\Models\Payment;
 use App\Models\Settlement;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use App\Services\GigFinancialCalculatorService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -16,8 +15,11 @@ use Illuminate\Support\Str;
 class FinancialReportService
 {
     protected $startDate;
+
     protected $endDate;
+
     protected $filters;
+
     protected $calculator;
 
     public function __construct(GigFinancialCalculatorService $calculator)
@@ -50,40 +52,39 @@ class FinancialReportService
         if (isset($this->filters['artist_id'])) {
             $query->where('artist_id', $this->filters['artist_id']);
         }
-       
 
         return $query;
     }
 
     public function getOverviewSummary(): array
-{
-    $gigs = Gig::with(['payments', 'costs'])
-        ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-        ->when(isset($this->filters['booker_id']), fn($q) => $q->where('booker_id', $this->filters['booker_id']))
-        ->when(isset($this->filters['artist_id']), fn($q) => $q->where('artist_id', $this->filters['artist_id']))
-        ->get();
+    {
+        $gigs = Gig::with(['payments', 'costs'])
+            ->whereBetween('gig_date', [$this->startDate, $this->endDate])
+            ->when(isset($this->filters['booker_id']), fn ($q) => $q->where('booker_id', $this->filters['booker_id']))
+            ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
+            ->get();
 
-    $totalInflow = $gigs->sum(function ($gig) {
-        return $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
-    });
-    $totalOutflow = $gigs->sum(function ($gig) {
-        return $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
-    });
-    $netCashflow = $totalInflow - $totalOutflow;
+        $totalInflow = $gigs->sum(function ($gig) {
+            return $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
+        });
+        $totalOutflow = $gigs->sum(function ($gig) {
+            return $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
+        });
+        $netCashflow = $totalInflow - $totalOutflow;
 
-    return [
-        'total_inflow' => $totalInflow ?: 0,
-        'total_outflow' => $totalOutflow ?: 0,
-        'net_cashflow' => $netCashflow ?: 0,
-    ];
-}
+        return [
+            'total_inflow' => $totalInflow ?: 0,
+            'total_outflow' => $totalOutflow ?: 0,
+            'net_cashflow' => $netCashflow ?: 0,
+        ];
+    }
 
     public function getOverviewTableData(): Collection
     {
         $gigs = Gig::with(['artist', 'booker', 'payments', 'costs'])
             ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn($q) => $q->where('booker_id', $this->filters['booker_id']))
-            ->when(isset($this->filters['artist_id']), fn($q) => $q->where('artist_id', $this->filters['artist_id']))
+            ->when(isset($this->filters['booker_id']), fn ($q) => $q->where('booker_id', $this->filters['booker_id']))
+            ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
             ->get();
 
         return $gigs->map(function ($gig) {
@@ -91,6 +92,7 @@ class FinancialReportService
                 $revenue = $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
                 $costs = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
                 $commission = $this->calculator->calculateBookerCommissionBrl($gig);
+
                 return [
                     'contract_number' => $gig->contract_number ?? 'N/A',
                     'gig_date' => $gig->gig_date->format('d/m/Y'),
@@ -102,7 +104,8 @@ class FinancialReportService
                     'net_profit' => $revenue - ($costs + $commission),
                 ];
             } catch (\Exception $e) {
-                Log::error("Erro ao mapear dados da Gig ID {$gig->id}: " . $e->getMessage());
+                Log::error("Erro ao mapear dados da Gig ID {$gig->id}: ".$e->getMessage());
+
                 return [
                     'contract_number' => 'Erro',
                     'gig_date' => 'N/A',
@@ -121,8 +124,8 @@ class FinancialReportService
     {
         $gigs = Gig::with(['payments', 'costs'])
             ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn($q) => $q->where('booker_id', $this->filters['booker_id']))
-            ->when(isset($this->filters['artist_id']), fn($q) => $q->where('artist_id', $this->filters['artist_id']))
+            ->when(isset($this->filters['booker_id']), fn ($q) => $q->where('booker_id', $this->filters['booker_id']))
+            ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
             ->get();
 
         $totalProfit = 0;
@@ -142,7 +145,7 @@ class FinancialReportService
                     $profitableEvents++;
                 }
             } catch (\Exception $e) {
-                Log::error("Erro ao calcular resumo de rentabilidade para Gig ID {$gig->id}: " . $e->getMessage());
+                Log::error("Erro ao calcular resumo de rentabilidade para Gig ID {$gig->id}: ".$e->getMessage());
             }
         }
 
@@ -156,43 +159,44 @@ class FinancialReportService
     }
 
     public function getProfitabilityTableData(): Collection
-{
-    return Gig::with(['payments', 'costs', 'artist'])
-        ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-        ->when(isset($this->filters['booker_id']), fn($q) => $q->where('booker_id', $this->filters['booker_id']))
-        ->when(isset($this->filters['artist_id']), fn($q) => $q->where('artist_id', $this->filters['artist_id']))
-        ->get()
-        ->map(function ($gig) {
-            try {
-                $revenue = $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
-                $costs = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
-                $commission = $gig->agency_commission_value ?? 0;
-                $profit = $revenue - $costs - $commission;
-                $margin = $revenue > 0 ? ($profit / $revenue) * 100 : 0;
+    {
+        return Gig::with(['payments', 'costs', 'artist'])
+            ->whereBetween('gig_date', [$this->startDate, $this->endDate])
+            ->when(isset($this->filters['booker_id']), fn ($q) => $q->where('booker_id', $this->filters['booker_id']))
+            ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
+            ->get()
+            ->map(function ($gig) {
+                try {
+                    $revenue = $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
+                    $costs = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
+                    $commission = $gig->agency_commission_value ?? 0;
+                    $profit = $revenue - $costs - $commission;
+                    $margin = $revenue > 0 ? ($profit / $revenue) * 100 : 0;
 
-                return [
-                    'contract_number' => $gig->contract_number ?? 'N/A',
-                    'artist' => $gig->artist->name ?? 'N/A', // Adiciona o nome do artista
-                    'gig_date' => $gig->gig_date->format('d/m/Y'),
-                    'revenue' => $revenue,
-                    'costs' => $costs,
-                    'profit' => $profit,
-                    'margin' => $margin,
-                ];
-            } catch (\Exception $e) {
-                Log::error("Erro ao mapear dados de rentabilidade para Gig ID {$gig->id}: " . $e->getMessage());
-                return [
-                    'contract_number' => 'Erro',
-                    'artist' => 'N/A',
-                    'gig_date' => 'N/A',
-                    'revenue' => 0,
-                    'costs' => 0,
-                    'profit' => 0,
-                    'margin' => 0,
-                ];
-            }
-        });
-}
+                    return [
+                        'contract_number' => $gig->contract_number ?? 'N/A',
+                        'artist' => $gig->artist->name ?? 'N/A', // Adiciona o nome do artista
+                        'gig_date' => $gig->gig_date->format('d/m/Y'),
+                        'revenue' => $revenue,
+                        'costs' => $costs,
+                        'profit' => $profit,
+                        'margin' => $margin,
+                    ];
+                } catch (\Exception $e) {
+                    Log::error("Erro ao mapear dados de rentabilidade para Gig ID {$gig->id}: ".$e->getMessage());
+
+                    return [
+                        'contract_number' => 'Erro',
+                        'artist' => 'N/A',
+                        'gig_date' => 'N/A',
+                        'revenue' => 0,
+                        'costs' => 0,
+                        'profit' => 0,
+                        'margin' => 0,
+                    ];
+                }
+            });
+    }
 
     /**
      * Obtém o resumo para a aba de Fluxo de Caixa.
@@ -232,8 +236,6 @@ class FinancialReportService
 
     /**
      * Gera uma lista de transações cronológicas para a tabela de Fluxo de Caixa.
-     *
-     * @return Collection
      */
     public function getCashflowTableData(): Collection
     {
@@ -247,10 +249,10 @@ class FinancialReportService
                 return [
                     'date' => Carbon::parse($payment->received_date_actual),
                     'type' => 'Entrada',
-                    'description' => "Recebimento: " . ($payment->description ?: "Gig #{$payment->gig_id}"),
+                    'description' => 'Recebimento: '.($payment->description ?: "Gig #{$payment->gig_id}"),
                     'gig_id' => $payment->gig_id,
                     'artist_name' => $payment->gig->artist->name ?? 'N/A',
-                    'value' => (float)$payment->received_value_actual,
+                    'value' => (float) $payment->received_value_actual,
                 ];
             });
 
@@ -264,10 +266,10 @@ class FinancialReportService
                 return [
                     'date' => Carbon::parse($cost->confirmed_at),
                     'type' => 'Saída',
-                    'description' => "Despesa ({$cost->costCenter->name}): " . ($cost->description ?: "Gig #{$cost->gig_id}"),
+                    'description' => "Despesa ({$cost->costCenter->name}): ".($cost->description ?: "Gig #{$cost->gig_id}"),
                     'gig_id' => $cost->gig_id,
                     'artist_name' => $cost->gig->artist->name ?? 'N/A',
-                    'value' => -(float)$cost->value, // Negativo para indicar saída
+                    'value' => -(float) $cost->value, // Negativo para indicar saída
                 ];
             });
 
@@ -284,10 +286,10 @@ class FinancialReportService
                     'description' => "Pagamento Artista: {$settlement->gig->artist->name}",
                     'gig_id' => $settlement->gig_id,
                     'artist_name' => $settlement->gig->artist->name ?? 'N/A',
-                    'value' => -(float)$settlement->artist_payment_value, // Negativo para indicar saída
+                    'value' => -(float) $settlement->artist_payment_value, // Negativo para indicar saída
                 ];
             });
-        
+
         // 4. Saídas (Acertos com Bookers)
         $outflowBookers = Settlement::whereNotNull('booker_commission_paid_at')
             ->whereBetween('booker_commission_paid_at', [$this->startDate, $this->endDate])
@@ -301,7 +303,7 @@ class FinancialReportService
                     'description' => "Pagamento Booker: {$settlement->gig->booker->name}",
                     'gig_id' => $settlement->gig_id,
                     'artist_name' => $settlement->gig->artist->name ?? 'N/A',
-                    'value' => -(float)$settlement->booker_commission_value_paid, // Negativo para indicar saída
+                    'value' => -(float) $settlement->booker_commission_value_paid, // Negativo para indicar saída
                 ];
             });
 
@@ -313,8 +315,8 @@ class FinancialReportService
     {
         $gigs = Gig::with(['booker'])
             ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn($q) => $q->where('booker_id', $this->filters['booker_id']))
-            ->when(isset($this->filters['artist_id']), fn($q) => $q->where('artist_id', $this->filters['artist_id']))
+            ->when(isset($this->filters['booker_id']), fn ($q) => $q->where('booker_id', $this->filters['booker_id']))
+            ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
             ->get();
 
         $totalCommissions = 0;
@@ -330,7 +332,7 @@ class FinancialReportService
                     $eventsWithCommissionsCount++; // <<-- Incrementa o contador
                 }
             } catch (\Exception $e) {
-                Log::error("Erro ao calcular resumo de comissões para Gig ID {$gig->id}: " . $e->getMessage());
+                Log::error("Erro ao calcular resumo de comissões para Gig ID {$gig->id}: ".$e->getMessage());
             }
         }
 
@@ -345,8 +347,8 @@ class FinancialReportService
     {
         $gigs = Gig::with(['booker', 'artist'])
             ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn($q) => $q->where('booker_id', $this->filters['booker_id']))
-            ->when(isset($this->filters['artist_id']), fn($q) => $q->where('artist_id', $this->filters['artist_id']))
+            ->when(isset($this->filters['booker_id']), fn ($q) => $q->where('booker_id', $this->filters['booker_id']))
+            ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
             ->get();
 
         return $gigs->map(function ($gig) {
@@ -364,7 +366,8 @@ class FinancialReportService
                     'percentage' => $percentage,
                 ];
             } catch (\Exception $e) {
-                Log::error("Erro ao mapear dados de comissões para Gig ID {$gig->id}: " . $e->getMessage());
+                Log::error("Erro ao mapear dados de comissões para Gig ID {$gig->id}: ".$e->getMessage());
+
                 return [
                     'contract_number' => 'Erro',
                     'gig_date' => 'N/A',
@@ -381,14 +384,14 @@ class FinancialReportService
     {
         $expenses = GigCost::with(['gig'])
             ->whereBetween('expense_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn($q) => $q->whereHas('gig', fn($q) => $q->where('booker_id', $this->filters['booker_id'])))
-            ->when(isset($this->filters['artist_id']), fn($q) => $q->whereHas('gig', fn($q) => $q->where('artist_id', $this->filters['artist_id'])))
+            ->when(isset($this->filters['booker_id']), fn ($q) => $q->whereHas('gig', fn ($q) => $q->where('booker_id', $this->filters['booker_id'])))
+            ->when(isset($this->filters['artist_id']), fn ($q) => $q->whereHas('gig', fn ($q) => $q->where('artist_id', $this->filters['artist_id'])))
             ->get()
             ->filter(function ($expense) {
-                return !is_null($expense->gig);
+                return ! is_null($expense->gig);
             })
             ->groupBy(function ($cost) {
-                return $cost->cost_center_id ? __('cost_centers.' . $cost->costCenter->name) : 'Sem Centro de Custo';
+                return $cost->cost_center_id ? __('cost_centers.'.$cost->costCenter->name) : 'Sem Centro de Custo';
             });
 
         return $expenses->map(function ($group, $costCenterName) {
@@ -405,7 +408,8 @@ class FinancialReportService
                             'currency' => $expense->currency ?? 'BRL',
                         ];
                     } catch (\Exception $e) {
-                        Log::error("Erro ao mapear despesa ID {$expense->id}: " . $e->getMessage());
+                        Log::error("Erro ao mapear despesa ID {$expense->id}: ".$e->getMessage());
+
                         return [
                             'gig_contract_number' => 'Erro',
                             'description' => 'N/A',
@@ -423,8 +427,8 @@ class FinancialReportService
     {
         $gigs = Gig::with(['payments', 'costs', 'booker', 'artist'])
             ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn($q) => $q->where('booker_id', $this->filters['booker_id']))
-            ->when(isset($this->filters['artist_id']), fn($q) => $q->where('artist_id', $this->filters['artist_id']))
+            ->when(isset($this->filters['booker_id']), fn ($q) => $q->where('booker_id', $this->filters['booker_id']))
+            ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
             ->get();
 
         $totalRevenue = 0;
@@ -474,7 +478,7 @@ class FinancialReportService
                 $bookerName = $gig->booker->name ?? 'N/A';
                 $revenueByBooker[$bookerName][] = $contractValue;
             } catch (\Exception $e) {
-                Log::error("Erro ao processar Gig ID {$gig->id}: " . $e->getMessage());
+                Log::error("Erro ao processar Gig ID {$gig->id}: ".$e->getMessage());
             }
         }
 
@@ -522,8 +526,6 @@ class FinancialReportService
     /**
      * Obtém os dados detalhados para a tabela de Visão Geral de Performance.
      * Retorna tanto os dados da tabela quanto os totais para o rodapé.
-     *
-     * @return array
      */
     public function getDetailedPerformanceData(): array
     {
@@ -532,7 +534,7 @@ class FinancialReportService
             ->with(['artist', 'booker']) // Eager load para performance
             ->get();
 
-        $tableData = new Collection();
+        $tableData = new Collection;
         $totals = [
             'cache_bruto_brl' => 0,
             'total_despesas_confirmadas_brl' => 0,
@@ -558,7 +560,7 @@ class FinancialReportService
                 'artist_name' => $gig->artist->name ?? 'N/A',
                 'booker_name' => $gig->booker->name ?? 'N/A',
                 'location_event_details' => $gig->location_event_details,
-                'cache_bruto_original' => "{$gig->currency} " . number_format($gig->cache_value, 2, ',', '.'),
+                'cache_bruto_original' => "{$gig->currency} ".number_format($gig->cache_value, 2, ',', '.'),
                 'cache_bruto_brl' => $gig->cache_value_brl,
                 'total_despesas_confirmadas_brl' => $totalDespesasConfirmadasBrl,
                 'cache_liquido_base_brl' => $cacheBrutoBrl, // Este é o nosso "Cachê Bruto" (pós-despesas)
@@ -582,7 +584,7 @@ class FinancialReportService
 
         return [
             'tableData' => $tableData,
-            'totals' => $totals
+            'totals' => $totals,
         ];
     }
 
@@ -603,7 +605,7 @@ class FinancialReportService
             return Carbon::parse($gig->gig_date)->format('Y-m');
         })->sortKeys();
 
-        $tableData = new Collection();
+        $tableData = new Collection;
         $chartData = [
             'labels' => [],
             'netAgencyCommission' => [],
@@ -634,8 +636,8 @@ class FinancialReportService
                 : 0;
 
             $carbonMonth = Carbon::createFromFormat('Y-m', $monthYearKey);
-            
-                // Adiciona os dados agregados do mês à coleção da tabela
+
+            // Adiciona os dados agregados do mês à coleção da tabela
             $tableData->push([
                 'month_year_key' => $monthYearKey,
                 'month_label' => $carbonMonth->translatedFormat('F/Y'),
@@ -657,7 +659,7 @@ class FinancialReportService
         // Prepara os dados para o gráfico comparativo por booker
         $commissionByBooker = $gigs
             ->whereNotNull('booker_id') // Considera apenas gigs com booker
-            ->groupBy(function($gig) {
+            ->groupBy(function ($gig) {
                 return $gig->booker->name ?? 'Booker Desconhecido'; // Agrupa pelo nome do booker
             })
             ->map(function ($bookerGigs) {
@@ -685,12 +687,12 @@ class FinancialReportService
             // ela será posicionada corretamente pelo sortByDesc.
             // Se quisermos um tratamento especial, a lógica de inserção precisa ser mais cuidadosa.
             // Vamos adicionar e deixar o sortByDesc tratar.
-            if($directAgencyCommission > 0) { // Só adiciona se tiver valor
-                 $commissionByBooker->put('Agência Direta', $directAgencyCommission);
-                 // Re-ordenar APÓS adicionar "Agência Direta" para garantir que ela entre na ordenação correta
-                 $commissionByBooker = $commissionByBooker->sortByDesc(function ($commission) {
+            if ($directAgencyCommission > 0) { // Só adiciona se tiver valor
+                $commissionByBooker->put('Agência Direta', $directAgencyCommission);
+                // Re-ordenar APÓS adicionar "Agência Direta" para garantir que ela entre na ordenação correta
+                $commissionByBooker = $commissionByBooker->sortByDesc(function ($commission) {
                     return $commission;
-                 });
+                });
             }
         }
         // ***** FIM DA ALTERAÇÃO *****
@@ -721,14 +723,14 @@ class FinancialReportService
 
         // Aplica os filtros gerais (do formulário principal de relatórios)
         // Filtrando despesas de gigs de um artista específico
-        if (!empty($this->filters['artist_id'])) {
+        if (! empty($this->filters['artist_id'])) {
             $query->whereHas('gig', function ($q) {
                 $q->where('artist_id', $this->filters['artist_id']);
             });
         }
 
         // Filtrando despesas de gigs de um booker específico
-        if (!empty($this->filters['booker_id'])) {
+        if (! empty($this->filters['booker_id'])) {
             $query->whereHas('gig', function ($q) {
                 $q->where('booker_id', $this->filters['booker_id']);
             });
@@ -736,20 +738,20 @@ class FinancialReportService
 
         // Aplica filtros específicos da aba de Despesas (que virão do request)
         // Filtro por Centro de Custo
-        if (!empty($this->filters['cost_center_id'])) {
+        if (! empty($this->filters['cost_center_id'])) {
             $query->where('cost_center_id', $this->filters['cost_center_id']);
         }
 
         // Filtro por Status (Confirmada/Pendente)
         if (isset($this->filters['status']) && $this->filters['status'] !== '') {
-            $query->where('is_confirmed', (bool)$this->filters['status']);
+            $query->where('is_confirmed', (bool) $this->filters['status']);
         }
-        
+
         // Filtro por Período (baseado na data da despesa)
-        if (!empty($this->filters['start_date'])) {
+        if (! empty($this->filters['start_date'])) {
             $query->whereDate('expense_date', '>=', $this->filters['start_date']);
         }
-        if (!empty($this->filters['end_date'])) {
+        if (! empty($this->filters['end_date'])) {
             $query->whereDate('expense_date', '<=', $this->filters['end_date']);
         }
 
@@ -786,7 +788,7 @@ class FinancialReportService
         // 5. Agrupa os resultados por Centro de Custo
         $groupedCosts = $costs->groupBy(function ($cost) {
             // Agrupa pelo NOME TRADUZIDO
-            return $cost->costCenter ? __('cost_centers.' . $cost->costCenter->name) : 'Sem Centro de Custo';
+            return $cost->costCenter ? __('cost_centers.'.$cost->costCenter->name) : 'Sem Centro de Custo';
         })->map(function ($costsInGroup, $translatedCostCenterName) { // A chave agora é o nome traduzido
             return [
                 'cost_center_name' => $translatedCostCenterName, // Usa a chave diretamente
@@ -820,6 +822,7 @@ class FinancialReportService
             // Usa o service central para obter os valores e adicioná-los como propriedades temporárias ao objeto Gig
             $gig->calculated_booker_commission = $this->calculator->calculateBookerCommissionBrl($gig);
             $gig->calculated_gross_cash_brl = $this->calculator->calculateGrossCashBrl($gig); // <<-- PRÉ-CALCULA A BASE AQUI
+
             return $gig;
         })->filter(function ($gig) {
             return $gig->calculated_booker_commission > 0;
@@ -856,8 +859,6 @@ class FinancialReportService
     /**
      * Obtém os dados de rentabilidade por "venda" (Gig),
      * ordenados pela data do contrato ou, na sua ausência, pela data do evento.
-     *
-     * @return \Illuminate\Support\Collection
      */
     public function getSalesProfitabilityData(): \Illuminate\Support\Collection
     {
@@ -876,7 +877,7 @@ class FinancialReportService
         return $gigs->map(function ($gig) {
             // Valor do contrato em BRL. Usamos o accessor que já lida com a conversão.
             $revenue = $gig->cache_value_brl ?? 0;
-            
+
             // Soma das despesas confirmadas da Gig
             $totalCosts = $gig->costs->where('is_confirmed', true)->sum('value_brl');
 
@@ -887,7 +888,7 @@ class FinancialReportService
             return [
                 'sale_date' => \Carbon\Carbon::parse($gig->sale_date)->format('d/m/Y'),
                 'gig_id' => $gig->id,
-                'gig_name' => $gig->artist->name . ' @ ' . Str::limit($gig->location_event_details, 30),
+                'gig_name' => $gig->artist->name.' @ '.Str::limit($gig->location_event_details, 30),
                 'gig_contract_number' => $gig->contract_number,
                 'revenue' => $revenue,
                 'costs' => $totalCosts,
@@ -899,8 +900,6 @@ class FinancialReportService
 
     /**
      * Obtém os dados detalhados para a Visão Geral, agrupados por artista.
-     *
-     * @return array
      */
     public function getOverviewData(): array
     {
@@ -914,61 +913,61 @@ class FinancialReportService
             })
             ->map(function ($artistGigs, $artistName) {
 
-            // Ordena as gigs dentro do grupo do artista
-            $sortedGigs = $artistGigs->sortBy('gig_date');
-            
-            $subtotals = [
-                'cache_bruto_brl' => 0, 'total_despesas_confirmadas_brl' => 0,
-                'cache_liquido_base_brl' => 0, 'repasse_estimado_artista_brl' => 0,
-                'comissao_agencia_brl' => 0, 'comissao_booker_brl' => 0,
-                'comissao_agencia_liquida_brl' => 0,
-            ];
+                // Ordena as gigs dentro do grupo do artista
+                $sortedGigs = $artistGigs->sortBy('gig_date');
 
-            $gigsData = $sortedGigs->map(function ($gig) use (&$subtotals) {
-                $cacheBrutoBrl = $gig->cache_value_brl ?? 0;
-                $totalDespesasConfirmadasBrl = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
-                $cacheLiquidoBaseBrl = $this->calculator->calculateGrossCashBrl($gig);
-                $repasseEstimadoArtistaBrl = $this->calculator->calculateArtistNetPayoutBrl($gig);
-                $comissaoAgenciaBrl = $this->calculator->calculateAgencyGrossCommissionBrl($gig);
-                $comissaoBookerBrl = $this->calculator->calculateBookerCommissionBrl($gig);
-                $comissaoAgenciaLiquidaBrl = $this->calculator->calculateAgencyNetCommissionBrl($gig);
+                $subtotals = [
+                    'cache_bruto_brl' => 0, 'total_despesas_confirmadas_brl' => 0,
+                    'cache_liquido_base_brl' => 0, 'repasse_estimado_artista_brl' => 0,
+                    'comissao_agencia_brl' => 0, 'comissao_booker_brl' => 0,
+                    'comissao_agencia_liquida_brl' => 0,
+                ];
 
-                // Soma aos subtotais
-                $subtotals['cache_bruto_brl'] += $cacheBrutoBrl;
-                $subtotals['total_despesas_confirmadas_brl'] += $totalDespesasConfirmadasBrl;
-                $subtotals['cache_liquido_base_brl'] += $cacheLiquidoBaseBrl;
-                $subtotals['repasse_estimado_artista_brl'] += $repasseEstimadoArtistaBrl;
-                $subtotals['comissao_agencia_brl'] += $comissaoAgenciaBrl;
-                $subtotals['comissao_booker_brl'] += $comissaoBookerBrl;
-                $subtotals['comissao_agencia_liquida_brl'] += $comissaoAgenciaLiquidaBrl;
-                
+                $gigsData = $sortedGigs->map(function ($gig) use (&$subtotals) {
+                    $cacheBrutoBrl = $gig->cache_value_brl ?? 0;
+                    $totalDespesasConfirmadasBrl = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
+                    $cacheLiquidoBaseBrl = $this->calculator->calculateGrossCashBrl($gig);
+                    $repasseEstimadoArtistaBrl = $this->calculator->calculateArtistNetPayoutBrl($gig);
+                    $comissaoAgenciaBrl = $this->calculator->calculateAgencyGrossCommissionBrl($gig);
+                    $comissaoBookerBrl = $this->calculator->calculateBookerCommissionBrl($gig);
+                    $comissaoAgenciaLiquidaBrl = $this->calculator->calculateAgencyNetCommissionBrl($gig);
+
+                    // Soma aos subtotais
+                    $subtotals['cache_bruto_brl'] += $cacheBrutoBrl;
+                    $subtotals['total_despesas_confirmadas_brl'] += $totalDespesasConfirmadasBrl;
+                    $subtotals['cache_liquido_base_brl'] += $cacheLiquidoBaseBrl;
+                    $subtotals['repasse_estimado_artista_brl'] += $repasseEstimadoArtistaBrl;
+                    $subtotals['comissao_agencia_brl'] += $comissaoAgenciaBrl;
+                    $subtotals['comissao_booker_brl'] += $comissaoBookerBrl;
+                    $subtotals['comissao_agencia_liquida_brl'] += $comissaoAgenciaLiquidaBrl;
+
+                    return [
+                        'gig_id' => $gig->id,
+                        'gig_date' => $gig->gig_date->format('d/m/Y'),
+                        'artist_name' => $gig->artist->name ?? 'N/A',
+                        'booker_name' => $gig->booker->name ?? 'N/A',
+                        'location_event_details' => $gig->location_event_details,
+                        'cache_bruto_original' => "{$gig->currency} ".number_format($gig->cache_value, 2, ',', '.'),
+                        'cache_bruto_brl' => $cacheBrutoBrl,
+                        'total_despesas_confirmadas_brl' => $totalDespesasConfirmadasBrl,
+                        'cache_liquido_base_brl' => $cacheLiquidoBaseBrl,
+                        'repasse_estimado_artista_brl' => $repasseEstimadoArtistaBrl,
+                        'comissao_agencia_brl' => $comissaoAgenciaBrl,
+                        'comissao_booker_brl' => $comissaoBookerBrl,
+                        'comissao_agencia_liquida_brl' => $comissaoAgenciaLiquidaBrl,
+                        // ***** CORREÇÃO: ADICIONANDO AS CHAVES FALTANTES *****
+                        'contract_status' => $gig->contract_status,
+                        'payment_status' => $gig->payment_status,
+                    ];
+                });
+
                 return [
-                    'gig_id' => $gig->id,
-                    'gig_date' => $gig->gig_date->format('d/m/Y'),
-                    'artist_name' => $gig->artist->name ?? 'N/A',
-                    'booker_name' => $gig->booker->name ?? 'N/A',
-                    'location_event_details' => $gig->location_event_details,
-                    'cache_bruto_original' => "{$gig->currency} " . number_format($gig->cache_value, 2, ',', '.'),
-                    'cache_bruto_brl' => $cacheBrutoBrl,
-                    'total_despesas_confirmadas_brl' => $totalDespesasConfirmadasBrl,
-                    'cache_liquido_base_brl' => $cacheLiquidoBaseBrl,
-                    'repasse_estimado_artista_brl' => $repasseEstimadoArtistaBrl,
-                    'comissao_agencia_brl' => $comissaoAgenciaBrl,
-                    'comissao_booker_brl' => $comissaoBookerBrl,
-                    'comissao_agencia_liquida_brl' => $comissaoAgenciaLiquidaBrl,
-                    // ***** CORREÇÃO: ADICIONANDO AS CHAVES FALTANTES *****
-                    'contract_status' => $gig->contract_status,
-                    'payment_status' => $gig->payment_status,
+                    'artist_name' => $artistName,
+                    'gigs' => $gigsData,
+                    'subtotals' => $subtotals,
+                    'gig_count' => $artistGigs->count(),
                 ];
             });
-
-            return [
-                'artist_name' => $artistName,
-                'gigs' => $gigsData,
-                'subtotals' => $subtotals,
-                'gig_count' => $artistGigs->count()
-            ];
-        });
 
         // Lógica de cálculo dos totais gerais (como antes)
         $grandTotals = [
@@ -981,11 +980,10 @@ class FinancialReportService
             'comissao_agencia_liquida_brl' => $dataByArtist->sum('subtotals.comissao_agencia_liquida_brl'),
             'gig_count' => $dataByArtist->sum('gig_count'),
         ];
-        
+
         return [
             'dataByArtist' => $dataByArtist,
-            'grandTotals' => $grandTotals
+            'grandTotals' => $grandTotals,
         ];
     }
-
 }

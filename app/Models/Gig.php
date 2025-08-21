@@ -2,19 +2,18 @@
 
 namespace App\Models;
 
+use App\Services\GigFinancialCalculatorService;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Carbon\Carbon;
-use App\Services\GigFinancialCalculatorService; // Importar o novo Service
-use Illuminate\Support\Facades\App; // Para resolver o Service
-use Illuminate\Support\Facades\Log; // Para logs
-use Illuminate\Database\Eloquent\Casts\Attribute; // Importar para nova sintaxe de Accessor
-
+use Illuminate\Database\Eloquent\Relations\MorphToMany; // Importar o novo Service
+use Illuminate\Database\Eloquent\SoftDeletes; // Para resolver o Service
+use Illuminate\Support\Facades\App; // Para logs
+use Illuminate\Support\Facades\Log; // Importar para nova sintaxe de Accessor
 
 class Gig extends Model
 {
@@ -35,13 +34,13 @@ class Gig extends Model
 
         'agency_commission_type', // 'percent' ou 'fixed'
         'agency_commission_rate', // Taxa percentual (ex: 20 para 20%)
-        'agency_commission_value',// Valor fixo em BRL OU valor calculado em BRL (se tipo 'percent') - Armazenado no DB
+        'agency_commission_value', // Valor fixo em BRL OU valor calculado em BRL (se tipo 'percent') - Armazenado no DB
 
         'booker_commission_type', // 'percent' ou 'fixed'
         'booker_commission_rate', // Taxa percentual
-        'booker_commission_value',// Valor fixo em BRL OU valor calculado em BRL (se tipo 'percent') - Armazenado no DB
+        'booker_commission_value', // Valor fixo em BRL OU valor calculado em BRL (se tipo 'percent') - Armazenado no DB
 
-        'liquid_commission_value',// Comissão líquida da agência (Agência Bruta - Booker) em BRL - Armazenado no DB
+        'liquid_commission_value', // Comissão líquida da agência (Agência Bruta - Booker) em BRL - Armazenado no DB
 
         'payment_status',         // Status do pagamento PELO CLIENTE (a_vencer, vencido, pago)
         'artist_payment_status',  // Status do pagamento AO ARTISTA (pendente, pago)
@@ -63,12 +62,35 @@ class Gig extends Model
     ];
 
     // --- Relacionamentos ---
-    public function artist(): BelongsTo { return $this->belongsTo(Artist::class); }
-    public function booker(): BelongsTo { return $this->belongsTo(Booker::class)->withDefault(); } // withDefault para evitar erro se booker_id for null
-    public function payments(): HasMany { return $this->hasMany(Payment::class); }
-    public function settlement(): HasOne { return $this->hasOne(Settlement::class); }
-    public function tags(): MorphToMany { return $this->morphToMany(Tag::class, 'taggable'); }
-    public function costs(): HasMany { return $this->hasMany(GigCost::class); }
+    public function artist(): BelongsTo
+    {
+        return $this->belongsTo(Artist::class);
+    }
+
+    public function booker(): BelongsTo
+    {
+        return $this->belongsTo(Booker::class)->withDefault();
+    } // withDefault para evitar erro se booker_id for null
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function settlement(): HasOne
+    {
+        return $this->hasOne(Settlement::class);
+    }
+
+    public function tags(): MorphToMany
+    {
+        return $this->morphToMany(Tag::class, 'taggable');
+    }
+
+    public function costs(): HasMany
+    {
+        return $this->hasMany(GigCost::class);
+    }
 
     // --- Instância do Service ---
     // Para evitar múltiplas instanciações do service para o mesmo objeto Gig
@@ -79,22 +101,17 @@ class Gig extends Model
         if ($this->financialCalculator === null) {
             $this->financialCalculator = App::make(GigFinancialCalculatorService::class);
         }
+
         return $this->financialCalculator;
     }
 
     // --- Accessors (Atributos Calculados Dinamicamente) ---
-
-    
 
     /**
      * Função auxiliar para buscar taxa de câmbio.
      * SUBSTITUIR POR LÓGICA REAL OU CONFIGURÁVEL.
      * Por ora, usamos valores fixos para ilustração e a regra de pegar câmbio do pagamento.
      * Para projeções, podemos ter um default.
-     *
-     * @param string $currencyCode
-     * @param Carbon $date
-     * @return float|null
      */
     public function getExchangeRateForCurrency(string $currencyCode, Carbon $date): ?float
     {
@@ -110,9 +127,10 @@ class Gig extends Model
         if ($firstConfirmedPaymentWithRate && $firstConfirmedPaymentWithRate->exchange_rate > 0) {
             // Usar a taxa de câmbio do pagamento confirmado
             Log::info("[Gig ID {$this->id}] Usando taxa de câmbio do pagamento confirmado {$firstConfirmedPaymentWithRate->id} para {$currencyCode}: {$firstConfirmedPaymentWithRate->exchange_rate}");
+
             return (float) $firstConfirmedPaymentWithRate->exchange_rate;
         }
-        
+
         // Placeholder/Configurável para projeção se não houver pagamento confirmado com taxa
         $defaultRates = [
             'USD' => (float) (config('app.default_exchange_rates.usd') ?? 5.20),
@@ -120,7 +138,8 @@ class Gig extends Model
             'GBP' => (float) (config('app.default_exchange_rates.gbp') ?? 6.20),
             'GPB' => (float) (config('app.default_exchange_rates.gbp') ?? 6.20), // Alias para GBP (correção de erro de digitação)
         ];
-        Log::info("[Gig ID {$this->id}] Usando taxa de câmbio padrão para projeção para {$currencyCode}: " . ($defaultRates[strtoupper($currencyCode)] ?? null));
+        Log::info("[Gig ID {$this->id}] Usando taxa de câmbio padrão para projeção para {$currencyCode}: ".($defaultRates[strtoupper($currencyCode)] ?? null));
+
         return $defaultRates[strtoupper($currencyCode)] ?? null; // Retorna a taxa ou null
     }
 
@@ -128,8 +147,6 @@ class Gig extends Model
      * Retorna o "Cachê Bruto" da Gig em BRL (Base de Comissão).
      * Fórmula: Valor do Contrato em BRL - Despesas Pagas pela Agência.
      * Utiliza o GigFinancialCalculatorService.
-     *
-     * @return float
      */
     public function getGrossCashBrlAttribute(): float // Novo nome sugerido, ou manter getCommissionBaseBrlAttribute
     {
@@ -139,8 +156,6 @@ class Gig extends Model
     /**
      * Retorna o valor total das despesas confirmadas em BRL.
      * Utiliza o GigFinancialCalculatorService.
-     *
-     * @return float
      */
     public function getTotalConfirmedExpensesBrlAttribute(): float
     {
@@ -150,8 +165,6 @@ class Gig extends Model
     /**
      * Retorna o valor total das despesas confirmadas e marcadas como reembolsáveis (NF Artista) em BRL.
      * Utiliza o GigFinancialCalculatorService.
-     *
-     * @return float
      */
     public function getTotalReimbursableExpensesBrlAttribute(): float
     {
@@ -162,8 +175,6 @@ class Gig extends Model
      * Accessor para obter o valor da "Comissão Bruta da Agência" em BRL.
      * Delega o cálculo para o GigFinancialCalculatorService.
      * Este accessor APENAS LÊ. O valor é persistido no banco pelo GigObserver.
-     *
-     * @return float
      */
     public function getCalculatedAgencyGrossCommissionBrlAttribute(): float
     {
@@ -174,8 +185,6 @@ class Gig extends Model
      * Accessor para obter o valor da "Comissão do Booker" em BRL.
      * Delega o cálculo para o GigFinancialCalculatorService.
      * Este accessor APENAS LÊ. O valor é persistido no banco pelo GigObserver.
-     *
-     * @return float
      */
     public function getCalculatedBookerCommissionBrlAttribute(): float
     {
@@ -186,8 +195,6 @@ class Gig extends Model
      * Accessor para obter o valor da "Comissão Líquida da Agência" em BRL.
      * Delega o cálculo para o GigFinancialCalculatorService.
      * Este accessor APENAS LÊ. O valor é persistido no banco pelo GigObserver.
-     *
-     * @return float
      */
     public function getCalculatedAgencyNetCommissionBrlAttribute(): float
     {
@@ -197,8 +204,6 @@ class Gig extends Model
     /**
      * Accessor para obter o "Cachê Líquido do Artista" em BRL.
      * Delega o cálculo para o GigFinancialCalculatorService.
-     *
-     * @return float
      */
     public function getCalculatedArtistNetPayoutBrlAttribute(): float
     {
@@ -208,8 +213,6 @@ class Gig extends Model
     /**
      * Accessor para obter o valor final da Nota Fiscal do Artista em BRL.
      * Delega o cálculo para o GigFinancialCalculatorService.
-     *
-     * @return float
      */
     public function getCalculatedArtistInvoiceValueBrlAttribute(): float
     {
@@ -257,8 +260,6 @@ class Gig extends Model
      * Calcula o valor total efetivamente recebido em BRL.
      * Este método é a "fonte da verdade" para o valor real em BRL,
      * pois soma cada pagamento confirmado usando sua própria taxa de câmbio.
-     *
-     * @return float
      */
     public function getTotalReceivedBrlAttribute(): float
     {
@@ -275,6 +276,7 @@ class Gig extends Model
                 if ($payment->exchange_rate) {
                     return $payment->received_value_actual * $payment->exchange_rate;
                 }
+
                 // Retorna 0 se um pagamento confirmado em moeda estrangeira não tiver taxa (cenário de erro de dados).
                 return 0;
             });
@@ -283,8 +285,6 @@ class Gig extends Model
     /**
      * Accessor INTELIGENTE para o Valor do Contrato em BRL.
      * Retorna um array com o valor, o tipo ('confirmed' ou 'projected') e a taxa usada.
-     *
-     * @return \Illuminate\Database\Eloquent\Casts\Attribute
      */
     protected function cacheValueBrlDetails(): Attribute
     {
@@ -311,7 +311,7 @@ class Gig extends Model
                     $effectiveRate = ($originalValue > 0) ? $confirmedBrlValue / $originalValue : null;
 
                     Log::debug("[Accessor] Gig #{$this->id} está PAGA. Valor BRL confirmado: {$confirmedBrlValue}");
-                    
+
                     return [
                         'value' => $confirmedBrlValue,
                         'type' => 'confirmed',
@@ -321,10 +321,11 @@ class Gig extends Model
                     // SE AINDA NÃO ESTÁ PAGO, usamos uma taxa de PROJEÇÃO.
                     $defaultRates = config('app.default_exchange_rates', []);
                     $projectionRate = $defaultRates[$gigCurrency] ?? null;
-                    
+
                     if ($projectionRate) {
                         $projectedValue = $originalValue * $projectionRate;
                         Log::debug("[Accessor] Gig #{$this->id} está PENDENTE. Valor BRL projetado: {$projectedValue}");
+
                         return [
                             'value' => $projectedValue,
                             'type' => 'projected',
@@ -335,6 +336,7 @@ class Gig extends Model
 
                 // Fallback: Se não está pago e não há taxa de projeção, não podemos calcular.
                 Log::warning("[Accessor] Não foi possível calcular valor BRL para Gig #{$this->id}.");
+
                 return [
                     'value' => null,
                     'type' => 'unavailable',
@@ -353,8 +355,6 @@ class Gig extends Model
 
     /**
      * Accessor para verificar se todas as despesas da gig foram confirmadas.
-     *
-     * @return bool
      */
     public function getAreAllCostsConfirmedAttribute(): bool
     {
@@ -362,11 +362,10 @@ class Gig extends Model
         if ($this->costs->isEmpty()) {
             return true;
         }
+
         // Retorna true apenas se NÃO EXISTIR nenhum custo com is_confirmed = false.
         return $this->costs()->where('is_confirmed', false)->doesntExist();
     }
-    
-
 
     // Manteremos os campos `agency_commission_value`, `booker_commission_value`,
     // e `liquid_commission_value` como colunas no banco que serão preenchidas

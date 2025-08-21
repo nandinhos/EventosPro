@@ -21,16 +21,13 @@ class GigCostObserver
     /**
      * Handle the GigCost "saved" event (created or updated).
      * Recalcula e atualiza apenas os campos de comissão da Gig pai.
-     *
-     * @param  \App\Models\GigCost  $gigCost
-     * @return void
      */
     public function saved(GigCost $gigCost): void
     {
-        Log::info("[GigCostObserver@saved] Acionado para GigCost ID: {$gigCost->id}, Gig ID: {$gigCost->gig_id}. Is Confirmed: " . ($gigCost->is_confirmed ? 'Sim' : 'Não'));
+        Log::info("[GigCostObserver@saved] Acionado para GigCost ID: {$gigCost->id}, Gig ID: {$gigCost->gig_id}. Is Confirmed: ".($gigCost->is_confirmed ? 'Sim' : 'Não'));
 
         // Se a despesa foi revertida de confirmada para não confirmada, e estava marcada como NF, desmarca NF.
-        if ($gigCost->wasChanged('is_confirmed') && !$gigCost->is_confirmed && $gigCost->is_invoice) {
+        if ($gigCost->wasChanged('is_confirmed') && ! $gigCost->is_confirmed && $gigCost->is_invoice) {
             $gigCost->is_invoice = false;
             $gigCost->saveQuietly(); // Salva o GigCost sem disparar observers novamente
             Log::info("[GigCostObserver@saved] Marcação de NF removida do GigCost ID: {$gigCost->id} após reversão da confirmação.");
@@ -38,15 +35,16 @@ class GigCostObserver
 
         $gig = $gigCost->gig; // Pega a Gig pai
 
-        if (!$gig) {
+        if (! $gig) {
             Log::error("[GigCostObserver@saved] Gig não encontrada para o GigCost ID: {$gigCost->id}. Não foi possível recalcular comissões.");
+
             return;
         }
 
         // Garante que a Gig tenha os dados de tipo/taxa de comissão corretos antes de recalcular.
         // Os valores de tipo/taxa são definidos quando a Gig é salva via formulário.
         // Aqui, estamos apenas recalculando os valores monetários com base nesses tipos/taxas já existentes.
-        Log::debug("[GigCostObserver@saved] Dados da Gig ANTES de recalcular comissões (vindos do GigCostObserver):", [
+        Log::debug('[GigCostObserver@saved] Dados da Gig ANTES de recalcular comissões (vindos do GigCostObserver):', [
             'gig_id' => $gig->id,
             'agency_commission_type' => $gig->agency_commission_type,
             'agency_commission_rate' => $gig->agency_commission_rate,
@@ -63,18 +61,18 @@ class GigCostObserver
 
         // Verifica se algum valor de comissão realmente mudou para evitar updates desnecessários
         $comissionsChanged = false;
-        if (abs((float)$gig->agency_commission_value - $newAgencyGrossCommissionBrl) > 0.001 ||
-            abs((float)$gig->booker_commission_value - $newBookerCommissionBrl) > 0.001 ||
-            abs((float)$gig->liquid_commission_value - $newAgencyNetCommissionBrl) > 0.001) {
+        if (abs((float) $gig->agency_commission_value - $newAgencyGrossCommissionBrl) > 0.001 ||
+            abs((float) $gig->booker_commission_value - $newBookerCommissionBrl) > 0.001 ||
+            abs((float) $gig->liquid_commission_value - $newAgencyNetCommissionBrl) > 0.001) {
             $comissionsChanged = true;
         }
 
         if ($comissionsChanged) {
             Log::info("[GigCostObserver@saved] Recalculando e atualizando comissões da Gig ID: {$gig->id} devido à alteração no GigCost ID: {$gigCost->id}.");
-            Log::debug("[GigCostObserver@saved] Novos valores calculados:", [
+            Log::debug('[GigCostObserver@saved] Novos valores calculados:', [
                 'new_agency_gross_brl' => $newAgencyGrossCommissionBrl,
                 'new_booker_brl' => $newBookerCommissionBrl,
-                'new_agency_net_brl' => $newAgencyNetCommissionBrl
+                'new_agency_net_brl' => $newAgencyNetCommissionBrl,
             ]);
 
             // ATUALIZA APENAS OS CAMPOS DE COMISSÃO, SEM DISPARAR OBSERVERS DA GIG NOVAMENTE
@@ -98,9 +96,6 @@ class GigCostObserver
     /**
      * Handle the GigCost "deleted" event.
      * Também precisamos recalcular as comissões da Gig se um custo for removido.
-     *
-     * @param  \App\Models\GigCost  $gigCost
-     * @return void
      */
     public function deleted(GigCost $gigCost): void
     {
@@ -112,9 +107,9 @@ class GigCostObserver
             $newBookerCommissionBrl = $this->financialCalculator->calculateBookerCommissionBrl($gig);
             $newAgencyNetCommissionBrl = $this->financialCalculator->calculateAgencyNetCommissionBrl($gig);
 
-            if (abs((float)$gig->agency_commission_value - $newAgencyGrossCommissionBrl) > 0.001 ||
-                abs((float)$gig->booker_commission_value - $newBookerCommissionBrl) > 0.001 ||
-                abs((float)$gig->liquid_commission_value - $newAgencyNetCommissionBrl) > 0.001) {
+            if (abs((float) $gig->agency_commission_value - $newAgencyGrossCommissionBrl) > 0.001 ||
+                abs((float) $gig->booker_commission_value - $newBookerCommissionBrl) > 0.001 ||
+                abs((float) $gig->liquid_commission_value - $newAgencyNetCommissionBrl) > 0.001) {
                 Log::info("[GigCostObserver@deleted] Recalculando e atualizando comissões da Gig ID: {$gig->id} devido à exclusão do GigCost ID: {$gigCost->id}.");
                 $gig->forceFill([
                     'agency_commission_value' => $newAgencyGrossCommissionBrl,

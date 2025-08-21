@@ -3,14 +3,13 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class UpdateGigCostRequest extends FormRequest
 {
     /**
      * Determina se o usuário está autorizado a fazer esta requisição.
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -20,21 +19,23 @@ class UpdateGigCostRequest extends FormRequest
 
     /**
      * Obtém as regras de validação que se aplicam à requisição.
+     *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         // Usar 'sometimes' para permitir atualizações parciais
         Log::debug('[UpdateGigCostRequest] Dados recebidos para validação: ', $this->all());
+
         return [
             'cost_center_id' => ['sometimes', 'required', 'integer', 'exists:cost_centers,id'],
-            'description'    => ['sometimes', 'nullable', 'string', 'max:255'],
-            'value'          => ['sometimes', 'required', 'numeric', 'min:0.01'],
-            'currency'       => ['sometimes', 'required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])],
-            'expense_date'   => ['sometimes', 'nullable', 'date'],
-            'notes'          => ['sometimes', 'nullable', 'string', 'max:65535'],
-            'is_confirmed'   => ['sometimes', 'boolean'],
-            'is_invoice'     => ['sometimes', 'boolean'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'value' => ['sometimes', 'required', 'numeric', 'min:0.01'],
+            'currency' => ['sometimes', 'required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])],
+            'expense_date' => ['sometimes', 'nullable', 'date'],
+            'notes' => ['sometimes', 'nullable', 'string', 'max:65535'],
+            'is_confirmed' => ['sometimes', 'boolean'],
+            'is_invoice' => ['sometimes', 'boolean'],
             // 'is_confirmed' e 'is_invoice' não são tipicamente atualizados via form de edição de dados,
             // mas sim por ações específicas (confirmar, marcar como NF). Se forem, adicione 'sometimes' e 'boolean'.
         ];
@@ -42,6 +43,7 @@ class UpdateGigCostRequest extends FormRequest
 
     /**
      * Obtém mensagens personalizadas para erros de validação.
+     *
      * @return array<string, string>
      */
     public function messages(): array
@@ -57,7 +59,6 @@ class UpdateGigCostRequest extends FormRequest
 
     /**
      * Prepara os dados para validação.
-     * @return void
      */
     protected function prepareForValidation(): void
     {
