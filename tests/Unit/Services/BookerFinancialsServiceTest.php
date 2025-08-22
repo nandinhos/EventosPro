@@ -293,7 +293,11 @@ class BookerFinancialsServiceTest extends TestCase
         // Assert
         $this->assertCount(2, $result);
         // Verificar que o gig mais recente vem primeiro (ordenação por data)
-        $this->assertTrue($result->first()->gig_date->gt($result->last()->gig_date));
+        // O método getRecentGigs ordena por COALESCE(contract_date, gig_date) DESC
+        // Então o primeiro deve ter data maior ou igual ao último
+        $firstDate = $result->first()->contract_date ?? $result->first()->gig_date;
+        $lastDate = $result->last()->contract_date ?? $result->last()->gig_date;
+        $this->assertTrue($firstDate->gte($lastDate));
     }
 
     /** @test */

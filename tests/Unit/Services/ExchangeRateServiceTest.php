@@ -92,6 +92,11 @@ class ExchangeRateServiceTest extends TestCase
     /** @test */
     public function it_converts_amount_to_brl_correctly()
     {
+        // Mock HTTP calls to prevent real API calls
+        Http::fake([
+            '*' => Http::response([], 404) // Force fallback to default rates
+        ]);
+        
         // Configurar taxa conhecida
         Config::set('app.default_exchange_rates.USD', 5.00);
         
@@ -111,6 +116,11 @@ class ExchangeRateServiceTest extends TestCase
     /** @test */
     public function it_gets_multiple_rates_correctly()
     {
+        // Mock HTTP calls to prevent real API calls
+        Http::fake([
+            '*' => Http::response([], 404) // Force fallback to default rates
+        ]);
+        
         $currencies = ['USD', 'EUR', 'GBP'];
         $rates = $this->exchangeRateService->getMultipleRates($currencies, Carbon::today());
         
@@ -208,6 +218,11 @@ class ExchangeRateServiceTest extends TestCase
     /** @test */
     public function it_handles_case_insensitive_currency_codes()
     {
+        // Mock HTTP calls to prevent real API calls
+        Http::fake([
+            '*' => Http::response([], 404) // Force fallback to default rates
+        ]);
+        
         $rateUpper = $this->exchangeRateService->getExchangeRate('USD', Carbon::today());
         $rateLower = $this->exchangeRateService->getExchangeRate('usd', Carbon::today());
         $rateMixed = $this->exchangeRateService->getExchangeRate('Usd', Carbon::today());

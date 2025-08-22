@@ -221,4 +221,230 @@ class UserManagementServiceTest extends TestCase
 
         $this->userManagementService->createUser($userData);
     }
+
+    /** @test */
+    public function it_can_update_user_to_become_booker_with_new_booker()
+    {
+        $user = User::factory()->create([
+            'booker_id' => null,
+        ]);
+
+        $userData = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'is_booker' => true,
+            'booker_creation_type' => 'new',
+            'booker_name' => 'New Booker Name',
+            'default_commission_rate' => 12.5,
+            'contact_info' => 'newbooker@example.com',
+        ];
+
+        $updatedUser = $this->userManagementService->updateUser($user, $userData);
+
+        $this->assertNotNull($updatedUser->booker_id);
+        $this->assertDatabaseHas('bookers', [
+            'name' => 'NEW BOOKER NAME',
+            'default_commission_rate' => 12.5,
+            'contact_info' => 'newbooker@example.com',
+        ]);
+    }
+
+    /** @test */
+    public function it_can_update_user_to_become_booker_with_existing_booker()
+    {
+        $user = User::factory()->create([
+            'booker_id' => null,
+        ]);
+        $existingBooker = Booker::factory()->create();
+
+        $userData = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'is_booker' => true,
+            'booker_creation_type' => 'existing',
+            'existing_booker_id' => $existingBooker->id,
+        ];
+
+        $updatedUser = $this->userManagementService->updateUser($user, $userData);
+
+        $this->assertEquals($existingBooker->id, $updatedUser->booker_id);
+    }
+
+    /** @test */
+    public function it_can_remove_booker_association_from_user()
+    {
+        $booker = Booker::factory()->create();
+        $user = User::factory()->create(['booker_id' => $booker->id]);
+
+        $userData = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'is_booker' => false,
+        ];
+
+        $updatedUser = $this->userManagementService->updateUser($user, $userData);
+
+        $this->assertNull($updatedUser->booker_id);
+        // Booker should still exist (not deleted)
+        $this->assertDatabaseHas('bookers', ['id' => $booker->id]);
+    }
+
+    /** @test */
+    public function it_throws_exception_when_updating_to_existing_booker_already_associated()
+    {
+        $existingUser = User::factory()->create();
+        $existingBooker = Booker::factory()->create();
+        $existingUser->update(['booker_id' => $existingBooker->id]);
+
+        $user = User::factory()->create(['booker_id' => null]);
+
+        $userData = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'is_booker' => true,
+            'booker_creation_type' => 'existing',
+            'existing_booker_id' => $existingBooker->id,
+        ];
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('O booker selecionado já está associado a outro usuário.');
+
+        $this->userManagementService->updateUser($user, $userData);
+    }
+
+    /** @test */
+    public function it_allows_user_to_keep_same_booker_when_updating()
+    {
+        $booker = Booker::factory()->create();
+        $user = User::factory()->create(['booker_id' => $booker->id]);
+
+        $userData = [
+            'name' => 'Updated Name',
+            'email' => $user->email,
+            'is_booker' => true,
+            'booker_creation_type' => 'existing',
+            'existing_booker_id' => $booker->id,
+        ];
+
+        $updatedUser = $this->userManagementService->updateUser($user, $userData);
+
+        $this->assertEquals($booker->id, $updatedUser->booker_id);
+        $this->assertEquals('Updated Name', $updatedUser->name);
+    }
+
+    /** @test */
+    public function it_does_not_update_password_when_not_provided()
+    {
+        $user = User::factory()->create();
+        $originalPassword = $user->password;
+
+        $userData = [
+            'name' => 'Updated Name',
+            'email' => $user->email,
+            'is_booker' => false,
+        ];
+
+        $updatedUser = $this->userManagementService->updateUser($user, $userData);
+
+        $this->assertEquals($originalPassword, $updatedUser->password);
+    }
+
+    /** @test */
+    public function it_does_not_update_password_when_empty_string_provided()
+    {
+        $user = User::factory()->create();
+        $originalPassword = $user->password;
+
+        $userData = [
+            'name' => 'Updated Name',
+            'email' => $user->email,
+            'password' => '',
+            'is_booker' => false,
+        ];
+
+        $updatedUser = $this->userManagementService->updateUser($user, $userData);
+
+        $this->assertEquals($originalPassword, $updatedUser->password);
+    }
+
+    /** @test */
+    public function it_creates_booker_name_in_uppercase()
+    {
+        $userData = [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => 'password123',
+            'is_booker' => true,
+            'booker_creation_type' => 'new',
+            'booker_name' => 'lowercase booker name',
+            'default_commission_rate' => 15.0,
+        ];
+
+        $user = $this->userManagementService->createUser($userData);
+
+        $this->assertDatabaseHas('bookers', [
+            'name' => 'LOWERCASE BOOKER NAME',
+        ]);
+    }
+
+    /** @test */
+    public function it_handles_booker_creation_without_contact_info()
+    {
+        $userData = [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => 'password123',
+            'is_booker' => true,
+            'booker_creation_type' => 'new',
+            'booker_name' => 'Test Booker',
+            'default_commission_rate' => 15.0,
+            // contact_info not provided
+        ];
+
+        $user = $this->userManagementService->createUser($userData);
+
+        $this->assertDatabaseHas('bookers', [
+            'name' => 'TEST BOOKER',
+            'contact_info' => null,
+        ]);
+    }
+
+    /** @test */
+    public function it_rolls_back_transaction_on_update_user_failure()
+    {
+        $user = User::factory()->create();
+        
+        // Mock DB to simulate transaction failure
+        DB::shouldReceive('beginTransaction')->once();
+        DB::shouldReceive('rollBack')->once();
+        
+        // Force an exception by trying to update with invalid booker ID
+        $userData = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'is_booker' => true,
+            'booker_creation_type' => 'existing',
+            'existing_booker_id' => 99999, // Non-existent ID
+        ];
+
+        $this->expectException(\Exception::class);
+        $this->userManagementService->updateUser($user, $userData);
+    }
+
+    /** @test */
+    public function it_rolls_back_transaction_on_delete_user_failure()
+    {
+        $user = User::factory()->create();
+        
+        // Mock DB to simulate transaction failure
+        DB::shouldReceive('beginTransaction')->once();
+        DB::shouldReceive('rollBack')->once();
+        
+        // Mock the user delete to throw an exception
+        $user = $this->createMock(User::class);
+        $user->method('delete')->willThrowException(new \Exception('Delete failed'));
+        
+        $this->expectException(\Exception::class);
+        $this->userManagementService->deleteUser($user);
+    }
 }
