@@ -23,9 +23,6 @@
     {{-- Inclui app.css (Tailwind, Font Awesome) e app.js (Alpine) --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    {{-- Stack para scripts adicionais específicos da página (ex: Chart.js, TomSelect) --}}
-    @stack('scripts')
-
     {{-- Estilos adicionais específicos da página (raro, mas possível) --}}
     @stack('styles')
 </head>
@@ -125,8 +122,23 @@
     {{-- Modais Globais (se houver - Ex: Confirmação de Exclusão Genérica) --}}
     {{-- @include('layouts.partials.confirmation-modal') --}}
 
-
+    {{-- jQuery (necessário para alguns componentes) --}}
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
     
+    {{-- Configuração do CSRF Token para jQuery --}}
+    <script>
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+    </script>
+    
+    {{-- Bootstrap JS (se necessário) --}}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    {{-- Scripts específicos da página --}}
+    @stack('scripts')
 
 </body>
 </html>

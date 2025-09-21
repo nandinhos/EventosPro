@@ -74,6 +74,9 @@ Route::middleware('auth')->group(function () {
 
     // Bookers
     Route::resource('bookers', BookerController::class);
+    
+    // Rota para atualizar comissão de eventos
+    Route::post('/bookers/events/{eventId}/commission', [BookerController::class, 'updateEventCommission'])->name('bookers.events.commission.update');
 
     // Financial Projections
     Route::get('/projections', [FinancialProjectionController::class, 'index'])->name('projections.index');
@@ -139,6 +142,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/test-report', [TestReportController::class, 'index'])->name('test-report.index');
     Route::post('/test-report/run', [TestReportController::class, 'runTests'])->name('test-report.run');
     Route::get('/test-report/export', [TestReportController::class, 'export'])->name('test-report.export');
+
+    // Data Audit Routes
+    Route::get('/audit/data-audit', [AuditController::class, 'dataAudit'])->name('audit.data-audit');
+    Route::post('/audit/run-data-audit', [AuditController::class, 'runDataAudit'])->name('audit.run-data-audit');
+    Route::post('/audit/get-issues', [AuditController::class, 'getAuditIssues'])->name('audit.get-issues');
+    Route::post('/audit/apply-fix', [AuditController::class, 'applyFix'])->name('audit.apply-fix');
 
 });
 

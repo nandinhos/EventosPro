@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreBookerRequest;
 use App\Http\Requests\UpdateBookerRequest;
 use App\Models\Booker;
+use App\Models\Gig;
 use App\Services\BookerFinancialsService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class BookerController extends Controller
@@ -61,6 +63,10 @@ class BookerController extends Controller
             $analyticalTableData = $this->financialService->getGigsForPeriod($booker, $startDate, $endDate);
         }
 
+        // Novos dados para agrupamentos de eventos realizados e futuros
+        $realizedEvents = $this->financialService->getRealizedEvents($booker, $startDate, $endDate);
+        $futureEvents = $this->financialService->getFutureEvents($booker, $startDate, $endDate);
+
         return view('bookers.show', [
             'booker' => $booker,
             'filters' => $filters,
@@ -70,7 +76,85 @@ class BookerController extends Controller
             'topArtists' => $topArtists,
             'recentGigs' => $recentGigs,
             'analyticalTableData' => $analyticalTableData,
+            'realizedEvents' => $realizedEvents,
+            'futureEvents' => $futureEvents,
         ]);
+    }
+
+    /**
+     * Atualiza comissão de um evento específico
+     */
+    public function updateEventCommission(Request $request, $eventId)
+    {
+        try {
+            $gig = Gig::findOrFail($eventId);
+            
+            // Verificar se o usuário tem permissão para editar este evento
+            $user = Auth::user();
+            $booker = $user->booker;
+            
+            if (!$booker || $gig->booker_id !== $booker->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Você não tem permissão para editar este evento.'
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'booker_payment_status' => 'required|in:pendente,pago,cancelado',
+                'booker_commission_brl' => 'required|numeric|min:0',
+                'is_exception' => 'boolean',
+                'exception_notes' => 'nullable|string|max:1000',
+                'notes' => 'nullable|string|max:1000'
+            ]);
+
+            // Aplicar regra de negócio: não permitir pagamento para eventos não realizados
+            $isEventRealized = $gig->gig_date <= now();
+            $isException = $request->boolean('is_exception');
+            
+            if (!$isEventRealized && $validated['booker_payment_status'] === 'pago' && !$isException) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não é possível marcar como pago um evento que ainda não foi realizado. Marque como exceção se necessário.'
+                ], 422);
+            }
+
+            // Atualizar dados do evento
+            $gig->booker_payment_status = $validated['booker_payment_status'];
+            
+            // Atualizar comissão se fornecida
+            if (isset($validated['booker_commission_brl'])) {
+                $gig->booker_commission_brl = $validated['booker_commission_brl'];
+            }
+
+            // Gerenciar exceções usando campos de observação existentes
+            if ($isException && !$isEventRealized) {
+                $exceptionNote = "EXCEÇÃO JUSTIFICADA: " . ($validated['exception_notes'] ?? 'Sem justificativa fornecida');
+                $gig->booker_notes = $exceptionNote;
+            }
+
+            // Adicionar observações gerais
+            if (!empty($validated['notes'])) {
+                $currentNotes = $gig->notes ?? '';
+                $newNote = "[" . now()->format('d/m/Y H:i') . "] " . $validated['notes'];
+                $gig->notes = $currentNotes ? $currentNotes . "\n" . $newNote : $newNote;
+            }
+
+            $gig->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Comissão atualizada com sucesso!'
+            ]);
+
+        } catch (\Exception $e) {
+             Log::error('Erro ao atualizar comissão do evento: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno do servidor. Tente novamente.'
+            ], 500);
+        }
     }
 
     public function edit(Booker $booker): View

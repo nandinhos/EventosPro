@@ -78,6 +78,14 @@ class SettlementController extends Controller
             return back()->with('error', 'Esta Gig não possui um booker associado.');
         }
 
+        // Validar regra de negócio: não permitir pagamento para eventos futuros
+        $validationService = app(\App\Services\CommissionPaymentValidationService::class);
+        $validation = $validationService->validateBookerCommissionPayment($gig, false);
+        
+        if (!$validation['valid']) {
+            return back()->with('error', $validation['message']);
+        }
+
         $validator = Validator::make($request->all(), [
             'booker_commission_date' => ['required', 'date', 'before_or_equal:today'],
             'booker_commission_value_paid' => ['required', 'numeric', 'min:0'], // Valor efetivamente pago

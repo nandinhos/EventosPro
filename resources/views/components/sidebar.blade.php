@@ -120,9 +120,18 @@
                 <li>
                     <a href="{{ route('audit.index') }}"
                        class="flex items-center py-2.5 px-4 rounded-md transition-colors duration-200 group
-                       {{ request()->routeIs('audit.*') ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                       {{ request()->routeIs('audit.index') ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
                         <i class="fas fa-search-dollar fa-fw w-6 text-center text-lg"></i>
                         <span x-show="sidebarOpen" class="ml-3">Auditar Pagamento</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{{ route('audit.data-audit') }}"
+                       class="flex items-center py-2.5 px-4 rounded-md transition-colors duration-200 group
+                       {{ request()->routeIs('audit.data-audit') ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                        <i class="fas fa-database fa-fw w-6 text-center text-lg"></i>
+                        <span x-show="sidebarOpen" class="ml-3">Auditoria de Dados</span>
                     </a>
                 </li>
             </ul>

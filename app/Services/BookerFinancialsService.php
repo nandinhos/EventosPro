@@ -136,4 +136,114 @@ class BookerFinancialsService
             ->orderByDesc(DB::raw('COALESCE(contract_date, gig_date)'))
             ->get();
     }
+
+    /**
+     * Retorna eventos realizados (gig_date no passado) do booker
+     */
+    public function getRealizedEvents(Booker $booker, ?Carbon $startDate = null, ?Carbon $endDate = null): Collection
+    {
+        $query = $booker->gigs()->whereNull('deleted_at')
+            ->with(['artist:id,name', 'payments', 'costs'])
+            ->where('gig_date', '<', now()->startOfDay());
+
+        // Se houver filtros de data, aplicar no gig_date
+        if ($startDate && $endDate) {
+            $query->whereBetween('gig_date', [$startDate, $endDate]);
+        }
+
+        return $query->orderByDesc('gig_date')->get()->map(function ($gig) {
+            return [
+                'id' => $gig->id,
+                'contract_number' => $gig->contract_number,
+                'gig_date' => $gig->gig_date->format('d/m/Y'),
+                'artist_name' => $gig->artist->name ?? 'N/A',
+                'location' => $gig->location_event_details,
+                'cache_value_brl' => $gig->cache_value_brl,
+                'payment_status' => $gig->payment_status,
+                'artist_payment_status' => $gig->artist_payment_status,
+                'booker_payment_status' => $gig->booker_payment_status,
+                'contract_status' => $gig->contract_status,
+                'booker_commission_brl' => $this->gigCalculator->calculateBookerCommissionBrl($gig),
+                'agency_commission_brl' => $this->gigCalculator->calculateAgencyGrossCommissionBrl($gig),
+                'total_costs_brl' => $this->gigCalculator->calculateTotalConfirmedExpensesBrl($gig),
+                'notes' => $gig->notes,
+                'can_pay_commission' => $this->canPayCommission($gig),
+                'is_exception' => $this->isPaymentException($gig),
+            ];
+        });
+    }
+
+    /**
+     * Retorna eventos futuros (gig_date no futuro) do booker
+     */
+    public function getFutureEvents(Booker $booker, ?Carbon $startDate = null, ?Carbon $endDate = null): Collection
+    {
+        $query = $booker->gigs()->whereNull('deleted_at')
+            ->with(['artist:id,name', 'payments', 'costs'])
+            ->where('gig_date', '>=', now()->startOfDay());
+
+        // Se houver filtros de data, aplicar no gig_date
+        if ($startDate && $endDate) {
+            $query->whereBetween('gig_date', [$startDate, $endDate]);
+        }
+
+        return $query->orderBy('gig_date')->get()->map(function ($gig) {
+            return [
+                'id' => $gig->id,
+                'contract_number' => $gig->contract_number,
+                'gig_date' => $gig->gig_date->format('d/m/Y'),
+                'artist_name' => $gig->artist->name ?? 'N/A',
+                'location' => $gig->location_event_details,
+                'cache_value_brl' => $gig->cache_value_brl,
+                'payment_status' => $gig->payment_status,
+                'artist_payment_status' => $gig->artist_payment_status,
+                'booker_payment_status' => $gig->booker_payment_status,
+                'contract_status' => $gig->contract_status,
+                'booker_commission_brl' => $this->gigCalculator->calculateBookerCommissionBrl($gig),
+                'agency_commission_brl' => $this->gigCalculator->calculateAgencyGrossCommissionBrl($gig),
+                'total_costs_brl' => $this->gigCalculator->calculateTotalConfirmedExpensesBrl($gig),
+                'notes' => $gig->notes,
+                'can_pay_commission' => $this->canPayCommission($gig),
+                'is_exception' => $this->isPaymentException($gig),
+            ];
+        });
+    }
+
+    /**
+     * Verifica se é possível pagar comissão para um evento
+     * Regra: Só pode pagar se o evento foi realizado OU se há exceção justificada
+     */
+    private function canPayCommission($gig): bool
+    {
+        // Se o evento já foi realizado, pode pagar
+        if ($gig->gig_date < now()->startOfDay()) {
+            return true;
+        }
+
+        // Se é evento futuro, só pode pagar se há exceção justificada
+        return $this->isPaymentException($gig);
+    }
+
+    /**
+     * Verifica se há exceção justificada para pagamento antecipado
+     * Usa o campo 'notes' para identificar exceções
+     */
+    private function isPaymentException($gig): bool
+    {
+        if (empty($gig->notes)) {
+            return false;
+        }
+
+        // Procura por palavras-chave que indicam exceção justificada
+        $exceptionKeywords = ['exceção', 'excecao', 'antecipado', 'justificado', 'autorizado', 'aprovado'];
+        $notes = strtolower($gig->notes);
+
+        foreach ($exceptionKeywords as $keyword) {
+            if (strpos($notes, $keyword) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

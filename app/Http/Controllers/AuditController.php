@@ -6,7 +6,10 @@ use App\Models\Gig;
 use App\Services\GigFinancialCalculatorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Carbon\Carbon;
 
 class AuditController extends Controller
 {
@@ -460,5 +463,242 @@ class AuditController extends Controller
                 'status_divergencia' => 'erro',
             ];
         }
+    }
+
+    /**
+     * Exibe a página de auditoria de dados das gigs
+     */
+    public function dataAudit(): View
+    {
+        return view('audit.data-audit');
+    }
+
+    /**
+     * Executa o comando de auditoria de dados e retorna os resultados
+     */
+    public function runDataAudit(Request $request)
+    {
+        $request->validate([
+            'scan_only' => 'required|in:true,false,1,0',
+            'batch_size' => 'required|numeric|min:1|max:1000',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+        ]);
+
+        try {
+            // Processar parâmetros
+            $scanOnly = $request->scan_only;
+            $batchSize = $request->batch_size;
+            $dateFrom = $request->date_from;
+            $dateTo = $request->date_to;
+
+            // Preparar parâmetros do comando
+            $params = [];
+            
+            // Adicionar filtros de data se fornecidos
+            if ($dateFrom) {
+                $params['--date-from'] = $dateFrom;
+            }
+            if ($dateTo) {
+                $params['--date-to'] = $dateTo;
+            }
+            
+            // Processar modo de correção
+            if ($scanOnly === 'true' || $scanOnly === '1') {
+                $params['--scan-only'] = true;
+            } else {
+                // Usar --auto-fix apenas quando não for scan-only para evitar confirmação interativa
+                $params['--auto-fix'] = true;
+            }
+            
+            // Definir batch size
+            $params['--batch-size'] = $batchSize;
+
+            // Capturar output do comando
+            $exitCode = Artisan::call('gig:audit-data', $params);
+            $output = Artisan::output();
+
+            // Buscar o arquivo de relatório mais recente
+            $reportPath = $this->getLatestAuditReport();
+            $reportData = null;
+            
+            if ($reportPath && file_exists($reportPath)) {
+                $reportData = json_decode(file_get_contents($reportPath), true);
+            }
+
+            return response()->json([
+                'success' => $exitCode === 0,
+                'output' => $output,
+                'report' => $reportData,
+                'report_path' => $reportPath
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erro ao executar auditoria de dados', ['exception' => $e]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao executar auditoria: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Retorna os dados das gigs com problemas para exibição na tabela
+     */
+    public function getAuditIssues(Request $request)
+    {
+        try {
+            $reportPath = $request->input('report_path');
+            
+            if (!$reportPath || !file_exists($reportPath)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Relatório não encontrado'
+                ], 404);
+            }
+
+            $reportData = json_decode(file_get_contents($reportPath), true);
+            
+            if (!$reportData || !isset($reportData['issues'])) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Dados do relatório inválidos'
+                ], 400);
+            }
+
+            // Processar dados para a tabela
+            $tableData = [];
+            foreach ($reportData['issues'] as $gigIssue) {
+                $gig = Gig::with(['artist', 'booker'])->find($gigIssue['gig_id']);
+                
+                if (!$gig) continue;
+
+                foreach ($gigIssue['issues'] as $issue) {
+                    $tableData[] = [
+                        'gig_id' => $gig->id,
+                        'gig_date' => $gig->gig_date->format('d/m/Y'),
+                        'artist_name' => $gig->artist->name ?? 'N/A',
+                        'booker_name' => $gig->booker->name ?? 'N/A',
+                        'contract_number' => $gig->contract_number ?? 'N/A',
+                        'issue_type' => $issue['type'],
+                        'severity' => $issue['severity'],
+                        'description' => $issue['description'],
+                        'field' => $issue['field'],
+                        'current_value' => $issue['current_value'] ?? '',
+                        'suggested_value' => $issue['suggested_value'] ?? '',
+                        'suggested_action' => $issue['suggested_action'],
+                        'can_fix' => isset($issue['suggested_value']) && $issue['severity'] === 'critical'
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $tableData,
+                'stats' => $reportData['stats'] ?? []
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erro ao buscar issues de auditoria', ['exception' => $e]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao buscar dados: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Aplica uma correção específica
+     */
+    public function applyFix(Request $request)
+    {
+        $request->validate([
+            'gig_id' => 'required|integer|exists:gigs,id',
+            'field' => 'required|string',
+            'new_value' => 'required|string',
+            'issue_type' => 'required|string'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $gig = Gig::findOrFail($request->integer('gig_id'));
+            $field = $request->input('field');
+            $newValue = $request->input('new_value');
+            $issueType = $request->input('issue_type');
+
+            // Validar se o campo pode ser editado
+            $allowedFields = [
+                'artist_payment_status',
+                'booker_payment_status',
+                'artist_id',
+                'booker_id',
+                'cache_value',
+                'currency',
+                'contract_date'
+            ];
+
+            if (!in_array($field, $allowedFields)) {
+                throw new \Exception("Campo '{$field}' não pode ser editado via interface");
+            }
+
+            // Aplicar correção
+            $oldValue = $gig->$field;
+            $gig->$field = $newValue;
+            $gig->save();
+
+            DB::commit();
+
+            // Log da correção
+            Log::info('Correção aplicada via interface web', [
+                'gig_id' => $gig->id,
+                'field' => $field,
+                'old_value' => $oldValue,
+                'new_value' => $newValue,
+                'issue_type' => $issueType
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Correção aplicada com sucesso',
+                'old_value' => $oldValue,
+                'new_value' => $newValue
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao aplicar correção', [
+                'gig_id' => $request->integer('gig_id'),
+                'field' => $request->input('field'),
+                'exception' => $e
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao aplicar correção: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Busca o arquivo de relatório mais recente
+     */
+    private function getLatestAuditReport(): ?string
+    {
+        $logsPath = storage_path('logs');
+        $files = glob($logsPath . '/gig_audit_*.json');
+        
+        if (empty($files)) {
+            return null;
+        }
+
+        // Ordenar por data de modificação (mais recente primeiro)
+        usort($files, function($a, $b) {
+            return filemtime($b) - filemtime($a);
+        });
+
+        return $files[0];
     }
 }

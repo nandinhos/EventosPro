@@ -64,6 +64,13 @@ class GigSeeder extends Seeder
             $currency = $faker->randomElement($currencies);
             $cacheValue = $faker->randomFloat(2, 5000, 150000);
 
+            // Determinar status de pagamento baseado na data do evento
+            $isEventPast = $gigDate < now();
+            
+            // Para eventos futuros, não permitir status 'pago'
+            $artistPaymentStatus = $isEventPast ? $faker->randomElement($internalPaymentStatuses) : 'pendente';
+            $bookerPaymentStatus = $isEventPast ? $faker->randomElement($internalPaymentStatuses) : 'pendente';
+
             $gig = Gig::create([
                 'artist_id' => $faker->randomElement($artistIds),
                 'booker_id' => $faker->randomElement($bookerIds),
@@ -79,8 +86,8 @@ class GigSeeder extends Seeder
                 'booker_commission_value' => $faker->randomFloat(2, 3.00, 8.00), // Taxa percentual para booker
                 'contract_status' => $faker->randomElement($contractStatuses),
                 'payment_status' => $faker->randomElement($paymentStatuses),
-                'artist_payment_status' => $faker->randomElement($internalPaymentStatuses),
-                'booker_payment_status' => $faker->randomElement($internalPaymentStatuses),
+                'artist_payment_status' => $artistPaymentStatus,
+                'booker_payment_status' => $bookerPaymentStatus,
                 'notes' => $faker->optional(0.3)->sentence(),
             ]);
 
