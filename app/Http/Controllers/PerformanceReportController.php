@@ -117,6 +117,7 @@ class PerformanceReportController extends Controller
                             'gig_id' => $gig->id,
                             'sale_date' => Carbon::parse($gig->sale_date)->format('d/m/Y'),
                             'gig_date' => $gig->gig_date->format('d/m/Y'),
+                            'artist_name' => $gig->artist->name,
                             'artist_local' => $gig->artist->name.' @ '.Str::limit($gig->location_event_details, 90),
                             'location_event_details' => $gig->location_event_details,
                             'contract_value' => $gig->cache_value_brl,

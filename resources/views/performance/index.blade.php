@@ -121,7 +121,7 @@
                                                         <td class="py-2 px-2">{{ $gig['gig_date'] }}</td>
                                                         <td class="py-2 px-2">
                                                             <a href="{{ route('gigs.show', $gig['gig_id']) }}" class="text-primary-600 hover:underline" title="Ver detalhes da Gig">
-                                                                Gig #{{ $gig['gig_id'] }}
+                                                                {{ $gig['artist_name'] }} - Gig #{{ $gig['gig_id'] }}
                                                             </a>
                                                             @if(!empty($gig['location_event_details']))
                                                                 <div class="text-gray-500 dark:text-gray-400 italic text-xxs whitespace-normal break-words -mt-1">
