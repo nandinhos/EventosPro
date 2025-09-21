@@ -125,30 +125,7 @@
         </div>
     </div>
 
-    <!-- Top 5 Artistas -->
-    <h3>Top 5 Artistas</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Artista</th>
-                <th class="text-right">Gigs</th>
-                <th class="text-right">Total Cachê</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($reportData['artist_data']->sortByDesc('total_cache_brl')->take(5) as $artist)
-            <tr>
-                <td>{{ $artist['artist']->name }}</td>
-                <td class="text-right">{{ $artist['total_gigs'] }}</td>
-                <td class="text-right">R$ {{ number_format($artist['total_cache_brl'], 2, ',', '.') }}</td>
-            </tr>
-            @empty
-            <tr>
-                <td colspan="3" class="text-center">Nenhum dado disponível</td>
-            </tr>
-            @endforelse
-        </tbody>
-    </table>
+
 
     <!-- Detalhes das Gigs -->
     <div class="page-break"></div>

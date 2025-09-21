@@ -34,11 +34,13 @@ class ArtistFinancialsService
         $totalGigs = $gigs->count();
         $cacheReceivedBrl = 0;
         $cachePendingBrl = 0;
+        $totalGrossFee = 0;
 
         foreach ($gigs as $gig) {
             // Utiliza o service central para obter o valor líquido do artista para esta gig.
             // Isso garante que a regra de negócio (Cachê Bruto - Comissão Agência) seja sempre a mesma.
             $artistNetPayout = $this->gigCalculator->calculateArtistNetPayoutBrl($gig);
+            $totalGrossFee += $this->gigCalculator->calculateGrossCashBrl($gig);
 
             if ($gig->artist_payment_status === 'pago') {
                 $cacheReceivedBrl += $artistNetPayout;
@@ -51,6 +53,7 @@ class ArtistFinancialsService
             'total_gigs' => $totalGigs,
             'cache_received_brl' => $cacheReceivedBrl,
             'cache_pending_brl' => $cachePendingBrl,
+            'totalGrossFee' => $totalGrossFee,
         ];
     }
 }

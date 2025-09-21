@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateArtistRequest;
 use App\Models\Artist;
 use App\Models\Tag;
 use App\Services\ArtistFinancialsService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -106,24 +107,35 @@ class ArtistController extends Controller
      */
     public function show(Artist $artist, Request $request, ArtistFinancialsService $financialsService): View
     {
-        $artist->load('tags'); // Eager load tags
+        $artist->load('tags');
 
-        // Inicia a query para as gigs, permitindo filtros
-        $gigsQuery = $artist->gigs()->with('booker')->latest('gig_date');
+        // 1. Período (com valores padrão)
+        $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date')) : Carbon::now()->startOfYear();
+        $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date')) : Carbon::now()->endOfYear();
 
-        // Aplicar filtros da requisição, se houver
-        // Ex: if ($request->filled('period')) { ... }
+        // 2. Busca e Filtra Gigs no período
+        $gigsInPeriod = $artist->gigs()
+            ->with(['booker', 'costs.costCenter'])
+            ->whereBetween('gig_date', [$startDate, $endDate])
+            ->orderBy('gig_date', 'desc')
+            ->get();
 
-        // Pagina o resultado da query de gigs
-        $gigs = $gigsQuery->paginate(15)->withQueryString();
+        // 3. Separa Gigs em Realizadas e Futuras
+        $today = Carbon::today();
+        $realizedGigs = $gigsInPeriod->where('gig_date', '<=', $today);
+        $futureGigs = $gigsInPeriod->where('gig_date', '>', $today);
 
-        // **A LÓGICA DE CÁLCULO AGORA É DELEGADA PARA O SERVICE**
-        // Passamos a coleção de gigs já paginada (ou poderíamos passar a query inteira)
-        // para o service calcular as métricas apenas sobre essa seleção.
-        // Para métricas GERAIS do artista, passamos a coleção completa.
-        $allGigs = $artist->gigs; // Busca todas as gigs para métricas totais
-        $metrics = $financialsService->getFinancialMetrics($artist, $allGigs);
+        // 4. Calcula Métricas Financeiras para o período
+        $metrics = $financialsService->getFinancialMetrics($artist, $gigsInPeriod);
 
-        return view('artists.show', compact('artist', 'gigs', 'metrics'));
+        // 5. Retorna a view com os dados
+        return view('artists.show', compact(
+            'artist',
+            'startDate',
+            'endDate',
+            'realizedGigs',
+            'futureGigs',
+            'metrics'
+        ));
     }
 }

@@ -13,8 +13,10 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PerformanceReportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettlementController;
+use App\Http\Controllers\TestReportController;
 use App\Http\Controllers\UserController;
 use App\Models\Gig;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -29,7 +31,7 @@ use Illuminate\Support\Facades\Route;
 
 // Rota inicial
 Route::get('/', function () {
-    if (auth()->check()) {
+    if (Auth::check()) {
         return redirect()->route('dashboard');
     }
 
@@ -96,6 +98,7 @@ Route::middleware('auth')->group(function () {
     // Rotas de Fechamento Mensal (movidas para o grupo financeiro)
     Route::get('/financeiro/fechamento-mensal', [App\Http\Controllers\MonthlyClosingController::class, 'index'])->name('finance.monthly-closing');
     Route::get('/financeiro/fechamento-mensal/exportar/pdf', [App\Http\Controllers\MonthlyClosingController::class, 'exportPdf'])->name('finance.monthly-closing.exportPdf');
+    Route::get('/financeiro/fechamento-mensal/exportar', [App\Http\Controllers\MonthlyClosingController::class, 'export'])->name('finance.monthly-closing.export');
 
     // Gigs
     Route::resource('gigs', GigController::class);
@@ -131,6 +134,11 @@ Route::middleware('auth')->group(function () {
     // Coloque esta rota dentro do grupo de autenticação para que só usuários logados possam acessá-la.
     // Ela deve vir antes ou depois do Route::resource, a ordem aqui não é crítica.
     Route::get('gigs/{gig}/debug-financials', [GigController::class, 'debugFinancials'])->name('gigs.debugFinancials');
+
+    // Test Report Routes
+    Route::get('/test-report', [TestReportController::class, 'index'])->name('test-report.index');
+    Route::post('/test-report/run', [TestReportController::class, 'runTests'])->name('test-report.run');
+    Route::get('/test-report/export', [TestReportController::class, 'export'])->name('test-report.export');
 
 });
 
