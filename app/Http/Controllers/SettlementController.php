@@ -81,8 +81,8 @@ class SettlementController extends Controller
         // Validar regra de negócio: não permitir pagamento para eventos futuros
         $validationService = app(\App\Services\CommissionPaymentValidationService::class);
         $validation = $validationService->validateBookerCommissionPayment($gig, false);
-        
-        if (!$validation['valid']) {
+
+        if (! $validation['valid']) {
             return back()->with('error', $validation['message']);
         }
 

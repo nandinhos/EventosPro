@@ -16,6 +16,7 @@ class DashboardServiceTest extends TestCase
     use RefreshDatabase;
 
     protected DashboardService $dashboardService;
+
     protected GigFinancialCalculatorService $gigCalculator;
 
     protected function setUp(): void
@@ -46,7 +47,7 @@ class DashboardServiceTest extends TestCase
         $this->assertIsArray($result);
         $this->assertArrayHasKey('first_month', $result);
         $this->assertArrayHasKey('last_month', $result);
-        
+
         // Should return current month when no gigs exist
         $now = Carbon::now();
         $this->assertEquals($now->copy()->startOfMonth()->format('Y-m-d'), $result['first_month']);
@@ -116,7 +117,7 @@ class DashboardServiceTest extends TestCase
         $this->assertArrayHasKey('pendingArtistPaymentsCount', $result);
         $this->assertArrayHasKey('pendingBookerPaymentsCount', $result);
         $this->assertArrayHasKey('gigsThisMonthCount', $result);
-        
+
         $this->assertEquals(2, $result['totalGigsCount']);
         $this->assertEquals(1, $result['activeFutureGigsCount']);
         $this->assertEquals(1, $result['overdueClientPaymentsCount']);
@@ -128,16 +129,16 @@ class DashboardServiceTest extends TestCase
     public function it_sets_default_period_correctly()
     {
         $service = new DashboardService($this->gigCalculator);
-        
+
         // Test that default period is set to current month
         $result = $service->getDashboardData();
-        
+
         $this->assertArrayHasKey('startOfMonth', $result);
         $this->assertArrayHasKey('endOfMonth', $result);
-        
+
         $expectedStart = Carbon::now()->startOfMonth();
         $expectedEnd = Carbon::now()->endOfMonth();
-        
+
         $this->assertEquals($expectedStart->format('Y-m-d'), $result['startOfMonth']->format('Y-m-d'));
         $this->assertEquals($expectedEnd->format('Y-m-d'), $result['endOfMonth']->format('Y-m-d'));
     }

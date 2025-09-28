@@ -9,6 +9,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class GigResource extends Resource
 {
@@ -43,7 +44,8 @@ class GigResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
         if ($user->hasRole('BOOKER')) {
             // Se for booker, filtra as gigs pelo seu booker_id
             return parent::getEloquentQuery()->where('booker_id', $user->booker_id);

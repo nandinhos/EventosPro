@@ -39,7 +39,7 @@ class GigObserver
             if (strtoupper($gig->agency_commission_type ?? '') === 'PERCENT') {
                 // Só reinterpreta se agency_commission_value não for null/vazio
                 // e agency_commission_rate estiver vazio/null
-                if ($agencyCommissionInputValue !== null && $agencyCommissionInputValue !== '' && 
+                if ($agencyCommissionInputValue !== null && $agencyCommissionInputValue !== '' &&
                     ($gig->agency_commission_rate === null || $gig->agency_commission_rate === '')) {
                     $gig->agency_commission_rate = (float) $agencyCommissionInputValue;
                 }
@@ -58,7 +58,7 @@ class GigObserver
                 if (strtoupper($gig->booker_commission_type ?? '') === 'PERCENT') {
                     // Só reinterpreta se booker_commission_value não for null/vazio
                     // e booker_commission_rate estiver vazio/null
-                    if ($bookerCommissionInputValue !== null && $bookerCommissionInputValue !== '' && 
+                    if ($bookerCommissionInputValue !== null && $bookerCommissionInputValue !== '' &&
                         ($gig->booker_commission_rate === null || $gig->booker_commission_rate === '')) {
                         $gig->booker_commission_rate = (float) $bookerCommissionInputValue;
                     }

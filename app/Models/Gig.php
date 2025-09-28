@@ -15,6 +15,38 @@ use Illuminate\Database\Eloquent\SoftDeletes; // Para resolver o Service
 use Illuminate\Support\Facades\App; // Para logs
 use Illuminate\Support\Facades\Log; // Importar para nova sintaxe de Accessor
 
+/**
+ * @property int $id
+ * @property int $artist_id
+ * @property int|null $booker_id
+ * @property string|null $contract_number
+ * @property \Carbon\Carbon|null $contract_date
+ * @property \Carbon\Carbon $gig_date
+ * @property string $location_event_details
+ * @property float $cache_value
+ * @property string $currency
+ * @property string|null $agency_commission_type
+ * @property float|null $agency_commission_rate
+ * @property float|null $agency_commission_value
+ * @property string|null $booker_commission_type
+ * @property float|null $booker_commission_rate
+ * @property float|null $booker_commission_value
+ * @property float|null $liquid_commission_value
+ * @property string $contract_status
+ * @property string $payment_status
+ * @property string $artist_payment_status
+ * @property string $booker_payment_status
+ * @property string|null $notes
+ * @property \Carbon\Carbon|null $created_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @property \Carbon\Carbon|null $deleted_at
+ * @property-read \App\Models\Artist $artist
+ * @property-read \App\Models\Booker $booker
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Payment> $payments
+ * @property-read \App\Models\Settlement|null $settlement
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Tag> $tags
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\GigCost> $costs
+ */
 class Gig extends Model
 {
     use HasFactory, SoftDeletes;
@@ -114,7 +146,7 @@ class Gig extends Model
     public function getExchangeRateForCurrency(string $currencyCode, Carbon $date): ?float
     {
         $currencyCode = strtoupper($currencyCode);
-        
+
         // BRL sempre retorna 1.0
         if ($currencyCode === 'BRL') {
             return 1.0;
@@ -131,19 +163,22 @@ class Gig extends Model
 
         if ($firstConfirmedPaymentWithRate) {
             Log::info("[Gig ID {$this->id}] Usando taxa de câmbio do pagamento confirmado {$firstConfirmedPaymentWithRate->id} para {$currencyCode}: {$firstConfirmedPaymentWithRate->exchange_rate}");
+
             return (float) $firstConfirmedPaymentWithRate->exchange_rate;
         }
 
         // Prioridade 2: Usar ExchangeRateService para obter taxa atualizada
         $exchangeRateService = app(\App\Services\ExchangeRateService::class);
         $rate = $exchangeRateService->getExchangeRate($currencyCode, $date);
-        
+
         if ($rate !== null) {
             Log::info("[Gig ID {$this->id}] Usando taxa de câmbio do ExchangeRateService para {$currencyCode}: {$rate}");
+
             return $rate;
         }
 
         Log::warning("[Gig ID {$this->id}] Não foi possível obter taxa de câmbio para {$currencyCode} na data {$date->format('Y-m-d')}");
+
         return null;
     }
 

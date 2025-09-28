@@ -74,7 +74,7 @@ Route::middleware('auth')->group(function () {
 
     // Bookers
     Route::resource('bookers', BookerController::class);
-    
+
     // Rota para atualizar comissão de eventos
     Route::post('/bookers/events/{eventId}/commission', [BookerController::class, 'updateEventCommission'])->name('bookers.events.commission.update');
 

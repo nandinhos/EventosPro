@@ -25,7 +25,7 @@ class CostCenterFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->unique()->words(2, true) . ' ' . $this->faker->randomNumber(3),
+            'name' => $this->faker->unique()->words(2, true).' '.$this->faker->randomNumber(3),
             'description' => $this->faker->sentence(),
         ];
     }

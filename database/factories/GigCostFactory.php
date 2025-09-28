@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Models\GigCost;
-use App\Models\Gig;
 use App\Models\CostCenter;
+use App\Models\Gig;
+use App\Models\GigCost;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 

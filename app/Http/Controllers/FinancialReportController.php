@@ -130,9 +130,9 @@ class FinancialReportController extends Controller
         $validationService = app(\App\Services\CommissionPaymentValidationService::class);
         $gigs = Gig::whereIn('id', $gigIds)->get();
         $batchValidation = $validationService->validateBatchPayment($gigs, false);
-        
+
         if ($batchValidation['invalid_gigs']->isNotEmpty()) {
-            return back()->with('error', 'Alguns eventos não podem ser pagos: ' . implode('; ', $batchValidation['errors']));
+            return back()->with('error', 'Alguns eventos não podem ser pagos: '.implode('; ', $batchValidation['errors']));
         }
 
         DB::beginTransaction();

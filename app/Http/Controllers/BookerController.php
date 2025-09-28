@@ -88,15 +88,15 @@ class BookerController extends Controller
     {
         try {
             $gig = Gig::findOrFail($eventId);
-            
+
             // Verificar se o usuário tem permissão para editar este evento
             $user = Auth::user();
             $booker = $user->booker;
-            
-            if (!$booker || $gig->booker_id !== $booker->id) {
+
+            if (! $booker || $gig->booker_id !== $booker->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Você não tem permissão para editar este evento.'
+                    'message' => 'Você não tem permissão para editar este evento.',
                 ], 403);
             }
 
@@ -105,54 +105,54 @@ class BookerController extends Controller
                 'booker_commission_brl' => 'required|numeric|min:0',
                 'is_exception' => 'boolean',
                 'exception_notes' => 'nullable|string|max:1000',
-                'notes' => 'nullable|string|max:1000'
+                'notes' => 'nullable|string|max:1000',
             ]);
 
             // Aplicar regra de negócio: não permitir pagamento para eventos não realizados
             $isEventRealized = $gig->gig_date <= now();
             $isException = $request->boolean('is_exception');
-            
-            if (!$isEventRealized && $validated['booker_payment_status'] === 'pago' && !$isException) {
+
+            if (! $isEventRealized && $validated['booker_payment_status'] === 'pago' && ! $isException) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Não é possível marcar como pago um evento que ainda não foi realizado. Marque como exceção se necessário.'
+                    'message' => 'Não é possível marcar como pago um evento que ainda não foi realizado. Marque como exceção se necessário.',
                 ], 422);
             }
 
             // Atualizar dados do evento
             $gig->booker_payment_status = $validated['booker_payment_status'];
-            
+
             // Atualizar comissão se fornecida
             if (isset($validated['booker_commission_brl'])) {
                 $gig->booker_commission_brl = $validated['booker_commission_brl'];
             }
 
             // Gerenciar exceções usando campos de observação existentes
-            if ($isException && !$isEventRealized) {
-                $exceptionNote = "EXCEÇÃO JUSTIFICADA: " . ($validated['exception_notes'] ?? 'Sem justificativa fornecida');
+            if ($isException && ! $isEventRealized) {
+                $exceptionNote = 'EXCEÇÃO JUSTIFICADA: '.($validated['exception_notes'] ?? 'Sem justificativa fornecida');
                 $gig->booker_notes = $exceptionNote;
             }
 
             // Adicionar observações gerais
-            if (!empty($validated['notes'])) {
+            if (! empty($validated['notes'])) {
                 $currentNotes = $gig->notes ?? '';
-                $newNote = "[" . now()->format('d/m/Y H:i') . "] " . $validated['notes'];
-                $gig->notes = $currentNotes ? $currentNotes . "\n" . $newNote : $newNote;
+                $newNote = '['.now()->format('d/m/Y H:i').'] '.$validated['notes'];
+                $gig->notes = $currentNotes ? $currentNotes."\n".$newNote : $newNote;
             }
 
             $gig->save();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Comissão atualizada com sucesso!'
+                'message' => 'Comissão atualizada com sucesso!',
             ]);
 
         } catch (\Exception $e) {
-             Log::error('Erro ao atualizar comissão do evento: ' . $e->getMessage());
-            
+            Log::error('Erro ao atualizar comissão do evento: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Erro interno do servidor. Tente novamente.'
+                'message' => 'Erro interno do servidor. Tente novamente.',
             ], 500);
         }
     }

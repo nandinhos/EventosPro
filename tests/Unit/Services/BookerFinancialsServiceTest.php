@@ -7,8 +7,6 @@ use App\Models\Booker;
 use App\Models\Gig;
 use App\Models\Settlement;
 use App\Services\BookerFinancialsService;
-use App\Services\GigFinancialCalculatorService;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,16 +15,18 @@ class BookerFinancialsServiceTest extends TestCase
     use RefreshDatabase;
 
     private BookerFinancialsService $service;
+
     private Booker $booker;
+
     private Artist $artist;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->booker = Booker::factory()->create();
         $this->artist = Artist::factory()->create();
-        
+
         $this->service = app(BookerFinancialsService::class);
     }
 
@@ -42,7 +42,7 @@ class BookerFinancialsServiceTest extends TestCase
             'gig_date' => now()->subDays(10),
             'payment_status' => 'pago', // Garantir que o valor BRL seja calculado
         ]);
-        
+
         $gig2 = Gig::factory()->create([
             'booker_id' => $this->booker->id,
             'artist_id' => $this->artist->id,
@@ -66,7 +66,7 @@ class BookerFinancialsServiceTest extends TestCase
         // Arrange
         $startDate = now()->subDays(15);
         $endDate = now()->subDays(8);
-        
+
         // Gig dentro do período
         $gigInPeriod = Gig::factory()->create([
             'booker_id' => $this->booker->id,
@@ -77,7 +77,7 @@ class BookerFinancialsServiceTest extends TestCase
             'gig_date' => now()->subDays(10),
             'payment_status' => 'pago',
         ]);
-        
+
         // Gig fora do período
         $gigOutOfPeriod = Gig::factory()->create([
             'booker_id' => $this->booker->id,
@@ -110,7 +110,7 @@ class BookerFinancialsServiceTest extends TestCase
             'booker_commission_value' => 100.00,
             'booker_payment_status' => 'pendente',
         ]);
-        
+
         $gig2 = Gig::factory()->create([
             'booker_id' => $this->booker->id,
             'artist_id' => $this->artist->id,
@@ -128,7 +128,7 @@ class BookerFinancialsServiceTest extends TestCase
             'booker_commission_value_paid' => 100.00,
             'booker_commission_paid_at' => null,
         ]);
-        
+
         Settlement::factory()->create([
             'gig_id' => $gig2->id,
             'booker_commission_value_paid' => 100.00,
@@ -151,7 +151,7 @@ class BookerFinancialsServiceTest extends TestCase
             'booker_id' => $this->booker->id,
             'artist_id' => $this->artist->id,
         ]);
-        
+
         Settlement::factory()->create([
             'gig_id' => $gig->id,
             'booker_commission_value_paid' => 150.00,
@@ -174,7 +174,7 @@ class BookerFinancialsServiceTest extends TestCase
     {
         // Arrange
         $artist2 = Artist::factory()->create(['name' => 'Artist Two']);
-        
+
         // Artist 1 - 2 gigs
         Gig::factory()->create([
             'booker_id' => $this->booker->id,
@@ -184,7 +184,7 @@ class BookerFinancialsServiceTest extends TestCase
             'gig_date' => now()->subDays(10),
             'payment_status' => 'pago',
         ]);
-        
+
         Gig::factory()->create([
             'booker_id' => $this->booker->id,
             'artist_id' => $this->artist->id,
@@ -193,7 +193,7 @@ class BookerFinancialsServiceTest extends TestCase
             'gig_date' => now()->subDays(5),
             'payment_status' => 'pago',
         ]);
-        
+
         // Artist 2 - 1 gig
         Gig::factory()->create([
             'booker_id' => $this->booker->id,
@@ -220,10 +220,10 @@ class BookerFinancialsServiceTest extends TestCase
         // Arrange
         $startDate = now()->subDays(15);
         $endDate = now()->subDays(8);
-        
+
         $artist2 = Artist::factory()->create();
         $artist3 = Artist::factory()->create();
-        
+
         // Gigs within period
         Gig::factory()->create([
             'booker_id' => $this->booker->id,
@@ -234,7 +234,7 @@ class BookerFinancialsServiceTest extends TestCase
             'gig_date' => now()->subDays(10),
             'payment_status' => 'pago',
         ]);
-        
+
         Gig::factory()->create([
             'booker_id' => $this->booker->id,
             'artist_id' => $artist2->id,
@@ -244,7 +244,7 @@ class BookerFinancialsServiceTest extends TestCase
             'gig_date' => now()->subDays(12),
             'payment_status' => 'pago',
         ]);
-        
+
         // Gig outside period
         Gig::factory()->create([
             'booker_id' => $this->booker->id,
@@ -277,7 +277,7 @@ class BookerFinancialsServiceTest extends TestCase
             'gig_date' => now()->subDays(1),
             'payment_status' => 'pago',
         ]);
-        
+
         $gig2 = Gig::factory()->create([
             'booker_id' => $this->booker->id,
             'artist_id' => $this->artist->id,
@@ -306,7 +306,7 @@ class BookerFinancialsServiceTest extends TestCase
         // Arrange
         $startDate = now()->subDays(10);
         $endDate = now()->subDays(5);
-        
+
         $gigInPeriod = Gig::factory()->create([
             'booker_id' => $this->booker->id,
             'artist_id' => $this->artist->id,
@@ -316,7 +316,7 @@ class BookerFinancialsServiceTest extends TestCase
             'gig_date' => now()->subDays(7),
             'payment_status' => 'pago',
         ]);
-        
+
         $gigOutOfPeriod = Gig::factory()->create([
             'booker_id' => $this->booker->id,
             'artist_id' => $this->artist->id,
@@ -347,7 +347,7 @@ class BookerFinancialsServiceTest extends TestCase
             'gig_date' => now()->subDays(10),
             'payment_status' => 'pago',
         ]);
-        
+
         $gig2 = Gig::factory()->create([
             'booker_id' => $this->booker->id,
             'artist_id' => $this->artist->id,
@@ -356,7 +356,7 @@ class BookerFinancialsServiceTest extends TestCase
             'gig_date' => now()->subDays(5),
             'payment_status' => 'pago',
         ]);
-        
+
         // Soft delete one gig
         $gig2->delete();
 
@@ -364,10 +364,10 @@ class BookerFinancialsServiceTest extends TestCase
         $salesKpis = $this->service->getSalesKpis($this->booker);
         $this->assertEquals(1000.00, $salesKpis['total_sold_value']);
         $this->assertEquals(1, $salesKpis['total_gigs_sold']);
-        
+
         $topArtists = $this->service->getTopArtists($this->booker);
         $this->assertCount(1, $topArtists);
-        
+
         $recentGigs = $this->service->getRecentGigs($this->booker);
         $this->assertCount(1, $recentGigs);
     }
@@ -385,14 +385,14 @@ class BookerFinancialsServiceTest extends TestCase
         // Assert
         $this->assertEquals(0, $salesKpis['total_sold_value']);
         $this->assertEquals(0, $salesKpis['total_gigs_sold']);
-        
+
         $this->assertEquals(0, $commissionKpis['commission_received']);
         $this->assertEquals(0, $commissionKpis['commission_to_receive']);
-        
+
         $this->assertIsArray($chartData);
         $this->assertArrayHasKey('labels', $chartData);
         $this->assertArrayHasKey('data', $chartData);
-        
+
         $this->assertCount(0, $topArtists);
         $this->assertCount(0, $recentGigs);
     }

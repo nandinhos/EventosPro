@@ -5,11 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Gig;
 use App\Services\GigFinancialCalculatorService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
-use Carbon\Carbon;
 
 class AuditController extends Controller
 {
@@ -494,7 +493,7 @@ class AuditController extends Controller
 
             // Preparar parâmetros do comando
             $params = [];
-            
+
             // Adicionar filtros de data se fornecidos
             if ($dateFrom) {
                 $params['--date-from'] = $dateFrom;
@@ -502,7 +501,7 @@ class AuditController extends Controller
             if ($dateTo) {
                 $params['--date-to'] = $dateTo;
             }
-            
+
             // Processar modo de correção
             if ($scanOnly === 'true' || $scanOnly === '1') {
                 $params['--scan-only'] = true;
@@ -510,7 +509,7 @@ class AuditController extends Controller
                 // Usar --auto-fix apenas quando não for scan-only para evitar confirmação interativa
                 $params['--auto-fix'] = true;
             }
-            
+
             // Definir batch size
             $params['--batch-size'] = $batchSize;
 
@@ -521,7 +520,7 @@ class AuditController extends Controller
             // Buscar o arquivo de relatório mais recente
             $reportPath = $this->getLatestAuditReport();
             $reportData = null;
-            
+
             if ($reportPath && file_exists($reportPath)) {
                 $reportData = json_decode(file_get_contents($reportPath), true);
             }
@@ -530,15 +529,15 @@ class AuditController extends Controller
                 'success' => $exitCode === 0,
                 'output' => $output,
                 'report' => $reportData,
-                'report_path' => $reportPath
+                'report_path' => $reportPath,
             ]);
 
         } catch (\Exception $e) {
             Log::error('Erro ao executar auditoria de dados', ['exception' => $e]);
-            
+
             return response()->json([
                 'success' => false,
-                'error' => 'Erro ao executar auditoria: ' . $e->getMessage()
+                'error' => 'Erro ao executar auditoria: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -550,20 +549,20 @@ class AuditController extends Controller
     {
         try {
             $reportPath = $request->input('report_path');
-            
-            if (!$reportPath || !file_exists($reportPath)) {
+
+            if (! $reportPath || ! file_exists($reportPath)) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Relatório não encontrado'
+                    'error' => 'Relatório não encontrado',
                 ], 404);
             }
 
             $reportData = json_decode(file_get_contents($reportPath), true);
-            
-            if (!$reportData || !isset($reportData['issues'])) {
+
+            if (! $reportData || ! isset($reportData['issues'])) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Dados do relatório inválidos'
+                    'error' => 'Dados do relatório inválidos',
                 ], 400);
             }
 
@@ -571,8 +570,10 @@ class AuditController extends Controller
             $tableData = [];
             foreach ($reportData['issues'] as $gigIssue) {
                 $gig = Gig::with(['artist', 'booker'])->find($gigIssue['gig_id']);
-                
-                if (!$gig) continue;
+
+                if (! $gig) {
+                    continue;
+                }
 
                 foreach ($gigIssue['issues'] as $issue) {
                     $tableData[] = [
@@ -588,7 +589,7 @@ class AuditController extends Controller
                         'current_value' => $issue['current_value'] ?? '',
                         'suggested_value' => $issue['suggested_value'] ?? '',
                         'suggested_action' => $issue['suggested_action'],
-                        'can_fix' => isset($issue['suggested_value']) && $issue['severity'] === 'critical'
+                        'can_fix' => isset($issue['suggested_value']) && $issue['severity'] === 'critical',
                     ];
                 }
             }
@@ -596,15 +597,15 @@ class AuditController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $tableData,
-                'stats' => $reportData['stats'] ?? []
+                'stats' => $reportData['stats'] ?? [],
             ]);
 
         } catch (\Exception $e) {
             Log::error('Erro ao buscar issues de auditoria', ['exception' => $e]);
-            
+
             return response()->json([
                 'success' => false,
-                'error' => 'Erro ao buscar dados: ' . $e->getMessage()
+                'error' => 'Erro ao buscar dados: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -618,7 +619,7 @@ class AuditController extends Controller
             'gig_id' => 'required|integer|exists:gigs,id',
             'field' => 'required|string',
             'new_value' => 'required|string',
-            'issue_type' => 'required|string'
+            'issue_type' => 'required|string',
         ]);
 
         try {
@@ -637,10 +638,10 @@ class AuditController extends Controller
                 'booker_id',
                 'cache_value',
                 'currency',
-                'contract_date'
+                'contract_date',
             ];
 
-            if (!in_array($field, $allowedFields)) {
+            if (! in_array($field, $allowedFields)) {
                 throw new \Exception("Campo '{$field}' não pode ser editado via interface");
             }
 
@@ -657,14 +658,14 @@ class AuditController extends Controller
                 'field' => $field,
                 'old_value' => $oldValue,
                 'new_value' => $newValue,
-                'issue_type' => $issueType
+                'issue_type' => $issueType,
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Correção aplicada com sucesso',
                 'old_value' => $oldValue,
-                'new_value' => $newValue
+                'new_value' => $newValue,
             ]);
 
         } catch (\Exception $e) {
@@ -672,12 +673,12 @@ class AuditController extends Controller
             Log::error('Erro ao aplicar correção', [
                 'gig_id' => $request->integer('gig_id'),
                 'field' => $request->input('field'),
-                'exception' => $e
+                'exception' => $e,
             ]);
 
             return response()->json([
                 'success' => false,
-                'error' => 'Erro ao aplicar correção: ' . $e->getMessage()
+                'error' => 'Erro ao aplicar correção: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -688,14 +689,14 @@ class AuditController extends Controller
     private function getLatestAuditReport(): ?string
     {
         $logsPath = storage_path('logs');
-        $files = glob($logsPath . '/gig_audit_*.json');
-        
+        $files = glob($logsPath.'/gig_audit_*.json');
+
         if (empty($files)) {
             return null;
         }
 
         // Ordenar por data de modificação (mais recente primeiro)
-        usort($files, function($a, $b) {
+        usort($files, function ($a, $b) {
             return filemtime($b) - filemtime($a);
         });
 

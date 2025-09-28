@@ -4,7 +4,6 @@ namespace Database\Factories;
 
 use App\Models\Artist;
 use App\Models\Booker;
-use App\Models\Gig;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -21,7 +20,7 @@ class GigFactory extends Factory
     {
         $gigDate = $this->faker->dateTimeBetween('-1 year', '+1 year');
         $contractDate = $this->faker->dateTimeBetween('-2 years', $gigDate);
-        
+
         // Determinar status de pagamento baseado na data do evento
         $isPastEvent = $gigDate < now();
         $artistPaymentStatus = $isPastEvent ? 'pago' : 'pendente';

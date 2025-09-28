@@ -121,7 +121,7 @@ class PaymentSeeder extends Seeder
                     'received_value_actual' => $isPaid ? $paymentValue : null,
                     'received_date_actual' => $isPaid ? $dueDate->copy()->addDays($faker->numberBetween(-2, 5)) : null,
                     'confirmed_at' => $isPaid ? $faker->dateTimeBetween($dueDate->isPast() ? $dueDate : 'now', 'now') : null,
-                    'confirmed_by' => $isPaid && !empty($userIds) ? $faker->randomElement($userIds) : null,
+                    'confirmed_by' => $isPaid && ! empty($userIds) ? $faker->randomElement($userIds) : null,
                     'notes' => $isPaid ? 'Pago via '.$faker->randomElement($paymentMethods) : null,
                 ]);
 
@@ -148,7 +148,7 @@ class PaymentSeeder extends Seeder
                     'currency' => 'BRL',
                     'expense_date' => $expenseDate,
                     'is_confirmed' => $isConfirmed,
-                    'confirmed_by' => $isConfirmed && !empty($userIds) ? $faker->randomElement($userIds) : null,
+                    'confirmed_by' => $isConfirmed && ! empty($userIds) ? $faker->randomElement($userIds) : null,
                     'confirmed_at' => $isConfirmed ? $faker->dateTimeBetween(Carbon::parse($expenseDate)->isPast() ? $expenseDate : 'now', 'now') : null,
                     'notes' => $faker->optional(0.4)->sentence(),
                 ]);

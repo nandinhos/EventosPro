@@ -6,8 +6,31 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\SoftDeletes; // Importar Carbon
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
+/**
+ * @property int $id
+ * @property int $gig_id
+ * @property string|null $description
+ * @property float $due_value
+ * @property \Carbon\Carbon $due_date
+ * @property string $currency
+ * @property float|null $exchange_rate
+ * @property float|null $received_value_actual
+ * @property \Carbon\Carbon|null $received_date_actual
+ * @property \Carbon\Carbon|null $confirmed_at
+ * @property int|null $confirmed_by
+ * @property string|null $notes
+ * @property \Carbon\Carbon|null $created_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @property \Carbon\Carbon|null $deleted_at
+ * @property-read \App\Models\Gig $gig
+ * @property-read \App\Models\User|null $confirmer
+ * @property-read string $inferred_status
+ * @property-read string $status_color
+ * @property-read float $due_value_brl
+ */
 class Payment extends Model
 {
     use HasFactory, SoftDeletes;
@@ -95,7 +118,7 @@ class Payment extends Model
         );
 
         if ($exchangeRate === null) {
-            \Log::warning("Taxa de câmbio não encontrada para moeda {$this->currency} na data {$this->due_date} para Payment ID {$this->id}.");
+            Log::warning("Taxa de câmbio não encontrada para moeda {$this->currency} na data {$this->due_date} para Payment ID {$this->id}.");
 
             return (float) $this->due_value;
         }

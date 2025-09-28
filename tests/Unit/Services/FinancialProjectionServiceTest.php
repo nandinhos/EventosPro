@@ -12,6 +12,8 @@ use App\Services\FinancialProjectionService;
 use App\Services\GigFinancialCalculatorService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class FinancialProjectionServiceTest extends TestCase
@@ -19,20 +21,21 @@ class FinancialProjectionServiceTest extends TestCase
     use RefreshDatabase;
 
     protected FinancialProjectionService $projectionService;
+
     protected GigFinancialCalculatorService $gigCalculator;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->gigCalculator = $this->app->make(GigFinancialCalculatorService::class);
-        $this->projectionService = new FinancialProjectionService($this->gigCalculator);
+        $this->projectionService = $this->app->make(FinancialProjectionService::class);
     }
 
     /** @test */
     public function it_sets_period_correctly_for_30_days()
     {
         $this->projectionService->setPeriod('30_days');
-        
+
         // We can't directly access protected properties, but we can test the behavior
         // by checking the results of methods that depend on the period
         $this->assertTrue(true); // Basic test that setPeriod doesn't throw errors
@@ -70,7 +73,7 @@ class FinancialProjectionServiceTest extends TestCase
     public function it_calculates_accounts_receivable_with_no_payments()
     {
         $result = $this->projectionService->getAccountsReceivable();
-        
+
         $this->assertEquals(0.0, $result);
     }
 
@@ -79,7 +82,7 @@ class FinancialProjectionServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
             'booker_id' => $booker->id,
@@ -104,7 +107,7 @@ class FinancialProjectionServiceTest extends TestCase
         ]);
 
         $result = $this->projectionService->getAccountsReceivable();
-        
+
         $this->assertEquals(500.0, $result);
     }
 
@@ -113,7 +116,7 @@ class FinancialProjectionServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
             'booker_id' => $booker->id,
@@ -147,7 +150,7 @@ class FinancialProjectionServiceTest extends TestCase
         ]);
 
         $result = $this->projectionService->getUpcomingClientPayments();
-        
+
         $this->assertCount(2, $result);
         $this->assertEquals(500, $result->first()->due_value);
     }
@@ -156,7 +159,7 @@ class FinancialProjectionServiceTest extends TestCase
     public function it_calculates_accounts_payable_artists_with_no_pending_gigs()
     {
         $result = $this->projectionService->getAccountsPayableArtists();
-        
+
         $this->assertEquals(0.0, $result);
     }
 
@@ -165,7 +168,7 @@ class FinancialProjectionServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
-        
+
         // Create past gig with pending artist payment
         Gig::factory()->create([
             'artist_id' => $artist->id,
@@ -200,7 +203,7 @@ class FinancialProjectionServiceTest extends TestCase
         ]);
 
         $result = $this->projectionService->getAccountsPayableArtists();
-        
+
         // Should include both pending gigs
         $this->assertGreaterThan(0, $result);
     }
@@ -208,9 +211,20 @@ class FinancialProjectionServiceTest extends TestCase
     /** @test */
     public function it_handles_different_currencies_in_calculations()
     {
+        // Mock HTTP calls to prevent real API calls and force fallback to config
+        Http::fake([
+            '*' => Http::response([], 404), // Force fallback to default rates
+        ]);
+
+        // Clear any cached exchange rates
+        Cache::flush();
+
+        // Configure a known exchange rate for testing
+        config(['app.default_exchange_rates.USD' => 5.20]);
+
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
             'booker_id' => $booker->id,
@@ -222,21 +236,22 @@ class FinancialProjectionServiceTest extends TestCase
             'gig_id' => $gig->id,
             'due_value' => 50, // USD
             'currency' => 'USD',
+            'exchange_rate' => null, // Force use of gig's exchange rate
             'confirmed_at' => null,
         ]);
 
         $result = $this->projectionService->getAccountsReceivable();
-        
-        // Should convert to BRL using the accessor (USD to BRL conversion multiplies by exchange rate)
-        $this->assertGreaterThan(50, $result); // USD to BRL conversion results in larger numeric value due to exchange rate
-        $this->assertGreaterThan(0, $result); // Should be positive
+
+        // Should convert to BRL using the accessor (USD to BRL conversion)
+        // Expected: 50 USD * exchange rate (5.20) = 260 BRL
+        $this->assertEquals(260.0, $result, 'Expected 50 USD * 5.20 = 260 BRL');
     }
 
     /** @test */
     public function it_calculates_accounts_payable_bookers_with_no_pending_gigs()
     {
         $result = $this->projectionService->getAccountsPayableBookers();
-        
+
         $this->assertEquals(0.0, $result);
     }
 
@@ -245,7 +260,7 @@ class FinancialProjectionServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
-        
+
         // Create past gig with pending booker payment
         Gig::factory()->create([
             'artist_id' => $artist->id,
@@ -291,16 +306,16 @@ class FinancialProjectionServiceTest extends TestCase
         ]);
 
         $result = $this->projectionService->getAccountsPayableBookers();
-        
+
         // Should include both pending gigs with bookers
-         $this->assertGreaterThan(0, $result);
-     }
+        $this->assertGreaterThan(0, $result);
+    }
 
     /** @test */
     public function it_calculates_accounts_payable_expenses_with_no_costs()
     {
         $result = $this->projectionService->getAccountsPayableExpenses();
-        
+
         $this->assertEquals(0.0, $result);
     }
 
@@ -309,7 +324,7 @@ class FinancialProjectionServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $costCenter = CostCenter::factory()->create();
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
             'gig_date' => Carbon::now()->addDays(10),
@@ -349,7 +364,7 @@ class FinancialProjectionServiceTest extends TestCase
         ]);
 
         $result = $this->projectionService->getAccountsPayableExpenses();
-        
+
         $this->assertEquals(800.0, $result);
     }
 
@@ -359,7 +374,7 @@ class FinancialProjectionServiceTest extends TestCase
         $artist = Artist::factory()->create();
         $costCenter1 = CostCenter::factory()->create(['name' => 'transport']);
         $costCenter2 = CostCenter::factory()->create(['name' => 'accommodation']);
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
             'gig_date' => Carbon::now()->addDays(10),
@@ -387,10 +402,10 @@ class FinancialProjectionServiceTest extends TestCase
         ]);
 
         $result = $this->projectionService->getProjectedExpensesByCostCenter();
-        
+
         $this->assertInstanceOf(\Illuminate\Support\Collection::class, $result);
         $this->assertCount(2, $result);
-        
+
         $firstGroup = $result->first();
         $this->assertArrayHasKey('cost_center_name', $firstGroup);
         $this->assertArrayHasKey('total_brl', $firstGroup);
@@ -402,7 +417,7 @@ class FinancialProjectionServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
             'booker_id' => $booker->id,
@@ -421,7 +436,7 @@ class FinancialProjectionServiceTest extends TestCase
         ]);
 
         $result = $this->projectionService->getProjectedCashFlow();
-        
+
         $this->assertIsFloat($result);
         // Cash flow = receivable - (payable artists + payable bookers + payable expenses)
         // Should be positive since we have receivables
@@ -432,7 +447,7 @@ class FinancialProjectionServiceTest extends TestCase
     public function it_gets_upcoming_payments_for_clients()
     {
         $artist = Artist::factory()->create();
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
         ]);
@@ -456,7 +471,7 @@ class FinancialProjectionServiceTest extends TestCase
         ]);
 
         $result = $this->projectionService->getUpcomingPayments('clients');
-        
+
         $this->assertInstanceOf(\Illuminate\Support\Collection::class, $result);
         $this->assertCount(1, $result); // Only the payment within period
     }
@@ -465,7 +480,7 @@ class FinancialProjectionServiceTest extends TestCase
     public function it_gets_upcoming_payments_for_artists()
     {
         $artist = Artist::factory()->create();
-        
+
         // Create gig within projection period with pending artist payment
         Gig::factory()->create([
             'artist_id' => $artist->id,
@@ -481,7 +496,7 @@ class FinancialProjectionServiceTest extends TestCase
         ]);
 
         $result = $this->projectionService->getUpcomingPayments('artists');
-        
+
         $this->assertInstanceOf(\Illuminate\Support\Collection::class, $result);
         $this->assertCount(1, $result); // Only the gig within period
     }
@@ -491,7 +506,7 @@ class FinancialProjectionServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
-        
+
         // Create gig within projection period with pending booker payment
         Gig::factory()->create([
             'artist_id' => $artist->id,
@@ -509,7 +524,7 @@ class FinancialProjectionServiceTest extends TestCase
         ]);
 
         $result = $this->projectionService->getUpcomingPayments('bookers');
-        
+
         $this->assertInstanceOf(\Illuminate\Support\Collection::class, $result);
         $this->assertCount(1, $result); // Only the gig within period
     }
@@ -518,7 +533,7 @@ class FinancialProjectionServiceTest extends TestCase
     public function it_gets_upcoming_internal_payments_for_artists()
     {
         $artist = Artist::factory()->create();
-        
+
         // Create past gig with pending artist payment
         Gig::factory()->create([
             'artist_id' => $artist->id,
@@ -541,7 +556,7 @@ class FinancialProjectionServiceTest extends TestCase
         ]);
 
         $result = $this->projectionService->getUpcomingInternalPayments('artists');
-        
+
         $this->assertInstanceOf(\Illuminate\Support\Collection::class, $result);
         $this->assertCount(2, $result); // Past and future pending payments
     }
@@ -551,7 +566,7 @@ class FinancialProjectionServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
-        
+
         // Create past gig with pending booker payment
         Gig::factory()->create([
             'artist_id' => $artist->id,
@@ -577,7 +592,7 @@ class FinancialProjectionServiceTest extends TestCase
         ]);
 
         $result = $this->projectionService->getUpcomingInternalPayments('bookers');
-        
+
         $this->assertInstanceOf(\Illuminate\Support\Collection::class, $result);
         $this->assertCount(2, $result); // Past and future pending payments with bookers
     }

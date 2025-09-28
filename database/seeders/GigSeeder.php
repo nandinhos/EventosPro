@@ -66,7 +66,7 @@ class GigSeeder extends Seeder
 
             // Determinar status de pagamento baseado na data do evento
             $isEventPast = $gigDate < now();
-            
+
             // Para eventos futuros, não permitir status 'pago'
             $artistPaymentStatus = $isEventPast ? $faker->randomElement($internalPaymentStatuses) : 'pendente';
             $bookerPaymentStatus = $isEventPast ? $faker->randomElement($internalPaymentStatuses) : 'pendente';

@@ -114,12 +114,12 @@ class MonthlyClosingController extends Controller
     {
         $headers = [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ];
 
-        $callback = function() use ($reportData) {
+        $callback = function () use ($reportData) {
             $file = fopen('php://output', 'w');
-            
+
             // Cabeçalho CSV
             fputcsv($file, [
                 'Data',
@@ -130,7 +130,7 @@ class MonthlyClosingController extends Controller
                 'Cachê Bruto (R$)',
                 'Comissão Booker (R$)',
                 'Comissão Agência (R$)',
-                'Valor Líquido (R$)'
+                'Valor Líquido (R$)',
             ]);
 
             // Dados das gigs
@@ -142,11 +142,11 @@ class MonthlyClosingController extends Controller
                             $artistData['artist']->name,
                             $gig->booker->name ?? '',
                             $gig->location_event_details,
-                            $gig->location_city . '/' . $gig->location_state,
+                            $gig->location_city.'/'.$gig->location_state,
                             number_format($gig->cache_value_brl, 2, ',', '.'),
                             number_format($gig->booker_commission_value, 2, ',', '.'),
                             number_format($gig->agency_commission_value, 2, ',', '.'),
-                            number_format($gig->cache_value_brl - $gig->booker_commission_value - $gig->agency_commission_value, 2, ',', '.')
+                            number_format($gig->cache_value_brl - $gig->booker_commission_value - $gig->agency_commission_value, 2, ',', '.'),
                         ]);
                     }
                 }
@@ -163,30 +163,30 @@ class MonthlyClosingController extends Controller
         $data = [
             'periodo' => [
                 'inicio' => $reportData['start_date']->format('Y-m-d'),
-                'fim' => $reportData['end_date']->format('Y-m-d')
+                'fim' => $reportData['end_date']->format('Y-m-d'),
             ],
             'resumo' => [
                 'total_gigs' => $reportData['total_gigs'],
                 'total_cache_brl' => $reportData['total_cache_brl'],
                 'total_booker_commission' => $reportData['total_booker_commission'],
-                'total_agency_commission' => $reportData['total_agency_commission']
+                'total_agency_commission' => $reportData['total_agency_commission'],
             ],
-            'bookers' => $reportData['booker_data']->values()->map(function($data) {
+            'bookers' => $reportData['booker_data']->values()->map(function ($data) {
                 return [
                     'nome' => $data['booker']->name,
                     'total_gigs' => $data['total_gigs'],
                     'cache_liquido_base' => $data['cache_liquido_base'],
                     'total_booker_commission' => $data['total_booker_commission'],
                     'total_agency_commission' => $data['total_agency_commission'],
-                    'valor_liquido' => $data['net_value']
+                    'valor_liquido' => $data['net_value'],
                 ];
             }),
-            'artistas' => $reportData['artist_gigs']->values()->map(function($data) {
+            'artistas' => $reportData['artist_gigs']->values()->map(function ($data) {
                 return [
                     'nome' => $data['artist']->name,
                     'total_gigs' => $data['total_gigs'],
                     'total_cache_brl' => $data['total_cache_brl'],
-                    'gigs' => $data['gigs']->map(function($gig) {
+                    'gigs' => $data['gigs']->map(function ($gig) {
                         return [
                             'data' => $gig->gig_date->format('Y-m-d'),
                             'local' => $gig->location_event_details,
@@ -194,30 +194,30 @@ class MonthlyClosingController extends Controller
                             'estado' => $gig->location_state,
                             'cache_bruto' => $gig->cache_value_brl,
                             'comissao_booker' => $gig->booker_commission_value,
-                            'comissao_agencia' => $gig->agency_commission_value
+                            'comissao_agencia' => $gig->agency_commission_value,
                         ];
-                    })
+                    }),
                 ];
-            })
+            }),
         ];
 
         return response()->json($data)
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     protected function generateFilename($startDate, $booker, $artist, $format)
     {
-        $filename = 'fechamento-mensal-' . $startDate->format('m-Y');
-        
+        $filename = 'fechamento-mensal-'.$startDate->format('m-Y');
+
         if ($booker) {
-            $filename .= '-booker-' . Str::slug($booker->name);
+            $filename .= '-booker-'.Str::slug($booker->name);
         }
-        
+
         if ($artist) {
-            $filename .= '-artista-' . Str::slug($artist->name);
+            $filename .= '-artista-'.Str::slug($artist->name);
         }
-        
-        return $filename . '.' . $format;
+
+        return $filename.'.'.$format;
     }
 
     protected function generateReportData($startDate, $endDate, $bookerId = null, $artistId = null)
@@ -365,7 +365,7 @@ class MonthlyClosingController extends Controller
     {
         $colors = [
             '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
-            '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
+            '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
         ];
 
         return $bookerData->values()->map(function ($data, $index) use ($colors) {
@@ -387,7 +387,7 @@ class MonthlyClosingController extends Controller
     {
         $colors = [
             '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
-            '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
+            '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
         ];
 
         return $bookerData->values()->map(function ($data, $index) use ($colors) {
@@ -408,7 +408,7 @@ class MonthlyClosingController extends Controller
     {
         $colors = [
             '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
-            '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
+            '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
         ];
 
         return $artistGigs->values()->map(function ($data, $index) use ($colors) {

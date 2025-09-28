@@ -37,7 +37,7 @@ class ArtistFinancialsServiceTest extends TestCase
     public function it_calculates_financial_metrics_for_artist_with_paid_gigs()
     {
         $artist = Artist::factory()->create();
-        
+
         // Criar gigs com status 'pago'
         Gig::factory()->count(2)->create([
             'artist_id' => $artist->id,
@@ -57,7 +57,7 @@ class ArtistFinancialsServiceTest extends TestCase
     public function it_calculates_financial_metrics_for_artist_with_pending_gigs()
     {
         $artist = Artist::factory()->create();
-        
+
         // Criar gigs com status 'pendente'
         Gig::factory()->count(3)->create([
             'artist_id' => $artist->id,
@@ -77,7 +77,7 @@ class ArtistFinancialsServiceTest extends TestCase
     public function it_calculates_financial_metrics_for_artist_with_mixed_payment_status()
     {
         $artist = Artist::factory()->create();
-        
+
         // Criar gigs com status 'pago'
         Gig::factory()->count(2)->create([
             'artist_id' => $artist->id,
@@ -85,7 +85,7 @@ class ArtistFinancialsServiceTest extends TestCase
             'cache_value' => 1000.00,
             'currency' => 'BRL',
         ]);
-        
+
         // Criar gigs com status 'pendente'
         Gig::factory()->count(3)->create([
             'artist_id' => $artist->id,
@@ -105,7 +105,7 @@ class ArtistFinancialsServiceTest extends TestCase
     public function it_calculates_financial_metrics_with_pre_filtered_gigs_collection()
     {
         $artist = Artist::factory()->create();
-        
+
         // Criar mais gigs do que vamos passar para o método
         Gig::factory()->count(5)->create([
             'artist_id' => $artist->id,
@@ -113,7 +113,7 @@ class ArtistFinancialsServiceTest extends TestCase
             'cache_value' => 1000.00,
             'currency' => 'BRL',
         ]);
-        
+
         // Pegar apenas 2 gigs para testar a funcionalidade de coleção pré-filtrada
         $filteredGigs = $artist->gigs()->take(2)->get();
 
@@ -129,7 +129,7 @@ class ArtistFinancialsServiceTest extends TestCase
     public function it_returns_correct_structure_for_financial_metrics()
     {
         $artist = Artist::factory()->create();
-        
+
         Gig::factory()->create([
             'artist_id' => $artist->id,
             'artist_payment_status' => 'pago',
@@ -154,7 +154,7 @@ class ArtistFinancialsServiceTest extends TestCase
     public function it_handles_gigs_with_different_currencies()
     {
         $artist = Artist::factory()->create();
-        
+
         // Criar gigs em moedas diferentes
         Gig::factory()->create([
             'artist_id' => $artist->id,
@@ -162,7 +162,7 @@ class ArtistFinancialsServiceTest extends TestCase
             'cache_value' => 1000.00,
             'currency' => 'USD',
         ]);
-        
+
         Gig::factory()->create([
             'artist_id' => $artist->id,
             'artist_payment_status' => 'pendente',
@@ -182,7 +182,7 @@ class ArtistFinancialsServiceTest extends TestCase
     public function it_handles_gigs_with_null_or_unknown_payment_status()
     {
         $artist = Artist::factory()->create();
-        
+
         // Criar gig com status pendente
         Gig::factory()->create([
             'artist_id' => $artist->id,
@@ -190,7 +190,7 @@ class ArtistFinancialsServiceTest extends TestCase
             'cache_value' => 1000.00,
             'currency' => 'BRL',
         ]);
-        
+
         // Criar gig com status desconhecido (deve ser tratado como pendente)
         Gig::factory()->create([
             'artist_id' => $artist->id,

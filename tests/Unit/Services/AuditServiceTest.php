@@ -5,7 +5,6 @@ namespace Tests\Unit\Services;
 use App\Models\Gig;
 use App\Models\Payment;
 use App\Services\AuditService;
-use App\Services\GigFinancialCalculatorService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -64,7 +63,7 @@ class AuditServiceTest extends TestCase
             'cache_value' => 1000.00,
             'currency' => 'USD', // Usar moeda válida
         ]);
-        
+
         // Forçar currency para empty string após criação
         $gig->update(['currency' => '']);
 
@@ -189,7 +188,7 @@ class AuditServiceTest extends TestCase
                 'gig_id' => $gig->id,
                 'currency' => 'USD',
                 'due_value' => 500.00,
-             ]);
+            ]);
         }
 
         $result = $this->auditService->generateConsolidatedReport($gigs);

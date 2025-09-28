@@ -28,6 +28,9 @@ O objetivo é manter uma memória viva das refatorações e evoluções, servind
 - **2025-08-25** → Definida estratégia para ampliar testes automatizados
 - **2025-08-30** → **[Análise Arquitetural Completa](2025-08-30-architectural-analysis.md)** - Método MALT aplicado, 25+ arquivos analisados, recomendações prioritárias definidas
 - **2025-01-21** → **Correção Massiva de Testes** - 116 testes passando, corrigidos problemas de configuração, migrations, factories e validações
+- **2025-09-27** → **🎯 MAPEAMENTO COMPLETO FINALIZADO** - Criado centro da verdade para desenvolvimento orientado com plano de implementação detalhado
+- **2025-09-27** → **✅ TASK 1.1 CONCLUÍDA** - Corrigido bug crítico do GigDataAuditCommand (erro STDIN em ambiente web), implementada detecção de ambiente e fallback automático
+- **2025-01-25** → **✅ CORREÇÕES DE QUALIDADE DE CÓDIGO** - Implementados type hints em métodos críticos, corrigido bug de conversão de moeda nos testes (PaymentFactory), resolvidos erros PHPStan relacionados a propriedades indefinidas
 
 ---
 
@@ -36,8 +39,9 @@ O objetivo é manter uma memória viva das refatorações e evoluções, servind
 ### 🚨 URGENTE (Próximos 7 dias)
 - [x] **Implementar testes unitários para Services** (GigFinancialCalculatorService, etc.)
 - [x] **Corrigir problemas de configuração de testes** (SQLite, migrations, factories)
+- [x] **Corrigir bug crítico do GigDataAuditCommand** (erro STDIN em ambiente web)
+- [x] **Corrigir violações PSR-12** (App::make() → DI, type hints, PHPDoc)
 - [ ] **Aumentar cobertura de testes para 70%** (FinancialProjectionService, FinancialReportService)
-- [ ] **Corrigir violações PSR-12** (App::make() → DI, type hints, PHPDoc)
 
 ### 🔥 ALTO (Próximas 2 semanas)
 - [ ] Criar Service Provider customizado (`EventosProServiceProvider`)
@@ -48,6 +52,19 @@ O objetivo é manter uma memória viva das refatorações e evoluções, servind
 - [ ] Otimizar Blade Components (eliminar duplicações)
 - [ ] Implementar Repository Pattern para queries complexas
 - [ ] Documentar padrões arquiteturais estabelecidos
+
+---
+
+## 📚 Documentação Central
+
+### Centro da Verdade (27/09/2025)
+- **[Relatório Completo de Mapeamento do Sistema](../ai_context/relatorio-mapeamento-sistema.md)** - Análise abrangente do sistema, arquitetura, qualidade e recomendações
+- **[Plano de Implementação e Tasks Prioritárias](../ai_context/plano-implementacao-tasks.md)** - Roadmap detalhado com 5 fases, cronograma e métricas de sucesso
+
+### Documentos de Referência
+- **[Contexto de Negócio](../ai_context/1_context.md)** - Regras de negócio e domínio
+- **[Stack Tecnológico](../ai_context/3_stack.md)** - Tecnologias e ferramentas
+- **[Regras de Desenvolvimento](../ai_context/4_rules.md)** - Padrões e convenções
 
 ---
 

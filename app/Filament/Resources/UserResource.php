@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table; // Adicionar import
+use Illuminate\Support\Facades\Auth;
 
 class UserResource extends Resource
 {
@@ -21,7 +22,9 @@ class UserResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()->can('manage users');
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        return $user->can('manage users');
     }
 
     public static function form(Form $form): Form

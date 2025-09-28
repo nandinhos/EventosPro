@@ -4,9 +4,9 @@ namespace Tests\Unit\Services;
 
 use App\Models\Artist;
 use App\Models\Booker;
+use App\Models\CostCenter;
 use App\Models\Gig;
 use App\Models\GigCost;
-use App\Models\CostCenter;
 use App\Services\GigFinancialCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -16,8 +16,11 @@ class GigFinancialCalculatorServiceTest extends TestCase
     use RefreshDatabase;
 
     protected GigFinancialCalculatorService $calculator;
+
     protected Artist $artist;
+
     protected Booker $booker;
+
     protected CostCenter $costCenter;
 
     protected function setUp(): void
@@ -228,8 +231,8 @@ class GigFinancialCalculatorServiceTest extends TestCase
             'cache_value' => 1000.00,
             'currency' => 'BRL',
             'agency_commission_type' => 'FIXED',
-             'agency_commission_value' => 200.00,
-             'booker_commission_type' => 'FIXED',
+            'agency_commission_value' => 200.00,
+            'booker_commission_type' => 'FIXED',
             'booker_commission_value' => 50.00,
         ]);
 
@@ -280,8 +283,8 @@ class GigFinancialCalculatorServiceTest extends TestCase
             'cache_value' => 5000.00,
             'currency' => 'BRL',
             'agency_commission_type' => 'PERCENT',
-             'agency_commission_rate' => 20.0, // 20%
-             'booker_commission_type' => 'FIXED',
+            'agency_commission_rate' => 20.0, // 20%
+            'booker_commission_type' => 'FIXED',
             'booker_commission_value' => 300.00,
         ]);
 

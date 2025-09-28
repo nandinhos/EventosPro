@@ -19,8 +19,8 @@ class ExchangeRateServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->exchangeRateService = new ExchangeRateService();
-        
+        $this->exchangeRateService = new ExchangeRateService;
+
         // Configurar taxas padrão para testes
         Config::set('app.default_exchange_rates', [
             'USD' => 5.30,
@@ -33,7 +33,7 @@ class ExchangeRateServiceTest extends TestCase
     public function it_returns_1_for_brl_currency()
     {
         $rate = $this->exchangeRateService->getExchangeRate('BRL', Carbon::today());
-        
+
         $this->assertEquals(1.0, $rate);
     }
 
@@ -41,7 +41,7 @@ class ExchangeRateServiceTest extends TestCase
     public function it_returns_null_for_unsupported_currency()
     {
         $rate = $this->exchangeRateService->getExchangeRate('JPY', Carbon::today());
-        
+
         $this->assertNull($rate);
     }
 
@@ -50,12 +50,12 @@ class ExchangeRateServiceTest extends TestCase
     {
         $date = Carbon::today();
         $cacheKey = "exchange_rate_USD_{$date->format('Y_m_d')}";
-        
+
         // Simular cache existente
         Cache::put($cacheKey, 5.25, 240);
-        
+
         $rate = $this->exchangeRateService->getExchangeRate('USD', $date);
-        
+
         $this->assertEquals(5.25, $rate);
     }
 
@@ -64,11 +64,11 @@ class ExchangeRateServiceTest extends TestCase
     {
         // Simular falha na API
         Http::fake([
-            '*' => Http::response([], 500)
+            '*' => Http::response([], 500),
         ]);
-        
+
         $rate = $this->exchangeRateService->getExchangeRate('USD', Carbon::today(), false);
-        
+
         $this->assertEquals(5.30, $rate); // Taxa padrão configurada
     }
 
@@ -79,13 +79,13 @@ class ExchangeRateServiceTest extends TestCase
         Http::fake([
             '*bcb.gov.br*' => Http::response([
                 'value' => [
-                    ['cotacaoVenda' => 5.45]
-                ]
-            ], 200)
+                    ['cotacaoVenda' => 5.45],
+                ],
+            ], 200),
         ]);
-        
+
         $rate = $this->exchangeRateService->getExchangeRate('USD', Carbon::today(), false);
-        
+
         $this->assertEquals(5.45, $rate);
     }
 
@@ -94,14 +94,14 @@ class ExchangeRateServiceTest extends TestCase
     {
         // Mock HTTP calls to prevent real API calls
         Http::fake([
-            '*' => Http::response([], 404) // Force fallback to default rates
+            '*' => Http::response([], 404), // Force fallback to default rates
         ]);
-        
+
         // Configurar taxa conhecida
         Config::set('app.default_exchange_rates.USD', 5.00);
-        
+
         $convertedAmount = $this->exchangeRateService->convertToBRL(100.00, 'USD', Carbon::today());
-        
+
         $this->assertEquals(500.00, $convertedAmount);
     }
 
@@ -109,7 +109,7 @@ class ExchangeRateServiceTest extends TestCase
     public function it_returns_null_when_conversion_rate_not_available()
     {
         $convertedAmount = $this->exchangeRateService->convertToBRL(100.00, 'JPY', Carbon::today());
-        
+
         $this->assertNull($convertedAmount);
     }
 
@@ -118,12 +118,12 @@ class ExchangeRateServiceTest extends TestCase
     {
         // Mock HTTP calls to prevent real API calls
         Http::fake([
-            '*' => Http::response([], 404) // Force fallback to default rates
+            '*' => Http::response([], 404), // Force fallback to default rates
         ]);
-        
+
         $currencies = ['USD', 'EUR', 'GBP'];
         $rates = $this->exchangeRateService->getMultipleRates($currencies, Carbon::today());
-        
+
         $this->assertArrayHasKey('USD', $rates);
         $this->assertArrayHasKey('EUR', $rates);
         $this->assertArrayHasKey('GBP', $rates);
@@ -145,7 +145,7 @@ class ExchangeRateServiceTest extends TestCase
     public function it_returns_supported_currencies_list()
     {
         $currencies = $this->exchangeRateService->getSupportedCurrencies();
-        
+
         $this->assertIsArray($currencies);
         $this->assertContains('USD', $currencies);
         $this->assertContains('EUR', $currencies);
@@ -160,11 +160,11 @@ class ExchangeRateServiceTest extends TestCase
         Http::fake([
             '*' => function () {
                 throw new \Exception('Connection timeout');
-            }
+            },
         ]);
-        
+
         $rate = $this->exchangeRateService->getExchangeRate('USD', Carbon::today(), false);
-        
+
         // Deve retornar a taxa padrão quando a API falha
         $this->assertEquals(5.30, $rate);
     }
@@ -174,27 +174,27 @@ class ExchangeRateServiceTest extends TestCase
     {
         $date = Carbon::today();
         $cacheKey = "exchange_rate_USD_{$date->format('Y_m_d')}";
-        
+
         // Simular resposta da API
         Http::fake([
             '*bcb.gov.br*' => Http::response([
                 'value' => [
-                    ['cotacaoVenda' => 5.35]
-                ]
-            ], 200)
+                    ['cotacaoVenda' => 5.35],
+                ],
+            ], 200),
         ]);
-        
+
         // Primeira chamada deve buscar da API e cachear
         $rate1 = $this->exchangeRateService->getExchangeRate('USD', $date, true);
-        
+
         // Verificar se foi cacheado
         $this->assertTrue(Cache::has($cacheKey));
         $this->assertEquals(5.35, Cache::get($cacheKey));
-        
+
         // Segunda chamada deve usar o cache
         Http::fake([]); // Limpar fake para garantir que não chama API novamente
         $rate2 = $this->exchangeRateService->getExchangeRate('USD', $date, true);
-        
+
         $this->assertEquals($rate1, $rate2);
         $this->assertEquals(5.35, $rate2);
     }
@@ -205,12 +205,12 @@ class ExchangeRateServiceTest extends TestCase
         // Simular resposta malformada da API
         Http::fake([
             '*bcb.gov.br*' => Http::response([
-                'error' => 'Invalid request'
-            ], 200)
+                'error' => 'Invalid request',
+            ], 200),
         ]);
-        
+
         $rate = $this->exchangeRateService->getExchangeRate('USD', Carbon::today(), false);
-        
+
         // Deve retornar a taxa padrão quando a resposta é malformada
         $this->assertEquals(5.30, $rate);
     }
@@ -220,13 +220,13 @@ class ExchangeRateServiceTest extends TestCase
     {
         // Mock HTTP calls to prevent real API calls
         Http::fake([
-            '*' => Http::response([], 404) // Force fallback to default rates
+            '*' => Http::response([], 404), // Force fallback to default rates
         ]);
-        
+
         $rateUpper = $this->exchangeRateService->getExchangeRate('USD', Carbon::today());
         $rateLower = $this->exchangeRateService->getExchangeRate('usd', Carbon::today());
         $rateMixed = $this->exchangeRateService->getExchangeRate('Usd', Carbon::today());
-        
+
         $this->assertEquals($rateUpper, $rateLower);
         $this->assertEquals($rateUpper, $rateMixed);
         $this->assertEquals(5.30, $rateUpper);

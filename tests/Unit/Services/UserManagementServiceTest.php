@@ -19,7 +19,7 @@ class UserManagementServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->userManagementService = new UserManagementService();
+        $this->userManagementService = new UserManagementService;
     }
 
     /** @test */
@@ -413,11 +413,11 @@ class UserManagementServiceTest extends TestCase
     public function it_rolls_back_transaction_on_update_user_failure()
     {
         $user = User::factory()->create();
-        
+
         // Mock DB to simulate transaction failure
         DB::shouldReceive('beginTransaction')->once();
         DB::shouldReceive('rollBack')->once();
-        
+
         // Force an exception by trying to update with invalid booker ID
         $userData = [
             'name' => $user->name,
@@ -435,15 +435,15 @@ class UserManagementServiceTest extends TestCase
     public function it_rolls_back_transaction_on_delete_user_failure()
     {
         $user = User::factory()->create();
-        
+
         // Mock DB to simulate transaction failure
         DB::shouldReceive('beginTransaction')->once();
         DB::shouldReceive('rollBack')->once();
-        
+
         // Mock the user delete to throw an exception
         $user = $this->createMock(User::class);
         $user->method('delete')->willThrowException(new \Exception('Delete failed'));
-        
+
         $this->expectException(\Exception::class);
         $this->userManagementService->deleteUser($user);
     }

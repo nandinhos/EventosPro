@@ -2,9 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Gig;
-use App\Models\Artist;
 use App\Models\Booker;
+use App\Models\Gig;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +27,7 @@ class GigDataAuditCommand extends Command
     protected $description = 'Auditoria e correção de dados das gigs com base nas regras de negócio';
 
     protected array $issues = [];
+
     protected array $stats = [
         'total_gigs' => 0,
         'issues_found' => 0,
@@ -56,61 +56,97 @@ class GigDataAuditCommand extends Command
             'scanOnly_type' => gettype($scanOnly),
             'autoFix' => $autoFix,
             'autoFix_type' => gettype($autoFix),
-            'batchSize' => $batchSize
+            'batchSize' => $batchSize,
+            'environment' => $this->isRunningInConsole() ? 'console' : 'web',
         ]);
 
         // Validar parâmetros
         if ($autoFix && $scanOnly) {
             $this->error('❌ Não é possível usar --scan-only e --auto-fix simultaneamente');
+
             return 1;
         }
 
         // Mostrar configurações
         $this->displayConfiguration($scanOnly, $autoFix, $batchSize, $dateFrom, $dateTo);
 
-        // Confirmar execução se não for auto-fix
-        if (!$autoFix && !$this->confirmExecution()) {
+        // Confirmar execução se não for auto-fix E se estivermos em ambiente console
+        if (! $autoFix && ! $this->confirmExecution()) {
             $this->info('⏹️  Operação cancelada pelo usuário');
+
             return 0;
         }
 
         try {
             // Executar auditoria
             $this->performAudit($batchSize, $dateFrom, $dateTo, $scanOnly, $autoFix);
-            
+
             // Mostrar relatório final
             $this->displayFinalReport();
-            
+
             return 0;
         } catch (\Exception $e) {
             $this->error("❌ Erro durante a execução: {$e->getMessage()}");
             Log::error('GigDataAudit Error', ['exception' => $e]);
+
             return 1;
         }
+    }
+
+    /**
+     * Verifica se o comando está sendo executado em ambiente console (terminal)
+     * ou via web (Artisan::call)
+     */
+    protected function isRunningInConsole(): bool
+    {
+        // Verifica se temos acesso ao STDIN
+        if (! defined('STDIN') || ! is_resource(STDIN)) {
+            return false;
+        }
+
+        // Verifica se estamos em modo CLI real
+        if (php_sapi_name() !== 'cli') {
+            return false;
+        }
+
+        // Verifica se o STDIN está disponível para leitura
+        $read = [STDIN];
+        $write = [];
+        $except = [];
+        $result = stream_select($read, $write, $except, 0);
+
+        return $result !== false;
     }
 
     protected function displayConfiguration($scanOnly, $autoFix, $batchSize, $dateFrom, $dateTo)
     {
         $this->info('📋 Configurações:');
-        $this->line("   Modo: " . ($scanOnly ? 'Apenas Escaneamento' : ($autoFix ? 'Correção Automática' : 'Correção Interativa')));
+        $this->line('   Modo: '.($scanOnly ? 'Apenas Escaneamento' : ($autoFix ? 'Correção Automática' : 'Correção Interativa')));
         $this->line("   Tamanho do lote: {$batchSize}");
-        
+
         if ($dateFrom) {
             $this->line("   Data inicial: {$dateFrom}");
         }
         if ($dateTo) {
             $this->line("   Data final: {$dateTo}");
         }
-        
+
         $this->newLine();
     }
 
     protected function confirmExecution(): bool
     {
+        // Se não estivermos em ambiente console, assumir confirmação automática
+        if (! $this->isRunningInConsole()) {
+            $this->info('🤖 Execução automática (ambiente web) - prosseguindo sem confirmação');
+
+            return true;
+        }
+
         $this->warn('⚠️  ATENÇÃO: Esta operação irá analisar e potencialmente modificar dados das gigs.');
         $this->warn('   Certifique-se de ter um backup do banco de dados antes de prosseguir.');
         $this->newLine();
-        
+
         return $this->confirm('Deseja continuar?', false);
     }
 
@@ -118,7 +154,7 @@ class GigDataAuditCommand extends Command
     {
         // Construir query base
         $query = Gig::with(['artist', 'booker']);
-        
+
         if ($dateFrom) {
             $query->where('gig_date', '>=', $dateFrom);
         }
@@ -167,16 +203,16 @@ class GigDataAuditCommand extends Command
             $this->checkDateLogic($gig, $gigIssues);
 
             // Processar issues encontradas
-            if (!empty($gigIssues)) {
+            if (! empty($gigIssues)) {
                 $this->stats['issues_found'] += count($gigIssues);
                 $this->issues[] = [
                     'gig_id' => $gig->id,
                     'gig_date' => $gig->gig_date->format('Y-m-d'),
                     'artist' => $gig->artist->name ?? 'N/A',
-                    'issues' => $gigIssues
+                    'issues' => $gigIssues,
                 ];
 
-                if (!$scanOnly) {
+                if (! $scanOnly) {
                     $this->processIssues($gig, $gigIssues, $autoFix);
                 }
             }
@@ -190,26 +226,26 @@ class GigDataAuditCommand extends Command
     protected function checkReferentialIntegrity(Gig $gig, array &$issues)
     {
         // Verificar se artista existe
-        if (!$gig->artist_id || !$gig->artist) {
+        if (! $gig->artist_id || ! $gig->artist) {
             $issues[] = [
                 'type' => 'referential_integrity',
                 'severity' => 'critical',
                 'description' => 'Gig sem artista válido',
                 'field' => 'artist_id',
                 'current_value' => $gig->artist_id,
-                'suggested_action' => 'Atribuir artista válido ou remover gig'
+                'suggested_action' => 'Atribuir artista válido ou remover gig',
             ];
         }
 
         // Verificar booker se especificado
-        if ($gig->booker_id && !$gig->booker) {
+        if ($gig->booker_id && ! $gig->booker) {
             $issues[] = [
                 'type' => 'referential_integrity',
                 'severity' => 'warning',
                 'description' => 'Booker ID especificado mas booker não encontrado',
                 'field' => 'booker_id',
                 'current_value' => $gig->booker_id,
-                'suggested_action' => 'Limpar booker_id ou atribuir booker válido'
+                'suggested_action' => 'Limpar booker_id ou atribuir booker válido',
             ];
         }
     }
@@ -230,7 +266,7 @@ class GigDataAuditCommand extends Command
                     'field' => 'artist_payment_status',
                     'current_value' => $gig->artist_payment_status,
                     'suggested_value' => 'pendente',
-                    'suggested_action' => 'Alterar para pendente'
+                    'suggested_action' => 'Alterar para pendente',
                 ];
             }
 
@@ -242,7 +278,7 @@ class GigDataAuditCommand extends Command
                     'field' => 'booker_payment_status',
                     'current_value' => $gig->booker_payment_status,
                     'suggested_value' => 'pendente',
-                    'suggested_action' => 'Alterar para pendente'
+                    'suggested_action' => 'Alterar para pendente',
                 ];
             }
         }
@@ -256,7 +292,7 @@ class GigDataAuditCommand extends Command
                     'description' => 'Evento antigo (>30 dias) com pagamento de artista ainda pendente',
                     'field' => 'artist_payment_status',
                     'current_value' => $gig->artist_payment_status,
-                    'suggested_action' => 'Verificar se pagamento foi realizado'
+                    'suggested_action' => 'Verificar se pagamento foi realizado',
                 ];
             }
 
@@ -267,7 +303,7 @@ class GigDataAuditCommand extends Command
                     'description' => 'Evento antigo (>30 dias) com pagamento de booker ainda pendente',
                     'field' => 'booker_payment_status',
                     'current_value' => $gig->booker_payment_status,
-                    'suggested_action' => 'Verificar se pagamento foi realizado'
+                    'suggested_action' => 'Verificar se pagamento foi realizado',
                 ];
             }
         }
@@ -276,13 +312,13 @@ class GigDataAuditCommand extends Command
     protected function checkCommissionConsistency(Gig $gig, array &$issues)
     {
         // Verificar se booker tem comissão mas não tem booker_id
-        if (!$gig->booker_id && ($gig->booker_commission_value > 0 || $gig->booker_commission_rate > 0)) {
+        if (! $gig->booker_id && ($gig->booker_commission_value > 0 || $gig->booker_commission_rate > 0)) {
             $issues[] = [
                 'type' => 'commission_consistency',
                 'severity' => 'warning',
                 'description' => 'Comissão de booker definida mas sem booker atribuído',
                 'field' => 'booker_commission',
-                'suggested_action' => 'Limpar comissão de booker ou atribuir booker'
+                'suggested_action' => 'Limpar comissão de booker ou atribuir booker',
             ];
         }
 
@@ -294,7 +330,7 @@ class GigDataAuditCommand extends Command
                 'description' => 'Valor de comissão da agência negativo',
                 'field' => 'agency_commission_value',
                 'current_value' => $gig->agency_commission_value,
-                'suggested_action' => 'Recalcular comissão'
+                'suggested_action' => 'Recalcular comissão',
             ];
         }
 
@@ -305,7 +341,7 @@ class GigDataAuditCommand extends Command
                 'description' => 'Valor de comissão do booker negativo',
                 'field' => 'booker_commission_value',
                 'current_value' => $gig->booker_commission_value,
-                'suggested_action' => 'Recalcular comissão'
+                'suggested_action' => 'Recalcular comissão',
             ];
         }
     }
@@ -325,7 +361,7 @@ class GigDataAuditCommand extends Command
                     'severity' => 'error',
                     'description' => "{$description} não informado",
                     'field' => $field,
-                    'suggested_action' => 'Preencher campo obrigatório'
+                    'suggested_action' => 'Preencher campo obrigatório',
                 ];
             }
         }
@@ -338,7 +374,7 @@ class GigDataAuditCommand extends Command
                 'description' => 'Valor do cachê deve ser maior que zero',
                 'field' => 'cache_value',
                 'current_value' => $gig->cache_value,
-                'suggested_action' => 'Verificar valor do contrato'
+                'suggested_action' => 'Verificar valor do contrato',
             ];
         }
     }
@@ -357,7 +393,7 @@ class GigDataAuditCommand extends Command
                     'description' => 'Data do contrato posterior à data do evento',
                     'field' => 'contract_date',
                     'current_value' => $gig->contract_date,
-                    'suggested_action' => 'Verificar datas'
+                    'suggested_action' => 'Verificar datas',
                 ];
             }
         }
@@ -369,8 +405,19 @@ class GigDataAuditCommand extends Command
             if ($issue['severity'] === 'critical' && isset($issue['suggested_value'])) {
                 if ($autoFix) {
                     $this->applyFix($gig, $issue);
-                } elseif ($this->confirmFix($gig, $issue)) {
+                } elseif ($this->isRunningInConsole() && $this->confirmFix($gig, $issue)) {
                     $this->applyFix($gig, $issue);
+                } elseif (! $this->isRunningInConsole()) {
+                    // Em ambiente web, logar a issue crítica que precisa de atenção manual
+                    Log::warning('GigDataAudit: Issue crítica detectada em ambiente web', [
+                        'gig_id' => $gig->id,
+                        'issue_type' => $issue['type'],
+                        'description' => $issue['description'],
+                        'field' => $issue['field'],
+                        'current_value' => $issue['current_value'] ?? null,
+                        'suggested_value' => $issue['suggested_value'] ?? null,
+                        'action_required' => 'Correção manual necessária',
+                    ]);
                 }
             }
         }
@@ -378,13 +425,20 @@ class GigDataAuditCommand extends Command
 
     protected function confirmFix(Gig $gig, array $issue): bool
     {
+        // Se não estivermos em ambiente console, não fazer correções interativas
+        if (! $this->isRunningInConsole()) {
+            $this->line("🤖 Ambiente web detectado - pulando correção interativa para Gig ID {$gig->id}");
+
+            return false;
+        }
+
         $this->newLine();
         $this->warn("🔧 Correção disponível para Gig ID {$gig->id}:");
         $this->line("   Problema: {$issue['description']}");
         $this->line("   Campo: {$issue['field']}");
         $this->line("   Valor atual: {$issue['current_value']}");
         $this->line("   Valor sugerido: {$issue['suggested_value']}");
-        
+
         return $this->confirm('Aplicar correção?', false);
     }
 
@@ -395,30 +449,40 @@ class GigDataAuditCommand extends Command
 
             $field = $issue['field'];
             $newValue = $issue['suggested_value'];
-            
+            $oldValue = $issue['current_value'] ?? $gig->$field;
+
             $gig->$field = $newValue;
             $gig->save();
 
             DB::commit();
-            
+
             $this->stats['fixes_applied']++;
-            $this->info("✅ Correção aplicada: Gig {$gig->id} - {$field} = {$newValue}");
-            
-            Log::info("GigDataAudit: Correção aplicada", [
+
+            $message = "✅ Correção aplicada: Gig {$gig->id} - {$field} = {$newValue}";
+            $this->info($message);
+
+            Log::info('GigDataAudit: Correção aplicada', [
                 'gig_id' => $gig->id,
                 'field' => $field,
-                'old_value' => $issue['current_value'],
+                'old_value' => $oldValue,
                 'new_value' => $newValue,
-                'issue_type' => $issue['type']
+                'issue_type' => $issue['type'],
+                'environment' => $this->isRunningInConsole() ? 'console' : 'web',
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error("❌ Erro ao aplicar correção: {$e->getMessage()}");
-            Log::error("GigDataAudit: Erro ao aplicar correção", [
+            $this->stats['errors']++;
+
+            $errorMessage = "❌ Erro ao aplicar correção: {$e->getMessage()}";
+            $this->error($errorMessage);
+
+            Log::error('GigDataAudit: Erro ao aplicar correção', [
                 'gig_id' => $gig->id,
                 'issue' => $issue,
-                'exception' => $e
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'environment' => $this->isRunningInConsole() ? 'console' : 'web',
             ]);
         }
     }
@@ -433,26 +497,36 @@ class GigDataAuditCommand extends Command
         $this->line("Correções aplicadas: {$this->stats['fixes_applied']}");
         $this->line("Erros durante execução: {$this->stats['errors']}");
 
-        if (!empty($this->issues)) {
+        // Informação sobre ambiente de execução
+        $environment = $this->isRunningInConsole() ? 'Console (Terminal)' : 'Web (Interface)';
+        $this->line("Ambiente de execução: {$environment}");
+
+        if (! empty($this->issues)) {
             $this->newLine();
             $this->warn('🚨 RESUMO DOS PROBLEMAS ENCONTRADOS:');
-            
+
             $issuesByType = [];
+            $criticalIssuesCount = 0;
+
             foreach ($this->issues as $gigIssue) {
                 foreach ($gigIssue['issues'] as $issue) {
                     $type = $issue['type'];
                     $severity = $issue['severity'];
                     $key = "{$type}_{$severity}";
-                    
-                    if (!isset($issuesByType[$key])) {
+
+                    if ($severity === 'critical') {
+                        $criticalIssuesCount++;
+                    }
+
+                    if (! isset($issuesByType[$key])) {
                         $issuesByType[$key] = [
                             'type' => $type,
                             'severity' => $severity,
                             'count' => 0,
-                            'gigs' => []
+                            'gigs' => [],
                         ];
                     }
-                    
+
                     $issuesByType[$key]['count']++;
                     $issuesByType[$key]['gigs'][] = $gigIssue['gig_id'];
                 }
@@ -463,17 +537,32 @@ class GigDataAuditCommand extends Command
                 $this->line("{$emoji} {$issueGroup['type']} ({$issueGroup['severity']}): {$issueGroup['count']} ocorrências");
             }
 
+            // Aviso especial para issues críticas em ambiente web
+            if (! $this->isRunningInConsole() && $criticalIssuesCount > 0) {
+                $this->newLine();
+                $this->warn("⚠️  ATENÇÃO: {$criticalIssuesCount} issues críticas detectadas em ambiente web.");
+                $this->warn('   Essas issues requerem correção manual ou execução via terminal com confirmação.');
+                $this->warn('   Verifique os logs para detalhes completos.');
+            }
+
             // Salvar relatório detalhado
             $this->saveDetailedReport();
         }
 
         $this->newLine();
         $this->info('✅ Auditoria concluída!');
+
+        // Log final do resumo
+        Log::info('GigDataAudit: Auditoria concluída', [
+            'stats' => $this->stats,
+            'environment' => $this->isRunningInConsole() ? 'console' : 'web',
+            'total_issues_types' => count($issuesByType ?? []),
+        ]);
     }
 
     protected function getSeverityEmoji($severity): string
     {
-        return match($severity) {
+        return match ($severity) {
             'critical' => '🔴',
             'error' => '🟠',
             'warning' => '🟡',
@@ -483,12 +572,12 @@ class GigDataAuditCommand extends Command
 
     protected function saveDetailedReport()
     {
-        $reportPath = storage_path('logs/gig_audit_' . now()->format('Y-m-d_H-i-s') . '.json');
-        
+        $reportPath = storage_path('logs/gig_audit_'.now()->format('Y-m-d_H-i-s').'.json');
+
         $report = [
             'timestamp' => now()->toISOString(),
             'stats' => $this->stats,
-            'issues' => $this->issues
+            'issues' => $this->issues,
         ];
 
         file_put_contents($reportPath, json_encode($report, JSON_PRETTY_PRINT));

@@ -2,8 +2,8 @@
 
 namespace Tests\Unit;
 
-use PHPUnit\Framework\TestCase;
 use Carbon\Carbon;
+use PHPUnit\Framework\TestCase;
 
 class CommissionPaymentValidationTest extends TestCase
 {
@@ -11,12 +11,12 @@ class CommissionPaymentValidationTest extends TestCase
     {
         // Arrange
         $futureDate = Carbon::now()->addDays(30);
-        
+
         // Act
         $isPastEvent = $futureDate < now();
         $artistPaymentStatus = $isPastEvent ? 'pago' : 'pendente';
         $bookerPaymentStatus = $isPastEvent ? 'pago' : 'pendente';
-        
+
         // Assert
         $this->assertFalse($isPastEvent);
         $this->assertEquals('pendente', $artistPaymentStatus);
@@ -27,12 +27,12 @@ class CommissionPaymentValidationTest extends TestCase
     {
         // Arrange
         $pastDate = Carbon::now()->subDays(30);
-        
+
         // Act
         $isPastEvent = $pastDate < now();
         $artistPaymentStatus = $isPastEvent ? 'pago' : 'pendente';
         $bookerPaymentStatus = $isPastEvent ? 'pago' : 'pendente';
-        
+
         // Assert
         $this->assertTrue($isPastEvent);
         $this->assertEquals('pago', $artistPaymentStatus);
@@ -44,12 +44,12 @@ class CommissionPaymentValidationTest extends TestCase
         // Arrange
         $now = Carbon::now();
         $todayDate = $now->copy();
-        
+
         // Act
         $isPastEvent = $todayDate < $now;
         $artistPaymentStatus = $isPastEvent ? 'pago' : 'pendente';
         $bookerPaymentStatus = $isPastEvent ? 'pago' : 'pendente';
-        
+
         // Assert
         $this->assertFalse($isPastEvent);
         $this->assertEquals('pendente', $artistPaymentStatus);
@@ -60,12 +60,12 @@ class CommissionPaymentValidationTest extends TestCase
     {
         // Arrange
         $yesterdayDate = Carbon::now()->subDay();
-        
+
         // Act
         $isPastEvent = $yesterdayDate < now();
         $artistPaymentStatus = $isPastEvent ? 'pago' : 'pendente';
         $bookerPaymentStatus = $isPastEvent ? 'pago' : 'pendente';
-        
+
         // Assert
         $this->assertTrue($isPastEvent);
         $this->assertEquals('pago', $artistPaymentStatus);

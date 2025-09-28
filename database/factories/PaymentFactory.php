@@ -20,13 +20,13 @@ class PaymentFactory extends Factory
     {
         $dueDate = Carbon::instance($this->faker->dateTimeBetween('-3 months', '+6 months'));
         $isPaid = $this->faker->boolean(70);
-        
+
         $receivedDate = null;
         if ($isPaid) {
             // Garante que a data de recebimento seja posterior à data de vencimento
             $startDate = $dueDate->copy()->addDay();
             $endDate = now();
-            
+
             // Se a data de vencimento for no futuro, usa 'now' como data de recebimento
             if ($startDate->greaterThan($endDate)) {
                 $receivedDate = now();
