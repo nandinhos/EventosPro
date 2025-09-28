@@ -684,6 +684,120 @@ class AuditController extends Controller
     }
 
     /**
+     * Aplica correções em lote para múltiplas issues.
+     */
+    public function applyBulkFix(Request $request)
+    {
+        $request->validate([
+            'fixes' => 'required|array|min:1',
+            'fixes.*.gig_id' => 'required|integer|exists:gigs,id',
+            'fixes.*.field' => 'required|string',
+            'fixes.*.new_value' => 'required',
+            'fixes.*.issue_type' => 'required|string',
+        ]);
+
+        $fixes = $request->input('fixes');
+        $results = [];
+        $successCount = 0;
+        $errorCount = 0;
+
+        // Lista de campos editáveis (mesmo whitelist do método individual)
+        $editableFields = [
+            'artist_fee',
+            'production_cost',
+            'travel_cost',
+            'accommodation_cost',
+            'other_costs',
+            'total_cost',
+            'artist_name',
+            'location_event_details',
+            'gig_date',
+            'contract_number',
+        ];
+
+        DB::beginTransaction();
+
+        try {
+            foreach ($fixes as $index => $fix) {
+                try {
+                    $gigId = $fix['gig_id'];
+                    $field = $fix['field'];
+                    $newValue = $fix['new_value'];
+                    $issueType = $fix['issue_type'];
+
+                    // Verificar se o campo é editável
+                    if (!in_array($field, $editableFields)) {
+                        $results[$index] = [
+                            'success' => false,
+                            'error' => "Campo '{$field}' não é editável",
+                            'gig_id' => $gigId,
+                        ];
+                        $errorCount++;
+                        continue;
+                    }
+
+                    // Buscar o gig
+                    $gig = Gig::findOrFail($gigId);
+
+                    // Aplicar a correção
+                    $gig->update([$field => $newValue]);
+
+                    // Log da correção
+                    Log::info('Bulk fix applied', [
+                        'gig_id' => $gigId,
+                        'field' => $field,
+                        'old_value' => $gig->getOriginal($field),
+                        'new_value' => $newValue,
+                        'issue_type' => $issueType,
+                    ]);
+
+                    $results[$index] = [
+                        'success' => true,
+                        'gig_id' => $gigId,
+                        'new_value' => $newValue,
+                    ];
+                    $successCount++;
+
+                } catch (\Exception $e) {
+                    $results[$index] = [
+                        'success' => false,
+                        'error' => $e->getMessage(),
+                        'gig_id' => $fix['gig_id'] ?? null,
+                    ];
+                    $errorCount++;
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => $errorCount === 0,
+                'message' => $errorCount === 0 
+                    ? "Todas as {$successCount} correções foram aplicadas com sucesso"
+                    : "{$successCount} correções aplicadas, {$errorCount} falharam",
+                'results' => $results,
+                'summary' => [
+                    'total' => count($fixes),
+                    'success' => $successCount,
+                    'errors' => $errorCount,
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Bulk fix failed', [
+                'error' => $e->getMessage(),
+                'fixes_count' => count($fixes),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao aplicar correções em lote: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Busca o arquivo de relatório mais recente
      */
     private function getLatestAuditReport(): ?string

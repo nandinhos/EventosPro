@@ -142,10 +142,43 @@
                         </div>
                     </x-slot>
                     
+                    <!-- Barra de Ações em Lote -->
+                    <div x-show="selectedIssues.length > 0" x-transition 
+                         class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <i class="fas fa-check-square text-blue-500 mr-2"></i>
+                                <span class="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                    <span x-text="selectedIssues.length"></span> issue(s) selecionado(s)
+                                </span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button @click="clearSelection()"
+                                        class="inline-flex items-center px-3 py-1 border border-gray-300 dark:border-gray-600 text-xs leading-4 font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                                    <i class="fas fa-times mr-1"></i>
+                                    Limpar Seleção
+                                </button>
+                                <button @click="applyBulkFix()"
+                                        :disabled="!canApplyBulkFix || isLoading"
+                                        class="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <i class="fas fa-wrench mr-1"></i>
+                                    <span x-text="isLoading ? 'Aplicando...' : 'Corrigir Selecionados'"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-800">
                                 <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-12">
+                                        <input type="checkbox" 
+                                               @change="toggleSelectAll()"
+                                               :checked="selectAllChecked"
+                                               :indeterminate="selectAllIndeterminate"
+                                               class="rounded border-gray-300 dark:border-gray-600 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                    </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Gig</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Data</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Artista</th>
@@ -159,7 +192,16 @@
                             </thead>
                             <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                                 <template x-for="issue in filteredIssues" :key="issue.id">
-                                    <tr>
+                                    <tr :class="issue.fixed ? 'bg-green-50 dark:bg-green-900/10' : ''">
+                                        <td class="px-6 py-4 whitespace-nowrap w-12">
+                                            <template x-if="issue.can_fix && !issue.fixed">
+                                                <input type="checkbox" 
+                                                       :value="issue.id"
+                                                       @change="toggleIssueSelection(issue)"
+                                                       :checked="selectedIssues.includes(issue.id)"
+                                                       class="rounded border-gray-300 dark:border-gray-600 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                            </template>
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100" x-text="issue.contract_number"></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100" x-text="issue.gig_date"></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100" x-text="issue.artist_name"></td>
@@ -180,22 +222,27 @@
                                             <code class="bg-green-100 dark:bg-green-800 px-2 py-1 rounded text-xs" x-text="issue.suggested_value || 'N/A'"></code>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                            <template x-if="issue.can_fix && !issue.fixed">
-                                                <button @click="openFixModal(issue)"
-                                                        class="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
-                                                    <i class="fas fa-wrench mr-1"></i>
-                                                    Corrigir
-                                                </button>
-                                            </template>
-                                            <template x-if="issue.fixed">
-                                                <span class="inline-flex items-center text-green-600 dark:text-green-400">
-                                                    <i class="fas fa-check mr-1"></i>
-                                                    Corrigido
-                                                </span>
-                                            </template>
-                                            <template x-if="!issue.can_fix">
-                                                <span class="text-gray-500 dark:text-gray-400 text-xs">Manual</span>
-                                            </template>
+                                            <div class="flex items-center gap-2">
+                                                <template x-if="issue.can_fix && !issue.fixed">
+                                                    <button @click="openFixModal(issue)"
+                                                            class="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                                                        <i class="fas fa-wrench mr-1"></i>
+                                                        Corrigir
+                                                    </button>
+                                                </template>
+                                                <template x-if="issue.fixed">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                        <i class="fas fa-check mr-1"></i>
+                                                        Corrigido
+                                                    </span>
+                                                </template>
+                                                <template x-if="!issue.can_fix && !issue.fixed">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                                                        <i class="fas fa-hand-paper mr-1"></i>
+                                                        Manual
+                                                    </span>
+                                                </template>
+                                            </div>
                                         </td>
                                     </tr>
                                 </template>
@@ -318,6 +365,10 @@
                 auditResults: [],
                 currentFix: null,
                 
+                // Seleção em lote
+                selectedIssues: [],
+                bulkFixing: false,
+                
                 // Filtros
                 filters: {
                     severity: '',
@@ -346,6 +397,21 @@
                     });
                 },
 
+                get selectAllChecked() {
+                    const fixableIssues = this.filteredIssues.filter(issue => issue.can_fix && !issue.fixed);
+                    return fixableIssues.length > 0 && fixableIssues.every(issue => this.selectedIssues.includes(issue.id));
+                },
+
+                get selectAllIndeterminate() {
+                    const fixableIssues = this.filteredIssues.filter(issue => issue.can_fix && !issue.fixed);
+                    const selectedCount = fixableIssues.filter(issue => this.selectedIssues.includes(issue.id)).length;
+                    return selectedCount > 0 && selectedCount < fixableIssues.length;
+                },
+
+                get canApplyBulkFix() {
+                    return this.selectedIssues.length > 0 && !this.bulkFixing;
+                },
+
                 // Métodos principais
                 async runAudit() {
                     this.isLoading = true;
@@ -356,12 +422,15 @@
                     try {
                         const formData = new FormData(document.getElementById('auditForm'));
                         
+                        // Debug: verificar se o formulário está sendo enviado corretamente
+                        console.log('FormData criado com sucesso');
+                        console.log('URL da requisição:', '{{ route("audit.run-data-audit") }}');
+                        
                         this.statusMessage = 'Executando validações...';
                         
                         const response = await fetch('{{ route("audit.run-data-audit") }}', {
                             method: 'POST',
                             headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                                 'Accept': 'application/json'
                             },
                             body: formData
@@ -500,6 +569,108 @@
                         this.isLoading = false;
                     }
                 },
+
+                // Métodos de seleção em lote
+                toggleSelectAll() {
+                    const fixableIssues = this.filteredIssues.filter(issue => issue.can_fix && !issue.fixed);
+                    
+                    if (this.selectAllChecked) {
+                        // Desmarcar todos
+                        fixableIssues.forEach(issue => {
+                            const index = this.selectedIssues.indexOf(issue.id);
+                            if (index > -1) {
+                                this.selectedIssues.splice(index, 1);
+                            }
+                        });
+                    } else {
+                        // Marcar todos
+                        fixableIssues.forEach(issue => {
+                            if (!this.selectedIssues.includes(issue.id)) {
+                                this.selectedIssues.push(issue.id);
+                            }
+                        });
+                    }
+                },
+
+                toggleIssueSelection(issue) {
+                    const index = this.selectedIssues.indexOf(issue.id);
+                    if (index > -1) {
+                        this.selectedIssues.splice(index, 1);
+                    } else {
+                        this.selectedIssues.push(issue.id);
+                    }
+                },
+
+                clearSelection() {
+                    this.selectedIssues = [];
+                },
+
+                async applyBulkFix() {
+                     if (this.selectedIssues.length === 0) return;
+                     
+                     this.bulkFixing = true;
+                     
+                     try {
+                         const selectedIssueObjects = this.auditResults.filter(issue => 
+                             this.selectedIssues.includes(issue.id)
+                         );
+                         
+                         // Preparar dados para correção em lote
+                         const fixes = selectedIssueObjects.map(issue => ({
+                             gig_id: issue.gig_id,
+                             field: issue.field,
+                             new_value: issue.suggested_value,
+                             issue_type: issue.issue_type
+                         }));
+                         
+                         const response = await fetch('{{ route("audit.apply-bulk-fix") }}', {
+                             method: 'POST',
+                             headers: {
+                                 'Content-Type': 'application/json',
+                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                             },
+                             body: JSON.stringify({ fixes })
+                         });
+                         
+                         const data = await response.json();
+                         
+                         if (data.success) {
+                             // Atualizar issues que foram corrigidas com sucesso
+                             data.results.forEach((result, index) => {
+                                 if (result.success) {
+                                     const issue = selectedIssueObjects[index];
+                                     issue.fixed = true;
+                                     issue.current_value = result.new_value || issue.suggested_value;
+                                 }
+                             });
+                             
+                             this.updateStats();
+                             this.clearSelection();
+                             this.showNotification(data.message, 'success');
+                         } else {
+                             // Processar resultados parciais
+                             if (data.results) {
+                                 data.results.forEach((result, index) => {
+                                     if (result.success) {
+                                         const issue = selectedIssueObjects[index];
+                                         issue.fixed = true;
+                                         issue.current_value = result.new_value || issue.suggested_value;
+                                     }
+                                 });
+                                 this.updateStats();
+                             }
+                             
+                             this.clearSelection();
+                             this.showNotification(data.message, 'warning');
+                         }
+                         
+                     } catch (error) {
+                         console.error('Erro na correção em lote:', error);
+                         this.showNotification('Erro ao aplicar correções em lote: ' + error.message, 'error');
+                     } finally {
+                         this.bulkFixing = false;
+                     }
+                 },
 
                 showNotification(message, type = 'info') {
                     // Usar o sistema de notificações do projeto se disponível

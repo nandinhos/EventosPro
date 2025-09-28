@@ -148,6 +148,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/audit/run-data-audit', [AuditController::class, 'runDataAudit'])->name('audit.run-data-audit');
     Route::post('/audit/get-issues', [AuditController::class, 'getAuditIssues'])->name('audit.get-issues');
     Route::post('/audit/apply-fix', [AuditController::class, 'applyFix'])->name('audit.apply-fix');
+    Route::post('/audit/apply-bulk-fix', [AuditController::class, 'applyBulkFix'])->name('audit.apply-bulk-fix');
 
 });
 
