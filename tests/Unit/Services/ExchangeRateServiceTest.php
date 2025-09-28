@@ -9,14 +9,11 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 class ExchangeRateServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
-    private ExchangeRateService $exchangeRateService;
-
-    protected function setUp(): void
+    use RefreshDatabase;    private ExchangeRateService $exchangeRateService;    protected function setUp(): void
     {
         parent::setUp();
         $this->exchangeRateService = new ExchangeRateService;
@@ -29,7 +26,7 @@ class ExchangeRateServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_1_for_brl_currency()
     {
         $rate = $this->exchangeRateService->getExchangeRate('BRL', Carbon::today());
@@ -37,7 +34,7 @@ class ExchangeRateServiceTest extends TestCase
         $this->assertEquals(1.0, $rate);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_null_for_unsupported_currency()
     {
         $rate = $this->exchangeRateService->getExchangeRate('JPY', Carbon::today());
@@ -45,7 +42,7 @@ class ExchangeRateServiceTest extends TestCase
         $this->assertNull($rate);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_cached_rate_when_available()
     {
         $date = Carbon::today();
@@ -59,7 +56,7 @@ class ExchangeRateServiceTest extends TestCase
         $this->assertEquals(5.25, $rate);
     }
 
-    /** @test */
+    #[Test]
     public function it_falls_back_to_default_rate_when_api_fails()
     {
         // Simular falha na API
@@ -72,7 +69,7 @@ class ExchangeRateServiceTest extends TestCase
         $this->assertEquals(5.30, $rate); // Taxa padrão configurada
     }
 
-    /** @test */
+    #[Test]
     public function it_fetches_rate_from_api_when_cache_is_disabled()
     {
         // Simular resposta da API do BCB
@@ -89,7 +86,7 @@ class ExchangeRateServiceTest extends TestCase
         $this->assertEquals(5.45, $rate);
     }
 
-    /** @test */
+    #[Test]
     public function it_converts_amount_to_brl_correctly()
     {
         // Mock HTTP calls to prevent real API calls
@@ -105,7 +102,7 @@ class ExchangeRateServiceTest extends TestCase
         $this->assertEquals(500.00, $convertedAmount);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_null_when_conversion_rate_not_available()
     {
         $convertedAmount = $this->exchangeRateService->convertToBRL(100.00, 'JPY', Carbon::today());
@@ -113,7 +110,7 @@ class ExchangeRateServiceTest extends TestCase
         $this->assertNull($convertedAmount);
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_multiple_rates_correctly()
     {
         // Mock HTTP calls to prevent real API calls
@@ -132,7 +129,7 @@ class ExchangeRateServiceTest extends TestCase
         $this->assertEquals(6.50, $rates['GBP']);
     }
 
-    /** @test */
+    #[Test]
     public function it_checks_supported_currencies_correctly()
     {
         $this->assertTrue($this->exchangeRateService->isSupportedCurrency('USD'));
@@ -141,7 +138,7 @@ class ExchangeRateServiceTest extends TestCase
         $this->assertFalse($this->exchangeRateService->isSupportedCurrency('JPY'));
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_supported_currencies_list()
     {
         $currencies = $this->exchangeRateService->getSupportedCurrencies();
@@ -153,7 +150,7 @@ class ExchangeRateServiceTest extends TestCase
         $this->assertContains('BRL', $currencies);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_api_timeout_gracefully()
     {
         // Simular timeout da API
@@ -169,7 +166,7 @@ class ExchangeRateServiceTest extends TestCase
         $this->assertEquals(5.30, $rate);
     }
 
-    /** @test */
+    #[Test]
     public function it_caches_api_response_correctly()
     {
         $date = Carbon::today();
@@ -199,7 +196,7 @@ class ExchangeRateServiceTest extends TestCase
         $this->assertEquals(5.35, $rate2);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_malformed_api_response()
     {
         // Simular resposta malformada da API
@@ -215,7 +212,7 @@ class ExchangeRateServiceTest extends TestCase
         $this->assertEquals(5.30, $rate);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_case_insensitive_currency_codes()
     {
         // Mock HTTP calls to prevent real API calls

@@ -194,6 +194,47 @@ sail composer install
 **Importante**: Certifique-se de que os containers estão rodando com `sail up -d`.
 ```
 
+## 🏗️ Services Disponíveis
+
+O projeto EventosPro possui os seguintes services documentados em `SERVICES_API.md`:
+
+### Services Principais
+- **AuditService**: Auditoria e validação de integridade de gigs
+- **ArtistFinancialsService**: Métricas financeiras de artistas
+- **ExchangeRateService**: Conversão de moedas e taxas de câmbio
+- **GigFinancialCalculatorService**: Cálculos financeiros específicos de gigs
+- **CommissionPaymentValidationService**: Validação de pagamentos de comissões
+- **UserManagementService**: Gerenciamento de usuários e permissões
+- **DashboardService**: Agregação de dados para dashboard
+- **FinancialProjectionService**: Projeções financeiras e fluxo de caixa
+- **FinancialReportService**: Relatórios financeiros detalhados
+- **BookerFinancialsService**: Métricas financeiras de bookers
+
+### Testando Services
+```bash
+# Testar todos os services
+sail artisan test tests/Unit/Services/
+
+# Testar service específico
+sail artisan test tests/Unit/Services/ExchangeRateServiceTest.php
+
+# Debug via Tinker
+sail artisan tinker
+# > app(App\Services\ExchangeRateService::class)->getExchangeRate('USD')
+```
+
+### Criando Novos Services
+```bash
+# 1. Criar service
+sail artisan make:class Services/NovoService
+
+# 2. Criar teste
+sail artisan make:test Unit/Services/NovoServiceTest --unit
+
+# 3. Documentar em SERVICES_API.md
+# 4. Atualizar esta lista
+```
+
 ## 📚 Recursos de Referência
 
 - **[Comandos Laravel Sail Completos](LARAVEL_SAIL_COMMANDS.md)**

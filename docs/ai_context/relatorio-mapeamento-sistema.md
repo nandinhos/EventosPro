@@ -21,7 +21,8 @@ Este documento serve como **centro da verdade** para o desenvolvimento do Evento
 1. ~~**GigDataAuditCommand** - Erro STDIN em ambiente web~~ ✅ **RESOLVIDO**
 2. **Baixa cobertura de testes** - Especialmente FinancialReportService (7%)
 3. ~~**Violações PSR-12** - Múltiplas inconsistências de código~~ ✅ **RESOLVIDO**
-4. **Falta de testes de integração** - Observers não testados
+4. ~~**Configurações inconsistentes de moeda** - Alias 'GPB' incorreto~~ ✅ **RESOLVIDO**
+5. **Falta de testes de integração** - Observers não testados
 
 ## 🎯 Prioridades Imediatas
 
@@ -29,6 +30,7 @@ Este documento serve como **centro da verdade** para o desenvolvimento do Evento
 - ~~Corrigir bug crítico do GigDataAuditCommand~~ ✅ **CONCLUÍDO**
 - Aumentar cobertura de testes para serviços críticos
 - ~~Corrigir violações PSR-12~~ ✅ **CONCLUÍDO**
+- ~~Corrigir configurações inconsistentes de moeda~~ ✅ **CONCLUÍDO**
 
 ### ALTO (2 semanas)  
 - Implementar testes de integração para observers

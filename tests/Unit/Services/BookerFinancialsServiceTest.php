@@ -9,14 +9,11 @@ use App\Models\Settlement;
 use App\Services\BookerFinancialsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 class BookerFinancialsServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
-    private BookerFinancialsService $service;
-
-    private Booker $booker;
+    use RefreshDatabase;    private BookerFinancialsService $service;    private Booker $booker;
 
     private Artist $artist;
 
@@ -30,7 +27,7 @@ class BookerFinancialsServiceTest extends TestCase
         $this->service = app(BookerFinancialsService::class);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_sales_kpis_without_date_filter()
     {
         // Arrange
@@ -60,7 +57,7 @@ class BookerFinancialsServiceTest extends TestCase
         $this->assertEquals(2, $result['total_gigs_sold']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_sales_kpis_with_date_filter()
     {
         // Arrange
@@ -97,7 +94,7 @@ class BookerFinancialsServiceTest extends TestCase
         $this->assertEquals(1, $result['total_gigs_sold']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_commission_kpis()
     {
         // Arrange
@@ -143,7 +140,7 @@ class BookerFinancialsServiceTest extends TestCase
         $this->assertEquals(100.00, $result['commission_to_receive']);
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_commission_chart_data()
     {
         // Arrange
@@ -169,7 +166,7 @@ class BookerFinancialsServiceTest extends TestCase
         $this->assertCount(12, $result['data']);
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_top_artists_without_date_filter()
     {
         // Arrange
@@ -214,7 +211,7 @@ class BookerFinancialsServiceTest extends TestCase
         $this->assertEquals(1, $result->first()->gigs_count);
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_top_artists_with_date_filter_and_limit()
     {
         // Arrange
@@ -265,7 +262,7 @@ class BookerFinancialsServiceTest extends TestCase
         $this->assertFalse($result->contains('artist_name', $artist3->name));
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_recent_gigs()
     {
         // Arrange
@@ -300,7 +297,7 @@ class BookerFinancialsServiceTest extends TestCase
         $this->assertTrue($firstDate->gte($lastDate));
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_gigs_for_period()
     {
         // Arrange
@@ -335,7 +332,7 @@ class BookerFinancialsServiceTest extends TestCase
         $this->assertEquals($gigInPeriod->id, $result->first()->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_excludes_deleted_gigs_from_all_methods()
     {
         // Arrange
@@ -372,7 +369,7 @@ class BookerFinancialsServiceTest extends TestCase
         $this->assertCount(1, $recentGigs);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_empty_results_gracefully()
     {
         // Act
@@ -395,5 +392,355 @@ class BookerFinancialsServiceTest extends TestCase
 
         $this->assertCount(0, $topArtists);
         $this->assertCount(0, $recentGigs);
+    }
+
+    #[Test]
+    public function it_gets_realized_events_without_date_filter()
+    {
+        // Arrange
+        $pastGig = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'cache_value' => 1000.00,
+            'currency' => 'BRL',
+            'gig_date' => now()->subDays(5),
+            'payment_status' => 'pago',
+            'artist_payment_status' => 'pago',
+            'booker_payment_status' => 'pendente',
+            'contract_status' => 'assinado',
+            'location_event_details' => 'São Paulo',
+            'contract_number' => 'CTR001',
+            'notes' => 'Test notes',
+        ]);
+
+        $futureGig = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->addDays(5),
+        ]);
+
+        // Act
+        $result = $this->service->getRealizedEvents($this->booker);
+
+        // Assert
+        $this->assertCount(1, $result);
+        $event = $result->first();
+        $this->assertEquals($pastGig->id, $event['id']);
+        $this->assertEquals('CTR001', $event['contract_number']);
+        $this->assertEquals($pastGig->gig_date->format('d/m/Y'), $event['gig_date']);
+        $this->assertEquals($this->artist->name, $event['artist_name']);
+        $this->assertEquals('São Paulo', $event['location']);
+        $this->assertEquals(1000.00, $event['cache_value_brl']);
+        $this->assertEquals('pago', $event['payment_status']);
+        $this->assertEquals('pago', $event['artist_payment_status']);
+        $this->assertEquals('pendente', $event['booker_payment_status']);
+        $this->assertEquals('assinado', $event['contract_status']);
+        $this->assertEquals('Test notes', $event['notes']);
+        $this->assertTrue($event['can_pay_commission']);
+        $this->assertFalse($event['is_exception']);
+    }
+
+    #[Test]
+    public function it_gets_realized_events_with_date_filter()
+    {
+        // Arrange
+        $startDate = now()->subDays(10);
+        $endDate = now()->subDays(3);
+
+        $gigInPeriod = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->subDays(5),
+        ]);
+
+        $gigOutOfPeriod = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->subDays(15),
+        ]);
+
+        // Act
+        $result = $this->service->getRealizedEvents($this->booker, $startDate, $endDate);
+
+        // Assert
+        $this->assertCount(1, $result);
+        $this->assertEquals($gigInPeriod->id, $result->first()['id']);
+    }
+
+    #[Test]
+    public function it_gets_future_events_without_date_filter()
+    {
+        // Arrange
+        $futureGig = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'cache_value' => 2000.00,
+            'currency' => 'BRL',
+            'gig_date' => now()->addDays(10),
+            'payment_status' => 'pendente',
+            'artist_payment_status' => 'pendente',
+            'booker_payment_status' => 'pendente',
+            'contract_status' => 'assinado',
+            'location_event_details' => 'Rio de Janeiro',
+            'contract_number' => 'CTR002',
+            'notes' => 'exceção autorizada para pagamento antecipado',
+        ]);
+
+        $pastGig = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->subDays(5),
+        ]);
+
+        // Act
+        $result = $this->service->getFutureEvents($this->booker);
+
+        // Assert
+        $this->assertCount(1, $result);
+        $event = $result->first();
+        $this->assertEquals($futureGig->id, $event['id']);
+        $this->assertEquals('CTR002', $event['contract_number']);
+        $this->assertEquals($futureGig->gig_date->format('d/m/Y'), $event['gig_date']);
+        $this->assertEquals($this->artist->name, $event['artist_name']);
+        $this->assertEquals('Rio de Janeiro', $event['location']);
+        $this->assertEquals(2000.00, $event['cache_value_brl']);
+        $this->assertEquals('pendente', $event['payment_status']);
+        $this->assertEquals('pendente', $event['artist_payment_status']);
+        $this->assertEquals('pendente', $event['booker_payment_status']);
+        $this->assertEquals('assinado', $event['contract_status']);
+        $this->assertEquals('exceção autorizada para pagamento antecipado', $event['notes']);
+        $this->assertTrue($event['can_pay_commission']);
+        $this->assertTrue($event['is_exception']);
+    }
+
+    #[Test]
+    public function it_gets_future_events_with_date_filter()
+    {
+        // Arrange
+        $startDate = now()->addDays(5);
+        $endDate = now()->addDays(15);
+
+        $gigInPeriod = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->addDays(10),
+        ]);
+
+        $gigOutOfPeriod = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->addDays(20),
+        ]);
+
+        // Act
+        $result = $this->service->getFutureEvents($this->booker, $startDate, $endDate);
+
+        // Assert
+        $this->assertCount(1, $result);
+        $this->assertEquals($gigInPeriod->id, $result->first()['id']);
+    }
+
+    #[Test]
+    public function it_detects_payment_exceptions_with_various_keywords()
+    {
+        // Arrange - Test different exception keywords
+        $exceptionKeywords = [
+            'exceção autorizada',
+            'excecao justificada',
+            'pagamento antecipado',
+            'justificado pela diretoria',
+            'autorizado pelo gestor',
+            'aprovado excepcionalmente',
+        ];
+
+        foreach ($exceptionKeywords as $keyword) {
+            $gig = Gig::factory()->create([
+                'booker_id' => $this->booker->id,
+                'artist_id' => $this->artist->id,
+                'gig_date' => now()->addDays(10),
+                'notes' => "Evento especial com {$keyword} devido às circunstâncias.",
+            ]);
+
+            // Act
+            $result = $this->service->getFutureEvents($this->booker);
+            $event = $result->where('id', $gig->id)->first();
+
+            // Assert
+            $this->assertTrue($event['is_exception'], "Failed to detect exception with keyword: {$keyword}");
+            $this->assertTrue($event['can_pay_commission'], "Should allow commission payment with keyword: {$keyword}");
+        }
+    }
+
+    #[Test]
+    public function it_does_not_detect_payment_exception_without_keywords()
+    {
+        // Arrange
+        $gig = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->addDays(10),
+            'notes' => 'Evento normal sem palavras especiais.',
+        ]);
+
+        // Act
+        $result = $this->service->getFutureEvents($this->booker);
+        $event = $result->first();
+
+        // Assert
+        $this->assertFalse($event['is_exception']);
+        $this->assertFalse($event['can_pay_commission']);
+    }
+
+    #[Test]
+    public function it_does_not_detect_payment_exception_with_empty_notes()
+    {
+        // Arrange
+        $gig = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->addDays(10),
+            'notes' => null,
+        ]);
+
+        // Act
+        $result = $this->service->getFutureEvents($this->booker);
+        $event = $result->first();
+
+        // Assert
+        $this->assertFalse($event['is_exception']);
+        $this->assertFalse($event['can_pay_commission']);
+    }
+
+    #[Test]
+    public function it_allows_commission_payment_for_past_events_regardless_of_notes()
+    {
+        // Arrange
+        $pastGig = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->subDays(5),
+            'notes' => 'Evento normal realizado conforme planejado',
+        ]);
+
+        // Act
+        $result = $this->service->getRealizedEvents($this->booker);
+        $event = $result->first();
+
+        // Assert
+        $this->assertTrue($event['can_pay_commission']);
+        $this->assertFalse($event['is_exception']);
+    }
+
+    #[Test]
+    public function it_calculates_financial_values_correctly_in_realized_events()
+    {
+        // Arrange
+        $gig = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'cache_value' => 1000.00,
+            'currency' => 'BRL',
+            'gig_date' => now()->subDays(5),
+            'booker_commission_type' => 'percentage',
+            'booker_commission_rate' => 10.0,
+            'agency_commission_type' => 'percentage',
+            'agency_commission_rate' => 5.0,
+        ]);
+
+        // Act
+        $result = $this->service->getRealizedEvents($this->booker);
+        $event = $result->first();
+
+        // Assert
+        $this->assertArrayHasKey('booker_commission_brl', $event);
+        $this->assertArrayHasKey('agency_commission_brl', $event);
+        $this->assertArrayHasKey('total_costs_brl', $event);
+        $this->assertIsNumeric($event['booker_commission_brl']);
+        $this->assertIsNumeric($event['agency_commission_brl']);
+        $this->assertIsNumeric($event['total_costs_brl']);
+    }
+
+    #[Test]
+    public function it_handles_artist_name_gracefully_when_artist_is_deleted()
+    {
+        // Arrange
+        $tempArtist = Artist::factory()->create();
+        $gig = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $tempArtist->id,
+            'gig_date' => now()->subDays(5),
+        ]);
+
+        // Delete the artist to simulate a missing relationship
+        $tempArtist->delete();
+
+        // Act
+        $result = $this->service->getRealizedEvents($this->booker);
+        $event = $result->first();
+
+        // Assert
+        $this->assertEquals('N/A', $event['artist_name']);
+    }
+
+    #[Test]
+    public function it_orders_realized_events_by_gig_date_desc()
+    {
+        // Arrange
+        $gig1 = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->subDays(10),
+        ]);
+
+        $gig2 = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->subDays(5),
+        ]);
+
+        $gig3 = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->subDays(15),
+        ]);
+
+        // Act
+        $result = $this->service->getRealizedEvents($this->booker);
+
+        // Assert
+        $this->assertCount(3, $result);
+        $this->assertEquals($gig2->id, $result->first()['id']); // Most recent first
+        $this->assertEquals($gig3->id, $result->last()['id']); // Oldest last
+    }
+
+    #[Test]
+    public function it_orders_future_events_by_gig_date_asc()
+    {
+        // Arrange
+        $gig1 = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->addDays(10),
+        ]);
+
+        $gig2 = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->addDays(5),
+        ]);
+
+        $gig3 = Gig::factory()->create([
+            'booker_id' => $this->booker->id,
+            'artist_id' => $this->artist->id,
+            'gig_date' => now()->addDays(15),
+        ]);
+
+        // Act
+        $result = $this->service->getFutureEvents($this->booker);
+
+        // Assert
+        $this->assertCount(3, $result);
+        $this->assertEquals($gig2->id, $result->first()['id']); // Nearest future first
+        $this->assertEquals($gig3->id, $result->last()['id']); // Furthest future last
     }
 }

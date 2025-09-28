@@ -28,11 +28,12 @@ Este documento define as tasks prioritárias para implementação das melhorias 
 - [x] Corrigir uso de Auth::user() em recursos Filament
 - [x] Implementar type hints para accessors e mutators
 
-#### Task 1.3: Corrigir Configurações Inconsistentes
-- [ ] Corrigir alias 'GPB' para 'GBP' no modelo Gig
-- [ ] Implementar configuração `config/exchange_rates.php`
-- [ ] Validar todas as configurações de moeda
-- [ ] Testar conversões de moeda
+#### Task 1.3: Corrigir Configurações Inconsistentes ✅ CONCLUÍDA
+- [x] Corrigir alias 'GPB' para 'GBP' nos requests de validação (StoreGigRequest, UpdateGigRequest)
+- [x] Implementar configuração `config/exchange_rates.php` com moedas suportadas e taxas padrão
+- [x] Validar todas as configurações de moeda nos requests (Payment, GigCost)
+- [x] Testar conversões de moeda (ExchangeRateService e FinancialProjectionService)
+- [x] Configurar ambiente de testes com SQLite para evitar dependências de MySQL
 
 ## 🧪 FASE 2: AUMENTO DE COBERTURA DE TESTES (14 dias)
 

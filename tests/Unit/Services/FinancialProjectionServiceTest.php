@@ -15,14 +15,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 class FinancialProjectionServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
-    protected FinancialProjectionService $projectionService;
-
-    protected GigFinancialCalculatorService $gigCalculator;
+    use RefreshDatabase;    protected FinancialProjectionService $projectionService;    protected GigFinancialCalculatorService $gigCalculator;
 
     protected function setUp(): void
     {
@@ -31,7 +28,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->projectionService = $this->app->make(FinancialProjectionService::class);
     }
 
-    /** @test */
+    #[Test]
     public function it_sets_period_correctly_for_30_days()
     {
         $this->projectionService->setPeriod('30_days');
@@ -41,35 +38,35 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertTrue(true); // Basic test that setPeriod doesn't throw errors
     }
 
-    /** @test */
+    #[Test]
     public function it_sets_period_correctly_for_60_days()
     {
         $this->projectionService->setPeriod('60_days');
         $this->assertTrue(true);
     }
 
-    /** @test */
+    #[Test]
     public function it_sets_period_correctly_for_90_days()
     {
         $this->projectionService->setPeriod('90_days');
         $this->assertTrue(true);
     }
 
-    /** @test */
+    #[Test]
     public function it_sets_period_correctly_for_next_semester()
     {
         $this->projectionService->setPeriod('next_semester');
         $this->assertTrue(true);
     }
 
-    /** @test */
+    #[Test]
     public function it_sets_period_correctly_for_next_year()
     {
         $this->projectionService->setPeriod('next_year');
         $this->assertTrue(true);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_accounts_receivable_with_no_payments()
     {
         $result = $this->projectionService->getAccountsReceivable();
@@ -77,7 +74,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertEquals(0.0, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_accounts_receivable_with_pending_payments()
     {
         $artist = Artist::factory()->create();
@@ -111,7 +108,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertEquals(500.0, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_upcoming_client_payments()
     {
         $artist = Artist::factory()->create();
@@ -155,7 +152,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertEquals(500, $result->first()->due_value);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_accounts_payable_artists_with_no_pending_gigs()
     {
         $result = $this->projectionService->getAccountsPayableArtists();
@@ -163,7 +160,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertEquals(0.0, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_accounts_payable_artists_with_pending_gigs()
     {
         $artist = Artist::factory()->create();
@@ -208,7 +205,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertGreaterThan(0, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_different_currencies_in_calculations()
     {
         // Mock HTTP calls to prevent real API calls and force fallback to config
@@ -247,7 +244,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertEquals(260.0, $result, 'Expected 50 USD * 5.20 = 260 BRL');
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_accounts_payable_bookers_with_no_pending_gigs()
     {
         $result = $this->projectionService->getAccountsPayableBookers();
@@ -255,7 +252,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertEquals(0.0, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_accounts_payable_bookers_with_pending_gigs()
     {
         $artist = Artist::factory()->create();
@@ -311,7 +308,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertGreaterThan(0, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_accounts_payable_expenses_with_no_costs()
     {
         $result = $this->projectionService->getAccountsPayableExpenses();
@@ -319,7 +316,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertEquals(0.0, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_accounts_payable_expenses_with_pending_costs()
     {
         $artist = Artist::factory()->create();
@@ -368,7 +365,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertEquals(800.0, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_projected_expenses_by_cost_center()
     {
         $artist = Artist::factory()->create();
@@ -412,7 +409,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertArrayHasKey('expenses', $firstGroup);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_projected_cash_flow()
     {
         $artist = Artist::factory()->create();
@@ -443,7 +440,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertGreaterThan(-1000, $result); // Basic sanity check
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_upcoming_payments_for_clients()
     {
         $artist = Artist::factory()->create();
@@ -476,7 +473,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertCount(1, $result); // Only the payment within period
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_upcoming_payments_for_artists()
     {
         $artist = Artist::factory()->create();
@@ -501,7 +498,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertCount(1, $result); // Only the gig within period
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_upcoming_payments_for_bookers()
     {
         $artist = Artist::factory()->create();
@@ -529,7 +526,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertCount(1, $result); // Only the gig within period
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_upcoming_internal_payments_for_artists()
     {
         $artist = Artist::factory()->create();
@@ -561,7 +558,7 @@ class FinancialProjectionServiceTest extends TestCase
         $this->assertCount(2, $result); // Past and future pending payments
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_upcoming_internal_payments_for_bookers()
     {
         $artist = Artist::factory()->create();

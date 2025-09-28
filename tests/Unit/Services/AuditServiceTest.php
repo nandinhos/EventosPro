@@ -8,20 +8,17 @@ use App\Services\AuditService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 class AuditServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
-    protected AuditService $auditService;
-
-    protected function setUp(): void
+    use RefreshDatabase;    protected AuditService $auditService;    protected function setUp(): void
     {
         parent::setUp();
         $this->auditService = app(AuditService::class);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_gig_integrity_with_valid_gig()
     {
         $gig = Gig::factory()->create([
@@ -42,7 +39,7 @@ class AuditServiceTest extends TestCase
         $this->assertArrayHasKey('validated_at', $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_gig_integrity_with_invalid_contract_value()
     {
         $gig = Gig::factory()->create([
@@ -56,7 +53,7 @@ class AuditServiceTest extends TestCase
         $this->assertContains('Valor do contrato não definido ou inválido', $result['issues']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_gig_integrity_with_missing_currency()
     {
         $gig = Gig::factory()->create([
@@ -73,7 +70,7 @@ class AuditServiceTest extends TestCase
         $this->assertContains('Moeda não definida', $result['issues']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_gig_integrity_with_no_payments()
     {
         $gig = Gig::factory()->create([
@@ -87,7 +84,7 @@ class AuditServiceTest extends TestCase
         $this->assertContains('Nenhum pagamento registrado', $result['issues']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_gig_integrity_with_currency_inconsistency()
     {
         $gig = Gig::factory()->create([
@@ -107,7 +104,7 @@ class AuditServiceTest extends TestCase
         $this->assertContains('Inconsistência de moedas entre contrato e pagamentos', $result['issues']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_basic_audit_data_structure()
     {
         $gig = Gig::factory()->create([
@@ -149,7 +146,7 @@ class AuditServiceTest extends TestCase
         $this->assertIsString($result['ultima_atualizacao']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_bulk_audit_data()
     {
         $gigs = Gig::factory()->count(3)->create([
@@ -175,7 +172,7 @@ class AuditServiceTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_consolidated_report_structure()
     {
         $gigs = Gig::factory()->count(2)->create([
@@ -213,7 +210,7 @@ class AuditServiceTest extends TestCase
         $this->assertEquals(2000.00, $resumo['total_contrato']);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_gig_with_overdue_payments_in_detailed_analysis()
     {
         $gig = Gig::factory()->create([
@@ -236,7 +233,7 @@ class AuditServiceTest extends TestCase
         $this->assertStringContainsString('🔴', $result['observacao']);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_gig_with_multiple_currencies_in_detailed_analysis()
     {
         $gig = Gig::factory()->create([

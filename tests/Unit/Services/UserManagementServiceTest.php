@@ -9,20 +9,17 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 class UserManagementServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
-    protected UserManagementService $userManagementService;
-
-    protected function setUp(): void
+    use RefreshDatabase;    protected UserManagementService $userManagementService;    protected function setUp(): void
     {
         parent::setUp();
         $this->userManagementService = new UserManagementService;
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_user_without_booker()
     {
         $userData = [
@@ -45,7 +42,7 @@ class UserManagementServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_user_with_new_booker()
     {
         $userData = [
@@ -70,7 +67,7 @@ class UserManagementServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_user_with_existing_booker()
     {
         $existingBooker = Booker::factory()->create();
@@ -89,7 +86,7 @@ class UserManagementServiceTest extends TestCase
         $this->assertEquals($existingBooker->id, $user->booker_id);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_exception_when_existing_booker_already_has_user()
     {
         $existingUser = User::factory()->create();
@@ -111,7 +108,7 @@ class UserManagementServiceTest extends TestCase
         $this->userManagementService->createUser($userData);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_update_user_basic_data()
     {
         $user = User::factory()->create([
@@ -131,7 +128,7 @@ class UserManagementServiceTest extends TestCase
         $this->assertEquals('updated@example.com', $updatedUser->email);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_update_user_password()
     {
         $user = User::factory()->create();
@@ -150,7 +147,7 @@ class UserManagementServiceTest extends TestCase
         $this->assertTrue(Hash::check('newpassword123', $updatedUser->password));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_update_existing_booker_data()
     {
         $booker = Booker::factory()->create([
@@ -174,7 +171,7 @@ class UserManagementServiceTest extends TestCase
         $this->assertEquals('new@contact.com', $booker->contact_info);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_delete_user_without_booker()
     {
         $user = User::factory()->create();
@@ -186,7 +183,7 @@ class UserManagementServiceTest extends TestCase
         $this->assertSoftDeleted('users', ['id' => $userId]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_delete_user_with_booker()
     {
         $booker = Booker::factory()->create();
@@ -201,7 +198,7 @@ class UserManagementServiceTest extends TestCase
         $this->assertSoftDeleted('bookers', ['id' => $bookerId]);
     }
 
-    /** @test */
+    #[Test]
     public function it_rolls_back_transaction_on_create_user_failure()
     {
         // Simula falha forçando violação de constraint
@@ -222,7 +219,7 @@ class UserManagementServiceTest extends TestCase
         $this->userManagementService->createUser($userData);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_update_user_to_become_booker_with_new_booker()
     {
         $user = User::factory()->create([
@@ -249,7 +246,7 @@ class UserManagementServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_update_user_to_become_booker_with_existing_booker()
     {
         $user = User::factory()->create([
@@ -270,7 +267,7 @@ class UserManagementServiceTest extends TestCase
         $this->assertEquals($existingBooker->id, $updatedUser->booker_id);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_remove_booker_association_from_user()
     {
         $booker = Booker::factory()->create();
@@ -289,7 +286,7 @@ class UserManagementServiceTest extends TestCase
         $this->assertDatabaseHas('bookers', ['id' => $booker->id]);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_exception_when_updating_to_existing_booker_already_associated()
     {
         $existingUser = User::factory()->create();
@@ -312,7 +309,7 @@ class UserManagementServiceTest extends TestCase
         $this->userManagementService->updateUser($user, $userData);
     }
 
-    /** @test */
+    #[Test]
     public function it_allows_user_to_keep_same_booker_when_updating()
     {
         $booker = Booker::factory()->create();
@@ -332,7 +329,7 @@ class UserManagementServiceTest extends TestCase
         $this->assertEquals('Updated Name', $updatedUser->name);
     }
 
-    /** @test */
+    #[Test]
     public function it_does_not_update_password_when_not_provided()
     {
         $user = User::factory()->create();
@@ -349,7 +346,7 @@ class UserManagementServiceTest extends TestCase
         $this->assertEquals($originalPassword, $updatedUser->password);
     }
 
-    /** @test */
+    #[Test]
     public function it_does_not_update_password_when_empty_string_provided()
     {
         $user = User::factory()->create();
@@ -367,7 +364,7 @@ class UserManagementServiceTest extends TestCase
         $this->assertEquals($originalPassword, $updatedUser->password);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_booker_name_in_uppercase()
     {
         $userData = [
@@ -387,7 +384,7 @@ class UserManagementServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_booker_creation_without_contact_info()
     {
         $userData = [
@@ -409,7 +406,7 @@ class UserManagementServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_rolls_back_transaction_on_update_user_failure()
     {
         $user = User::factory()->create();
@@ -431,7 +428,7 @@ class UserManagementServiceTest extends TestCase
         $this->userManagementService->updateUser($user, $userData);
     }
 
-    /** @test */
+    #[Test]
     public function it_rolls_back_transaction_on_delete_user_failure()
     {
         $user = User::factory()->create();

@@ -10,14 +10,11 @@ use App\Models\GigCost;
 use App\Services\GigFinancialCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 class GigFinancialCalculatorServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
-    protected GigFinancialCalculatorService $calculator;
-
-    protected Artist $artist;
+    use RefreshDatabase;    protected GigFinancialCalculatorService $calculator;    protected Artist $artist;
 
     protected Booker $booker;
 
@@ -32,7 +29,7 @@ class GigFinancialCalculatorServiceTest extends TestCase
         $this->costCenter = CostCenter::factory()->create();
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_gross_cash_brl_without_expenses()
     {
         $gig = Gig::factory()->create([
@@ -47,7 +44,7 @@ class GigFinancialCalculatorServiceTest extends TestCase
         $this->assertEquals(1000.00, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_gross_cash_brl_with_confirmed_expenses()
     {
         $gig = Gig::factory()->create([
@@ -75,7 +72,7 @@ class GigFinancialCalculatorServiceTest extends TestCase
         $this->assertEquals(700.00, $result); // 1000 - 200 - 100
     }
 
-    /** @test */
+    #[Test]
     public function it_ignores_unconfirmed_expenses_in_gross_cash_calculation()
     {
         $gig = Gig::factory()->create([
@@ -104,7 +101,7 @@ class GigFinancialCalculatorServiceTest extends TestCase
         $this->assertEquals(800.00, $result); // 1000 - 200 (ignora os 500 não confirmados)
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_agency_gross_commission_with_percentage()
     {
         $gig = Gig::factory()->create([
@@ -121,7 +118,7 @@ class GigFinancialCalculatorServiceTest extends TestCase
         $this->assertEquals(200.00, $result); // 20% de 1000
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_agency_gross_commission_with_fixed_value()
     {
         $gig = Gig::factory()->create([
@@ -138,7 +135,7 @@ class GigFinancialCalculatorServiceTest extends TestCase
         $this->assertEquals(150.00, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_artist_net_payout_brl()
     {
         $gig = Gig::factory()->create([
@@ -155,7 +152,7 @@ class GigFinancialCalculatorServiceTest extends TestCase
         $this->assertEquals(800.00, $result); // 1000 - 200 (20% comissão)
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_booker_commission_with_percentage()
     {
         $gig = Gig::factory()->create([
@@ -175,7 +172,7 @@ class GigFinancialCalculatorServiceTest extends TestCase
         $this->assertEquals(50.00, $result); // 5% de 1000
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_booker_commission_with_fixed_value()
     {
         $gig = Gig::factory()->create([
@@ -192,7 +189,7 @@ class GigFinancialCalculatorServiceTest extends TestCase
         $this->assertEquals(75.00, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_zero_booker_commission_when_no_booker()
     {
         $gig = Gig::factory()->create([
@@ -207,7 +204,7 @@ class GigFinancialCalculatorServiceTest extends TestCase
         $this->assertEquals(0.00, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_gig_without_booker_for_commission_calculation()
     {
         $gig = Gig::factory()->create([
@@ -222,7 +219,7 @@ class GigFinancialCalculatorServiceTest extends TestCase
         $this->assertEquals(0.00, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_agency_net_commission_brl()
     {
         $gig = Gig::factory()->create([
@@ -241,7 +238,7 @@ class GigFinancialCalculatorServiceTest extends TestCase
         $this->assertEquals(150.00, $result); // 200 - 50
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_total_confirmed_expenses_brl()
     {
         $gig = Gig::factory()->create([
@@ -274,7 +271,7 @@ class GigFinancialCalculatorServiceTest extends TestCase
         $this->assertEquals(450.00, $result); // 300 + 150 (ignora os 100 não confirmados)
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_complex_financial_calculation_scenario()
     {
         $gig = Gig::factory()->create([

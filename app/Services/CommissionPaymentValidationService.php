@@ -116,7 +116,10 @@ class CommissionPaymentValidationService
         try {
             $settlement = $gig->settlement;
             if (! $settlement) {
-                $settlement = new \App\Models\Settlement(['gig_id' => $gig->id]);
+                $settlement = new \App\Models\Settlement([
+                    'gig_id' => $gig->id,
+                    'settlement_date' => now()->toDateString()
+                ]);
             }
 
             $exceptionNote = "\n[EXCEÇÃO AUTORIZADA ".now()->format('d/m/Y H:i')."]: {$reason} - Autorizado por: {$authorizedBy}";

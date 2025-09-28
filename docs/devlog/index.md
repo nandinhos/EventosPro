@@ -31,6 +31,7 @@ O objetivo é manter uma memória viva das refatorações e evoluções, servind
 - **2025-09-27** → **🎯 MAPEAMENTO COMPLETO FINALIZADO** - Criado centro da verdade para desenvolvimento orientado com plano de implementação detalhado
 - **2025-09-27** → **✅ TASK 1.1 CONCLUÍDA** - Corrigido bug crítico do GigDataAuditCommand (erro STDIN em ambiente web), implementada detecção de ambiente e fallback automático
 - **2025-01-25** → **✅ CORREÇÕES DE QUALIDADE DE CÓDIGO** - Implementados type hints em métodos críticos, corrigido bug de conversão de moeda nos testes (PaymentFactory), resolvidos erros PHPStan relacionados a propriedades indefinidas
+- **2025-01-26** → **✅ DOCUMENTAÇÃO COMPLETA DE SERVICES** - Finalizada documentação abrangente de 10 services no SERVICES_API.md, incluindo FinancialProjectionService, BookerFinancialsService e correções na documentação existente. Atualizado AI_AGENT_INSTRUCTIONS.md com seção "Services Disponíveis"
 
 ---
 
@@ -41,6 +42,7 @@ O objetivo é manter uma memória viva das refatorações e evoluções, servind
 - [x] **Corrigir problemas de configuração de testes** (SQLite, migrations, factories)
 - [x] **Corrigir bug crítico do GigDataAuditCommand** (erro STDIN em ambiente web)
 - [x] **Corrigir violações PSR-12** (App::make() → DI, type hints, PHPDoc)
+- [x] **Documentar Services API** (SERVICES_API.md completo com 10 services)
 - [ ] **Aumentar cobertura de testes para 70%** (FinancialProjectionService, FinancialReportService)
 
 ### 🔥 ALTO (Próximas 2 semanas)
@@ -65,6 +67,8 @@ O objetivo é manter uma memória viva das refatorações e evoluções, servind
 - **[Contexto de Negócio](../ai_context/1_context.md)** - Regras de negócio e domínio
 - **[Stack Tecnológico](../ai_context/3_stack.md)** - Tecnologias e ferramentas
 - **[Regras de Desenvolvimento](../ai_context/4_rules.md)** - Padrões e convenções
+- **[API de Services](SERVICES_API.md)** - Documentação completa de 10 services do sistema
+- **[Instruções para IA](AI_AGENT_INSTRUCTIONS.md)** - Guia para agentes de IA com services disponíveis
 
 ---
 
@@ -78,13 +82,58 @@ O objetivo é manter uma memória viva das refatorações e evoluções, servind
 | **Blade Components**   | ✅ Bom      | 85%       | 2025-08-30         |
 | **PSR-12 Compliance**  | 🔶 Parcial  | ~85%      | 2025-08-30         |
 | **Service Layer**      | ✅ Sólido   | 100%      | 2025-08-30         |
+| **Documentação API**   | ✅ Completa | 100%      | 2025-01-26         |
 
-### 📊 Métricas da Análise (2025-01-21)
+### 📊 Métricas da Análise (2025-01-26)
 - **Arquivos Analisados**: 25+
-- **Services Identificados**: 8
+- **Services Identificados**: 10
+- **Services Documentados**: 10 (100%)
 - **Blade Components**: 15+
 - **Migrations**: 20+
-- **Testes Executados**: 116 (100% passando)
-- **Cobertura de Testes**: 21.1% (Meta: 70%)
+- **Testes Executados**: 198 (100% passando)
+- **Cobertura de Testes**: 33.6% (Meta: 70%)
+  - Services: 92.2% (excelente)
+  - Controllers HTTP: 3.99% (crítico)
+  - Models: 49.1% (médio)
+  - Exports: 0% (crítico)
+  - Events/Listeners: 0% (crítico)
 - **PSR-12 Compliance**: ~85% (Meta: 100%)
-- **Problemas Corrigidos**: Configuração SQLite, migrations, factories, validações
+- **Documentação API**: Completa (SERVICES_API.md + AI_AGENT_INSTRUCTIONS.md)
+- **Problemas Corrigidos**: Configuração SQLite, migrations, factories, validações, documentação de services
+
+---
+
+## 🎯 Próximos Passos Recomendados
+
+### 🔴 **CRÍTICO - Cobertura de Testes**
+1. **Controllers HTTP (3.99% → 70%)**
+   - Implementar testes para endpoints de API
+   - Adicionar testes de validação de requests
+   - Testar responses e status codes
+
+2. **Exports (0% → 80%)**
+   - Testar geração de relatórios Excel
+   - Validar estrutura e dados dos exports
+   - Implementar testes de performance
+
+3. **Events/Listeners (0% → 70%)**
+   - Testar `PaymentSaved` event
+   - Validar `UpdateGigPaymentStatus` listener
+   - Implementar testes de integração
+
+### 🟡 **ALTA PRIORIDADE**
+4. **FinancialReportService (88.5% → 95%)**
+   - Completar cobertura de métodos (52.4% → 90%)
+   - Testar cenários edge cases
+   - Validar cálculos complexos
+
+5. **Models (49.1% → 70%)**
+   - Implementar testes unitários para relationships
+   - Testar scopes e mutators
+   - Validar business rules
+
+### 🟢 **MÉDIO PRAZO**
+6. **Service Provider Customizado**
+7. **Laravel Event System Expansion**
+8. **Otimização de Performance**
+9. **Refatoração de Blade Components**

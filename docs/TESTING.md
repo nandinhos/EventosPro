@@ -10,37 +10,73 @@ Este documento descreve a configuração de testes, cobertura de código e pipel
 
 **⚠️ IMPORTANTE**: Este projeto usa Laravel Sail. SEMPRE execute comandos através do Sail:
 
+## 📐 Padrões de Comandos Estabelecidos
+
+### ✅ **Usar sempre Sail (dentro do container):**
+- `./vendor/bin/sail test` ao invés de `php artisan test`
+- `./vendor/bin/sail artisan` ao invés de `php artisan`
+- `./vendor/bin/sail composer` ao invés de `composer`
+- `./vendor/bin/sail npm` ao invés de `npm`
+
+### ✅ **Flags e Parâmetros:**
+- **NÃO usar** `--verbose` para saída mais limpa
+- Usar apenas flags essenciais para o funcionamento
+- Manter comandos simples e diretos
+
+### Exemplos Padronizados:
+
+```bash
+# ✅ CORRETO - Executar todos os testes
+./vendor/bin/sail test
+
+# ✅ CORRETO - Testes com cobertura
+./vendor/bin/sail test --coverage
+
+# ✅ CORRETO - Testes específicos
+./vendor/bin/sail test tests/Unit/AuditServiceTest.php
+
+# ✅ CORRETO - Comandos Artisan
+./vendor/bin/sail artisan migrate
+
+# ✅ CORRETO - Composer
+./vendor/bin/sail composer install
+
+# ❌ EVITAR - Comandos fora do container
+php artisan test --verbose
+composer install --verbose
+```
+
 ```bash
 # Executar todos os testes
-sail artisan test
+./vendor/bin/sail test
 
 # Executar testes com cobertura
-sail artisan test --coverage
+./vendor/bin/sail test --coverage
 
 # Executar testes com cobertura mínima (usando script)
-sail bash -c "./run-tests-coverage.sh 80"
+./vendor/bin/sail bash -c "./run-tests-coverage.sh 80"
 
 # Executar apenas testes unitários
-sail artisan test tests/Unit
+./vendor/bin/sail test tests/Unit
 
 # Executar apenas testes de feature
-sail artisan test tests/Feature
+./vendor/bin/sail test tests/Feature
 ```
 
 ### Testes Específicos
 
 ```bash
 # Testar services específicos
-sail artisan test tests/Unit/Services/
+./vendor/bin/sail test tests/Unit/Services/
 
 # Testar um service específico
-sail artisan test tests/Unit/Services/AuditServiceTest.php
+./vendor/bin/sail test tests/Unit/Services/AuditServiceTest.php
 
 # Testar com filtros específicos
-sail artisan test --filter=testCalculateGigAuditData
+./vendor/bin/sail test --filter=testCalculateGigAuditData
 
 # Testar com grupos específicos
-sail artisan test --group=services
+./vendor/bin/sail test --group=services
 ```
 
 ## 📊 Cobertura de Código
@@ -57,13 +93,13 @@ sail artisan test --group=services
 
 ```bash
 # Gerar relatório HTML
-sail artisan test --coverage --coverage-html=coverage-report
+./vendor/bin/sail test --coverage --coverage-html=coverage-report
 
 # Visualizar relatório (o arquivo será criado no host)
 open coverage-report/index.html
 
 # Gerar relatório com limite mínimo
-sail artisan test --coverage --min=80
+./vendor/bin/sail test --coverage --min=80
 ```
 
 ### Arquivos Excluídos da Cobertura
@@ -200,27 +236,27 @@ Script para executar testes com verificação de cobertura:
 #### Testes Falhando no CI
 ```bash
 # Verificar localmente
-sail artisan test --env=testing
+./vendor/bin/sail test --env=testing
 
 # Limpar cache
-sail artisan config:clear
-sail artisan cache:clear
+./vendor/bin/sail artisan config:clear
+./vendor/bin/sail artisan cache:clear
 ```
 
 #### Cobertura Baixa
 ```bash
 # Identificar arquivos sem cobertura
-sail artisan test --coverage --coverage-text
+./vendor/bin/sail test --coverage --coverage-text
 
 # Gerar relatório detalhado
-sail artisan test --coverage --coverage-html=coverage-report
+./vendor/bin/sail test --coverage --coverage-html=coverage-report
 ```
 
 #### Problemas de Banco
 ```bash
 # Recriar banco de testes
-sail artisan migrate:fresh --env=testing
-sail artisan db:seed --env=testing
+./vendor/bin/sail artisan migrate:fresh --env=testing
+./vendor/bin/sail artisan db:seed --env=testing
 ```
 
 ## 📞 Suporte

@@ -6,13 +6,13 @@ use App\Models\Artist;
 use App\Models\Gig;
 use App\Services\ArtistFinancialsService;
 use App\Services\GigFinancialCalculatorService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 class ArtistFinancialsServiceTest extends TestCase
 {
     use RefreshDatabase;
-
+    
     protected ArtistFinancialsService $artistFinancialsService;
 
     protected function setUp(): void
@@ -21,7 +21,7 @@ class ArtistFinancialsServiceTest extends TestCase
         $this->artistFinancialsService = app(ArtistFinancialsService::class);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_financial_metrics_for_artist_with_no_gigs()
     {
         $artist = Artist::factory()->create();
@@ -33,7 +33,7 @@ class ArtistFinancialsServiceTest extends TestCase
         $this->assertEquals(0, $result['cache_pending_brl']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_financial_metrics_for_artist_with_paid_gigs()
     {
         $artist = Artist::factory()->create();
@@ -53,7 +53,7 @@ class ArtistFinancialsServiceTest extends TestCase
         $this->assertEquals(0, $result['cache_pending_brl']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_financial_metrics_for_artist_with_pending_gigs()
     {
         $artist = Artist::factory()->create();
@@ -73,7 +73,7 @@ class ArtistFinancialsServiceTest extends TestCase
         $this->assertGreaterThan(0, $result['cache_pending_brl']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_financial_metrics_for_artist_with_mixed_payment_status()
     {
         $artist = Artist::factory()->create();
@@ -101,7 +101,7 @@ class ArtistFinancialsServiceTest extends TestCase
         $this->assertGreaterThan(0, $result['cache_pending_brl']);
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_financial_metrics_with_pre_filtered_gigs_collection()
     {
         $artist = Artist::factory()->create();
@@ -125,7 +125,7 @@ class ArtistFinancialsServiceTest extends TestCase
         $this->assertEquals(0, $result['cache_pending_brl']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_correct_structure_for_financial_metrics()
     {
         $artist = Artist::factory()->create();
@@ -150,7 +150,7 @@ class ArtistFinancialsServiceTest extends TestCase
         $this->assertIsNumeric($result['cache_pending_brl']);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_gigs_with_different_currencies()
     {
         $artist = Artist::factory()->create();
@@ -178,7 +178,7 @@ class ArtistFinancialsServiceTest extends TestCase
         $this->assertIsNumeric($result['cache_pending_brl']);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_gigs_with_null_or_unknown_payment_status()
     {
         $artist = Artist::factory()->create();

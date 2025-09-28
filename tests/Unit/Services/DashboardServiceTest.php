@@ -10,14 +10,11 @@ use App\Services\GigFinancialCalculatorService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 class DashboardServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
-    protected DashboardService $dashboardService;
-
-    protected GigFinancialCalculatorService $gigCalculator;
+    use RefreshDatabase;    protected DashboardService $dashboardService;    protected GigFinancialCalculatorService $gigCalculator;
 
     protected function setUp(): void
     {
@@ -26,7 +23,7 @@ class DashboardServiceTest extends TestCase
         $this->dashboardService = new DashboardService($this->gigCalculator);
     }
 
-    /** @test */
+    #[Test]
     public function it_sets_filters_correctly()
     {
         $filters = [
@@ -39,7 +36,7 @@ class DashboardServiceTest extends TestCase
         $this->assertInstanceOf(DashboardService::class, $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_first_and_last_month_with_no_gigs()
     {
         $result = $this->dashboardService->getFirstAndLastMonth();
@@ -54,7 +51,7 @@ class DashboardServiceTest extends TestCase
         $this->assertEquals($now->copy()->endOfMonth()->format('Y-m-d'), $result['last_month']);
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_first_and_last_month_with_gigs()
     {
         $artist = Artist::factory()->create();
@@ -81,7 +78,7 @@ class DashboardServiceTest extends TestCase
         $this->assertEquals('2024-06-30', $result['last_month']);
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_dashboard_data()
     {
         $artist = Artist::factory()->create();
@@ -125,7 +122,7 @@ class DashboardServiceTest extends TestCase
         $this->assertEquals(1, $result['pendingBookerPaymentsCount']);
     }
 
-    /** @test */
+    #[Test]
     public function it_sets_default_period_correctly()
     {
         $service = new DashboardService($this->gigCalculator);
