@@ -1,4 +1,5 @@
 <?php
+
 // Código completo da migration create_settlements_table (Item 7 da resposta anterior, ajustado FK para gigs)
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;

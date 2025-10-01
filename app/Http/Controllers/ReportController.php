@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Gig;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class ReportController extends Controller
 {
@@ -37,7 +37,7 @@ class ReportController extends Controller
                         'booker' => $gig->booker->name,
                         'cache' => $gig->cache_value,
                         'booker_commission' => $gig->booker_commission,
-                        'agency_commission' => $gig->agency_commission
+                        'agency_commission' => $gig->agency_commission,
                     ];
                 });
             });
@@ -51,7 +51,7 @@ class ReportController extends Controller
 
         $bookerRevenueData = [
             'labels' => $bookerRevenue->pluck('name')->toArray(),
-            'values' => $bookerRevenue->pluck('total')->toArray()
+            'values' => $bookerRevenue->pluck('total')->toArray(),
         ];
 
         \Log::info('Dados do gráfico de faturamento por booker:', $bookerRevenueData);
@@ -70,7 +70,7 @@ class ReportController extends Controller
         $commissionsData = [
             'labels' => $commissions->pluck('name')->toArray(),
             'booker' => $commissions->pluck('booker_commission')->toArray(),
-            'agency' => $commissions->pluck('agency_commission')->toArray()
+            'agency' => $commissions->pluck('agency_commission')->toArray(),
         ];
 
         \Log::info('Dados do gráfico de comissões:', $commissionsData);

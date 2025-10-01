@@ -1,27 +1,23 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\View\View;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\GigController;
 use App\Http\Controllers\ArtistController;
+use App\Http\Controllers\AuditController;
 use App\Http\Controllers\BookerController;
-use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\GigCostController;
-use App\Http\Controllers\SettlementController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DelinquencyReportController;
 use App\Http\Controllers\FinancialProjectionController;
 use App\Http\Controllers\FinancialReportController;
-use App\Http\Controllers\DelinquencyReportController;
+use App\Http\Controllers\GigController;
+use App\Http\Controllers\GigCostController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PerformanceReportController;
-use App\Http\Controllers\DashboardController;
-use App\Models\Payment;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SettlementController;
+use App\Http\Controllers\TestReportController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\AuditController;
-
-
-
 use App\Models\Gig;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,13 +31,12 @@ use Carbon\Carbon;
 
 // Rota inicial
 Route::get('/', function () {
-    if (auth()->check()) {
+    if (Auth::check()) {
         return redirect()->route('dashboard');
     }
+
     return view('auth.login'); // ou 'welcome' se preferir
 })->name('home');
-
-
 
 // Grupo de rotas protegidas por autenticação
 Route::middleware('auth')->group(function () {
@@ -63,15 +58,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports', [FinancialReportController::class, 'index'])->name('reports.index');
     // Relatório de Visão Geral
     Route::get('/reports/overview/export/{format}', [FinancialReportController::class, 'exportOverview'])->name('reports.overview.export');
-    //Lista de inadimplentes
+    // Lista de inadimplentes
     Route::get('/reports/delinquency', [DelinquencyReportController::class, 'index'])->name('reports.delinquency');
     // Rota para exportação inadimplentes
     Route::get('/reports/delinquency/export/pdf', [DelinquencyReportController::class, 'exportPdf'])->name('reports.delinquency.exportPdf');
-    //pagamentos em massa
+    // pagamentos em massa
     Route::post('/reports/commissions/settle-batch', [App\Http\Controllers\FinancialReportController::class, 'settleBatchBookerCommissions'])->name('reports.commissions.settleBatch');
-    //desfazer pagaementos em massa
+    // desfazer pagaementos em massa
     Route::patch('/reports/commissions/unsettle-batch', [App\Http\Controllers\FinancialReportController::class, 'unsettleBatchBookerCommissions'])->name('reports.commissions.unsettleBatch');
-    //para exportar em excel/pdf
+    // para exportar em excel/pdf
     Route::get('/reports/export/{type}/{format}', [FinancialReportController::class, 'export'])->name('reports.export');
 
     // Artists
@@ -79,6 +74,9 @@ Route::middleware('auth')->group(function () {
 
     // Bookers
     Route::resource('bookers', BookerController::class);
+
+    // Rota para atualizar comissão de eventos
+    Route::post('/bookers/events/{eventId}/commission', [BookerController::class, 'updateEventCommission'])->name('bookers.events.commission.update');
 
     // Financial Projections
     Route::get('/projections', [FinancialProjectionController::class, 'index'])->name('projections.index');
@@ -98,12 +96,13 @@ Route::middleware('auth')->group(function () {
     // Due Dates Reports
     Route::get('/reports/due-dates', [FinancialReportController::class, 'dueDatesReport'])->name('reports.due-dates');
     Route::get('/reports/due-dates/export/pdf', [FinancialReportController::class, 'exportDueDatesPdf'])->name('reports.due-dates.exportPdf');
-    
+
     // Monthly Closing Reports
     // Rotas de Fechamento Mensal (movidas para o grupo financeiro)
     Route::get('/financeiro/fechamento-mensal', [App\Http\Controllers\MonthlyClosingController::class, 'index'])->name('finance.monthly-closing');
     Route::get('/financeiro/fechamento-mensal/exportar/pdf', [App\Http\Controllers\MonthlyClosingController::class, 'exportPdf'])->name('finance.monthly-closing.exportPdf');
-    
+    Route::get('/financeiro/fechamento-mensal/exportar', [App\Http\Controllers\MonthlyClosingController::class, 'export'])->name('finance.monthly-closing.export');
+
     // Gigs
     Route::resource('gigs', GigController::class);
     Route::get('gigs/{gig}/request-nf', [GigController::class, 'showRequestNfForm'])->name('gigs.request-nf');
@@ -132,15 +131,24 @@ Route::middleware('auth')->group(function () {
         Route::patch('unsettle-artist', [SettlementController::class, 'unsettleArtistPayment'])->name('settlements.artist.unsettle');
         Route::patch('unsettle-booker', [SettlementController::class, 'unsettleBookerCommission'])->name('settlements.booker.unsettle');
 
-        
     });
-
-    
 
     // ROTA DE DEPURAÇÃO FINANCEIRA PARA UMA GIG ESPECÍFICA
     // Coloque esta rota dentro do grupo de autenticação para que só usuários logados possam acessá-la.
     // Ela deve vir antes ou depois do Route::resource, a ordem aqui não é crítica.
     Route::get('gigs/{gig}/debug-financials', [GigController::class, 'debugFinancials'])->name('gigs.debugFinancials');
+
+    // Test Report Routes
+    Route::get('/test-report', [TestReportController::class, 'index'])->name('test-report.index');
+    Route::post('/test-report/run', [TestReportController::class, 'runTests'])->name('test-report.run');
+    Route::get('/test-report/export', [TestReportController::class, 'export'])->name('test-report.export');
+
+    // Data Audit Routes
+    Route::get('/audit/data-audit', [AuditController::class, 'dataAudit'])->name('audit.data-audit');
+    Route::post('/audit/run-data-audit', [AuditController::class, 'runDataAudit'])->name('audit.run-data-audit');
+    Route::post('/audit/get-issues', [AuditController::class, 'getAuditIssues'])->name('audit.get-issues');
+    Route::post('/audit/apply-fix', [AuditController::class, 'applyFix'])->name('audit.apply-fix');
+    Route::post('/audit/apply-bulk-fix', [AuditController::class, 'applyBulkFix'])->name('audit.apply-bulk-fix');
 
 });
 

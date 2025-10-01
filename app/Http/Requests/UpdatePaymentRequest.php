@@ -3,8 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Log; // Adicionar Log
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule; // Adicionar Log
 
 class UpdatePaymentRequest extends FormRequest
 {
@@ -34,30 +34,30 @@ class UpdatePaymentRequest extends FormRequest
             'currency' => ['required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])],
             'exchange_rate' => [
                 'nullable',
-                Rule::requiredIf(fn() => strtoupper($this->input('currency', 'BRL')) !== 'BRL'),
+                Rule::requiredIf(fn () => strtoupper($this->input('currency', 'BRL')) !== 'BRL'),
                 'numeric',
-                'min:0'
+                'min:0',
             ],
             'description' => ['nullable', 'string', 'max:255'], // Adicionado description se tiver no form
             'notes' => ['nullable', 'string', 'max:65535'],
         ];
     }
 
-     /**
-      * Get custom messages for validator errors.
-      */
-     public function messages(): array
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
     {
-         // Log::debug("Obtendo mensagens de erro personalizadas..."); // Log
-         return [
-             'due_value.required' => 'O Valor Devido é obrigatório.',
-             'due_value.min' => 'O Valor Devido deve ser positivo.',
-             'due_date.required' => 'A Data de Vencimento é obrigatória.',
-             'currency.required' => 'A Moeda é obrigatória.',
-             'exchange_rate.required_if' => 'A Taxa de Câmbio é obrigatória quando a moeda não é BRL.',
-             // ... outras mensagens ...
-         ];
-     }
+        // Log::debug("Obtendo mensagens de erro personalizadas..."); // Log
+        return [
+            'due_value.required' => 'O Valor Devido é obrigatório.',
+            'due_value.min' => 'O Valor Devido deve ser positivo.',
+            'due_date.required' => 'A Data de Vencimento é obrigatória.',
+            'currency.required' => 'A Moeda é obrigatória.',
+            'exchange_rate.required_if' => 'A Taxa de Câmbio é obrigatória quando a moeda não é BRL.',
+            // ... outras mensagens ...
+        ];
+    }
 
     /**
      * Prepare the data for validation.
@@ -70,23 +70,23 @@ class UpdatePaymentRequest extends FormRequest
         // Não precisamos limpar booker_id aqui
 
         if (strtoupper($this->input('currency', 'BRL')) === 'BRL') {
-           $toMerge['exchange_rate'] = null;
+            $toMerge['exchange_rate'] = null;
         }
-        if (!empty($toMerge)) {
+        if (! empty($toMerge)) {
             $this->merge($toMerge);
         }
         // Log::debug("Dados preparados (Update):", $this->all()); // Log
     }
 
-     /**
-      * Handle a failed validation attempt.
-      * (Para logar erros de validação explicitamente)
-      *
-      * @param  \Illuminate\Contracts\Validation\Validator  $validator
-      * @return void
-      *
-      * @throws \Illuminate\Validation\ValidationException
-      */
+    /**
+     * Handle a failed validation attempt.
+     * (Para logar erros de validação explicitamente)
+     *
+     * @param  \Illuminate\Contracts\Validation\Validator  $validator
+     * @return void
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
     // protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
     // {
     //     Log::error('Falha na validação (UpdatePaymentRequest): ', $validator->errors()->toArray());

@@ -1,0 +1,31 @@
+{
+  "coverage": {
+    "minimum_percentage": 80,
+    "target_percentage": 90,
+    "excluded_directories": [
+      "app/Console",
+      "app/Exceptions",
+      "app/Http/Middleware",
+      "app/Providers/RouteServiceProvider.php"
+    ],
+    "critical_services": {
+      "minimum_percentage": 95,
+      "services": [
+        "app/Services/AuditService.php",
+        "app/Services/ExchangeRateService.php",
+        "app/Services/ArtistFinancialsService.php"
+      ]
+    }
+  },
+  "quality_gates": {
+    "enforce_on_ci": true,
+    "fail_on_coverage_drop": true,
+    "max_complexity": 10,
+    "max_method_length": 50
+  },
+  "reporting": {
+    "html_output": "coverage-report",
+    "formats": ["html", "text", "clover"],
+    "show_uncovered_files": false
+  }
+}

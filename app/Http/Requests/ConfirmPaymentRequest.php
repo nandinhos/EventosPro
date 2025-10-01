@@ -1,24 +1,29 @@
 <?php
+
 namespace App\Http\Requests;
+
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class ConfirmPaymentRequest extends FormRequest
 {
-    public function authorize(): bool { return true; }
+    public function authorize(): bool
+    {
+        return true;
+    }
 
     public function rules(): array
     {
         return [
-            'received_date_actual'        => ['required', 'date', 'before_or_equal:today'],
-            'received_value_actual'       => ['required', 'numeric', 'min:0.01'],
-            'currency_received_actual'    => ['required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])], // Nome do campo do form
+            'received_date_actual' => ['required', 'date', 'before_or_equal:today'],
+            'received_value_actual' => ['required', 'numeric', 'min:0.01'],
+            'currency_received_actual' => ['required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])], // Nome do campo do form
             'exchange_rate_received_actual' => [ // Nome do campo do form
                 'nullable',
-                Rule::requiredIf(fn() => strtoupper($this->input('currency_received_actual', 'BRL')) !== 'BRL'),
-                'numeric', 'min:0'
+                Rule::requiredIf(fn () => strtoupper($this->input('currency_received_actual', 'BRL')) !== 'BRL'),
+                'numeric', 'min:0',
             ],
-            'notes'                       => ['nullable', 'string', 'max:65535'],
+            'notes' => ['nullable', 'string', 'max:65535'],
         ];
     }
 

@@ -14,25 +14,26 @@ class GigFinancialCalculatorService
      * Todas as despesas confirmadas (is_confirmed = true) deduzem desta base,
      * independentemente de quem as pagou (is_invoice).
      *
-     * @param Gig $gig O modelo da Gig.
+     * @param  Gig  $gig  O modelo da Gig.
      * @return float O valor do cachê bruto em BRL.
      */
     public function calculateGrossCashBrl(Gig $gig): float
     {
         $gig->loadMissing('costs');
-        
+
         // Pega os detalhes do valor do contrato em BRL
         $contractBrlDetails = $gig->cacheValueBrlDetails; // Usa o novo accessor
-        
+
         if ($contractBrlDetails['value'] === null) {
             // Se não foi possível converter, não podemos calcular com segurança. Retorna 0.
             Log::warning("[GigFinancialCalculatorService] Não foi possível calcular o Cachê Bruto para Gig ID {$gig->id} por falta de taxa de câmbio.");
+
             return 0.0;
         }
 
         $contractValueBrl = $contractBrlDetails['value'];
-        
-        $totalConfirmedExpensesBrl = $gig->costs->where('is_confirmed', true)->sum('value');
+
+        $totalConfirmedExpensesBrl = $gig->costs->where('is_confirmed', true)->sum('value_brl');
 
         $grossCashBrl = $contractValueBrl - $totalConfirmedExpensesBrl;
 
@@ -45,7 +46,7 @@ class GigFinancialCalculatorService
      * Calcula a "Comissão Bruta da Agência".
      * Usa o "Cachê Bruto" (já com TODAS as despesas confirmadas deduzidas) como base.
      *
-     * @param Gig $gig O modelo da Gig.
+     * @param  Gig  $gig  O modelo da Gig.
      * @return float O valor da comissão bruta da agência em BRL.
      */
     public function calculateAgencyGrossCommissionBrl(Gig $gig): float
@@ -65,6 +66,7 @@ class GigFinancialCalculatorService
             $commission = ($grossCashBrl * $rate) / 100;
             Log::debug("[GigFinancialCalculatorService] Comissão Agência (Fallback Percentual) para Gig ID {$gig->id}: {$rate}% de Cachê Bruto BRL {$grossCashBrl} = {$commission}");
         }
+
         return (float) max(0, $commission);
     }
 
@@ -72,7 +74,7 @@ class GigFinancialCalculatorService
      * Calcula o "Cachê Líquido do Artista (antes do reembolso de despesas)".
      * Fórmula: Cachê Bruto - Comissão Bruta da Agência.
      *
-     * @param Gig $gig O modelo da Gig.
+     * @param  Gig  $gig  O modelo da Gig.
      * @return float O valor do cachê líquido do artista em BRL, antes de somar reembolsos.
      */
     public function calculateArtistNetPayoutBrl(Gig $gig): float
@@ -90,12 +92,12 @@ class GigFinancialCalculatorService
      * Calcula a "Comissão do Booker".
      * Usa o "Cachê Bruto" (já com TODAS as despesas confirmadas deduzidas) como base.
      *
-     * @param Gig $gig O modelo da Gig.
+     * @param  Gig  $gig  O modelo da Gig.
      * @return float O valor da comissão do booker em BRL.
      */
     public function calculateBookerCommissionBrl(Gig $gig): float
     {
-        if (!$gig->booker_id) {
+        if (! $gig->booker_id) {
             return 0.0;
         }
         $grossCashBrl = $this->calculateGrossCashBrl($gig); // Base de cálculo AGORA CORRETA
@@ -117,6 +119,7 @@ class GigFinancialCalculatorService
                 Log::warning("[GigFinancialCalculatorService] Tipo de comissão do Booker inválido para Gig ID {$gig->id}, resultando em comissão zero.");
             }
         }
+
         return (float) max(0, $commission);
     }
 
@@ -124,7 +127,7 @@ class GigFinancialCalculatorService
      * Calcula a "Comissão Líquida da Agência".
      * Fórmula: Comissão Bruta da Agência - Comissão do Booker.
      *
-     * @param Gig $gig O modelo da Gig.
+     * @param  Gig  $gig  O modelo da Gig.
      * @return float O valor da comissão líquida da agência em BRL.
      */
     public function calculateAgencyNetCommissionBrl(Gig $gig): float
@@ -140,41 +143,34 @@ class GigFinancialCalculatorService
 
     /**
      * Calcula o total de todas as despesas confirmadas para a Gig.
-     *
-     * @param Gig $gig
-     * @return float
      */
-    public function calculateTotalConfirmedExpensesBrl(Gig $gig): float // Este método já estava correto
+    public function calculateTotalConfirmedExpensesBrl(Gig $gig): float
     {
         $gig->loadMissing('costs');
-        $total = $gig->costs->where('is_confirmed', true)->sum('value');
+        $total = $gig->costs->where('is_confirmed', true)->sum('value_brl');
         Log::debug("[GigFinancialCalculatorService] Total TODAS Despesas Confirmadas BRL para Gig ID {$gig->id}: {$total}");
+
         return (float) $total;
     }
 
     /**
      * Calcula o total de despesas confirmadas E marcadas como reembolsáveis via NF do artista (is_invoice = true).
-     *
-     * @param Gig $gig
-     * @return float
      */
-    public function calculateTotalReimbursableExpensesBrl(Gig $gig): float // Este método já estava correto
+    public function calculateTotalReimbursableExpensesBrl(Gig $gig): float
     {
         $gig->loadMissing('costs');
         $total = $gig->costs
             ->where('is_confirmed', true)
             ->where('is_invoice', true)
-            ->sum('value');
+            ->sum('value_brl');
         Log::debug("[GigFinancialCalculatorService] Total Despesas Reembolsáveis (NF Artista) BRL para Gig ID {$gig->id}: {$total}");
+
         return (float) $total;
     }
 
     /**
      * Calcula o valor final para a Nota Fiscal do Artista.
      * Fórmula: Cachê Líquido do Artista (antes do reembolso) + Total de Despesas Reembolsáveis.
-     *
-     * @param Gig $gig
-     * @return float
      */
     public function calculateArtistInvoiceValueBrl(Gig $gig): float // Este método já estava correto na sua lógica interna
     {
@@ -183,15 +179,13 @@ class GigFinancialCalculatorService
 
         $invoiceValue = $artistNetPayoutBeforeReimbursement + $reimbursableExpenses;
         Log::debug("[GigFinancialCalculatorService] Valor NF Artista para Gig ID {$gig->id}: Payout Artista (antes reembolso) BRL {$artistNetPayoutBeforeReimbursement} + Desp. Reembolsáveis BRL {$reimbursableExpenses} = {$invoiceValue}");
+
         return (float) $invoiceValue;
     }
 
     /**
      * Calcula o valor total já recebido para uma Gig, na moeda original da Gig.
      * Soma o valor de todos os pagamentos confirmados que estão na mesma moeda do contrato.
-     *
-     * @param  \App\Models\Gig $gig
-     * @return float
      */
     public function calculateTotalReceivedInOriginalCurrency(Gig $gig): float
     {
@@ -211,9 +205,6 @@ class GigFinancialCalculatorService
     /**
      * Calcula o valor total AINDA A RECEBER, somando as parcelas pendentes.
      * Soma o valor devido (due_value) de todos os pagamentos não confirmados.
-     *
-     * @param  \App\Models\Gig $gig
-     * @return float
      */
     public function calculateTotalReceivableInOriginalCurrency(Gig $gig): float
     {
@@ -224,17 +215,13 @@ class GigFinancialCalculatorService
             ->sum('due_value');
 
         Log::debug("[GigFinancialCalculatorService] Calculando Total A RECEBER (parcelas pendentes) para Gig ID {$gig->id}: {$totalReceivable}");
+
         return (float) $totalReceivable;
     }
-
-
 
     /**
      * Calcula o saldo pendente a ser recebido para uma Gig, na moeda original da Gig.
      * Fórmula: Valor do Contrato (Original) - Total Recebido (na Moeda Original).
-     *
-     * @param  \App\Models\Gig $gig
-     * @return float
      */
     public function calculatePendingBalanceInOriginalCurrency(Gig $gig): float
     {

@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\User;
 use App\Models\Booker;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -13,8 +13,8 @@ class UserManagementService
     /**
      * Cria um novo usuário e, opcionalmente, associa ou cria um perfil de Booker.
      *
-     * @param array $userData Dados validados do usuário.
-     * @return User
+     * @param  array  $userData  Dados validados do usuário.
+     *
      * @throws \Exception
      */
     public function createUser(array $userData): User
@@ -53,11 +53,12 @@ class UserManagementService
             ]);
 
             DB::commit(); // Confirma a transação
+
             return $user;
 
         } catch (\Exception $e) {
             DB::rollBack(); // Reverte a transação em caso de erro
-            Log::error('Erro ao criar usuário no serviço: ' . $e->getMessage(), ['exception' => $e, 'user_data' => $userData]);
+            Log::error('Erro ao criar usuário no serviço: '.$e->getMessage(), ['exception' => $e, 'user_data' => $userData]);
             throw $e; // Re-lança a exceção para o controller lidar com a resposta
         }
     }
@@ -65,9 +66,9 @@ class UserManagementService
     /**
      * Atualiza um usuário existente e gerencia seu perfil de Booker.
      *
-     * @param User $user Instância do usuário a ser atualizado.
-     * @param array $userData Dados validados para atualização.
-     * @return User
+     * @param  User  $user  Instância do usuário a ser atualizado.
+     * @param  array  $userData  Dados validados para atualização.
+     *
      * @throws \Exception
      */
     public function updateUser(User $user, array $userData): User
@@ -78,7 +79,7 @@ class UserManagementService
             $user->name = $userData['name'];
             $user->email = $userData['email'];
             // Atualiza a senha apenas se um novo valor for fornecido
-            if (isset($userData['password']) && !empty($userData['password'])) {
+            if (isset($userData['password']) && ! empty($userData['password'])) {
                 $user->password = Hash::make($userData['password']);
             }
             $user->save();
@@ -134,11 +135,12 @@ class UserManagementService
             }
 
             DB::commit(); // Confirma a transação
+
             return $user;
 
         } catch (\Exception $e) {
             DB::rollBack(); // Reverte a transação
-            Log::error('Erro ao atualizar usuário no serviço: ' . $e->getMessage(), ['exception' => $e, 'user_id' => $user->id, 'user_data' => $userData]);
+            Log::error('Erro ao atualizar usuário no serviço: '.$e->getMessage(), ['exception' => $e, 'user_id' => $user->id, 'user_data' => $userData]);
             throw $e; // Re-lança a exceção
         }
     }
@@ -146,8 +148,9 @@ class UserManagementService
     /**
      * Remove (soft delete) o usuário e, opcionalmente, seu perfil de Booker associado.
      *
-     * @param User $user Instância do usuário a ser removido.
+     * @param  User  $user  Instância do usuário a ser removido.
      * @return bool True se a remoção foi bem-sucedida, false caso contrário.
+     *
      * @throws \Exception
      */
     public function deleteUser(User $user): bool
@@ -164,11 +167,12 @@ class UserManagementService
             $user->delete();
 
             DB::commit(); // Confirma a transação
+
             return true;
 
         } catch (\Exception $e) {
             DB::rollBack(); // Reverte a transação
-            Log::error('Erro ao remover usuário no serviço: ' . $e->getMessage(), ['exception' => $e, 'user_id' => $user->id]);
+            Log::error('Erro ao remover usuário no serviço: '.$e->getMessage(), ['exception' => $e, 'user_id' => $user->id]);
             throw $e; // Re-lança a exceção para o controller
         }
     }

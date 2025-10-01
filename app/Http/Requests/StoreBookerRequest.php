@@ -1,11 +1,15 @@
 <?php
+
 namespace App\Http\Requests;
+
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreBookerRequest extends FormRequest
 {
-    public function authorize(): bool { return true; }
+    public function authorize(): bool
+    {
+        return true;
+    }
 
     public function rules(): array
     {
@@ -14,12 +18,13 @@ class StoreBookerRequest extends FormRequest
             'default_commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'], // Comissão % opcional
         ];
     }
+
     public function messages(): array
     {
-         return [
-             'name.required' => 'O nome do booker é obrigatório.',
-             'name.unique' => 'Este nome de booker já está cadastrado.',
-             'default_commission_rate.max' => 'A taxa de comissão não pode ser maior que 100.',
-         ];
-     }
+        return [
+            'name.required' => 'O nome do booker é obrigatório.',
+            'name.unique' => 'Este nome de booker já está cadastrado.',
+            'default_commission_rate.max' => 'A taxa de comissão não pode ser maior que 100.',
+        ];
+    }
 }

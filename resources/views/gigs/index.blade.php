@@ -136,6 +136,7 @@
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Local / Evento</th>
                     <x-sortable-th column="currency" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Moeda" />
                     <x-sortable-th column="cache_value" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Cachê" class="text-right" defaultDirection="desc" /> {{-- Adiciona classe text-right --}}
+                    <x-sortable-th column="contract_status" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Status Contrato" class="text-center" />
                     <x-sortable-th column="payment_status" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Pgto Cliente" class="text-center" />
                     <x-sortable-th column="artist_payment_status" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Pgto Artista" class="text-center" />
                     <x-sortable-th column="booker_payment_status" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Pgto Booker" class="text-center" />
@@ -163,6 +164,9 @@
                                 {{ number_format($gig->cache_value, 2, ',', '.') }}
                             </td>
                             {{-- Colunas de Status (usando componente) --}}
+                            <td class="px-3 py-1.5 whitespace-nowrap text-center">
+                                <x-status-badge :status="$gig->contract_status" type="contract" />
+                            </td>
                             <td class="px-3 py-1.5 whitespace-nowrap text-center">
                                 <x-status-badge :status="$gig->payment_status" type="payment" />
                             </td>
@@ -199,7 +203,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                            <td colspan="10" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                                 Nenhum registro encontrado. Ajuste os filtros ou <a href="{{ route('gigs.create') }}" class="text-primary-600 hover:underline">crie uma nova Gig</a>.
                             </td>
                         </tr>

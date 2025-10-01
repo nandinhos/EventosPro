@@ -1,4 +1,5 @@
 <?php
+
 // Código completo da migration create_artists_table (Item 2 da resposta anterior)
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;

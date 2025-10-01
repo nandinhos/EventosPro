@@ -81,8 +81,141 @@
                                 <p class="text-lg font-semibold text-orange-800 dark:text-orange-300 mt-1">R$ {{ number_format($commissionKpis['commission_to_receive'], 2, ',', '.') }}</p>
                             </div>
                         </div>
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-                            @if($analyticalTableData->isNotEmpty())
+
+                        <!-- Gráficos de Análise Detalhada -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                            <!-- Gráfico de Distribuição de Eventos -->
+                            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Distribuição de Eventos</h3>
+                                <div class="h-64 flex items-center justify-center">
+                                    <canvas id="eventsDistributionChart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Gráfico de Status de Pagamentos -->
+                            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Status de Comissões</h3>
+                                <div class="h-64 flex items-center justify-center">
+                                    <canvas id="commissionsStatusChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gráfico de Evolução Temporal -->
+                        @if($realizedEvents->isNotEmpty())
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md mb-8">
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Evolução Temporal dos Eventos Realizados</h3>
+                            <div class="h-72">
+                                <canvas id="temporalEvolutionChart"></canvas>
+                            </div>
+                        </div>
+                        @endif
+
+                        <!-- Agrupamento de Eventos Realizados -->
+                        <div class="mb-8">
+                            <h4 class="text-md font-medium text-gray-700 dark:text-gray-200 mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                                Eventos Realizados ({{ $realizedEvents->count() }})
+                            </h4>
+                            
+                            @if($realizedEvents->isNotEmpty())
+                                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+                                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                        <thead class="bg-green-50 dark:bg-green-900 text-xs uppercase text-gray-500 dark:text-gray-400">
+                                            <tr>
+                                                <th class="px-4 py-2 text-left">Data</th>
+                                                <th class="px-4 py-2 text-left">Artista</th>
+                                                <th class="px-4 py-2 text-left">Local</th>
+                                                <th class="px-4 py-2 text-right">Valor</th>
+                                                <th class="px-4 py-2 text-right">Comissão</th>
+                                                <th class="px-4 py-2 text-center">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="text-sm">
+                                            @foreach($realizedEvents as $event)
+                                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                                <td class="px-4 py-2 whitespace-nowrap">{{ $event['gig_date'] }}</td>
+                                                <td class="px-4 py-2 whitespace-nowrap font-medium text-gray-800 dark:text-white">{{ $event['artist_name'] }}</td>
+                                                <td class="px-4 py-2">{{ Str::limit($event['location'], 50) }}</td>
+                                                <td class="px-4 py-2 text-right">R$ {{ number_format($event['cache_value_brl'], 2, ',', '.') }}</td>
+                                                <td class="px-4 py-2 text-right">R$ {{ number_format($event['booker_commission_brl'], 2, ',', '.') }}</td>
+                                                <td class="px-4 py-2 text-center">
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                        @if($event['booker_payment_status'] === 'pago') bg-green-100 text-green-800 
+                                                        @else bg-yellow-100 text-yellow-800 @endif">
+                                                        {{ ucfirst($event['booker_payment_status']) }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg text-center py-8">
+                                    <p class="text-gray-500 dark:text-gray-400">Nenhum evento realizado encontrado.</p>
+                                </div>
+                            @endif
+                        </div>
+
+                        <!-- Agrupamento de Eventos Futuros -->
+                        <div class="mb-8">
+                            <h4 class="text-md font-medium text-gray-700 dark:text-gray-200 mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                </svg>
+                                Eventos Futuros ({{ $futureEvents->count() }})
+                            </h4>
+                            
+                            @if($futureEvents->isNotEmpty())
+                                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+                                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                        <thead class="bg-blue-50 dark:bg-blue-900 text-xs uppercase text-gray-500 dark:text-gray-400">
+                                            <tr>
+                                                <th class="px-4 py-2 text-left">Data</th>
+                                                <th class="px-4 py-2 text-left">Artista</th>
+                                                <th class="px-4 py-2 text-left">Local</th>
+                                                <th class="px-4 py-2 text-right">Valor</th>
+                                                <th class="px-4 py-2 text-right">Comissão</th>
+                                                <th class="px-4 py-2 text-center">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="text-sm">
+                                            @foreach($futureEvents as $event)
+                                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                                <td class="px-4 py-2 whitespace-nowrap">{{ $event['gig_date'] }}</td>
+                                                <td class="px-4 py-2 whitespace-nowrap font-medium text-gray-800 dark:text-white">{{ $event['artist_name'] }}</td>
+                                                <td class="px-4 py-2">{{ Str::limit($event['location'], 50) }}</td>
+                                                <td class="px-4 py-2 text-right">R$ {{ number_format($event['cache_value_brl'], 2, ',', '.') }}</td>
+                                                <td class="px-4 py-2 text-right">R$ {{ number_format($event['booker_commission_brl'], 2, ',', '.') }}</td>
+                                                <td class="px-4 py-2 text-center">
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                        @if($event['booker_payment_status'] === 'pago') bg-green-100 text-green-800 
+                                                        @elseif($event['is_exception']) bg-orange-100 text-orange-800
+                                                        @else bg-gray-100 text-gray-800 @endif">
+                                                        @if($event['is_exception']) Exceção @else {{ ucfirst($event['booker_payment_status']) }} @endif
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @else
+                                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg text-center py-8">
+                                    <p class="text-gray-500 dark:text-gray-400">Nenhum evento futuro encontrado.</p>
+                                </div>
+                            @endif
+                        </div>
+
+                        <!-- Tabela de Análise Detalhada Original (mantida para compatibilidade) -->
+                        @if($analyticalTableData->isNotEmpty())
+                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+                                <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700/50">
+                                    <h4 class="text-md font-medium text-gray-700 dark:text-gray-200">Análise por Período Filtrado</h4>
+                                </div>
                                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                     <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
                                         <tr>
@@ -103,14 +236,14 @@
                                         @endforeach
                                     </tbody>
                                 </table>
-                            @else
-                                <div class="text-center py-16 px-6">
-                                    <i class="fas fa-filter fa-3x text-gray-400 mb-4"></i>
-                                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">Detalhes por Período</h3>
-                                    <p class="text-sm text-gray-500 mt-1">Aplique um filtro de data para ver a lista detalhada de vendas.</p>
-                                </div>
-                            @endif
-                        </div>
+                            </div>
+                        @else
+                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md text-center py-16 px-6">
+                                <i class="fas fa-filter fa-3x text-gray-400 mb-4"></i>
+                                <h3 class="text-lg font-medium text-gray-900 dark:text-white">Detalhes por Período</h3>
+                                <p class="text-sm text-gray-500 mt-1">Aplique um filtro de data para ver a lista detalhada de vendas.</p>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
@@ -242,17 +375,30 @@
 @push('scripts')
 {{-- Script do Chart.js como antes --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{{-- Dados do servidor --}}
+<script type="application/json" id="chart-labels">@json($chart['labels'] ?? [])</script>
+<script type="application/json" id="chart-data">@json($chart['data'] ?? [])</script>
+<script type="application/json" id="realized-events">@json($realizedEvents ?? [])</script>
+<script type="application/json" id="future-events">@json($futureEvents ?? [])</script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Dados do servidor
+        const chartLabels = JSON.parse(document.getElementById('chart-labels').textContent);
+        const chartData = JSON.parse(document.getElementById('chart-data').textContent);
+        const realizedEventsData = JSON.parse(document.getElementById('realized-events').textContent);
+        const futureEventsData = JSON.parse(document.getElementById('future-events').textContent);
+        // Gráfico de Comissões Existente
         const ctx = document.getElementById('commissionsChart');
         if (ctx) {
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: @json($chart['labels']),
+                    labels: chartLabels,
                     datasets: [{
                         label: 'Comissão Paga (R$)',
-                        data: @json($chart['data']),
+                        data: chartData,
                         borderColor: '#6366f1',
                         backgroundColor: 'rgba(99, 102, 241, 0.2)',
                         borderWidth: 2,
@@ -261,13 +407,324 @@
                     }]
                 },
                 options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, ticks: { callback: function(value) { return 'R$ ' + value.toLocaleString('pt-BR'); } } } },
-                    plugins: { legend: { display: false } }
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R$ ' + value.toLocaleString('pt-BR');
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de Distribuição de Eventos (Donut)
+        const eventsDistCtx = document.getElementById('eventsDistributionChart');
+        if (eventsDistCtx) {
+            const realizedCount = realizedEventsData.length || 0;
+            const futureCount = futureEventsData.length || 0;
+            
+            new Chart(eventsDistCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Eventos Realizados', 'Eventos Futuros'],
+                    datasets: [{
+                        data: [realizedCount, futureCount],
+                        backgroundColor: ['#10b981', '#3b82f6'],
+                        borderColor: ['#059669', '#2563eb'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de Status de Comissões (Bar)
+        const commissionsStatusCtx = document.getElementById('commissionsStatusChart');
+        if (commissionsStatusCtx) {
+            const realizedEvents = realizedEventsData;
+            const futureEvents = futureEventsData;
+            
+            // Calcular totais por status
+            let paidCount = 0;
+            let pendingCount = 0;
+            let exceptionCount = 0;
+            let paidValue = 0;
+            let pendingValue = 0;
+            let exceptionValue = 0;
+            
+            realizedEvents.forEach(function(event) {
+                if (event.booker_payment_status === 'pago') {
+                    paidCount++;
+                    paidValue += parseFloat(event.booker_commission_brl || 0);
+                } else {
+                    pendingCount++;
+                    pendingValue += parseFloat(event.booker_commission_brl || 0);
+                }
+            });
+            
+            futureEvents.forEach(function(event) {
+                if (event.is_exception) {
+                    exceptionCount++;
+                    exceptionValue += parseFloat(event.booker_commission_brl || 0);
+                } else if (event.booker_payment_status === 'pago') {
+                    paidCount++;
+                    paidValue += parseFloat(event.booker_commission_brl || 0);
+                } else {
+                    pendingCount++;
+                    pendingValue += parseFloat(event.booker_commission_brl || 0);
+                }
+            });
+            
+            new Chart(commissionsStatusCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Pagas', 'Pendentes', 'Exceções'],
+                    datasets: [{
+                        label: 'Valor (R$)',
+                        data: [paidValue, pendingValue, exceptionValue],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                        borderColor: ['#059669', '#d97706', '#dc2626'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R$ ' + value.toLocaleString('pt-BR');
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de Evolução Temporal (Line)
+        const temporalCtx = document.getElementById('temporalEvolutionChart');
+        if (temporalCtx) {
+            const realizedEvents = realizedEventsData;
+            
+            // Agrupar eventos por mês
+            const monthlyData = {};
+            realizedEvents.forEach(function(event) {
+                const date = new Date(event.gig_date);
+                const monthKey = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+                
+                if (!monthlyData[monthKey]) {
+                    monthlyData[monthKey] = {
+                        count: 0,
+                        value: 0,
+                        commission: 0
+                    };
+                }
+                
+                monthlyData[monthKey].count++;
+                monthlyData[monthKey].value += parseFloat(event.cache_value_brl);
+                monthlyData[monthKey].commission += parseFloat(event.booker_commission_brl);
+            });
+            
+            // Ordenar por data e preparar dados
+            const sortedMonths = Object.keys(monthlyData).sort();
+            const labels = sortedMonths.map(month => {
+                const [year, monthNum] = month.split('-');
+                const date = new Date(year, monthNum - 1);
+                return date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+            });
+            
+            const eventCounts = sortedMonths.map(month => monthlyData[month].count);
+            const commissionValues = sortedMonths.map(month => monthlyData[month].commission);
+            
+            new Chart(temporalCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Número de Eventos',
+                        data: eventCounts,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        fill: false,
+                        yAxisID: 'y'
+                    }, {
+                        label: 'Comissão (R$)',
+                        data: commissionValues,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        fill: false,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Período'
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Número de Eventos'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Comissão (R$)'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R$ ' + value.toLocaleString('pt-BR');
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
                 }
             });
         }
     });
+</script>
+
+<script>
+// Função para alternar exibição dos detalhes do evento
+function toggleEventDetails(eventId) {
+    const detailsRow = document.getElementById(eventId);
+    if (detailsRow) {
+        detailsRow.classList.toggle('hidden');
+    }
+}
+
+// Função para atualizar comissão do evento
+function updateEventCommission(event, eventId, type) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    // Adicionar CSRF token
+    data._token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    fetch(`/bookers/events/${eventId}/commission`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': data._token
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Mostrar mensagem de sucesso
+            showNotification('Comissão atualizada com sucesso!', 'success');
+            
+            // Recarregar a página para atualizar os dados
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showNotification(data.message || 'Erro ao atualizar comissão', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        showNotification('Erro ao atualizar comissão', 'error');
+    });
+}
+
+// Função para mostrar notificações
+function showNotification(message, type) {
+    // Criar elemento de notificação
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Remover após 3 segundos
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Gerenciar checkboxes de exceção
+document.addEventListener('DOMContentLoaded', function() {
+    // Adicionar listeners para checkboxes de exceção
+    document.querySelectorAll('input[name="is_exception"]').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const eventId = this.closest('form').querySelector('input[name="event_id"]')?.value || 
+                           this.closest('tr').id.split('-')[1];
+            const justificationDiv = document.getElementById(`exception-justification-${eventId}`);
+            
+            if (justificationDiv) {
+                if (this.checked) {
+                    justificationDiv.classList.remove('hidden');
+                } else {
+                    justificationDiv.classList.add('hidden');
+                }
+            }
+        });
+    });
+});
 </script>
 @endpush
 </x-app-layout>

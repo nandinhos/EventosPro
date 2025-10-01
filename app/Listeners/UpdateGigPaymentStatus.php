@@ -1,13 +1,12 @@
 <?php
+
 namespace App\Listeners;
 
 use App\Events\PaymentSaved;
 use App\Models\Gig;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class UpdateGigPaymentStatus // implements ShouldQueue
 {
@@ -17,9 +16,10 @@ class UpdateGigPaymentStatus // implements ShouldQueue
             $gigId = $event->gig->id; // Pega ID da gig do evento
             $gig = Gig::lockForUpdate()->find($gigId); // Busca e trava a gig
 
-            if (!$gig) {
-                 Log::warning("Listener UpdateGigPaymentStatus: Gig ID {$gigId} não encontrada.");
-                 return;
+            if (! $gig) {
+                Log::warning("Listener UpdateGigPaymentStatus: Gig ID {$gigId} não encontrada.");
+
+                return;
             }
 
             Log::info("Listener UpdateGigPaymentStatus processando para Gig ID: {$gigId} após salvar/confirmar/deletar pagamento.");
@@ -29,15 +29,16 @@ class UpdateGigPaymentStatus // implements ShouldQueue
             $gigCurrency = strtoupper($gig->currency ?? 'BRL'); // <-- REDEFINIR A VARIÁVEL AQUI
 
             // ... (check de cache <= 0) ...
-            if ($totalDueOriginal <= 0) { /* ... marcar pago ... */ return; }
+            if ($totalDueOriginal <= 0) { /* ... marcar pago ... */ return;
+            }
 
             // 2. Calcular o total CONFIRMADO na MOEDA ORIGINAL da Gig
             $totalReceivedOriginal = $gig->payments()
-                                        ->whereNotNull('confirmed_at') // Só confirmados
-                                        ->where('currency', $gigCurrency) // <-- Usa $gigCurrency
-                                        ->sum('received_value_actual'); // Soma o valor REAL recebido
-                                        // Considerar fallback para due_value se received_actual for null?
-                                        // ->sum(DB::raw('COALESCE(received_value_actual, due_value, 0)'));
+                ->whereNotNull('confirmed_at') // Só confirmados
+                ->where('currency', $gigCurrency) // <-- Usa $gigCurrency
+                ->sum('received_value_actual'); // Soma o valor REAL recebido
+            // Considerar fallback para due_value se received_actual for null?
+            // ->sum(DB::raw('COALESCE(received_value_actual, due_value, 0)'));
 
             $totalReceivedOriginal = round($totalReceivedOriginal, 2);
 
@@ -50,9 +51,9 @@ class UpdateGigPaymentStatus // implements ShouldQueue
             } else {
                 // Verifica se HÁ algum pagamento NÃO CONFIRMADO com data VENCIDA
                 $isOverdue = $gig->payments()
-                                 ->whereNull('confirmed_at')
-                                 ->where('due_date', '<', today())
-                                 ->exists();
+                    ->whereNull('confirmed_at')
+                    ->where('due_date', '<', today())
+                    ->exists();
                 if ($isOverdue) {
                     $newPaymentStatus = 'vencido';
                 } else {
@@ -68,8 +69,8 @@ class UpdateGigPaymentStatus // implements ShouldQueue
                 // Usa $gigCurrency no Log
                 Log::info("Status de pagamento da Gig ID: {$gigId} atualizado de '{$originalStatus}' para '{$newPaymentStatus}'. Total Confirmado ({$gigCurrency}): {$totalReceivedOriginal}, Total Devido ({$gigCurrency}): {$totalDueOriginal}");
             } else {
-                 // Usa $gigCurrency no Log
-                 Log::info("Status de pagamento da Gig ID: {$gigId} permaneceu '{$newPaymentStatus}'. Total Confirmado ({$gigCurrency}): {$totalReceivedOriginal}, Total Devido ({$gigCurrency}): {$totalDueOriginal}");
+                // Usa $gigCurrency no Log
+                Log::info("Status de pagamento da Gig ID: {$gigId} permaneceu '{$newPaymentStatus}'. Total Confirmado ({$gigCurrency}): {$totalReceivedOriginal}, Total Devido ({$gigCurrency}): {$totalDueOriginal}");
             }
         });
     }

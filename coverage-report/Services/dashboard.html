@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <title>Dashboard for /var/www/html/app/Services</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="../_css/bootstrap.min.css?v=11.0.10" rel="stylesheet" type="text/css">
+  <link href="../_css/nv.d3.min.css?v=11.0.10" rel="stylesheet" type="text/css">
+  <link href="../_css/style.css?v=11.0.10" rel="stylesheet" type="text/css">
+  <link href="../_css/custom.css" rel="stylesheet" type="text/css">
+ </head>
+ <body>
+  <header>
+   <div class="container-fluid">
+    <div class="row">
+     <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+       <ol class="breadcrumb">
+         <li class="breadcrumb-item"><a href="../index.html">/var/www/html/app</a></li>
+         <li class="breadcrumb-item"><a href="index.html">Services</a></li>
+         <li class="breadcrumb-item active">(Dashboard)</li>
+
+       </ol>
+      </nav>
+     </div>
+    </div>
+   </div>
+  </header>
+  <div class="container-fluid">
+   <div class="row">
+    <div class="col-md-12">
+     <h2>Classes</h2>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Coverage Distribution</h3>
+     <div id="classCoverageDistribution" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Complexity</h3>
+     <div id="classComplexity" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Insufficient Coverage</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Class</th>
+         <th class="text-right">Coverage</th>
+        </tr>
+       </thead>
+       <tbody>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Project Risks</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Class</th>
+         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        </tr>
+       </thead>
+       <tbody>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-12">
+     <h2>Methods</h2>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Coverage Distribution</h3>
+     <div id="methodCoverageDistribution" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Complexity</h3>
+     <div id="methodComplexity" style="height: 300px;">
+       <svg></svg>
+     </div>
+    </div>
+   </div>
+   <div class="row">
+    <div class="col-md-6">
+     <h3>Insufficient Coverage</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Method</th>
+         <th class="text-right">Coverage</th>
+        </tr>
+       </thead>
+       <tbody>
+       <tr><td><a href="AuditService.php.html#211"><abbr title="App\Services\AuditService::getErrorAuditData">getErrorAuditData</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="ExchangeRateService.php.html#180"><abbr title="App\Services\ExchangeRateService::clearCache">clearCache</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="FinancialReportService.php.html#161"><abbr title="App\Services\FinancialReportService::getProfitabilityTableData">getProfitabilityTableData</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="GigFinancialCalculatorService.php.html#226"><abbr title="App\Services\GigFinancialCalculatorService::calculatePendingBalanceInOriginalCurrency">calculatePendingBalanceInOriginalCurrency</abbr></a></td><td class="text-right">0%</td></tr>
+       <tr><td><a href="FinancialReportService.php.html#82"><abbr title="App\Services\FinancialReportService::getOverviewTableData">getOverviewTableData</abbr></a></td><td class="text-right">62%</td></tr>
+       <tr><td><a href="FinancialReportService.php.html#346"><abbr title="App\Services\FinancialReportService::getCommissionsTableData">getCommissionsTableData</abbr></a></td><td class="text-right">64%</td></tr>
+       <tr><td><a href="FinancialReportService.php.html#45"><abbr title="App\Services\FinancialReportService::applyFilters">applyFilters</abbr></a></td><td class="text-right">66%</td></tr>
+       <tr><td><a href="FinancialReportService.php.html#383"><abbr title="App\Services\FinancialReportService::getExpensesTableData">getExpensesTableData</abbr></a></td><td class="text-right">74%</td></tr>
+       <tr><td><a href="DashboardService.php.html#25"><abbr title="App\Services\DashboardService::setFilters">setFilters</abbr></a></td><td class="text-right">75%</td></tr>
+       <tr><td><a href="AuditService.php.html#147"><abbr title="App\Services\AuditService::generateAutomaticObservations">generateAutomaticObservations</abbr></a></td><td class="text-right">79%</td></tr>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+    <div class="col-md-6">
+     <h3>Project Risks</h3>
+     <div class="scrollbox">
+      <table class="table">
+       <thead>
+        <tr>
+         <th>Method</th>
+         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        </tr>
+       </thead>
+       <tbody>
+       <tr><td><a href="AuditService.php.html#147"><abbr title="App\Services\AuditService::generateAutomaticObservations">generateAutomaticObservations</abbr></a></td><td class="text-right">14</td></tr>
+       <tr><td><a href="FinancialReportService.php.html#161"><abbr title="App\Services\FinancialReportService::getProfitabilityTableData">getProfitabilityTableData</abbr></a></td><td class="text-right">12</td></tr>
+       <tr><td><a href="ExchangeRateService.php.html#180"><abbr title="App\Services\ExchangeRateService::clearCache">clearCache</abbr></a></td><td class="text-right">6</td></tr>
+       <tr><td><a href="FinancialReportService.php.html#346"><abbr title="App\Services\FinancialReportService::getCommissionsTableData">getCommissionsTableData</abbr></a></td><td class="text-right">3</td></tr>
+       <tr><td><a href="FinancialReportService.php.html#45"><abbr title="App\Services\FinancialReportService::applyFilters">applyFilters</abbr></a></td><td class="text-right">3</td></tr>
+       <tr><td><a href="FinancialReportService.php.html#383"><abbr title="App\Services\FinancialReportService::getExpensesTableData">getExpensesTableData</abbr></a></td><td class="text-right">3</td></tr>
+       <tr><td><a href="DashboardService.php.html#25"><abbr title="App\Services\DashboardService::setFilters">setFilters</abbr></a></td><td class="text-right">3</td></tr>
+       <tr><td><a href="FinancialReportService.php.html#82"><abbr title="App\Services\FinancialReportService::getOverviewTableData">getOverviewTableData</abbr></a></td><td class="text-right">2</td></tr>
+
+       </tbody>
+      </table>
+     </div>
+    </div>
+   </div>
+   <footer>
+    <hr/>
+    <p>
+     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 11.0.10</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.12</a> and <a href="https://phpunit.de/">PHPUnit 11.5.34</a> at Sun Sep 28 1:41:01 -03 2025.</small>
+    </p>
+   </footer>
+  </div>
+  <script src="../_js/jquery.min.js?v=11.0.10" type="text/javascript"></script>
+  <script src="../_js/d3.min.js?v=11.0.10" type="text/javascript"></script>
+  <script src="../_js/nv.d3.min.js?v=11.0.10" type="text/javascript"></script>
+  <script type="text/javascript">
+$(document).ready(function() {
+  nv.addGraph(function() {
+    var chart = nv.models.multiBarChart();
+    chart.tooltips(false)
+      .showControls(false)
+      .showLegend(false)
+      .reduceXTicks(false)
+      .staggerLabels(true)
+      .yAxis.tickFormat(d3.format('d'));
+
+    d3.select('#classCoverageDistribution svg')
+      .datum(getCoverageDistributionData([0,0,0,0,0,0,0,0,0,3,3,4], "Class Coverage"))
+      .transition().duration(500).call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  nv.addGraph(function() {
+    var chart = nv.models.multiBarChart();
+    chart.tooltips(false)
+      .showControls(false)
+      .showLegend(false)
+      .reduceXTicks(false)
+      .staggerLabels(true)
+      .yAxis.tickFormat(d3.format('d'));
+
+    d3.select('#methodCoverageDistribution svg')
+      .datum(getCoverageDistributionData([4,0,0,0,0,0,0,3,3,4,7,69], "Method Coverage"))
+      .transition().duration(500).call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  function getCoverageDistributionData(data, label) {
+    var labels = [
+      '0%',
+      '0-10%',
+      '10-20%',
+      '20-30%',
+      '30-40%',
+      '40-50%',
+      '50-60%',
+      '60-70%',
+      '70-80%',
+      '80-90%',
+      '90-100%',
+      '100%'
+    ];
+    var values = [];
+    $.each(labels, function(key) {
+      values.push({x: labels[key], y: data[key]});
+    });
+
+    return [
+      {
+        key: label,
+        values: values,
+        color: "#4572A7"
+      }
+    ];
+  }
+  nv.addGraph(function() {
+    var chart = nv.models.scatterChart()
+      .showDistX(true)
+      .showDistY(true)
+      .showLegend(false)
+      .forceX([0, 100]);
+    chart.tooltipContent(function(graph) {
+      return '<p>' + graph.point.class + '</p>';
+    });
+
+    chart.xAxis.axisLabel('Code Coverage (in percent)');
+    chart.yAxis.axisLabel('Cyclomatic Complexity');
+
+    d3.select('#classComplexity svg')
+      .datum(getComplexityData([[100,5,"<a href=\"ArtistFinancialsService.php.html#12\">App\\Services\\ArtistFinancialsService<\/a>"],[84.78260869565217,38,"<a href=\"AuditService.php.html#10\">App\\Services\\AuditService<\/a>"],[100,24,"<a href=\"BookerFinancialsService.php.html#11\">App\\Services\\BookerFinancialsService<\/a>"],[100,18,"<a href=\"CommissionPaymentValidationService.php.html#10\">App\\Services\\CommissionPaymentValidationService<\/a>"],[98.34710743801654,16,"<a href=\"DashboardService.php.html#9\">App\\Services\\DashboardService<\/a>"],[87.5,24,"<a href=\"ExchangeRateService.php.html#10\">App\\Services\\ExchangeRateService<\/a>"],[98.32402234636871,34,"<a href=\"FinancialProjectionService.php.html#15\">App\\Services\\FinancialProjectionService<\/a>"],[88.54489164086688,64,"<a href=\"FinancialReportService.php.html#15\">App\\Services\\FinancialReportService<\/a>"],[90.47619047619048,19,"<a href=\"GigFinancialCalculatorService.php.html#9\">App\\Services\\GigFinancialCalculatorService<\/a>"],[100,23,"<a href=\"UserManagementService.php.html#11\">App\\Services\\UserManagementService<\/a>"]], 'Class Complexity'))
+      .transition()
+      .duration(500)
+      .call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  nv.addGraph(function() {
+    var chart = nv.models.scatterChart()
+      .showDistX(true)
+      .showDistY(true)
+      .showLegend(false)
+      .forceX([0, 100]);
+    chart.tooltipContent(function(graph) {
+      return '<p>' + graph.point.class + '</p>';
+    });
+
+    chart.xAxis.axisLabel('Code Coverage (in percent)');
+    chart.yAxis.axisLabel('Method Complexity');
+
+    d3.select('#methodComplexity svg')
+      .datum(getComplexityData([[100,1,"<a href=\"ArtistFinancialsService.php.html#16\">App\\Services\\ArtistFinancialsService::__construct<\/a>"],[100,4,"<a href=\"ArtistFinancialsService.php.html#26\">App\\Services\\ArtistFinancialsService::getFinancialMetrics<\/a>"],[100,1,"<a href=\"AuditService.php.html#14\">App\\Services\\AuditService::__construct<\/a>"],[100,2,"<a href=\"AuditService.php.html#22\">App\\Services\\AuditService::calculateBulkAuditData<\/a>"],[88,4,"<a href=\"AuditService.php.html#37\">App\\Services\\AuditService::calculateGigAuditData<\/a>"],[100,1,"<a href=\"AuditService.php.html#89\">App\\Services\\AuditService::calculateTotalPaid<\/a>"],[100,1,"<a href=\"AuditService.php.html#97\">App\\Services\\AuditService::calculateTotalPending<\/a>"],[100,4,"<a href=\"AuditService.php.html#105\">App\\Services\\AuditService::performDetailedAnalysis<\/a>"],[79.16666666666666,13,"<a href=\"AuditService.php.html#147\">App\\Services\\AuditService::generateAutomaticObservations<\/a>"],[80,3,"<a href=\"AuditService.php.html#197\">App\\Services\\AuditService::classifyDivergence<\/a>"],[0,1,"<a href=\"AuditService.php.html#211\">App\\Services\\AuditService::getErrorAuditData<\/a>"],[100,2,"<a href=\"AuditService.php.html#230\">App\\Services\\AuditService::generateConsolidatedReport<\/a>"],[100,6,"<a href=\"AuditService.php.html#263\">App\\Services\\AuditService::validateGigIntegrity<\/a>"],[100,1,"<a href=\"BookerFinancialsService.php.html#15\">App\\Services\\BookerFinancialsService::__construct<\/a>"],[100,3,"<a href=\"BookerFinancialsService.php.html#20\">App\\Services\\BookerFinancialsService::getSalesKpis<\/a>"],[100,1,"<a href=\"BookerFinancialsService.php.html#36\">App\\Services\\BookerFinancialsService::getCommissionKpis<\/a>"],[100,2,"<a href=\"BookerFinancialsService.php.html#52\">App\\Services\\BookerFinancialsService::getCommissionChartData<\/a>"],[100,3,"<a href=\"BookerFinancialsService.php.html#81\">App\\Services\\BookerFinancialsService::getTopArtists<\/a>"],[100,1,"<a href=\"BookerFinancialsService.php.html#117\">App\\Services\\BookerFinancialsService::getRecentGigs<\/a>"],[100,1,"<a href=\"BookerFinancialsService.php.html#127\">App\\Services\\BookerFinancialsService::getGigsForPeriod<\/a>"],[100,3,"<a href=\"BookerFinancialsService.php.html#143\">App\\Services\\BookerFinancialsService::getRealizedEvents<\/a>"],[100,3,"<a href=\"BookerFinancialsService.php.html#179\">App\\Services\\BookerFinancialsService::getFutureEvents<\/a>"],[100,2,"<a href=\"BookerFinancialsService.php.html#216\">App\\Services\\BookerFinancialsService::canPayCommission<\/a>"],[100,4,"<a href=\"BookerFinancialsService.php.html#231\">App\\Services\\BookerFinancialsService::isPaymentException<\/a>"],[100,4,"<a href=\"CommissionPaymentValidationService.php.html#18\">App\\Services\\CommissionPaymentValidationService::validateBookerCommissionPayment<\/a>"],[100,1,"<a href=\"CommissionPaymentValidationService.php.html#53\">App\\Services\\CommissionPaymentValidationService::validateArtistPayment<\/a>"],[100,3,"<a href=\"CommissionPaymentValidationService.php.html#65\">App\\Services\\CommissionPaymentValidationService::validateBatchPayment<\/a>"],[100,6,"<a href=\"CommissionPaymentValidationService.php.html#92\">App\\Services\\CommissionPaymentValidationService::hasPaymentException<\/a>"],[100,4,"<a href=\"CommissionPaymentValidationService.php.html#114\">App\\Services\\CommissionPaymentValidationService::createPaymentException<\/a>"],[100,1,"<a href=\"DashboardService.php.html#19\">App\\Services\\DashboardService::__construct<\/a>"],[75,3,"<a href=\"DashboardService.php.html#25\">App\\Services\\DashboardService::setFilters<\/a>"],[100,1,"<a href=\"DashboardService.php.html#39\">App\\Services\\DashboardService::setDefaultPeriod<\/a>"],[100,3,"<a href=\"DashboardService.php.html#50\">App\\Services\\DashboardService::getFirstAndLastMonth<\/a>"],[100,1,"<a href=\"DashboardService.php.html#72\">App\\Services\\DashboardService::getDashboardData<\/a>"],[100,7,"<a href=\"DashboardService.php.html#152\">App\\Services\\DashboardService::prepareMonthlyRevenueChartData<\/a>"],[92,8,"<a href=\"ExchangeRateService.php.html#30\">App\\Services\\ExchangeRateService::getExchangeRate<\/a>"],[94.73684210526315,5,"<a href=\"ExchangeRateService.php.html#88\">App\\Services\\ExchangeRateService::fetchFromExternalAPI<\/a>"],[100,2,"<a href=\"ExchangeRateService.php.html#130\">App\\Services\\ExchangeRateService::getDefaultRate<\/a>"],[100,1,"<a href=\"ExchangeRateService.php.html#142\">App\\Services\\ExchangeRateService::getCacheKey<\/a>"],[100,2,"<a href=\"ExchangeRateService.php.html#150\">App\\Services\\ExchangeRateService::getMultipleRates<\/a>"],[100,2,"<a href=\"ExchangeRateService.php.html#164\">App\\Services\\ExchangeRateService::convertToBRL<\/a>"],[0,2,"<a href=\"ExchangeRateService.php.html#180\">App\\Services\\ExchangeRateService::clearCache<\/a>"],[100,1,"<a href=\"ExchangeRateService.php.html#196\">App\\Services\\ExchangeRateService::isSupportedCurrency<\/a>"],[100,1,"<a href=\"ExchangeRateService.php.html#204\">App\\Services\\ExchangeRateService::getSupportedCurrencies<\/a>"],[100,1,"<a href=\"FinancialProjectionService.php.html#26\">App\\Services\\FinancialProjectionService::__construct<\/a>"],[100,8,"<a href=\"FinancialProjectionService.php.html#37\">App\\Services\\FinancialProjectionService::setPeriod<\/a>"],[100,1,"<a href=\"FinancialProjectionService.php.html#76\">App\\Services\\FinancialProjectionService::getAccountsReceivable<\/a>"],[100,1,"<a href=\"FinancialProjectionService.php.html#91\">App\\Services\\FinancialProjectionService::getUpcomingClientPayments<\/a>"],[100,2,"<a href=\"FinancialProjectionService.php.html#112\">App\\Services\\FinancialProjectionService::getAccountsPayableArtists<\/a>"],[100,3,"<a href=\"FinancialProjectionService.php.html#138\">App\\Services\\FinancialProjectionService::getAccountsPayableBookers<\/a>"],[100,2,"<a href=\"FinancialProjectionService.php.html#169\">App\\Services\\FinancialProjectionService::getAccountsPayableExpenses<\/a>"],[94.54545454545455,9,"<a href=\"FinancialProjectionService.php.html#207\">App\\Services\\FinancialProjectionService::getProjectedExpensesByCostCenter<\/a>"],[100,1,"<a href=\"FinancialProjectionService.php.html#278\">App\\Services\\FinancialProjectionService::getProjectedCashFlow<\/a>"],[100,4,"<a href=\"FinancialProjectionService.php.html#294\">App\\Services\\FinancialProjectionService::getUpcomingPayments<\/a>"],[100,2,"<a href=\"FinancialProjectionService.php.html#320\">App\\Services\\FinancialProjectionService::getUpcomingInternalPayments<\/a>"],[100,1,"<a href=\"FinancialReportService.php.html#25\">App\\Services\\FinancialReportService::__construct<\/a>"],[100,3,"<a href=\"FinancialReportService.php.html#32\">App\\Services\\FinancialReportService::setFilters<\/a>"],[100,1,"<a href=\"FinancialReportService.php.html#39\">App\\Services\\FinancialReportService::setDefaultPeriod<\/a>"],[66.66666666666666,3,"<a href=\"FinancialReportService.php.html#45\">App\\Services\\FinancialReportService::applyFilters<\/a>"],[100,4,"<a href=\"FinancialReportService.php.html#59\">App\\Services\\FinancialReportService::getOverviewSummary<\/a>"],[62.5,2,"<a href=\"FinancialReportService.php.html#82\">App\\Services\\FinancialReportService::getOverviewTableData<\/a>"],[92,5,"<a href=\"FinancialReportService.php.html#123\">App\\Services\\FinancialReportService::getProfitabilitySummary<\/a>"],[0,3,"<a href=\"FinancialReportService.php.html#161\">App\\Services\\FinancialReportService::getProfitabilityTableData<\/a>"],[100,1,"<a href=\"FinancialReportService.php.html#205\">App\\Services\\FinancialReportService::getCashflowSummary<\/a>"],[100,3,"<a href=\"FinancialReportService.php.html#240\">App\\Services\\FinancialReportService::getCashflowTableData<\/a>"],[89.47368421052632,4,"<a href=\"FinancialReportService.php.html#314\">App\\Services\\FinancialReportService::getCommissionsSummary<\/a>"],[64.28571428571429,3,"<a href=\"FinancialReportService.php.html#346\">App\\Services\\FinancialReportService::getCommissionsTableData<\/a>"],[74.28571428571429,3,"<a href=\"FinancialReportService.php.html#383\">App\\Services\\FinancialReportService::getExpensesTableData<\/a>"],[97.1830985915493,5,"<a href=\"FinancialReportService.php.html#426\">App\\Services\\FinancialReportService::getFinancialReportData<\/a>"],[100,2,"<a href=\"FinancialReportService.php.html#530\">App\\Services\\FinancialReportService::getDetailedPerformanceData<\/a>"],[98.68421052631578,7,"<a href=\"FinancialReportService.php.html#596\">App\\Services\\FinancialReportService::getProfitabilityAnalysisData<\/a>"],[90.47619047619048,8,"<a href=\"FinancialReportService.php.html#716\">App\\Services\\FinancialReportService::getDetailedExpenses<\/a>"],[100,2,"<a href=\"FinancialReportService.php.html#768\">App\\Services\\FinancialReportService::getGroupedExpensesData<\/a>"],[100,1,"<a href=\"FinancialReportService.php.html#813\">App\\Services\\FinancialReportService::getGroupedCommissionsData<\/a>"],[100,2,"<a href=\"FinancialReportService.php.html#863\">App\\Services\\FinancialReportService::getSalesProfitabilityData<\/a>"],[100,1,"<a href=\"FinancialReportService.php.html#904\">App\\Services\\FinancialReportService::getOverviewData<\/a>"],[100,2,"<a href=\"GigFinancialCalculatorService.php.html#20\">App\\Services\\GigFinancialCalculatorService::calculateGrossCashBrl<\/a>"],[100,3,"<a href=\"GigFinancialCalculatorService.php.html#52\">App\\Services\\GigFinancialCalculatorService::calculateAgencyGrossCommissionBrl<\/a>"],[100,1,"<a href=\"GigFinancialCalculatorService.php.html#80\">App\\Services\\GigFinancialCalculatorService::calculateArtistNetPayoutBrl<\/a>"],[82.35294117647058,6,"<a href=\"GigFinancialCalculatorService.php.html#98\">App\\Services\\GigFinancialCalculatorService::calculateBookerCommissionBrl<\/a>"],[100,1,"<a href=\"GigFinancialCalculatorService.php.html#133\">App\\Services\\GigFinancialCalculatorService::calculateAgencyNetCommissionBrl<\/a>"],[100,1,"<a href=\"GigFinancialCalculatorService.php.html#147\">App\\Services\\GigFinancialCalculatorService::calculateTotalConfirmedExpensesBrl<\/a>"],[100,1,"<a href=\"GigFinancialCalculatorService.php.html#159\">App\\Services\\GigFinancialCalculatorService::calculateTotalReimbursableExpensesBrl<\/a>"],[100,1,"<a href=\"GigFinancialCalculatorService.php.html#175\">App\\Services\\GigFinancialCalculatorService::calculateArtistInvoiceValueBrl<\/a>"],[100,1,"<a href=\"GigFinancialCalculatorService.php.html#190\">App\\Services\\GigFinancialCalculatorService::calculateTotalReceivedInOriginalCurrency<\/a>"],[100,1,"<a href=\"GigFinancialCalculatorService.php.html#209\">App\\Services\\GigFinancialCalculatorService::calculateTotalReceivableInOriginalCurrency<\/a>"],[0,1,"<a href=\"GigFinancialCalculatorService.php.html#226\">App\\Services\\GigFinancialCalculatorService::calculatePendingBalanceInOriginalCurrency<\/a>"],[100,7,"<a href=\"UserManagementService.php.html#20\">App\\Services\\UserManagementService::createUser<\/a>"],[100,13,"<a href=\"UserManagementService.php.html#74\">App\\Services\\UserManagementService::updateUser<\/a>"],[100,3,"<a href=\"UserManagementService.php.html#156\">App\\Services\\UserManagementService::deleteUser<\/a>"]], 'Method Complexity'))
+      .transition()
+      .duration(500)
+      .call(chart);
+
+    nv.utils.windowResize(chart.update);
+
+    return chart;
+  });
+
+  function getComplexityData(data, label) {
+    var values = [];
+    $.each(data, function(key) {
+      var value = Math.round(data[key][0]*100) / 100;
+      values.push({
+        x: value,
+        y: data[key][1],
+        class: data[key][2],
+        size: 0.05,
+        shape: 'diamond'
+      });
+    });
+
+    return [
+      {
+        key: label,
+        values: values,
+        color: "#4572A7"
+      }
+    ];
+  }
+});
+  </script>
+ </body>
+</html>

@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\Settlement; // Importar modelos
 use App\Models\Event;
+use App\Models\Settlement; // Importar modelos
+use Illuminate\Database\Seeder;
 
 class SettlementSeeder extends Seeder
 {

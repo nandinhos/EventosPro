@@ -53,6 +53,16 @@
         .status-vencido { background-color: #fed7d7; color: #c53030; }
         .status-a_vencer { background-color: #ccebfb; color: #2b6cb0; }
         .status-confirmado { background-color: #c6f6d5; color: #2f855a; }
+        
+        /* Estilos para badges de status de contrato */
+        .contract-status-badge { display: inline-block; padding: 2px 6px; border-radius: 9999px; font-weight: bold; font-size: 8px; }
+        .contract-status-assinado { background-color: #c6f6d5; color: #2f855a; }
+        .contract-status-para_assinatura { background-color: #fef3c7; color: #d97706; }
+        .contract-status-concluido { background-color: #c6f6d5; color: #2f855a; }
+        .contract-status-expirado { background-color: #fed7d7; color: #c53030; }
+        .contract-status-cancelado { background-color: #fed7d7; color: #c53030; }
+        .contract-status-n_a { background-color: #e5e7eb; color: #6b7280; }
+        .contract-status-rascunho { background-color: #e5e7eb; color: #6b7280; }
     </style>
 </head>
 <body>
@@ -109,6 +119,25 @@
                         <td class="location-cell">
                             <div><strong>Local</strong></div>
                             <div>{{ $gig->location_event_details }}</div>
+                            @php
+                                $contractStatus = $gig->contract_status ?? 'rascunho';
+                                $statusMap = [
+                                    'assinado' => 'Assinado',
+                                    'para_assinatura' => 'Para Assinatura',
+                                    'concluido' => 'Concluído',
+                                    'expirado' => 'Expirado',
+                                    'cancelado' => 'Cancelado',
+                                    'n/a' => 'N/A',
+                                    'rascunho' => 'Rascunho'
+                                ];
+                                $statusTitle = $statusMap[strtolower($contractStatus)] ?? 'Desconhecido';
+                                $statusClass = 'contract-status-' . str_replace('/', '_', strtolower($contractStatus));
+                            @endphp
+                            <div>
+                                <span class="contract-status-badge {{ $statusClass }}">
+                                    {{ $statusTitle }}
+                                </span>
+                            </div>
                         </td>
 
                         <td class="payments-cell">

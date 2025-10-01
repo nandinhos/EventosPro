@@ -2,13 +2,11 @@
 
 namespace App\Events;
 
-use App\Models\Payment; // Importa o modelo Payment
-use App\Models\Gig;     // Importa o modelo Gig
+use App\Models\Gig; // Importa o modelo Payment
+use App\Models\Payment;     // Importa o modelo Gig
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
@@ -22,7 +20,7 @@ class PaymentSaved
     /**
      * Create a new event instance.
      *
-     * @param Payment $payment O pagamento que foi salvo
+     * @param  Payment  $payment  O pagamento que foi salvo
      */
     public function __construct(Payment $payment)
     {

@@ -25,7 +25,7 @@ class EventFactory extends Factory
 
         // Opcional: Cria ou pega um contrato para associar (ex: 50% de chance)
         $contractId = $this->faker->optional(0.5)->randomElement(
-             Contract::pluck('id')->toArray() ?? [Contract::factory()->create()->id] // Pega ID existente ou cria um novo
+            Contract::pluck('id')->toArray() ?? [Contract::factory()->create()->id] // Pega ID existente ou cria um novo
         );
 
         $eventDate = $this->faker->dateTimeBetween('now', '+1 year');
@@ -35,7 +35,7 @@ class EventFactory extends Factory
             'main_artist_id' => $mainArtistId,
             'contract_id' => $contractId,
             'name' => $this->faker->optional()->sentence(3), // Nome opcional
-            'location_text' => $this->faker->city() . ' - ' . $this->faker->stateAbbr(), // Local como texto
+            'location_text' => $this->faker->city().' - '.$this->faker->stateAbbr(), // Local como texto
             'event_date' => $eventDate->format('Y-m-d'),
             'event_time' => $this->faker->optional()->randomElement(['18:00:00', '20:00:00', '22:00:00']),
             'type' => $this->faker->randomElement(['Show', 'Festival', 'Festa Corporativa', 'Club Night']),

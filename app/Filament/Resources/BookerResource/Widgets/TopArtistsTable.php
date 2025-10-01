@@ -11,11 +11,12 @@ use Filament\Widgets\TableWidget as BaseWidget;
 class TopArtistsTable extends BaseWidget
 {
     public ?Booker $record = null;
-    protected int | string | array $columnSpan = 'full';
+
+    protected int|string|array $columnSpan = 'full';
 
     public function table(Table $table): Table
     {
-        if (!$this->record) {
+        if (! $this->record) {
             // Retorna uma tabela vazia se o booker não estiver definido
             return $table->query(Booker::query()->where('id', -1));
         }
@@ -23,7 +24,7 @@ class TopArtistsTable extends BaseWidget
         $financialService = app(BookerFinancialsService::class);
         // Busca os dados já processados pelo service
         $topArtistsData = $financialService->getTopArtists($this->record);
-        
+
         // Como o Filament Table espera um Eloquent Query Builder,
         // e nosso service retorna uma coleção, temos um pequeno truque:
         // Passamos os IDs para a query do Filament.
@@ -38,10 +39,10 @@ class TopArtistsTable extends BaseWidget
                 Tables\Columns\TextColumn::make('name')->label('Artista'),
                 // Colunas calculadas que buscam os dados da nossa coleção
                 Tables\Columns\TextColumn::make('gigs_count')->label('Qtd. Gigs')
-                    ->getStateUsing(fn($record) => $topArtistsData->firstWhere('artist.id', $record->id)->gigs_count ?? 0),
+                    ->getStateUsing(fn ($record) => $topArtistsData->firstWhere('artist.id', $record->id)->gigs_count ?? 0),
                 Tables\Columns\TextColumn::make('total_value')->label('Valor Vendido (BRL)')
                     ->money('BRL')
-                    ->getStateUsing(fn($record) => $topArtistsData->firstWhere('artist.id', $record->id)->total_value ?? 0),
+                    ->getStateUsing(fn ($record) => $topArtistsData->firstWhere('artist.id', $record->id)->total_value ?? 0),
             ])
             ->paginated(false); // Remove paginação para esta tabela pequena
     }

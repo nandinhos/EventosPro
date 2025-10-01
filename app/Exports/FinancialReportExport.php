@@ -8,6 +8,7 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 class FinancialReportExport implements FromCollection, WithHeadings
 {
     protected $data;
+
     protected $type;
 
     public function __construct($data, $type)
@@ -32,4 +33,3 @@ class FinancialReportExport implements FromCollection, WithHeadings
         };
     }
 }
-?>

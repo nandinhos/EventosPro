@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\BookerResource\Pages;
 
 use App\Filament\Resources\BookerResource;
-use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewBooker extends ViewRecord
@@ -15,7 +14,7 @@ class ViewBooker extends ViewRecord
     {
         return [];
     }
-    
+
     // Define quais widgets serão exibidos nesta página
     protected function getHeaderWidgets(): array
     {

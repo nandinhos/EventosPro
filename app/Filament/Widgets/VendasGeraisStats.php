@@ -5,7 +5,6 @@ namespace App\Filament\Widgets;
 use App\Services\FinancialReportService; // Importa o service
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Carbon\Carbon;
 
 class VendasGeraisStats extends BaseWidget
 {
@@ -14,7 +13,7 @@ class VendasGeraisStats extends BaseWidget
     {
         return auth()->user()->hasAnyRole(['ADMIN', 'DIRETOR']);
     }
-    
+
     protected function getStats(): array
     {
         // Cria uma instância do service para usar seus métodos
@@ -26,7 +25,7 @@ class VendasGeraisStats extends BaseWidget
             'end_date' => now()->endOfMonth()->toDateString(),
         ];
         $reportService->setFilters($filters);
-        
+
         // Busca os dados usando os métodos que já existem no service
         $overviewData = $reportService->getOverviewData();
         $grandTotals = $overviewData['grandTotals'];
@@ -37,12 +36,12 @@ class VendasGeraisStats extends BaseWidget
                 ->descriptionIcon('heroicon-m-calendar-days')
                 ->color('primary'),
 
-            Stat::make('Cachê Bruto Total (Mês)', 'R$ ' . number_format($grandTotals['cache_bruto_brl'] ?? 0, 2, ',', '.'))
+            Stat::make('Cachê Bruto Total (Mês)', 'R$ '.number_format($grandTotals['cache_bruto_brl'] ?? 0, 2, ',', '.'))
                 ->description('Soma dos valores de contrato em BRL')
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success'),
-                
-            Stat::make('Comissão Líquida Agência (Mês)', 'R$ ' . number_format($grandTotals['comissao_agencia_liquida_brl'] ?? 0, 2, ',', '.'))
+
+            Stat::make('Comissão Líquida Agência (Mês)', 'R$ '.number_format($grandTotals['comissao_agencia_liquida_brl'] ?? 0, 2, ',', '.'))
                 ->description('Resultado líquido para a agência')
                 ->descriptionIcon('heroicon-m-receipt-percent')
                 ->color('info'),

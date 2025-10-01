@@ -9,12 +9,14 @@ use Filament\Widgets\ChartWidget;
 class BookerCommissionsChart extends ChartWidget
 {
     protected static ?string $heading = 'Evolução de Comissões Pagas (Últimos 12 Meses)';
+
     public ?Booker $record = null;
-    protected int | string | array $columnSpan = 'full';
+
+    protected int|string|array $columnSpan = 'full';
 
     protected function getData(): array
     {
-        if (!$this->record) {
+        if (! $this->record) {
             return [];
         }
         $financialService = app(BookerFinancialsService::class);

@@ -1,11 +1,16 @@
 <?php
+
 namespace App\Http\Requests;
+
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateArtistRequest extends FormRequest
 {
-    public function authorize(): bool { return true; } // Adicionar Policy depois
+    public function authorize(): bool
+    {
+        return true;
+    } // Adicionar Policy depois
 
     public function rules(): array
     {
@@ -18,11 +23,12 @@ class UpdateArtistRequest extends FormRequest
             'tags.*' => ['integer', 'exists:tags,id'],
         ];
     }
-     public function messages(): array
-     {
-          return [
-             'name.required' => 'O nome do artista é obrigatório.',
-             'name.unique' => 'Este nome de artista já está cadastrado.',
-         ];
-     }
+
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'O nome do artista é obrigatório.',
+            'name.unique' => 'Este nome de artista já está cadastrado.',
+        ];
+    }
 }

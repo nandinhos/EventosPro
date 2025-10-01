@@ -17,7 +17,8 @@ class ArtistFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'name' => $this->faker->name(),
+            'contact_info' => $this->faker->email(),
         ];
     }
 }
