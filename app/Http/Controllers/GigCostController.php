@@ -2,19 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Gig;
-use App\Models\GigCost;
+use App\Http\Requests\StoreGigCostRequest;
+use App\Http\Requests\UpdateGigCostRequest;
 use App\Models\CostCenter;
-use App\Http\Requests\StoreGigCostRequest; // Certifique-se de ter este Form Request
-use App\Http\Requests\UpdateGigCostRequest; // Certifique-se de ter este Form Request
-use Illuminate\Http\Request;
+use App\Models\Gig; // Certifique-se de ter este Form Request
+use App\Models\GigCost; // Certifique-se de ter este Form Request
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
-use Illuminate\Support\Carbon;
 
 class GigCostController extends Controller
 {
@@ -33,10 +31,10 @@ class GigCostController extends Controller
             ->map(function ($costsInGroup, $costCenterId) {
                 $firstCost = $costsInGroup->first();
                 // 1. Determina o nome traduzido
-                $translatedName = $firstCost->costCenter 
-                    ? __('cost_centers.' . $firstCost->costCenter->name) 
+                $translatedName = $firstCost->costCenter
+                    ? __('cost_centers.'.$firstCost->costCenter->name)
                     : 'Desconhecido';
-                
+
                 return [
                     'cost_center' => $firstCost->costCenter ?
                                      // 2. Passa o nome já traduzido no JSON
@@ -59,7 +57,7 @@ class GigCostController extends Controller
                             'confirmed_by_name' => $cost->confirmer?->name,
                             'notes' => $cost->notes,
                         ];
-                    })
+                    }),
                 ];
             })->values(); // Retorna como array indexado
 
@@ -77,7 +75,7 @@ class GigCostController extends Controller
 
             // ***** LÓGICA PARA OS NOVOS CAMPOS *****
             // Se 'is_confirmed' veio como true, preenche os dados de confirmação
-            if (!empty($data['is_confirmed'])) {
+            if (! empty($data['is_confirmed'])) {
                 $data['confirmed_by'] = Auth::id();
                 $data['confirmed_at'] = Carbon::now();
             } else {
@@ -87,13 +85,14 @@ class GigCostController extends Controller
             }
 
             // Garante que 'is_invoice' seja booleano
-            $data['is_invoice'] = !empty($data['is_invoice']);
+            $data['is_invoice'] = ! empty($data['is_invoice']);
 
             $cost = GigCost::create($data);
-            
+
             return response()->json(['message' => 'Despesa adicionada com sucesso!', 'cost' => $cost], 201);
         } catch (\Exception $e) {
-            Log::error("Erro ao adicionar despesa à Gig {$gig->id}: " . $e->getMessage(), ['exception' => $e, 'request_data' => $request->all()]);
+            Log::error("Erro ao adicionar despesa à Gig {$gig->id}: ".$e->getMessage(), ['exception' => $e, 'request_data' => $request->all()]);
+
             return response()->json(['message' => 'Erro ao adicionar despesa.'], 500);
         }
     }
@@ -106,30 +105,31 @@ class GigCostController extends Controller
         if ($cost->gig_id !== $gig->id) {
             return response()->json(['message' => 'Acesso não autorizado.'], 403);
         }
-        if ($cost->is_confirmed && !$request->user()->can('edit_confirmed_costs')) { // Exemplo de Policy
+        if ($cost->is_confirmed && ! $request->user()->can('edit_confirmed_costs')) { // Exemplo de Policy
             return response()->json(['message' => 'Despesas confirmadas não podem ser editadas por você.'], 403);
         }
 
         try {
             $data = $request->validated();
-            
+
             // Lógica similar ao store para o update
-            $isConfirmedNow = !empty($data['is_confirmed']);
+            $isConfirmedNow = ! empty($data['is_confirmed']);
             $wasConfirmedBefore = $cost->is_confirmed;
 
             // Se o status de confirmação mudou de não-confirmado para confirmado
-            if ($isConfirmedNow && !$wasConfirmedBefore) {
+            if ($isConfirmedNow && ! $wasConfirmedBefore) {
                 $data['confirmed_by'] = Auth::id();
                 $data['confirmed_at'] = Carbon::now();
             }
 
-            $data['is_invoice'] = !empty($data['is_invoice']);
+            $data['is_invoice'] = ! empty($data['is_invoice']);
 
             $cost->update($data);
-            
+
             return response()->json(['message' => 'Despesa atualizada com sucesso!', 'cost' => $cost->fresh()]);
         } catch (\Exception $e) {
-            Log::error("Erro ao atualizar despesa {$cost->id}: " . $e->getMessage());
+            Log::error("Erro ao atualizar despesa {$cost->id}: ".$e->getMessage());
+
             return response()->json(['message' => 'Erro ao atualizar despesa.'], 500);
         }
     }
@@ -142,16 +142,18 @@ class GigCostController extends Controller
         if ($cost->gig_id !== $gig->id) {
             return response()->json(['message' => 'Acesso não autorizado.'], 403);
         }
-        if ($cost->is_confirmed && !$request->user()->can('delete_confirmed_costs')) { // Exemplo de Policy
+        if ($cost->is_confirmed && ! $request->user()->can('delete_confirmed_costs')) { // Exemplo de Policy
             return response()->json(['message' => 'Despesas confirmadas não podem ser excluídas por você.'], 403);
         }
 
         try {
             $cost->delete();
+
             // event(new GigDataChanged($gig));
             return response()->json(['message' => 'Despesa removida com sucesso!']);
         } catch (\Exception $e) {
-            Log::error("Erro ao remover despesa {$cost->id}: " . $e->getMessage());
+            Log::error("Erro ao remover despesa {$cost->id}: ".$e->getMessage());
+
             return response()->json(['message' => 'Erro ao remover despesa.'], 500);
         }
     }
@@ -167,7 +169,7 @@ class GigCostController extends Controller
 
         // Valida a data de confirmação vinda do formulário inline
         $validated = $request->validate([
-            'confirmed_at_date' => ['required', 'date', 'before_or_equal:today']
+            'confirmed_at_date' => ['required', 'date', 'before_or_equal:today'],
         ], [
             'confirmed_at_date.required' => 'A data de confirmação é obrigatória.',
             'confirmed_at_date.before_or_equal' => 'A data de confirmação não pode ser no futuro.',
@@ -179,14 +181,15 @@ class GigCostController extends Controller
                 'confirmed_by' => Auth::id(),
                 'confirmed_at' => Carbon::parse($validated['confirmed_at_date'])->endOfDay(), // Usa a data do form
             ]);
-            
+
             // Retorna a mensagem de sucesso e o custo atualizado para o Alpine
             return response()->json([
                 'message' => 'Despesa confirmada com sucesso!',
-                'cost' => $cost->fresh()->load('confirmer', 'costCenter')
+                'cost' => $cost->fresh()->load('confirmer', 'costCenter'),
             ]);
         } catch (\Exception $e) {
-            Log::error("Erro ao confirmar despesa {$cost->id}: " . $e->getMessage());
+            Log::error("Erro ao confirmar despesa {$cost->id}: ".$e->getMessage());
+
             return response()->json(['message' => 'Erro interno ao confirmar despesa.'], 500);
         }
     }
@@ -199,7 +202,7 @@ class GigCostController extends Controller
         if ($cost->gig_id !== $gig->id) {
             return response()->json(['message' => 'Acesso não autorizado.'], 403);
         }
-        if (!$cost->is_confirmed) {
+        if (! $cost->is_confirmed) {
             return response()->json(['message' => 'Esta despesa não estava confirmada.'], 422);
         }
         // TODO: Adicionar Policy para verificar se o usuário pode desconfirmar
@@ -210,10 +213,12 @@ class GigCostController extends Controller
                 'confirmed_by' => null,
                 'confirmed_at' => null,
             ]);
+
             // event(new GigDataChanged($gig));
             return response()->json(['message' => 'Confirmação da despesa revertida!', 'cost' => $cost->fresh()]);
         } catch (\Exception $e) {
-            Log::error("Erro ao desconfirmar despesa {$cost->id}: " . $e->getMessage());
+            Log::error("Erro ao desconfirmar despesa {$cost->id}: ".$e->getMessage());
+
             return response()->json(['message' => 'Erro ao desconfirmar despesa.'], 500);
         }
     }
@@ -224,18 +229,22 @@ class GigCostController extends Controller
      */
     public function toggleInvoice(Request $request, Gig $gig, GigCost $cost): JsonResponse
     {
-        if ($cost->gig_id !== $gig->id) { return response()->json(['message' => 'Acesso não autorizado.'], 403); }
+        if ($cost->gig_id !== $gig->id) {
+            return response()->json(['message' => 'Acesso não autorizado.'], 403);
+        }
         // if (!$cost->is_confirmed) { return response()->json(['message' => 'Apenas despesas confirmadas...'], 422); } // MANTENHA SE QUISER
 
         try {
-            $cost->update(['is_invoice' => !$cost->is_invoice]);
+            $cost->update(['is_invoice' => ! $cost->is_invoice]);
             $message = $cost->is_invoice ? 'Despesa marcada como inclusa na NF!' : 'Marcação de NF removida da despesa!';
+
             return response()->json(['message' => $message, 'cost' => $cost->fresh()->load('costCenter', 'confirmer')]);
-        } catch (\Exception $e) { /* ... */ }
+        } catch (\Exception $e) { /* ... */
+        }
     }
 
     // Os métodos create e edit não são mais necessários se o form estiver em modal no show da Gig.
-    
+
     /**
      * Show the form for creating a new gig cost for a specific gig.
      * Rota: gigs.costs.create (GET /gigs/{gig}/costs/create)
@@ -244,9 +253,10 @@ class GigCostController extends Controller
     {
         $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
         $cost = new GigCost(['gig_id' => $gig->id, 'currency' => 'BRL', 'payer_type' => 'agencia', 'expense_date' => today()]);
+
         // A view _form_modal.blade.php espera $costCenters e $cost (e $gig implicitamente pela rota)
         return view('gig_costs.create', compact('gig', 'costCenters', 'cost'));
     }
-    
+
     // public function edit(Gig $gig, GigCost $cost): View { ... }
 }

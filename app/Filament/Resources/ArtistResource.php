@@ -9,12 +9,11 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ArtistResource extends Resource
 {
     protected static ?string $model = Artist::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-microphone'; // Ícone sugerido
 
     public static function form(Form $form): Form
@@ -42,7 +41,7 @@ class ArtistResource extends Resource
                     ->label('Nome do Artista')
                     ->searchable() // Permite buscar por nome
                     ->sortable(), // Permite ordenar por nome
-                
+
                 Tables\Columns\TextColumn::make('gigs_count')
                     ->counts('gigs') // Conta a quantidade de gigs relacionadas
                     ->label('Qtd. Gigs')

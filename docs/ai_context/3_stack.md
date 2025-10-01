@@ -71,9 +71,10 @@
 ## Bancos de Dados e Persistência
 
 ### Banco de Dados Principal
-- **MySQL**: Configuração padrão para desenvolvimento via docker usando laravel sail
+- **MySQL**: Configuração padrão para desenvolvimento via Docker usando Laravel Sail
   - Versão recomendada: 8.0+
   - Configuração via variáveis de ambiente
+  - **IMPORTANTE**: Acesso via `sail artisan` commands
 - **MySQL**: Suporte configurado para produção
   - Versão recomendada: 8.0+
   - Configuração via variáveis de ambiente
@@ -129,15 +130,21 @@
   - Testes de feature e integração
 
 ### Code Quality
-- **Laravel Pint**: Formatação de código PHP
-- **Laravel Sail**: Ambiente Docker (se configurado)
+- **Laravel Pint**: Formatação de código PHP via `sail bin pint`
+- **Laravel Sail**: Ambiente Docker (OBRIGATÓRIO)
+  - Todos os comandos de desenvolvimento
+  - Testes via `sail artisan test`
+  - Análise de código via `sail bin phpstan`
 
 ## Infraestrutura e DevOps
 
 ### Ambiente de Desenvolvimento
-- **Artisan Serve**: Servidor de desenvolvimento local
-- **Vite Dev Server**: Hot reload para assets
-- **MySQL via Docker**: Banco local para desenvolvimento
+- **Laravel Sail**: Ambiente Docker padrão (OBRIGATÓRIO)
+  - Todos os comandos devem usar `sail artisan`, `sail composer`, `sail npm`
+  - Configuração via `docker-compose.yml`
+  - Containers: Laravel App, MySQL, Redis (opcional)
+- **Vite Dev Server**: Hot reload para assets via `sail npm run dev`
+- **MySQL via Docker**: Banco local para desenvolvimento via Sail
 
 ### Configuração de Produção
 - **Apache/Nginx**: Servidor web recomendado

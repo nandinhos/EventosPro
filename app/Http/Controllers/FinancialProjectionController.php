@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Services\FinancialProjectionService;
@@ -35,9 +36,6 @@ class FinancialProjectionController extends Controller
 
     /**
      * Exibe uma página de depuração com todos os cálculos de projeção.
-     *
-     * @param Request $request
-     * @return View
      */
     public function debug(Request $request): View
     {
@@ -49,23 +47,23 @@ class FinancialProjectionController extends Controller
         $debugData = [
             'Contas a Receber (Clientes)' => [
                 'value' => $this->projectionService->getAccountsReceivable(),
-                'items' => $this->projectionService->getUpcomingPayments('clients')
+                'items' => $this->projectionService->getUpcomingPayments('clients'),
             ],
             'Contas a Pagar (Artistas)' => [
                 'value' => $this->projectionService->getAccountsPayableArtists(),
-                'items' => $this->projectionService->getUpcomingPayments('artists')
+                'items' => $this->projectionService->getUpcomingPayments('artists'),
             ],
             'Contas a Pagar (Bookers)' => [
                 'value' => $this->projectionService->getAccountsPayableBookers(),
-                'items' => $this->projectionService->getUpcomingPayments('bookers')
+                'items' => $this->projectionService->getUpcomingPayments('bookers'),
             ],
             'Contas a Pagar (Despesas Previstas)' => [
                 'value' => $this->projectionService->getAccountsPayableExpenses(),
-                'items' => $this->projectionService->getProjectedExpensesByCostCenter()
+                'items' => $this->projectionService->getProjectedExpensesByCostCenter(),
             ],
             'Fluxo de Caixa Projetado' => [
                 'value' => $this->projectionService->getProjectedCashFlow(),
-                'items' => null // Não há itens detalhados para o total
+                'items' => null, // Não há itens detalhados para o total
             ],
         ];
 
@@ -73,5 +71,5 @@ class FinancialProjectionController extends Controller
             'debugData' => $debugData,
             'period' => $period,
         ]);
-}
+    }
 }

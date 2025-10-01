@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Artist;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Seeder;
 
 class ArtistSeeder extends Seeder
 {
@@ -16,137 +15,137 @@ class ArtistSeeder extends Seeder
             // DJs Brasileiros Famosos
             [
                 'name' => 'Alok',
-                'contact_info' => 'contato@alokmusic.com | +55 11 99999-0001 | Instagram: @alok'
+                'contact_info' => 'contato@alokmusic.com | +55 11 99999-0001 | Instagram: @alok',
             ],
             [
                 'name' => 'Vintage Culture',
-                'contact_info' => 'booking@vintageculture.com | +55 11 99999-0002 | Instagram: @vintageculture'
+                'contact_info' => 'booking@vintageculture.com | +55 11 99999-0002 | Instagram: @vintageculture',
             ],
             [
                 'name' => 'KVSH',
-                'contact_info' => 'contato@kvshmusic.com | +55 11 99999-0003 | Instagram: @kvsh'
+                'contact_info' => 'contato@kvshmusic.com | +55 11 99999-0003 | Instagram: @kvsh',
             ],
             [
                 'name' => 'Cat Dealers',
-                'contact_info' => 'booking@catdealers.com | +55 11 99999-0004 | Instagram: @catdealers'
+                'contact_info' => 'booking@catdealers.com | +55 11 99999-0004 | Instagram: @catdealers',
             ],
             [
                 'name' => 'Felguk',
-                'contact_info' => 'contato@felguk.com | +55 11 99999-0005 | Instagram: @felguk'
+                'contact_info' => 'contato@felguk.com | +55 11 99999-0005 | Instagram: @felguk',
             ],
             [
                 'name' => 'Gui Boratto',
-                'contact_info' => 'booking@guiboratto.com | +55 11 99999-0006 | Instagram: @guiboratto'
+                'contact_info' => 'booking@guiboratto.com | +55 11 99999-0006 | Instagram: @guiboratto',
             ],
             [
                 'name' => 'Mau P',
-                'contact_info' => 'contato@maupmusic.com | +55 11 99999-0007 | Instagram: @maup'
+                'contact_info' => 'contato@maupmusic.com | +55 11 99999-0007 | Instagram: @maup',
             ],
             [
                 'name' => 'Illusionize',
-                'contact_info' => 'booking@illusionize.com | +55 11 99999-0008 | Instagram: @illusionize'
+                'contact_info' => 'booking@illusionize.com | +55 11 99999-0008 | Instagram: @illusionize',
             ],
             [
                 'name' => 'Dubdogz',
-                'contact_info' => 'contato@dubdogz.com | +55 11 99999-0009 | Instagram: @dubdogz'
+                'contact_info' => 'contato@dubdogz.com | +55 11 99999-0009 | Instagram: @dubdogz',
             ],
             [
                 'name' => 'Chemical Surf',
-                'contact_info' => 'booking@chemicalsurf.com | +55 11 99999-0010 | Instagram: @chemicalsurf'
+                'contact_info' => 'booking@chemicalsurf.com | +55 11 99999-0010 | Instagram: @chemicalsurf',
             ],
-            
+
             // DJs Emergentes e Regionais
             [
                 'name' => 'Bruno Furlan',
-                'contact_info' => 'contato@brunofurlan.com | +55 11 99999-0011 | Instagram: @brunofurlan'
+                'contact_info' => 'contato@brunofurlan.com | +55 11 99999-0011 | Instagram: @brunofurlan',
             ],
             [
                 'name' => 'Liu',
-                'contact_info' => 'booking@liuofficial.com | +55 11 99999-0012 | Instagram: @liu'
+                'contact_info' => 'booking@liuofficial.com | +55 11 99999-0012 | Instagram: @liu',
             ],
             [
                 'name' => 'Gabe',
-                'contact_info' => 'contato@gabemusic.com | +55 11 99999-0013 | Instagram: @gabe'
+                'contact_info' => 'contato@gabemusic.com | +55 11 99999-0013 | Instagram: @gabe',
             ],
             [
                 'name' => 'Lowderz',
-                'contact_info' => 'booking@lowderz.com | +55 11 99999-0014 | Instagram: @lowderz'
+                'contact_info' => 'booking@lowderz.com | +55 11 99999-0014 | Instagram: @lowderz',
             ],
             [
                 'name' => 'Rocksted',
-                'contact_info' => 'contato@rocksted.com | +55 11 99999-0015 | Instagram: @rocksted'
+                'contact_info' => 'contato@rocksted.com | +55 11 99999-0015 | Instagram: @rocksted',
             ],
             [
                 'name' => 'Ratier',
-                'contact_info' => 'booking@ratier.com | +55 11 99999-0016 | Instagram: @ratier'
+                'contact_info' => 'booking@ratier.com | +55 11 99999-0016 | Instagram: @ratier',
             ],
             [
                 'name' => 'Meca',
-                'contact_info' => 'contato@mecamusic.com | +55 11 99999-0017 | Instagram: @meca'
+                'contact_info' => 'contato@mecamusic.com | +55 11 99999-0017 | Instagram: @meca',
             ],
             [
                 'name' => 'Antdot',
-                'contact_info' => 'booking@antdot.com | +55 11 99999-0018 | Instagram: @antdot'
+                'contact_info' => 'booking@antdot.com | +55 11 99999-0018 | Instagram: @antdot',
             ],
             [
                 'name' => 'Bhaskar',
-                'contact_info' => 'contato@bhaskarmusic.com | +55 11 99999-0019 | Instagram: @bhaskar'
+                'contact_info' => 'contato@bhaskarmusic.com | +55 11 99999-0019 | Instagram: @bhaskar',
             ],
             [
                 'name' => 'Sevenn',
-                'contact_info' => 'booking@sevennmusic.com | +55 11 99999-0020 | Instagram: @sevenn'
+                'contact_info' => 'booking@sevennmusic.com | +55 11 99999-0020 | Instagram: @sevenn',
             ],
-            
+
             // DJs Techno/Underground
             [
                 'name' => 'Victor Ruiz',
-                'contact_info' => 'contato@victorruiz.com | +55 11 99999-0021 | Instagram: @victorruiz'
+                'contact_info' => 'contato@victorruiz.com | +55 11 99999-0021 | Instagram: @victorruiz',
             ],
             [
                 'name' => 'Wehbba',
-                'contact_info' => 'booking@wehbba.com | +55 11 99999-0022 | Instagram: @wehbba'
+                'contact_info' => 'booking@wehbba.com | +55 11 99999-0022 | Instagram: @wehbba',
             ],
             [
                 'name' => 'Fernanda Martins',
-                'contact_info' => 'contato@fernandamartins.com | +55 11 99999-0023 | Instagram: @fernandamartins'
+                'contact_info' => 'contato@fernandamartins.com | +55 11 99999-0023 | Instagram: @fernandamartins',
             ],
             [
                 'name' => 'Eli Iwasa',
-                'contact_info' => 'booking@eliiwasa.com | +55 11 99999-0024 | Instagram: @eliiwasa'
+                'contact_info' => 'booking@eliiwasa.com | +55 11 99999-0024 | Instagram: @eliiwasa',
             ],
             [
                 'name' => 'Renato Cohen',
-                'contact_info' => 'contato@renatocohen.com | +55 11 99999-0025 | Instagram: @renatocohen'
+                'contact_info' => 'contato@renatocohen.com | +55 11 99999-0025 | Instagram: @renatocohen',
             ],
-            
+
             // DJs House/Deep House
             [
                 'name' => 'Maz',
-                'contact_info' => 'booking@mazmusic.com | +55 11 99999-0026 | Instagram: @maz'
+                'contact_info' => 'booking@mazmusic.com | +55 11 99999-0026 | Instagram: @maz',
             ],
             [
                 'name' => 'Beowülf',
-                'contact_info' => 'contato@beowulf.com | +55 11 99999-0027 | Instagram: @beowulf'
+                'contact_info' => 'contato@beowulf.com | +55 11 99999-0027 | Instagram: @beowulf',
             ],
             [
                 'name' => 'Vintage Culture B2B Mau P',
-                'contact_info' => 'booking@specialsets.com | +55 11 99999-0028 | Instagram: @vintageculture'
+                'contact_info' => 'booking@specialsets.com | +55 11 99999-0028 | Instagram: @vintageculture',
             ],
             [
                 'name' => 'Öwnboss',
-                'contact_info' => 'contato@ownboss.com | +55 11 99999-0029 | Instagram: @ownboss'
+                'contact_info' => 'contato@ownboss.com | +55 11 99999-0029 | Instagram: @ownboss',
             ],
             [
                 'name' => 'Jetlag Music',
-                'contact_info' => 'booking@jetlagmusic.com | +55 11 99999-0030 | Instagram: @jetlagmusic'
-            ]
+                'contact_info' => 'booking@jetlagmusic.com | +55 11 99999-0030 | Instagram: @jetlagmusic',
+            ],
         ];
 
         $existingArtists = Artist::pluck('name')->toArray();
         $createdCount = 0;
 
         foreach ($artists as $artistData) {
-            if (!in_array($artistData['name'], $existingArtists)) {
+            if (! in_array($artistData['name'], $existingArtists)) {
                 Artist::create($artistData);
                 $createdCount++;
                 $existingArtists[] = $artistData['name'];

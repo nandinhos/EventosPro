@@ -2,11 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\Tag; // Importar o modelo Tag
-use Illuminate\Support\Str; // Importar Str para gerar slugs
-use Illuminate\Support\Facades\DB;
+use App\Models\Tag;
+use Illuminate\Database\Seeder; // Importar o modelo Tag
+use Illuminate\Support\Facades\DB; // Importar Str para gerar slugs
+use Illuminate\Support\Str;
 
 class TagSeeder extends Seeder
 {
@@ -142,15 +141,15 @@ class TagSeeder extends Seeder
                 [                                        // Dados para criar se não existir
                     'name' => $tagData['name'],
                     'type' => $tagData['type'] ?? null, // Usa tipo ou null
-                 ]
+                ]
             );
-             // Verifica se a tag foi realmente criada nesta execução
-             if ($tag->wasRecentlyCreated) {
-                 $createdCount++;
-             }
+            // Verifica se a tag foi realmente criada nesta execução
+            if ($tag->wasRecentlyCreated) {
+                $createdCount++;
+            }
         }
 
         $this->command->info("$createdCount novas tags de música eletrônica criadas com sucesso!");
-        $this->command->info('Total de tags no sistema: ' . Tag::count());
+        $this->command->info('Total de tags no sistema: '.Tag::count());
     }
 }

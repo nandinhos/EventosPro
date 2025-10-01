@@ -4,14 +4,14 @@ namespace App\Filament\Widgets;
 
 use App\Models\Gig;
 use Filament\Widgets\ChartWidget;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class FaturamentoChart extends ChartWidget
 {
     protected static ?string $heading = 'Faturamento Mensal (Contratos Assinados/Concluídos)';
-    protected int | string | array $columnSpan = 'full';
-    
+
+    protected int|string|array $columnSpan = 'full';
+
     // Oculta o widget de usuários que não sejam ADMIN ou DIRETOR
     public static function canView(): bool
     {
@@ -27,14 +27,14 @@ class FaturamentoChart extends ChartWidget
         $monthlyRevenueData = Gig::query()
             ->select(
                 DB::raw("DATE_FORMAT(COALESCE(contract_date, gig_date), '%Y-%m') as month"),
-                DB::raw("SUM(cache_value) as total_revenue") // Assumindo que cache_value_brl pode não existir em todas as gigs
+                DB::raw('SUM(cache_value) as total_revenue') // Assumindo que cache_value_brl pode não existir em todas as gigs
             )
             ->whereBetween(DB::raw('COALESCE(contract_date, gig_date)'), [$startDate, $endDate])
             ->whereIn('contract_status', ['assinado', 'concluido'])
             ->groupBy('month')
             ->orderBy('month', 'asc')
             ->pluck('total_revenue', 'month'); // pluck cria um array [chave => valor]
-        
+
         $labels = [];
         $data = [];
         $currentMonth = $startDate->copy();

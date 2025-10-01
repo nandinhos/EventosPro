@@ -70,19 +70,14 @@
 
         <!-- Cartões de Totalizadores -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <!-- Card Azul: Total de Gigs -->
-            <div class="bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg">
-                <h3 class="text-sm text-gray-500 dark:text-gray-400">Total de Gigs</h3>
-                <p class="text-lg font-semibold text-blue-800 dark:text-blue-300">
-                    {{ $reportData['total_gigs'] ?? 0 }}
-                </p>
-            </div>
-
             <!-- Card Verde: Cachê Bruto -->
             <div class="bg-green-100 dark:bg-green-900/20 p-4 rounded-lg">
                 <h3 class="text-sm text-gray-500 dark:text-gray-400">Cachê Bruto</h3>
                 <p class="text-lg font-semibold text-green-800 dark:text-green-300">
                     R$ {{ isset($reportData['total_cache_brl']) ? number_format($reportData['total_cache_brl'], 2, ',', '.') : '0,00' }}
+                </p>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    {{ isset($reportData['total_gigs']) ? $reportData['total_gigs'] : 0 }} gigs
                 </p>
             </div>
 
@@ -92,6 +87,14 @@
                 <p class="text-lg font-semibold text-purple-800 dark:text-purple-300">
                     R$ {{ isset($reportData['total_booker_commission']) ? number_format($reportData['total_booker_commission'], 2, ',', '.') : '0,00' }}
                 </p>
+                @php
+                    $bookerPercentage = isset($reportData['total_cache_brl']) && $reportData['total_cache_brl'] > 0 
+                        ? ($reportData['total_booker_commission'] / $reportData['total_cache_brl']) * 100 
+                        : 0;
+                @endphp
+                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    {{ number_format($bookerPercentage, 1) }}% do cachê
+                </p>
             </div>
 
             <!-- Card Índigo: Comissão Agência -->
@@ -99,6 +102,35 @@
                 <h3 class="text-sm text-gray-500 dark:text-gray-400">Comissão Agência</h3>
                 <p class="text-lg font-semibold text-indigo-800 dark:text-indigo-300">
                     R$ {{ isset($reportData['total_agency_commission']) ? number_format($reportData['total_agency_commission'], 2, ',', '.') : '0,00' }}
+                </p>
+                @php
+                    $agencyPercentage = isset($reportData['total_cache_brl']) && $reportData['total_cache_brl'] > 0 
+                        ? ($reportData['total_agency_commission'] / $reportData['total_cache_brl']) * 100 
+                        : 0;
+                @endphp
+                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    {{ number_format($agencyPercentage, 1) }}% do cachê
+                </p>
+            </div>
+
+            <!-- Card Azul: Valor Líquido -->
+            <div class="bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg">
+                <h3 class="text-sm text-gray-500 dark:text-gray-400">Valor Líquido</h3>
+                @php
+                    $totalNetValue = isset($reportData['total_cache_brl']) && isset($reportData['total_booker_commission']) && isset($reportData['total_agency_commission'])
+                        ? $reportData['total_cache_brl'] - $reportData['total_booker_commission'] - $reportData['total_agency_commission']
+                        : 0;
+                @endphp
+                <p class="text-lg font-semibold {{ $totalNetValue < 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-800 dark:text-blue-300' }}">
+                    {{ $totalNetValue < 0 ? '-' : '' }}R$ {{ number_format(abs($totalNetValue), 2, ',', '.') }}
+                </p>
+                @php
+                    $netPercentage = isset($reportData['total_cache_brl']) && $reportData['total_cache_brl'] > 0 
+                        ? ($totalNetValue / $reportData['total_cache_brl']) * 100 
+                        : 0;
+                @endphp
+                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    {{ number_format($netPercentage, 1) }}% margem
                 </p>
             </div>
         </div>
@@ -119,12 +151,18 @@
             <div class="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex justify-between items-center">
                     <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Faturamento por Booker</h3>
-                    <a href="{{ route('finance.monthly-closing.exportPdf', ['month' => $selectedMonth, 'year' => $selectedYear, 'booker_id' => $selectedBookerId]) }}" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                        <svg class="-ml-0.5 mr-1.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.5a2 2 0 00-2-2h-2.5l-2-3h-3L9.5 7.5H7a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                        PDF
-                    </a>
+                    <div class="flex items-center space-x-4">
+                        @include('components.export-filter', [
+                             'route' => route('finance.monthly-closing.export'),
+                             'artists' => $artists ?? [],
+                             'bookers' => $bookers ?? [],
+                             'selectedArtist' => null,
+                             'selectedBooker' => $selectedBookerId,
+                             'selectedMonth' => $selectedMonth,
+                             'selectedYear' => $selectedYear,
+                             'title' => 'Exportar Relatório'
+                         ])
+                    </div>
                 </div>
             </div>
             <div class="overflow-x-auto">
@@ -132,8 +170,9 @@
                     <thead class="bg-gray-50 dark:bg-gray-700">
                         <tr>
                             <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">BOOKER</th>
-                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">CACHÊ</th>
+                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">CACHÊ LÍQUIDO</th>
                             <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">COMISSÃO BOOKER</th>
+                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">VALOR LÍQUIDO</th>
                             <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">GIGS</th>
                         </tr>
                     </thead>
@@ -142,6 +181,7 @@
                             $totalGigs = 0;
                             $totalCacheLiquido = 0;
                             $totalBookerCommission = 0;
+                            $totalNetValue = 0;
                         @endphp
                         
                         @forelse(($reportData['booker_data'] ?? []) as $booker)
@@ -149,6 +189,7 @@
                                 $totalGigs += $booker['total_gigs'];
                                 $totalCacheLiquido += $booker['cache_liquido_base'];
                                 $totalBookerCommission += $booker['total_booker_commission'];
+                                $totalNetValue += $booker['net_value'];
                             @endphp
                             
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -161,13 +202,19 @@
                                 <td class="px-3 py-3 whitespace-nowrap text-sm text-right {{ $booker['total_booker_commission'] < 0 ? 'text-red-600 dark:text-red-400' : 'text-purple-600 dark:text-purple-400' }}">
                                     {{ $booker['total_booker_commission'] < 0 ? '-' : '' }}R$ {{ number_format(abs($booker['total_booker_commission']), 2, ',', '.') }}
                                 </td>
+                                <td class="px-3 py-3 whitespace-nowrap text-sm text-right {{ $booker['net_value'] < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' }}">
+                                    {{ $booker['net_value'] < 0 ? '-' : '' }}R$ {{ number_format(abs($booker['net_value']), 2, ',', '.') }}
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                                        ({{ number_format($booker['lucro_percentual'], 1) }}%)
+                                    </span>
+                                </td>
                                 <td class="px-3 py-3 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-300">
                                     {{ $booker['total_gigs'] }}
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                                     Nenhum dado disponível para o período selecionado.
                                 </td>
                             </tr>
@@ -181,6 +228,15 @@
                             </td>
                             <td class="px-3 py-3 text-right text-sm font-semibold {{ $totalBookerCommission < 0 ? 'text-red-600 dark:text-red-400' : 'text-purple-600 dark:text-purple-400' }}">
                                 {{ $totalBookerCommission < 0 ? '-' : '' }}R$ {{ number_format(abs($totalBookerCommission), 2, ',', '.') }}
+                            </td>
+                            <td class="px-3 py-3 text-right text-sm font-semibold {{ $totalNetValue < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' }}">
+                                {{ $totalNetValue < 0 ? '-' : '' }}R$ {{ number_format(abs($totalNetValue), 2, ',', '.') }}
+                                @php
+                                    $totalPercentage = $totalCacheLiquido > 0 ? ($totalNetValue / $totalCacheLiquido) * 100 : 0;
+                                @endphp
+                                <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                                    ({{ number_format($totalPercentage, 1) }}%)
+                                </span>
                             </td>
                             <td class="px-3 py-3 text-center text-sm text-gray-500 dark:text-gray-300">
                                 {{ $totalGigs }}
@@ -203,46 +259,20 @@
                 </div>
             </div>
 
-            <!-- Tabela de Top Artistas -->
-            <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-                <div class="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Top Artistas</h3>
-                    <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">Ranking por valor de cachê</p>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-50 dark:bg-gray-700">
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Artista</th>
-                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Gigs</th>
-                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total Cachê</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            @forelse(($reportData['artist_data'] ?? collect([]))->sortByDesc('total_cache_brl')->take(5) as $artist)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                    {{ $artist['artist']->name }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right">
-                                    {{ $artist['total_gigs'] }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200 text-right">
-                                    R$ {{ number_format($artist['total_cache_brl'], 2, ',', '.') }}
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                                    Nenhum dado disponível
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+            <!-- Gráfico de Performance dos Artistas -->
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Performance dos Artistas</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Quantidade de shows por artista no período</p>
+                <div class="relative h-64">
+                    <canvas id="artistPerformanceChart"></canvas>
+                    <div id="noArtistData" class="hidden absolute inset-0 flex items-center justify-center">
+                        <p class="text-gray-500 dark:text-gray-400 text-center">Nenhum dado disponível para exibir o gráfico</p>
+                    </div>
                 </div>
             </div>
         </div>
+
+
 
         <!-- Lista de Gigs -->
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden mb-6">
@@ -250,82 +280,65 @@
                 <div class="flex justify-between items-center">
                     <div>
                         <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Detalhes das Gigs</h3>
-                        <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">Lista completa de eventos no período</p>
+                        <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">Lista completa de eventos agrupados por artista</p>
                     </div>
-                    <a href="{{ route('finance.monthly-closing.exportPdf', request()->query()) }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                        <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Exportar PDF
-                    </a>
+                    @include('components.export-filter', [
+                        'route' => 'finance.monthly-closing.export',
+                        'artists' => $artists,
+                        'bookers' => $bookers,
+                        'selectedArtist' => request('artist_id'),
+                        'selectedBooker' => $selectedBookerId,
+                        'selectedMonth' => $selectedMonth,
+                        'selectedYear' => $selectedYear,
+                        'title' => 'Detalhes das Gigs'
+                    ])
                 </div>
             </div>
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-700">
+
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs">
+                    <thead class="bg-gray-50 dark:bg-gray-700/50">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Data</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Artista</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Local</th>
-                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cachê Bruto</th>
-                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-purple-500 dark:text-purple-300 uppercase tracking-wider">Comissão Booker</th>
-                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-indigo-500 dark:text-indigo-300 uppercase tracking-wider">Comissão Agência</th>
+                            <th class="px-3 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Data</th>
+                            <th class="px-3 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Local</th>
+                            <th class="px-3 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Cachê Bruto</th>
+                            <th class="px-3 py-3 text-right font-medium text-purple-500 dark:text-purple-300">Comissão Booker</th>
+                            <th class="px-3 py-3 text-right font-medium text-indigo-500 dark:text-indigo-300">Comissão Agência</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        @if(isset($reportData['artist_gigs']) && $reportData['artist_gigs']->count() > 0)
-                            @foreach($reportData['artist_gigs'] as $artistData)
-                                @php
-                                    $artist = $artistData['artist'];
-                                    $gigs = $artistData['gigs'];
-                                    $isFirstGig = true;
-                                @endphp
-                                
-                                @foreach($gigs as $gig)
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                    @if($isFirstGig)
-                                        <td rowspan="{{ $gigs->count() }}" class="px-6 py-4 whitespace-nowrap border-r-2 border-gray-200 dark:border-gray-700">
-                                            <div class="flex items-center">
-                                                <div class="flex-shrink-0 h-10 w-10">
-                                                    <span class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-medium">
-                                                        {{ substr($artist->name, 0, 1) }}
-                                                    </span>
-                                                </div>
-                                                <div class="ml-4">
-                                                    <div class="text-sm font-bold text-gray-900 dark:text-white">
-                                                        {{ $artist->name }}
-                                                    </div>
-                                                    <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                        {{ $gigs->count() }} {{ $gigs->count() > 1 ? 'gigs' : 'gig' }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        @php $isFirstGig = false; @endphp
-                                    @endif
-                                    
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                    <tbody class="bg-white dark:bg-gray-800">
+                        @forelse ($reportData['artist_gigs'] ?? [] as $artistData)
+                            <!-- Cabeçalho do Artista -->
+                            <tr class="bg-gray-100 dark:bg-gray-700/50">
+                                <td class="px-3 py-3 font-bold text-sm text-primary-700 dark:text-primary-400" colspan="5">
+                                    <i class="fas fa-music fa-fw mr-2"></i>{{ $artistData['artist']->name }}
+                                </td>
+                            </tr>
+                            <!-- Gigs do Artista -->
+                            @foreach ($artistData['gigs'] as $gig)
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer" onclick="window.location.href = '/gigs/{{ $gig->id }}'">
+                                     <td class="px-3 py-2 whitespace-nowrap">
                                         <div class="text-sm text-gray-900 dark:text-white font-medium">{{ $gig->gig_date->format('d/m/Y') }}</div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ $gig->gig_date->locale('pt-BR')->dayName }}</div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ $gig->gig_date->format('l') }}</div>
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-3 py-2">
                                         <div class="text-sm text-gray-900 dark:text-white font-medium">{{ $gig->location_event_details }}</div>
                                         <div class="text-xs text-gray-500 dark:text-gray-400">{{ $gig->location_city }}/{{ $gig->location_state }}</div>
                                         @if($gig->venue_name)
                                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $gig->venue_name }}</div>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
+                                    <td class="px-3 py-2 text-right whitespace-nowrap">
                                         <div class="font-medium {{ $gig->cache_value_brl < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white' }}">
                                             {{ $gig->cache_value_brl < 0 ? '-' : '' }}R$ {{ number_format(abs($gig->cache_value_brl), 2, ',', '.') }}
                                         </div>
-                                        @if($gig->cache_value_original_currency && $gig->cache_value_original_currency !== 'BRL')
+                                        @if($gig->currency && $gig->currency !== 'BRL')
                                             <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                {{ $gig->cache_value_original_currency }} {{ number_format($gig->cache_value, 2, ',', '.') }}
+                                                {{ $gig->currency }} {{ number_format($gig->cache_value, 2, ',', '.') }}
                                             </div>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
+                                    <td class="px-3 py-2 text-right whitespace-nowrap">
                                         <div class="font-medium text-purple-600 dark:text-purple-400">
                                             {{ $gig->booker_commission_value < 0 ? '-' : '' }}R$ {{ number_format(abs($gig->booker_commission_value), 2, ',', '.') }}
                                         </div>
@@ -335,7 +348,7 @@
                                             </div>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
+                                    <td class="px-3 py-2 text-right whitespace-nowrap">
                                         <div class="font-medium text-indigo-600 dark:text-indigo-400">
                                             {{ $gig->agency_commission_value < 0 ? '-' : '' }}R$ {{ number_format(abs($gig->agency_commission_value), 2, ',', '.') }}
                                         </div>
@@ -346,37 +359,32 @@
                                         @endif
                                     </td>
                                 </tr>
-                                @endforeach
-                                
-                                <!-- Linha de totais do artista -->
-                                <tr class="bg-gray-50 dark:bg-gray-700 font-medium">
-                                    <td colspan="3" class="px-6 py-3 text-right text-sm text-gray-900 dark:text-white">
-                                        Total {{ $artist->name }}:
-                                    </td>
-                                    <td class="px-6 py-3 text-right text-sm text-gray-900 dark:text-white">
-                                        R$ {{ number_format($artistData['total_cache_brl'], 2, ',', '.') }}
-                                    </td>
-                                    <td class="px-6 py-3 text-right text-sm text-purple-600 dark:text-purple-300">
-                                        R$ {{ number_format($artistData['total_booker_commission'], 2, ',', '.') }}
-                                    </td>
-                                    <td class="px-6 py-3 text-right text-sm text-indigo-600 dark:text-indigo-300">
-                                        R$ {{ number_format($artistData['total_agency_commission'], 2, ',', '.') }}
-                                    </td>
-                                </tr>
-                                
-                                <!-- Linha em branco para separar artistas -->
-                                <tr>
-                                    <td colspan="6" class="h-4"></td>
-                                </tr>
                             @endforeach
-                        @else
-                            <tr>
-                                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                                    Nenhuma gig encontrada para o período selecionado
-                                </td>
+                            <!-- Linha de Subtotal do Artista -->
+                            <tr class="bg-gray-50 dark:bg-gray-800/80 font-bold border-b-2 border-gray-300 dark:border-gray-600">
+                                <td class="px-3 py-2 text-right" colspan="2">SUBTOTAL ({{ $artistData['total_gigs'] }} {{ $artistData['total_gigs'] > 1 ? 'Gigs' : 'Gig' }}):</td>
+                                <td class="px-3 py-2 text-right">R$ {{ number_format($artistData['total_cache_brl'], 2, ',', '.') }}</td>
+                                <td class="px-3 py-2 text-right">R$ {{ number_format($artistData['total_booker_commission'], 2, ',', '.') }}</td>
+                                <td class="px-3 py-2 text-right">R$ {{ number_format($artistData['total_agency_commission'], 2, ',', '.') }}</td>
                             </tr>
-                        @endif
-                    </tbody>
+                        @empty
+                             <tr>
+                                 <td class="text-center py-10" colspan="5">Nenhuma gig encontrada para o período selecionado.</td>
+                             </tr>
+                         @endforelse
+                         
+                         @if(!empty($reportData['artist_gigs']))
+                             <!-- Linha de Totais Gerais -->
+                             <tr class="bg-primary-100 dark:bg-primary-900/30 font-bold text-primary-800 dark:text-primary-200 border-t-4 border-primary-500">
+                                 <td class="px-3 py-3 text-right" colspan="2">
+                                     <i class="fas fa-calculator fa-fw mr-2"></i>TOTAL GERAL ({{ $reportData['total_gigs'] ?? 0 }} {{ ($reportData['total_gigs'] ?? 0) > 1 ? 'Gigs' : 'Gig' }}):
+                                 </td>
+                                 <td class="px-3 py-3 text-right">R$ {{ number_format($reportData['total_cache_brl'] ?? 0, 2, ',', '.') }}</td>
+                                 <td class="px-3 py-3 text-right">R$ {{ number_format($reportData['total_booker_commission'] ?? 0, 2, ',', '.') }}</td>
+                                 <td class="px-3 py-3 text-right">R$ {{ number_format($reportData['total_agency_commission'] ?? 0, 2, ',', '.') }}</td>
+                             </tr>
+                         @endif
+                     </tbody>
                 </table>
             </div>
         </div>
@@ -384,7 +392,13 @@
     </div>
 
     @push('scripts')
-<script>
+<script type="text/javascript">
+// Dados dos gráficos
+window.chartData = JSON.parse('{!! addslashes(json_encode($bookerRevenueData ?? [])) !!}');
+window.chartData.bookerPieData = JSON.parse('{!! addslashes(json_encode($bookerPieData ?? [])) !!}');
+window.chartData.artistPerformanceData = JSON.parse('{!! addslashes(json_encode($artistPerformanceData ?? [])) !!}');
+window.chartData.bookerRevenueData = window.chartData;
+
 function loadChartJS(callback) {
     if (window.Chart) {
         console.log('Chart.js já está carregado');
@@ -436,7 +450,7 @@ if (!window.monthlyClosingScriptExecuted) {
             }
 
             // === GRÁFICO DE BARRAS ===
-            const bookerRevenueData = @json($bookerRevenueData ?? []);
+            const bookerRevenueData = window.chartData.bookerRevenueData;
             const revenueCtx = document.getElementById('bookerRevenueChart');
             const noRevenueData = document.getElementById('noRevenueData');
 
@@ -513,7 +527,7 @@ if (!window.monthlyClosingScriptExecuted) {
             }
 
             // === GRÁFICO DE PIZZA ===
-            const bookerPieData = @json($bookerPieData ?? []);
+            const bookerPieData = window.chartData.bookerPieData;
             const pieCtx = document.getElementById('bookerDistributionChart');
             const noPieData = document.getElementById('noPieData');
 
@@ -551,6 +565,65 @@ if (!window.monthlyClosingScriptExecuted) {
                     }
                 } else {
                     noPieData?.classList.remove('hidden');
+                }
+            }
+
+            // === GRÁFICO DE PERFORMANCE DOS ARTISTAS ===
+            const artistPerformanceData = window.chartData.artistPerformanceData;
+            const artistCtx = document.getElementById('artistPerformanceChart');
+            const noArtistData = document.getElementById('noArtistData');
+
+            console.log('Dados para o gráfico de performance dos artistas:', artistPerformanceData);
+
+            if (artistCtx) {
+                if (window.artistChart?.destroy) {
+                    console.log('Destruindo gráfico de artistas existente...');
+                    window.artistChart.destroy();
+                }
+
+                if (artistPerformanceData.length > 0) {
+                    noArtistData?.classList.add('hidden');
+                    try {
+                        window.artistChart = new Chart(artistCtx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: artistPerformanceData.map(item => item.label),
+                                datasets: [{
+                                    label: 'Quantidade de Shows',
+                                    data: artistPerformanceData.map(item => item.gigs_count),
+                                    backgroundColor: artistPerformanceData.map(item => item.color || '#cccccc'),
+                                    borderWidth: 2,
+                                    borderColor: '#fff'
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'bottom',
+                                        labels: {
+                                            padding: 20,
+                                            usePointStyle: true
+                                        }
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                const data = artistPerformanceData[context.dataIndex];
+                                                return `${data.label}: ${data.gigs_count} shows (R$ ${data.total_revenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})})`;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Erro ao criar gráfico de artistas:', error);
+                        noArtistData?.classList.remove('hidden');
+                    }
+                } else {
+                    noArtistData?.classList.remove('hidden');
                 }
             }
         }

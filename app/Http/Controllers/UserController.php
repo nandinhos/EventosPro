@@ -6,13 +6,11 @@ use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\Booker;
 use App\Models\User;
+use App\Services\UserManagementService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB; // Não mais necessário diretamente aqui, pois a lógica está no serviço
-use Illuminate\Support\Facades\Hash; // Não mais necessário diretamente aqui, pois a lógica está no serviço
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
-use App\Services\UserManagementService; // Importa o serviço
 
 class UserController extends Controller
 {
@@ -20,31 +18,26 @@ class UserController extends Controller
 
     /**
      * Construtor da classe, injeta o serviço de gerenciamento de usuários.
-     *
-     * @param UserManagementService $userManagementService
      */
     public function __construct(UserManagementService $userManagementService)
     {
         $this->userManagementService = $userManagementService;
     }
-    
+
     /**
      * Exibe uma lista paginada de usuários.
-     *
-     * @return View
      */
     public function index(): View
     {
         // Carrega usuários com seus bookers associados e os ordena por nome, paginando 15 por página.
         $users = User::with('booker')->orderBy('name')->paginate(15);
+
         return view('users.index', compact('users'));
     }
 
     /**
      * Mostra o formulário para criar um novo usuário.
      * Passa a lista de bookers disponíveis e dados iniciais para o Alpine.js.
-     *
-     * @return View
      */
     public function create(): View
     {
@@ -52,17 +45,14 @@ class UserController extends Controller
             'bookers' => Booker::all(),
             'alpineData' => [
                 'isBooker' => old('is_booker', false),
-                'creationType' => old('booker_creation_type', 'existing')
-            ]
+                'creationType' => old('booker_creation_type', 'existing'),
+            ],
         ]);
     }
 
     /**
      * Armazena um novo usuário no banco de dados.
      * Delega a lógica de criação ao serviço.
-     *
-     * @param StoreUserRequest $request
-     * @return RedirectResponse
      */
     public function store(StoreUserRequest $request): RedirectResponse
     {
@@ -78,7 +68,7 @@ class UserController extends Controller
             // Em caso de erro, redireciona de volta com os inputs e uma mensagem de erro.
             return back()
                 ->withInput()
-                ->with('error', 'Erro ao criar usuário: ' . $e->getMessage());
+                ->with('error', 'Erro ao criar usuário: '.$e->getMessage());
         }
     }
 
@@ -94,7 +84,7 @@ class UserController extends Controller
 
         return view('users.edit', compact('user', 'availableBookers'));
     }
-    
+
     /**
      * Atualiza um usuário existente no banco de dados.
      * Delega a lógica de atualização ao serviço.
@@ -103,47 +93,41 @@ class UserController extends Controller
     {
         try {
             $this->userManagementService->updateUser($user, $request->validated());
+
             return redirect()->route('users.index')->with('success', 'Usuário atualizado com sucesso!');
         } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Erro ao atualizar usuário: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Erro ao atualizar usuário: '.$e->getMessage());
         }
     }
 
     /**
      * Exibe os detalhes de um usuário específico.
-     *
-     * @param User $user
-     * @return View
      */
     public function show(User $user): View
     {
         return view('users.show', compact('user'));
     }
 
-    
-    
     /**
      * Remove (soft delete) o usuário selecionado.
      * Protege contra a remoção do próprio usuário logado.
-     *
-     * @param User $user
-     * @return RedirectResponse
      */
     public function destroy(User $user): RedirectResponse
     {
         // Proteção para não permitir que o usuário logado se auto-delete.
-        if ($user->id === auth()->id()) {
+        if ($user->getAttribute('id') == Auth::id()) {
             return redirect()->route('users.index')->with('error', 'Você não pode remover seu próprio usuário.');
         }
 
         try {
             // Delega a lógica de remoção (soft delete) do usuário e do booker associado ao serviço.
             $this->userManagementService->deleteUser($user);
-            
+
             return redirect()->route('users.index')->with('success', 'Usuário removido com sucesso.');
         } catch (\Exception $e) {
             // Em caso de erro, loga a exceção e redireciona com uma mensagem de erro.
-            Log::error('Erro ao remover usuário: ' . $e->getMessage(), ['exception' => $e]);
+            Log::error('Erro ao remover usuário: '.$e->getMessage(), ['exception' => $e]);
+
             return redirect()->route('users.index')->with('error', 'Erro ao remover o usuário.');
         }
     }

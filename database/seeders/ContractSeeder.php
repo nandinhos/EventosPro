@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\Contract; // Importar modelo
+use App\Models\Contract;
+use Illuminate\Database\Seeder; // Importar modelo
 
 class ContractSeeder extends Seeder
 {

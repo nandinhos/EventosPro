@@ -1,93 +1,138 @@
 <x-app-layout>
-    {{-- Header --}}
-    <div class="mb-6 flex flex-wrap justify-between items-center gap-4">
-        <div>
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white">{{ $artist->name }}</h2>
-            {{-- Colocar info de contato aqui --}}
-            @if($artist->contact_info)
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1"><i class="fas fa-phone-alt fa-fw mr-1 opacity-75"></i>{{ $artist->contact_info }}</p>
-            @endif
-        </div>
-        <div class="flex space-x-2">
-            <a href="{{ route('artists.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 px-4 py-2 rounded-md text-sm"> <i class="fas fa-arrow-left mr-1"></i> Voltar</a>
-            <a href="{{ route('artists.edit', $artist) }}" class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-md text-sm"> <i class="fas fa-edit mr-1"></i> Editar Artista</a>
-        </div>
-    </div>
+    <div class="max-w-9xl mx-auto py-10 sm:px-6 lg:px-8">
+        <div class="bg-white dark:bg-gray-800 shadow-xl rounded-lg">
+            <div class="p-6 sm:px-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $artist->name }}</h1>
+                        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Visão geral da atividade do artista.</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="{{ route('artists.index') }}" class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                            Voltar
+                        </a>
+                        <a href="{{ route('artists.edit', $artist) }}" class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 active:bg-gray-900 focus:outline-none focus:border-gray-900 focus:ring ring-gray-300 disabled:opacity-25 transition ease-in-out duration-150">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>
+                            Editar Artista
+                        </a>
+                    </div>
+                </div>
+            </div>
 
-     {{-- Tags --}}
-     @if($artist->tags->isNotEmpty())
-        <div class="mb-6 flex flex-wrap gap-1">
-             <span class="text-sm font-medium text-gray-500 dark:text-gray-400 mr-1">Tags:</span>
-            @foreach($artist->tags as $tag)
-                <span class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium px-2 py-0.5 rounded">
-                    {{ $tag->name }}
-                </span>
-            @endforeach
-        </div>
-    @endif
+            <div class="p-6 sm:px-20 bg-white dark:bg-gray-800">
+                <form method="GET" action="{{ route('artists.show', $artist) }}">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-grow">
+                            <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Período de Análise</label>
+                            <div class="flex items-center mt-1 space-x-2">
+                                <input type="date" name="start_date" id="start_date" value="{{ $startDate->format('Y-m-d') }}" class="block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                                <span class="text-gray-500">até</span>
+                                <input type="date" name="end_date" id="end_date" value="{{ $endDate->format('Y-m-d') }}" class="block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                            </div>
+                        </div>
+                        <div class="pt-6">
+                            <x-secondary-button type="submit">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                                Aplicar Filtro
+                            </x-secondary-button>
+                        </div>
+                    </div>
+                </form>
+            </div>
 
-    {{-- Cards de Métricas Focados no Artista --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">Total de Gigs</h4>
-            <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ $metrics['total_gigs'] }}</p>
-        </div>
-         <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">Cachê Líquido Recebido (BRL)*</h4>
-            <p class="text-2xl font-bold text-green-600 dark:text-green-400">
-                R$ {{ number_format($metrics['cache_received_brl'], 2, ',', '.') }}
-            </p>
-        </div>
-         <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">Cachê Líquido Pendente (BRL)*</h4>
-            <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                 R$ {{ number_format($metrics['cache_pending_brl'], 2, ',', '.') }}
-            </p>
-        </div>
-        <p class="md:col-span-3 text-xs text-gray-500 dark:text-gray-400 italic">* Valores líquidos aproximados (Cachê BRL - Comissão Agência) baseados no status de pagamento do artista.</p>
-    </div>
+            <div class="rounded-xl">
+                <div x-data="{ tab: 'overview' }" class="p-4 sm:p-6 lg:p-8">
+                    <div class="sm:hidden">
+                        <label for="tabs" class="sr-only">Select a tab</label>
+                        <select id="tabs" name="tabs" @change="tab = $event.target.value" class="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="overview" :selected="tab === 'overview'">Visão Geral</option>
+                            <option value="events" :selected="tab === 'events'">Eventos</option>
+                            <option value="financials" :selected="tab === 'financials'">Fechamento Financeiro</option>
+                        </select>
+                    </div>
+                    <div class="hidden sm:block">
+                        <div class="border-b border-gray-200">
+                            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                                <a href="#" @click.prevent="tab = 'overview'" :class="{'border-indigo-500 text-indigo-600': tab === 'overview', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': tab !== 'overview'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Visão Geral</a>
+                                <a href="#" @click.prevent="tab = 'events'" :class="{'border-indigo-500 text-indigo-600': tab === 'events', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': tab !== 'events'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Eventos</a>
+                                <a href="#" @click.prevent="tab = 'financials'" :class="{'border-indigo-500 text-indigo-600': tab === 'financials', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': tab !== 'financials'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Fechamento Financeiro</a>
+                            </nav>
+                        </div>
+                    </div>
 
-    {{-- Tabela de Gigs do Artista --}}
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
-         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-             <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Gigs de {{ $artist->name }}</h3>
-             {{-- TODO: Adicionar filtros (Período, Status Pagamento Cliente, Status Pagamento Artista) --}}
-         </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
-                <thead class="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Local / Evento</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Booker</th>
-                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cachê (BRL)</th>
-                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pgto Cliente</th>
-                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pgto Artista</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ações</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    @forelse ($gigs as $gig)
-                         <tr class="{{ $gig->payment_status == 'vencido' ? 'bg-red-50 dark:bg-red-900/20' : ($gig->currency != 'BRL' ? 'bg-blue-50 dark:bg-blue-900/10' : '') }}">
-                            <td class="px-3 py-1.5 whitespace-nowrap">{{ $gig->gig_date->format('d/m/Y') }}</td>
-                            <td class="px-3 py-1.5 whitespace-normal">{{ $gig->location_event_details }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap">{{ $gig->booker->name ?? 'Agência' }}</td>
-                            <td class="px-3 py-1.5 whitespace-nowrap text-right">{{ number_format($gig->cache_value_brl, 2, ',', '.') }}</td>
-                            <td class="px-3 py-1.5 text-center"><x-status-badge :status="$gig->payment_status" type="payment" /></td>
-                            <td class="px-3 py-1.5 text-center"><x-status-badge :status="$gig->artist_payment_status" type="payment-artist" /></td>
-                            <td class="px-3 py-1.5 whitespace-nowrap">
-                                <a href="{{ route('gigs.show', $gig) }}" title="Ver Gig Completa" class="text-blue-500 hover:text-blue-700"><i class="fas fa-eye fa-fw"></i></a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Nenhuma gig encontrada para este artista.</td> {{-- Ajustar colspan --}}
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    <div x-show="tab === 'overview'" class="mt-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <!-- Total de Gigs -->
+                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 border-blue-500 p-5">
+                                <div class="flex items-center">
+                                    <div class="text-blue-500 text-3xl">
+                                        <i class="fas fa-list-alt"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Total de Gigs no Período</h3>
+                                        <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white">{{ $realizedGigs->count() + $futureGigs->count() }}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cachê Bruto Total -->
+                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 border-purple-500 p-5">
+                                <div class="flex items-center">
+                                    <div class="text-purple-500 text-3xl">
+                                        <i class="fas fa-dollar-sign"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Cachê Bruto Total</h3>
+                                        <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white">R$ {{ number_format($metrics['totalGrossFee'] ?? 0, 2, ',', '.') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Líquido Recebido -->
+                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 border-green-500 p-5">
+                                <div class="flex items-center">
+                                    <div class="text-green-500 text-3xl">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Líquido Recebido (Realizado)</h3>
+                                        <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white">R$ {{ number_format($metrics['cache_received_brl'] ?? 0, 2, ',', '.') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Líquido Pendente -->
+                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 border-yellow-500 p-5">
+                                <div class="flex items-center">
+                                    <div class="text-yellow-500 text-3xl">
+                                        <i class="fas fa-hourglass-half"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Líquido a Receber (Futuro)</h3>
+                                        <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white">R$ {{ number_format($metrics['cache_pending_brl'] ?? 0, 2, ',', '.') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div x-show="tab === 'events'">
+                        <div class="mt-6">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">Eventos Realizados</h3>
+                            @include('artists.components.gigs-table', ['gigs' => $realizedGigs, 'tableId' => 'past-gigs-table'])
+                        </div>
+                        <div class="mt-8">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">Próximos Eventos</h3>
+                            @include('artists.components.gigs-table', ['gigs' => $futureGigs, 'tableId' => 'future-gigs-table'])
+                        </div>
+                    </div>
+
+                    <div x-show="tab === 'financials'" class="mt-6">
+                        @include('artists.components.financial-closing', ['metrics' => $metrics])
+                    </div>
+                </div>
+            </div>
         </div>
-         {{-- Paginação --}}
-        {{-- ... --}}
     </div>
 </x-app-layout>

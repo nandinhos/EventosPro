@@ -19,16 +19,16 @@ class RedirectIfBooker
 
         // Se o usuário estiver logado, for um booker, e estiver tentando acessar o dashboard principal
         if ($user && $user->hasRole('BOOKER') && $request->route()->getName() === 'filament.admin.pages.dashboard') {
-            
+
             // Verifica se o usuário tem um booker_id associado
             if ($user->booker_id) {
                 // ***** CORREÇÃO AQUI: Passa o parâmetro 'record' para a rota *****
                 return redirect()->route('filament.admin.resources.bookers.view', [
-                    'record' => $user->booker_id
+                    'record' => $user->booker_id,
                 ]);
             }
         }
-        
+
         return $next($request);
     }
 }

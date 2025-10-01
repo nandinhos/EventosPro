@@ -18,9 +18,6 @@ class DashboardController extends Controller
 
     /**
      * Exibe o dashboard principal.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\View\View
      */
     public function index(Request $request): View
     {
@@ -29,12 +26,12 @@ class DashboardController extends Controller
             'start_date' => $request->input('start_date'),
             'end_date' => $request->input('end_date'),
         ];
-        
+
         // Obtém os dados do dashboard usando o serviço
         $data = $this->dashboardService
             ->setFilters($filters)
             ->getDashboardData();
-            
+
         // Adiciona os filtros atuais à view
         $data['filters'] = $filters;
 

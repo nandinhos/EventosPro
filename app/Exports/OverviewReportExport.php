@@ -2,12 +2,12 @@
 
 namespace App\Exports;
 
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use Illuminate\Support\Collection;
 
 class OverviewReportExport implements FromCollection, WithHeadings, WithMapping, WithStyles
 {
@@ -27,6 +27,7 @@ class OverviewReportExport implements FromCollection, WithHeadings, WithMapping,
                 $flattenedData[] = $gig; // A coluna 'artist_name' já está em cada gig
             }
         }
+
         return collect($flattenedData);
     }
 

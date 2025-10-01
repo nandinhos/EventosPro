@@ -1,4 +1,5 @@
 <?php
+
 // Código completo da migration create_bookers_table (Item 3 da resposta anterior)
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;

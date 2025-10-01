@@ -3,14 +3,13 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class UpdateGigRequest extends FormRequest
 {
     /**
      * Determina se o usuário está autorizado a fazer esta requisição.
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -20,6 +19,7 @@ class UpdateGigRequest extends FormRequest
 
     /**
      * Obtém as regras de validação que se aplicam à requisição.
+     *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
@@ -28,48 +28,49 @@ class UpdateGigRequest extends FormRequest
         $gigId = $this->route('gig')?->id;
 
         return [
-            'artist_id'               => ['required', 'integer', 'exists:artists,id'],
-            'booker_id'               => ['nullable', 'integer', 'exists:bookers,id'],
-            'gig_date'                => ['required', 'date'],
-            'location_event_details'  => ['required', 'string', 'max:65535'],
-            'cache_value'             => ['required', 'numeric', 'min:0'],
-            'currency'                => ['required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP', 'GPB'])], // Moeda original (GPB é um alias para GBP)
+            'artist_id' => ['required', 'integer', 'exists:artists,id'],
+            'booker_id' => ['nullable', 'integer', 'exists:bookers,id'],
+            'gig_date' => ['required', 'date'],
+            'location_event_details' => ['required', 'string', 'max:65535'],
+            'cache_value' => ['required', 'numeric', 'min:0'],
+            'currency' => ['required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])], // Moeda original
 
-            'contract_number'         => ['nullable', 'string', 'max:100', Rule::unique('gigs', 'contract_number')->ignore($gigId)],
-            'contract_date'           => ['nullable', 'date', 'before_or_equal:gig_date'],
-            'contract_status'         => ['nullable', 'string', 'max:50', Rule::in(['assinado', 'para_assinatura', 'expirado', 'n/a', 'cancelado', 'concluido'])],
+            'contract_number' => ['nullable', 'string', 'max:100', Rule::unique('gigs', 'contract_number')->ignore($gigId)],
+            'contract_date' => ['nullable', 'date', 'before_or_equal:gig_date'],
+            'contract_status' => ['nullable', 'string', 'max:50', Rule::in(['assinado', 'para_assinatura', 'expirado', 'n/a', 'cancelado', 'concluido'])],
 
-            'agency_commission_type'  => ['nullable', 'string', Rule::in(['percent', 'fixed'])],
-            'booker_commission_type'  => ['nullable', 'string', Rule::in(['percent', 'fixed'])],
+            'agency_commission_type' => ['nullable', 'string', Rule::in(['percent', 'fixed'])],
+            'booker_commission_type' => ['nullable', 'string', Rule::in(['percent', 'fixed'])],
 
             'agency_commission_value' => ['nullable', 'numeric', 'min:0',
-                Rule::when(fn() => $this->input('agency_commission_type') === 'percent', ['max:100'])
+                Rule::when(fn () => $this->input('agency_commission_type') === 'percent', ['max:100']),
             ],
             'booker_commission_value' => ['nullable', 'numeric', 'min:0',
-                Rule::when(fn() => $this->input('booker_commission_type') === 'percent', ['max:100'])
+                Rule::when(fn () => $this->input('booker_commission_type') === 'percent', ['max:100']),
             ],
 
-            'notes'                   => ['nullable', 'string', 'max:65535'],
-            'tags'                    => ['nullable', 'array'],
-            'tags.*'                  => ['integer', 'exists:tags,id'],
+            'notes' => ['nullable', 'string', 'max:65535'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['integer', 'exists:tags,id'],
 
             // Despesas
-            'expenses'                         => ['nullable', 'array'],
-            'expenses.*.cost_center_id'        => ['required_with:expenses', 'integer', 'exists:cost_centers,id'],
-            'expenses.*.description'           => ['nullable', 'string', 'max:255'],
-            'expenses.*.value'                 => ['required_with:expenses', 'numeric', 'min:0.01'],
-            'expenses.*.currency'              => ['required_with:expenses', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])],
-            'expenses.*.expense_date'          => ['nullable', 'date'],
-            'expenses.*.notes'                 => ['nullable', 'string', 'max:65535'],
-            'expenses.*.is_confirmed'          => ['nullable', 'boolean'],
-            'expenses.*.is_invoice'            => ['nullable', 'boolean'],
-            'expenses.*.id'                    => ['nullable', 'integer', 'exists:gig_costs,id'], // Para edição/exclusão
-            'expenses.*._deleted'              => ['nullable', 'boolean'], // Para marcar exclusão
+            'expenses' => ['nullable', 'array'],
+            'expenses.*.cost_center_id' => ['required_with:expenses', 'integer', 'exists:cost_centers,id'],
+            'expenses.*.description' => ['nullable', 'string', 'max:255'],
+            'expenses.*.value' => ['required_with:expenses', 'numeric', 'min:0.01'],
+            'expenses.*.currency' => ['required_with:expenses', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])],
+            'expenses.*.expense_date' => ['nullable', 'date'],
+            'expenses.*.notes' => ['nullable', 'string', 'max:65535'],
+            'expenses.*.is_confirmed' => ['nullable', 'boolean'],
+            'expenses.*.is_invoice' => ['nullable', 'boolean'],
+            'expenses.*.id' => ['nullable', 'integer', 'exists:gig_costs,id'], // Para edição/exclusão
+            'expenses.*._deleted' => ['nullable', 'boolean'], // Para marcar exclusão
         ];
     }
 
     /**
      * Obtém mensagens personalizadas para erros de validação.
+     *
      * @return array<string, string>
      */
     public function messages(): array
@@ -93,7 +94,6 @@ class UpdateGigRequest extends FormRequest
 
     /**
      * Prepara os dados para validação.
-     * @return void
      */
     protected function prepareForValidation(): void
     {
@@ -123,7 +123,7 @@ class UpdateGigRequest extends FormRequest
             $toMerge['expenses'] = $expenses;
         }
 
-        if (!empty($toMerge)) {
+        if (! empty($toMerge)) {
             $this->merge($toMerge);
         }
         Log::debug('[UpdateGigRequest] Dados após prepareForValidation: ', $this->all());

@@ -6,7 +6,6 @@ use App\Models\Booker;
 use App\Services\BookerFinancialsService; // Importa o service
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Carbon\Carbon;
 
 class BookerStatsOverview extends BaseWidget
 {
@@ -14,7 +13,7 @@ class BookerStatsOverview extends BaseWidget
 
     protected function getStats(): array
     {
-        if (!$this->record) {
+        if (! $this->record) {
             return [];
         }
 
@@ -24,15 +23,15 @@ class BookerStatsOverview extends BaseWidget
         $commissionKpis = $financialService->getCommissionKpis($this->record);
 
         return [
-            Stat::make('Total Vendido (12 meses)', 'R$ ' . number_format($salesKpis['total_sold_value'], 2, ',', '.'))
-                ->description($salesKpis['total_gigs_sold'] . ' Gigs vendidas')
+            Stat::make('Total Vendido (12 meses)', 'R$ '.number_format($salesKpis['total_sold_value'], 2, ',', '.'))
+                ->description($salesKpis['total_gigs_sold'].' Gigs vendidas')
                 ->color('success'),
-            
-            Stat::make('Comissão Recebida', 'R$ ' . number_format($commissionKpis['commission_received'], 2, ',', '.'))
+
+            Stat::make('Comissão Recebida', 'R$ '.number_format($commissionKpis['commission_received'], 2, ',', '.'))
                 ->description('Total pago ao booker')
                 ->color('info'),
-            
-            Stat::make('Comissão a Receber', 'R$ ' . number_format($commissionKpis['commission_to_receive'], 2, ',', '.'))
+
+            Stat::make('Comissão a Receber', 'R$ '.number_format($commissionKpis['commission_to_receive'], 2, ',', '.'))
                 ->description('Pendente de pagamento')
                 ->color('warning'),
         ];

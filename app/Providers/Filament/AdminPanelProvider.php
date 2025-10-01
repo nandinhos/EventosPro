@@ -2,9 +2,16 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Resources\ArtistResource;
+use App\Filament\Resources\BookerResource;
+use App\Filament\Resources\GigResource;
+use App\Filament\Resources\UserResource;
+use App\Filament\Widgets\FaturamentoChart;
+use App\Filament\Widgets\VendasGeraisStats;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -14,16 +21,9 @@ use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+// ***** 1. IMPORTE SEUS NOVOS WIDGETS AQUI *****
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Filament\Navigation\NavigationItem;
-use App\Filament\Resources\BookerResource;
-use App\Filament\Resources\GigResource;
-use App\Filament\Resources\UserResource;
-use App\Filament\Resources\ArtistResource;
-// ***** 1. IMPORTE SEUS NOVOS WIDGETS AQUI *****
-use App\Filament\Widgets\VendasGeraisStats;
-use App\Filament\Widgets\FaturamentoChart;
 
 class AdminPanelProvider extends PanelProvider
 {
