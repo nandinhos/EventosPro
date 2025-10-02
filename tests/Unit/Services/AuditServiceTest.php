@@ -7,12 +7,16 @@ use App\Models\Payment;
 use App\Services\AuditService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class AuditServiceTest extends TestCase
 {
-    use RefreshDatabase;    protected AuditService $auditService;    protected function setUp(): void
+    use RefreshDatabase;
+
+    protected AuditService $auditService;
+
+    protected function setUp(): void
     {
         parent::setUp();
         $this->auditService = app(AuditService::class);

@@ -24,6 +24,7 @@ class UserResource extends Resource
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
+
         return $user->can('manage users');
     }
 

@@ -5,12 +5,14 @@ namespace Tests\Unit;
 use App\Models\Gig;
 use App\Services\AuditService;
 use App\Services\GigFinancialCalculatorService;
-use Mockery;use Tests\TestCase;
+use Mockery;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class AuditServiceTest extends TestCase
 {
     private AuditService $auditService;
+
     private $financialCalculator;
 
     protected function setUp(): void
@@ -30,9 +32,9 @@ class AuditServiceTest extends TestCase
     public function it_validates_gig_integrity_with_valid_gig()
     {
         $payments = collect([
-            (object)['currency' => 'USD']
+            (object) ['currency' => 'USD'],
         ]);
-        
+
         $gig = Mockery::mock(Gig::class);
         $gig->shouldReceive('getAttribute')->with('id')->andReturn(1);
         $gig->shouldReceive('getAttribute')->with('cache_value')->andReturn(1000.00);
@@ -54,7 +56,7 @@ class AuditServiceTest extends TestCase
     public function it_validates_gig_integrity_with_invalid_contract_value()
     {
         $payments = collect();
-        
+
         $gig = Mockery::mock(Gig::class);
         $gig->shouldReceive('getAttribute')->with('id')->andReturn(1);
         $gig->shouldReceive('getAttribute')->with('cache_value')->andReturn(0);

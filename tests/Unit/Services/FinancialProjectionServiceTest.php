@@ -14,12 +14,16 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class FinancialProjectionServiceTest extends TestCase
 {
-    use RefreshDatabase;    protected FinancialProjectionService $projectionService;    protected GigFinancialCalculatorService $gigCalculator;
+    use RefreshDatabase;
+
+    protected FinancialProjectionService $projectionService;
+
+    protected GigFinancialCalculatorService $gigCalculator;
 
     protected function setUp(): void
     {
@@ -217,7 +221,7 @@ class FinancialProjectionServiceTest extends TestCase
         Cache::flush();
 
         // Configure a known exchange rate for testing
-        config(['app.default_exchange_rates.USD' => 5.20]);
+        config(['exchange_rates.default_rates.USD' => 5.20]);
 
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();

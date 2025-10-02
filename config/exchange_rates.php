@@ -67,7 +67,7 @@ return [
         'enabled' => env('EXCHANGE_API_ENABLED', true),
         'timeout' => env('EXCHANGE_API_TIMEOUT', 10), // segundos
         'cache_ttl' => env('EXCHANGE_CACHE_TTL', 240), // minutos (4 horas)
-        
+
         // URLs das APIs (podem ser configuradas via .env)
         'urls' => [
             'primary' => env('EXCHANGE_API_PRIMARY_URL', 'https://api.exchangerate-api.com/v4/latest/BRL'),
@@ -85,7 +85,7 @@ return [
     */
 
     'validation' => [
-        'currency_field' => 'required|string|size:3|in:' . implode(',', ['BRL', 'USD', 'EUR', 'GBP']),
+        'currency_field' => 'required|string|size:3|in:'.implode(',', ['BRL', 'USD', 'EUR', 'GBP']),
         'exchange_rate_field' => 'nullable|numeric|min:0.000001|max:999999.999999',
         'amount_field' => 'required|numeric|min:0.01|max:999999999.99',
     ],

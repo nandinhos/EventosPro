@@ -34,7 +34,7 @@ class GigFormRequest extends FormRequest
             'location_event_details' => ['required', 'string', 'max:65535'],
 
             'cache_value' => ['required', 'numeric', 'min:0'],
-            'currency' => ['required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GPB'])], // Adicionado GBP
+            'currency' => ['required', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])], // Adicionado GBP
             // Campo exchange_rate removido - não é mais necessário
             // 'expenses_value_brl' foi removido, as despesas são tratadas como array 'expenses'
 
@@ -69,7 +69,7 @@ class GigFormRequest extends FormRequest
             'expenses.*.cost_center_id' => ['required_with:expenses.*.value', 'nullable', 'integer', 'exists:cost_centers,id'],
             'expenses.*.description' => ['nullable', 'string', 'max:255'],
             'expenses.*.value' => ['required_with:expenses.*.cost_center_id', 'nullable', 'numeric', 'min:0.01'],
-            'expenses.*.currency' => ['nullable', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GPB'])],
+            'expenses.*.currency' => ['nullable', 'string', 'max:10', Rule::in(['BRL', 'USD', 'EUR', 'GBP'])],
             'expenses.*.expense_date' => ['nullable', 'date'],
             'expenses.*.notes' => ['nullable', 'string', 'max:65535'],
             'expenses.*.is_confirmed' => ['nullable', 'boolean'],

@@ -8,18 +8,22 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
-use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class ExchangeRateServiceTest extends TestCase
 {
-    use RefreshDatabase;    private ExchangeRateService $exchangeRateService;    protected function setUp(): void
+    use RefreshDatabase;
+
+    private ExchangeRateService $exchangeRateService;
+
+    protected function setUp(): void
     {
         parent::setUp();
         $this->exchangeRateService = new ExchangeRateService;
 
         // Configurar taxas padrão para testes
-        Config::set('app.default_exchange_rates', [
+        Config::set('exchange_rates.default_rates', [
             'USD' => 5.30,
             'EUR' => 5.70,
             'GBP' => 6.50,
@@ -95,7 +99,7 @@ class ExchangeRateServiceTest extends TestCase
         ]);
 
         // Configurar taxa conhecida
-        Config::set('app.default_exchange_rates.USD', 5.00);
+        Config::set('exchange_rates.default_rates.USD', 5.00);
 
         $convertedAmount = $this->exchangeRateService->convertToBRL(100.00, 'USD', Carbon::today());
 
@@ -227,5 +231,31 @@ class ExchangeRateServiceTest extends TestCase
         $this->assertEquals($rateUpper, $rateLower);
         $this->assertEquals($rateUpper, $rateMixed);
         $this->assertEquals(5.30, $rateUpper);
+    }
+
+    #[Test]
+    public function it_clears_cache_for_specific_currency()
+    {
+        \Illuminate\Support\Facades\Log::shouldReceive('info')
+            ->once()
+            ->with('Cache de taxa de câmbio limpo para USD');
+
+        $this->exchangeRateService->clearCache('USD');
+
+        // Test passes if no exception is thrown and log is called
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function it_clears_all_cache_when_no_currency_specified()
+    {
+        \Illuminate\Support\Facades\Log::shouldReceive('info')
+            ->once()
+            ->with('Todo cache de taxas de câmbio foi limpo');
+
+        $this->exchangeRateService->clearCache();
+
+        // Test passes if no exception is thrown and log is called
+        $this->assertTrue(true);
     }
 }

@@ -6,13 +6,14 @@ use App\Models\Artist;
 use App\Models\Gig;
 use App\Services\ArtistFinancialsService;
 use App\Services\GigFinancialCalculatorService;
-use Illuminate\Foundation\Testing\RefreshDatabase;use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class ArtistFinancialsServiceTest extends TestCase
 {
     use RefreshDatabase;
-    
+
     protected ArtistFinancialsService $artistFinancialsService;
 
     protected function setUp(): void

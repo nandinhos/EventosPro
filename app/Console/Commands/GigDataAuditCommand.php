@@ -18,8 +18,9 @@ class GigDataAuditCommand extends Command
                             {--scan-only : Apenas escanear sem fazer correções}
                             {--auto-fix : Corrigir automaticamente sem confirmações}
                             {--batch-size=100 : Tamanho do lote para processamento}
-                            {--date-from= : Data inicial para filtrar gigs (Y-m-d)}
-                            {--date-to= : Data final para filtrar gigs (Y-m-d)}';
+                            {--date-from= : Data inicial para filtrar gigs (YYYY-MM-DD)}
+                            {--date-to= : Data final para filtrar gigs (YYYY-MM-DD)}
+                            {--full-database : Processar todo o banco de dados (ignora filtros de data)}';
 
     /**
      * The console command description.
@@ -31,7 +32,7 @@ class GigDataAuditCommand extends Command
     protected array $stats = [
         'total_gigs' => 0,
         'issues_found' => 0,
-        'fixes_applied' => 0,
+        'corrections_applied' => 0,
         'errors' => 0,
     ];
 
@@ -49,6 +50,14 @@ class GigDataAuditCommand extends Command
         $batchSize = (int) $this->option('batch-size');
         $dateFrom = $this->option('date-from');
         $dateTo = $this->option('date-to');
+        $fullDatabase = $this->option('full-database');
+
+        // Se full-database for especificado, ignorar filtros de data
+        if ($fullDatabase) {
+            $dateFrom = null;
+            $dateTo = null;
+            $this->info('🌐 Modo BANCO COMPLETO ativado - processando TODOS os registros');
+        }
 
         // Log temporário para debug
         Log::info('GigDataAudit Debug - Parâmetros recebidos:', [
@@ -57,6 +66,7 @@ class GigDataAuditCommand extends Command
             'autoFix' => $autoFix,
             'autoFix_type' => gettype($autoFix),
             'batchSize' => $batchSize,
+            'fullDatabase' => $fullDatabase,
             'environment' => $this->isRunningInConsole() ? 'console' : 'web',
         ]);
 
@@ -68,7 +78,7 @@ class GigDataAuditCommand extends Command
         }
 
         // Mostrar configurações
-        $this->displayConfiguration($scanOnly, $autoFix, $batchSize, $dateFrom, $dateTo);
+        $this->displayConfiguration($scanOnly, $autoFix, $batchSize, $dateFrom, $dateTo, $fullDatabase);
 
         // Confirmar execução se não for auto-fix E se estivermos em ambiente console
         if (! $autoFix && ! $this->confirmExecution()) {
@@ -118,17 +128,24 @@ class GigDataAuditCommand extends Command
         return $result !== false;
     }
 
-    protected function displayConfiguration($scanOnly, $autoFix, $batchSize, $dateFrom, $dateTo)
+    protected function displayConfiguration($scanOnly, $autoFix, $batchSize, $dateFrom, $dateTo, $fullDatabase = false)
     {
         $this->info('📋 Configurações:');
         $this->line('   Modo: '.($scanOnly ? 'Apenas Escaneamento' : ($autoFix ? 'Correção Automática' : 'Correção Interativa')));
         $this->line("   Tamanho do lote: {$batchSize}");
 
-        if ($dateFrom) {
-            $this->line("   Data inicial: {$dateFrom}");
-        }
-        if ($dateTo) {
-            $this->line("   Data final: {$dateTo}");
+        if ($fullDatabase) {
+            $this->line('   Escopo: BANCO COMPLETO (todos os registros)');
+        } else {
+            if ($dateFrom) {
+                $this->line("   Data inicial: {$dateFrom}");
+            }
+            if ($dateTo) {
+                $this->line("   Data final: {$dateTo}");
+            }
+            if (! $dateFrom && ! $dateTo) {
+                $this->line('   Escopo: Todos os registros (sem filtro de data)');
+            }
         }
 
         $this->newLine();
@@ -152,8 +169,18 @@ class GigDataAuditCommand extends Command
 
     protected function performAudit($batchSize, $dateFrom, $dateTo, $scanOnly, $autoFix)
     {
+        // Log início da auditoria
+        Log::info('GigDataAudit: Iniciando auditoria completa', [
+            'batch_size' => $batchSize,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+            'scan_only' => $scanOnly,
+            'auto_fix' => $autoFix,
+            'memory_usage_start' => memory_get_usage(true),
+        ]);
+
         // Construir query base
-        $query = Gig::with(['artist', 'booker']);
+        $query = Gig::with(['artist', 'booker', 'payments']);
 
         if ($dateFrom) {
             $query->where('gig_date', '>=', $dateFrom);
@@ -162,23 +189,161 @@ class GigDataAuditCommand extends Command
             $query->where('gig_date', '<=', $dateTo);
         }
 
+        // Contar total de registros
         $this->stats['total_gigs'] = $query->count();
         $this->info("📊 Total de gigs para análise: {$this->stats['total_gigs']}");
+
+        // Log detalhado da distribuição de dados
+        $this->logDatabaseDistribution($query);
+
         $this->newLine();
 
-        // Processar em lotes
+        // Verificar se há dados para processar
+        if ($this->stats['total_gigs'] === 0) {
+            $this->warn('⚠️  Nenhuma gig encontrada para os critérios especificados.');
+
+            return;
+        }
+
+        // Processar em lotes com otimizações
         $progressBar = $this->output->createProgressBar($this->stats['total_gigs']);
+        $progressBar->setFormat(' %current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s% - %message%');
+        $progressBar->setMessage('Iniciando processamento...');
         $progressBar->start();
 
-        $query->chunk($batchSize, function ($gigs) use ($scanOnly, $autoFix, $progressBar) {
+        $processedCount = 0;
+        $batchNumber = 0;
+        $startTime = microtime(true);
+
+        $query->chunk($batchSize, function ($gigs) use ($scanOnly, $autoFix, $progressBar, &$processedCount, &$batchNumber, $startTime) {
+            $batchNumber++;
+            $batchStartTime = microtime(true);
+            $batchIssuesFound = 0;
+
+            $progressBar->setMessage("Processando lote {$batchNumber}...");
+
             foreach ($gigs as $gig) {
+                $issuesBeforeAudit = count($this->issues);
                 $this->auditGig($gig, $scanOnly, $autoFix);
+                $issuesAfterAudit = count($this->issues);
+
+                if ($issuesAfterAudit > $issuesBeforeAudit) {
+                    $batchIssuesFound += ($issuesAfterAudit - $issuesBeforeAudit);
+                }
+
+                $processedCount++;
                 $progressBar->advance();
+
+                // Atualizar mensagem do progresso a cada 10 registros
+                if ($processedCount % 10 === 0) {
+                    $elapsedTime = microtime(true) - $startTime;
+                    $rate = $processedCount / $elapsedTime;
+                    $progressBar->setMessage(sprintf(
+                        'Processando... (%.1f gigs/s, %d issues encontradas)',
+                        $rate,
+                        $this->stats['issues_found']
+                    ));
+                }
+            }
+
+            $batchTime = microtime(true) - $batchStartTime;
+
+            // Log detalhado do lote
+            Log::info("GigDataAudit: Lote {$batchNumber} processado", [
+                'batch_number' => $batchNumber,
+                'batch_size' => count($gigs),
+                'batch_time_seconds' => round($batchTime, 3),
+                'batch_issues_found' => $batchIssuesFound,
+                'total_processed' => $processedCount,
+                'total_issues_so_far' => $this->stats['issues_found'],
+                'memory_usage' => memory_get_usage(true),
+                'memory_peak' => memory_get_peak_usage(true),
+            ]);
+
+            // Liberar memória a cada lote
+            unset($gigs);
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
             }
         });
 
+        $progressBar->setMessage('Processamento concluído!');
         $progressBar->finish();
         $this->newLine(2);
+
+        $totalTime = microtime(true) - $startTime;
+
+        // Log final detalhado
+        Log::info('GigDataAudit: Processamento completo finalizado', [
+            'total_gigs_processed' => $processedCount,
+            'total_time_seconds' => round($totalTime, 3),
+            'average_rate_per_second' => round($processedCount / $totalTime, 2),
+            'total_issues_found' => $this->stats['issues_found'],
+            'total_corrections_applied' => $this->stats['corrections_applied'],
+            'total_errors' => $this->stats['errors'],
+            'memory_peak_usage' => memory_get_peak_usage(true),
+            'batch_count' => $batchNumber,
+        ]);
+
+        $this->info('⚡ Processamento concluído em '.round($totalTime, 2).' segundos');
+        $this->info('📈 Taxa média: '.round($processedCount / $totalTime, 1).' gigs/segundo');
+    }
+
+    /**
+     * Log detalhado da distribuição de dados no banco
+     */
+    protected function logDatabaseDistribution($query)
+    {
+        try {
+            // Clonar query para não afetar a principal
+            $distributionQuery = clone $query;
+
+            // Estatísticas por status de pagamento
+            $paymentStatusStats = $distributionQuery->select('payment_status', DB::raw('COUNT(*) as count'))
+                ->groupBy('payment_status')
+                ->pluck('count', 'payment_status')
+                ->toArray();
+
+            // Estatísticas por status de contrato
+            $contractStatusStats = $distributionQuery->select('contract_status', DB::raw('COUNT(*) as count'))
+                ->groupBy('contract_status')
+                ->pluck('count', 'contract_status')
+                ->toArray();
+
+            // Estatísticas por ano
+            $yearStats = $distributionQuery->select(DB::raw('YEAR(gig_date) as year'), DB::raw('COUNT(*) as count'))
+                ->groupBy(DB::raw('YEAR(gig_date)'))
+                ->orderBy('year')
+                ->pluck('count', 'year')
+                ->toArray();
+
+            // Gigs com problemas potenciais (valores zerados, datas nulas, etc.)
+            $potentialIssues = [
+                'cache_value_zero' => $distributionQuery->where('cache_value', 0)->count(),
+                'currency_empty' => $distributionQuery->whereNull('currency')->orWhere('currency', '')->count(),
+                'gig_date_null' => $distributionQuery->whereNull('gig_date')->count(),
+                'artist_id_null' => $distributionQuery->whereNull('artist_id')->count(),
+            ];
+
+            Log::info('GigDataAudit: Distribuição de dados no banco', [
+                'payment_status_distribution' => $paymentStatusStats,
+                'contract_status_distribution' => $contractStatusStats,
+                'year_distribution' => $yearStats,
+                'potential_issues_count' => $potentialIssues,
+                'total_gigs_in_scope' => $this->stats['total_gigs'],
+            ]);
+
+            // Mostrar resumo no console
+            $this->info('📊 Distribuição dos dados:');
+            $this->line('   Status de pagamento: '.json_encode($paymentStatusStats));
+            $this->line('   Status de contrato: '.json_encode($contractStatusStats));
+            $this->line('   Problemas potenciais detectados: '.array_sum($potentialIssues));
+
+        } catch (\Exception $e) {
+            Log::warning('GigDataAudit: Erro ao gerar estatísticas de distribuição', [
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     protected function auditGig(Gig $gig, $scanOnly, $autoFix)
@@ -494,7 +659,7 @@ class GigDataAuditCommand extends Command
         $this->info('==================');
         $this->line("Total de gigs analisadas: {$this->stats['total_gigs']}");
         $this->line("Issues encontradas: {$this->stats['issues_found']}");
-        $this->line("Correções aplicadas: {$this->stats['fixes_applied']}");
+        $this->line("Correções aplicadas: {$this->stats['corrections_applied']}");
         $this->line("Erros durante execução: {$this->stats['errors']}");
 
         // Informação sobre ambiente de execução

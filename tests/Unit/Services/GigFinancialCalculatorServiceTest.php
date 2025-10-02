@@ -9,12 +9,16 @@ use App\Models\Gig;
 use App\Models\GigCost;
 use App\Services\GigFinancialCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class GigFinancialCalculatorServiceTest extends TestCase
 {
-    use RefreshDatabase;    protected GigFinancialCalculatorService $calculator;    protected Artist $artist;
+    use RefreshDatabase;
+
+    protected GigFinancialCalculatorService $calculator;
+
+    protected Artist $artist;
 
     protected Booker $booker;
 

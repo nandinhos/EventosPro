@@ -11,15 +11,19 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Mockery;
-use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class CommissionPaymentValidationServiceTest extends TestCase
 {
-    use RefreshDatabase;    private CommissionPaymentValidationService $service;    protected function setUp(): void
+    use RefreshDatabase;
+
+    private CommissionPaymentValidationService $service;
+
+    protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new CommissionPaymentValidationService();
+        $this->service = new CommissionPaymentValidationService;
     }
 
     #[Test]
@@ -95,12 +99,12 @@ class CommissionPaymentValidationServiceTest extends TestCase
         $this->assertCount(2, $result['valid_gigs']);
         $this->assertCount(2, $result['invalid_gigs']);
         $this->assertCount(2, $result['errors']);
-        
+
         $this->assertTrue($result['valid_gigs']->contains($validGig1));
         $this->assertTrue($result['valid_gigs']->contains($validGig2));
         $this->assertTrue($result['invalid_gigs']->contains($invalidGig1));
         $this->assertTrue($result['invalid_gigs']->contains($invalidGig2));
-        
+
         $this->assertStringContainsString("Gig #{$invalidGig1->id}", $result['errors'][0]);
         $this->assertStringContainsString("Gig #{$invalidGig2->id}", $result['errors'][1]);
     }
@@ -135,7 +139,7 @@ class CommissionPaymentValidationServiceTest extends TestCase
         $this->assertCount(2, $result['valid_gigs']);
         $this->assertCount(1, $result['invalid_gigs']);
         $this->assertCount(1, $result['errors']);
-        
+
         $this->assertTrue($result['valid_gigs']->contains($validGig));
         $this->assertTrue($result['valid_gigs']->contains($futureGigWithException));
         $this->assertTrue($result['invalid_gigs']->contains($futureGigWithoutException));
@@ -145,7 +149,7 @@ class CommissionPaymentValidationServiceTest extends TestCase
     public function it_detects_payment_exception_with_various_keywords()
     {
         $gig = $this->createGigWithDate(Carbon::tomorrow());
-        
+
         // Test with "exceção"
         $this->createSettlementWithException($gig, 'Pagamento com exceção especial');
         $this->assertTrue($this->hasPaymentExceptionPublic($gig));
@@ -193,10 +197,10 @@ class CommissionPaymentValidationServiceTest extends TestCase
         $result = $this->service->createPaymentException($gig, $reason, $authorizedBy);
 
         $this->assertTrue($result);
-        
+
         $gig->refresh();
         $settlement = $gig->settlement;
-        
+
         $this->assertNotNull($settlement);
         $this->assertStringContainsString('[EXCEÇÃO AUTORIZADA', $settlement->notes);
         $this->assertStringContainsString($reason, $settlement->notes);
@@ -210,17 +214,17 @@ class CommissionPaymentValidationServiceTest extends TestCase
         $gig = $this->createGigWithDate(Carbon::tomorrow());
         $existingNotes = 'Notas existentes do settlement';
         $this->createSettlementWithException($gig, $existingNotes);
-        
+
         $reason = 'Nova exceção autorizada';
         $authorizedBy = 'Maria Santos';
 
         $result = $this->service->createPaymentException($gig, $reason, $authorizedBy);
 
         $this->assertTrue($result);
-        
+
         $gig->refresh();
         $settlement = $gig->settlement;
-        
+
         $this->assertStringContainsString($existingNotes, $settlement->notes);
         $this->assertStringContainsString('[EXCEÇÃO AUTORIZADA', $settlement->notes);
         $this->assertStringContainsString($reason, $settlement->notes);
@@ -231,20 +235,20 @@ class CommissionPaymentValidationServiceTest extends TestCase
     public function it_appends_to_existing_settlement_notes()
     {
         $gig = $this->createGigWithDate(Carbon::tomorrow());
-        
+
         // Criar settlement com notas existentes
         Settlement::factory()->create([
             'gig_id' => $gig->id,
-            'notes' => 'Notas existentes do settlement'
+            'notes' => 'Notas existentes do settlement',
         ]);
 
         $result = $this->service->createPaymentException($gig, 'Nova exceção', 'João Silva');
 
         $this->assertTrue($result);
-        
+
         $gig->refresh();
         $settlement = $gig->settlement;
-        
+
         $this->assertStringContainsString('Notas existentes do settlement', $settlement->notes);
         $this->assertStringContainsString('[EXCEÇÃO AUTORIZADA', $settlement->notes);
         $this->assertStringContainsString('Nova exceção', $settlement->notes);
@@ -255,20 +259,20 @@ class CommissionPaymentValidationServiceTest extends TestCase
     public function it_handles_exception_when_creating_payment_exception_fails()
     {
         $gig = $this->createGigWithDate(Carbon::tomorrow());
-        
+
         // Mock do Log para capturar o erro
         Log::shouldReceive('error')
             ->with(Mockery::pattern('/Erro ao criar exceção de pagamento para Gig \d+:/'))
             ->once();
-        
+
         // Simular falha ao salvar usando um mock do Settlement
         $mockGig = Mockery::mock(Gig::class);
         $mockGig->shouldReceive('getAttribute')->with('settlement')->andReturn(null);
         $mockGig->shouldReceive('getAttribute')->with('id')->andReturn(999);
-        
+
         $mockSettlement = Mockery::mock(\App\Models\Settlement::class);
         $mockSettlement->shouldReceive('save')->andThrow(new \Exception('Database error'));
-        
+
         // Mock do construtor Settlement
         $this->app->bind(\App\Models\Settlement::class, function () use ($mockSettlement) {
             return $mockSettlement;
@@ -313,7 +317,7 @@ class CommissionPaymentValidationServiceTest extends TestCase
         $reflection = new \ReflectionClass($this->service);
         $method = $reflection->getMethod('hasPaymentException');
         $method->setAccessible(true);
-        
+
         return $method->invoke($this->service, $gig);
     }
 }

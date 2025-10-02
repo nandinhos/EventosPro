@@ -36,6 +36,9 @@ class DatabaseSeeder extends Seeder
 
             // Outros seeders
             // SettlementSeeder::class,
+
+            // Seeder de testes de auditoria (opcional)
+            // AuditTestSeeder::class,
         ]);
 
         $this->command->info('\n=== SEEDS DE MÚSICA ELETRÔNICA CRIADOS COM SUCESSO! ===');
@@ -45,6 +48,8 @@ class DatabaseSeeder extends Seeder
         $this->command->info('✓ Centros de custo para eventos');
         $this->command->info('✓ Gigs realistas em locais brasileiros');
         $this->command->info('✓ Pagamentos e custos variados');
+        $this->command->info('\n📋 Para criar dados de teste de auditoria:');
+        $this->command->info('   php artisan db:seed --class=AuditTestSeeder');
         $this->command->info('\nExecute: php artisan db:seed para popular o banco!');
     }
 }

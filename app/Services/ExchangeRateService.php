@@ -129,7 +129,7 @@ class ExchangeRateService
      */
     private function getDefaultRate(string $currencyCode): ?float
     {
-        $defaultRates = config('app.default_exchange_rates', []);
+        $defaultRates = config('exchange_rates.default_rates', []);
 
         return isset($defaultRates[strtoupper($currencyCode)])
             ? (float) $defaultRates[strtoupper($currencyCode)]

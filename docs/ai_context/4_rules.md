@@ -1,5 +1,31 @@
 # Regras e Convenções de Desenvolvimento - EventosPro
 
+## Regras Fundamentais de Desenvolvimento
+
+### 🚨 REGRAS CRÍTICAS - SEMPRE SEGUIR
+
+#### 1. **Uso Obrigatório do Laravel Sail**
+- **SEMPRE** usar `./vendor/bin/sail` para executar comandos
+- **NUNCA** executar comandos diretamente no host
+- **Exemplos corretos**:
+  ```bash
+  ./vendor/bin/sail artisan test
+  ./vendor/bin/sail composer install
+  ./vendor/bin/sail php artisan migrate
+  ```
+
+#### 2. **Configurações e Environment**
+- **Estrutura de configuração**: Usar arquivos em `config/` com estrutura hierárquica
+- **Chaves de configuração**: Seguir padrão `arquivo.seção.chave`
+- **Exemplo**: `config('exchange_rates.default_rates.USD')` em vez de `config('app.default_exchange_rates.USD')`
+- **Sempre** verificar se configurações existem antes de usar
+
+#### 3. **Testes e Qualidade**
+- **Executar testes**: Sempre usar Sail para rodar testes
+- **Tipos de dados**: Entender que campos `decimal` no Laravel retornam strings, não floats
+- **Assertions**: Usar `assertIsString()` para campos decimais, não `assertIsFloat()`
+- **Mocking**: Usar facades do Laravel para mock de serviços externos
+
 ## Guia de Estilo e Convenções
 
 ### Código PHP
@@ -159,6 +185,38 @@ class GigFinancialCalculatorService
 - **Unit Tests**: Para Services e métodos de Models
 - **Feature Tests**: Para fluxos completos de Controllers
 - **Database**: Usar transações para rollback automático
+- **Execução**: SEMPRE usar `./vendor/bin/sail artisan test`
+
+### Regras Específicas de Testes
+
+#### Tipos de Dados e Assertions
+- **Campos Decimal**: Laravel cast `decimal` retorna strings, não floats
+  ```php
+  // ❌ ERRADO
+  $this->assertIsFloat($payment->due_value);
+  $this->assertEquals(500.0, $payment->due_value);
+  
+  // ✅ CORRETO
+  $this->assertIsString($payment->due_value);
+  $this->assertEquals('500.00', $payment->due_value);
+  ```
+
+#### Mocking de Services
+- **Facades**: Usar `App::shouldReceive()` para mock de services
+- **Configurações**: Usar `Config::set()` para definir valores de teste
+  ```php
+  // Mock de service
+  App::shouldReceive('make')
+      ->with(ExchangeRateService::class)
+      ->andReturn($mockService);
+  
+  // Configuração de teste
+  Config::set('exchange_rates.default_rates.USD', 5.00);
+  ```
+
+#### Estrutura de Configuração em Testes
+- **Chaves corretas**: `exchange_rates.default_rates.{CURRENCY}`
+- **Não usar**: `app.default_exchange_rates.{CURRENCY}` (deprecated)
 
 ### Convenções de Teste
 ```php
@@ -208,7 +266,54 @@ chore: atualiza dependências do composer
 
 ### Antipatterns Identificados
 
-#### 1. **Lógica de Negócio em Controllers**
+#### 1. **Execução Incorreta de Comandos**
+❌ **NUNCA FAZER**:
+```bash
+# Executar comandos diretamente no host
+php artisan test
+composer install
+npm run dev
+```
+
+✅ **SEMPRE FAZER**:
+```bash
+# Usar Laravel Sail
+./vendor/bin/sail artisan test
+./vendor/bin/sail composer install
+./vendor/bin/sail npm run dev
+```
+
+#### 2. **Configurações Mal Estruturadas**
+❌ **Evitar**:
+```php
+// Configurações em locais incorretos
+config('app.default_exchange_rates.USD')
+config('app.some_random_config')
+```
+
+✅ **Fazer**:
+```php
+// Configurações organizadas por contexto
+config('exchange_rates.default_rates.USD')
+config('services.external_api.key')
+```
+
+#### 3. **Testes com Tipos Incorretos**
+❌ **Evitar**:
+```php
+// Assumir que decimal retorna float
+$this->assertIsFloat($model->decimal_field);
+$this->assertEquals(100.0, $model->decimal_field);
+```
+
+✅ **Fazer**:
+```php
+// Entender que decimal retorna string
+$this->assertIsString($model->decimal_field);
+$this->assertEquals('100.00', $model->decimal_field);
+```
+
+#### 4. **Lógica de Negócio em Controllers**
 ❌ **Evitar**:
 ```php
 public function store(Request $request)
