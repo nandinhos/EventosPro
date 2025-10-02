@@ -68,7 +68,7 @@ return [
             'host' => env('DB_HOST', 'mysql'),
             'port' => env('DB_PORT', '3306'),
             'database' => 'testing',
-            'username' => env('DB_USERNAME', 'user'),
+            'username' => env('DB_USERNAME', 'sail'),
             'password' => env('DB_PASSWORD', 'password'),
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => env('DB_CHARSET', 'utf8mb4'),

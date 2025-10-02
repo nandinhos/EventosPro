@@ -726,13 +726,14 @@ class AuditController extends Controller
                     $issueType = $fix['issue_type'];
 
                     // Verificar se o campo é editável
-                    if (!in_array($field, $editableFields)) {
+                    if (! in_array($field, $editableFields)) {
                         $results[$index] = [
                             'success' => false,
                             'error' => "Campo '{$field}' não é editável",
                             'gig_id' => $gigId,
                         ];
                         $errorCount++;
+
                         continue;
                     }
 
@@ -772,7 +773,7 @@ class AuditController extends Controller
 
             return response()->json([
                 'success' => $errorCount === 0,
-                'message' => $errorCount === 0 
+                'message' => $errorCount === 0
                     ? "Todas as {$successCount} correções foram aplicadas com sucesso"
                     : "{$successCount} correções aplicadas, {$errorCount} falharam",
                 'results' => $results,
@@ -792,7 +793,7 @@ class AuditController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao aplicar correções em lote: ' . $e->getMessage(),
+                'message' => 'Erro ao aplicar correções em lote: '.$e->getMessage(),
             ], 500);
         }
     }

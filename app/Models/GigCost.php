@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo; // Usar SoftDeletes aqui
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
 class GigCost extends Model
 {
@@ -74,7 +75,7 @@ class GigCost extends Model
         );
 
         if ($exchangeRate === null) {
-            \Log::warning("Taxa de câmbio não encontrada para moeda {$this->currency} na data {$this->expense_date} para GigCost ID {$this->id}.");
+            Log::warning("Taxa de câmbio não encontrada para moeda {$this->currency} na data {$this->expense_date} para GigCost ID {$this->id}.");
 
             return (float) $this->value;
         }

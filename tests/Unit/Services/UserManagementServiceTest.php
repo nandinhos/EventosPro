@@ -8,12 +8,16 @@ use App\Services\UserManagementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class UserManagementServiceTest extends TestCase
 {
-    use RefreshDatabase;    protected UserManagementService $userManagementService;    protected function setUp(): void
+    use RefreshDatabase;
+
+    protected UserManagementService $userManagementService;
+
+    protected function setUp(): void
     {
         parent::setUp();
         $this->userManagementService = new UserManagementService;

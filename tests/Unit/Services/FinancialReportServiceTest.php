@@ -9,8 +9,9 @@ use App\Models\Payment;
 use App\Services\FinancialReportService;
 use App\Services\GigFinancialCalculatorService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class FinancialReportServiceTest extends TestCase
 {
@@ -568,7 +569,7 @@ class FinancialReportServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
             'booker_id' => $booker->id,
@@ -633,7 +634,7 @@ class FinancialReportServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
             'booker_id' => $booker->id,
@@ -680,7 +681,7 @@ class FinancialReportServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create(['name' => 'Test Booker']);
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
             'booker_id' => $booker->id,
@@ -708,7 +709,7 @@ class FinancialReportServiceTest extends TestCase
     {
         $artist = Artist::factory()->create(['name' => 'Test Artist']);
         $booker = Booker::factory()->create(['name' => 'Test Booker']);
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
             'booker_id' => $booker->id,
@@ -767,7 +768,7 @@ class FinancialReportServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
-        
+
         // Test with zero values
         $gigZero = Gig::factory()->create([
             'artist_id' => $artist->id,
@@ -792,7 +793,7 @@ class FinancialReportServiceTest extends TestCase
 
         $tableData = $this->reportService->getOverviewTableData();
         $this->assertInstanceOf(\Illuminate\Support\Collection::class, $tableData);
-        
+
         // Test with very large values
         $gigLarge = Gig::factory()->create([
             'artist_id' => $artist->id,
@@ -812,7 +813,7 @@ class FinancialReportServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
             'booker_id' => $booker->id,
@@ -866,7 +867,7 @@ class FinancialReportServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
             'booker_id' => $booker->id,
@@ -897,7 +898,7 @@ class FinancialReportServiceTest extends TestCase
         $result = $this->reportService->getExpensesTableData();
 
         $this->assertInstanceOf(\Illuminate\Support\Collection::class, $result);
-        
+
         if ($result->count() > 0) {
             $firstGroup = $result->first();
             $this->assertArrayHasKey('cost_center_name', $firstGroup);
@@ -923,7 +924,7 @@ class FinancialReportServiceTest extends TestCase
     {
         $artist = Artist::factory()->create(['name' => 'Performance Artist']);
         $booker = Booker::factory()->create(['name' => 'Performance Booker']);
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
             'booker_id' => $booker->id,
@@ -979,7 +980,7 @@ class FinancialReportServiceTest extends TestCase
     public function it_handles_gigs_without_booker_in_profitability_analysis()
     {
         $artist = Artist::factory()->create();
-        
+
         // Create gig without booker (direct agency)
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
@@ -1005,7 +1006,7 @@ class FinancialReportServiceTest extends TestCase
     {
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
-        
+
         $gigInRange = Gig::factory()->create([
             'artist_id' => $artist->id,
             'booker_id' => $booker->id,
@@ -1052,7 +1053,7 @@ class FinancialReportServiceTest extends TestCase
         $artist = Artist::factory()->create();
         $booker = Booker::factory()->create();
         $costCenter = \App\Models\CostCenter::factory()->create();
-        
+
         $gig = Gig::factory()->create([
             'artist_id' => $artist->id,
             'booker_id' => $booker->id,
@@ -1146,7 +1147,7 @@ class FinancialReportServiceTest extends TestCase
         $result = $this->reportService->getCashflowTableData();
 
         $this->assertCount(4, $result);
-        
+
         // Check inflow transaction
         $inflow = $result->where('type', 'Entrada')->first();
         $this->assertNotNull($inflow, 'Inflow transaction should exist');
@@ -1156,7 +1157,7 @@ class FinancialReportServiceTest extends TestCase
         $this->assertStringContainsString('Contract payment', $inflow['description']);
 
         // Check expense outflow
-        $expenseOutflow = $result->where('type', 'Saída')->filter(function($item) {
+        $expenseOutflow = $result->where('type', 'Saída')->filter(function ($item) {
             return str_contains($item['description'], 'Transport');
         })->first();
         $this->assertNotNull($expenseOutflow, 'Expense outflow should exist');
@@ -1165,7 +1166,7 @@ class FinancialReportServiceTest extends TestCase
         $this->assertStringContainsString('Transport', $expenseOutflow['description']);
 
         // Check artist payment outflow
-        $artistOutflow = $result->where('type', 'Saída')->filter(function($item) {
+        $artistOutflow = $result->where('type', 'Saída')->filter(function ($item) {
             return str_contains($item['description'], 'Pagamento Artista');
         })->first();
         $this->assertNotNull($artistOutflow, 'Artist payment outflow should exist');
@@ -1174,7 +1175,7 @@ class FinancialReportServiceTest extends TestCase
         $this->assertStringContainsString('Test Artist', $artistOutflow['description']);
 
         // Check booker payment outflow
-        $bookerOutflow = $result->where('type', 'Saída')->filter(function($item) {
+        $bookerOutflow = $result->where('type', 'Saída')->filter(function ($item) {
             return str_contains($item['description'], 'Pagamento Booker');
         })->first();
         $this->assertNotNull($bookerOutflow, 'Booker payment outflow should exist');
@@ -1231,11 +1232,11 @@ class FinancialReportServiceTest extends TestCase
 
         // Should be sorted by date
         $this->assertCount(3, $result);
-        
+
         $dates = $result->pluck('date')->map(function ($date) {
             return $date->format('Y-m-d');
         })->toArray();
-        
+
         $sortedDates = collect($dates)->sort()->values()->toArray();
         $this->assertEquals($sortedDates, $dates);
     }

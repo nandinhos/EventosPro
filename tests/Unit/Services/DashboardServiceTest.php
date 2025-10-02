@@ -9,12 +9,16 @@ use App\Services\DashboardService;
 use App\Services\GigFinancialCalculatorService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class DashboardServiceTest extends TestCase
 {
-    use RefreshDatabase;    protected DashboardService $dashboardService;    protected GigFinancialCalculatorService $gigCalculator;
+    use RefreshDatabase;
+
+    protected DashboardService $dashboardService;
+
+    protected GigFinancialCalculatorService $gigCalculator;
 
     protected function setUp(): void
     {

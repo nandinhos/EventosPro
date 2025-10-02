@@ -8,12 +8,16 @@ use App\Models\Gig;
 use App\Models\Settlement;
 use App\Services\BookerFinancialsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class BookerFinancialsServiceTest extends TestCase
 {
-    use RefreshDatabase;    private BookerFinancialsService $service;    private Booker $booker;
+    use RefreshDatabase;
+
+    private BookerFinancialsService $service;
+
+    private Booker $booker;
 
     private Artist $artist;
 

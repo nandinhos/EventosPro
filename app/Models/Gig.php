@@ -286,7 +286,7 @@ class Gig extends Model
         }
 
         // Se não encontrou, usa uma taxa de projeção do arquivo de configuração
-        $defaultRates = config('app.default_exchange_rates', []);
+        $defaultRates = config('exchange_rates.default_rates', []);
         $rate = $defaultRates[strtoupper($this->currency)] ?? null;
 
         return [
@@ -358,7 +358,7 @@ class Gig extends Model
                     ];
                 } else {
                     // SE AINDA NÃO ESTÁ PAGO, usamos uma taxa de PROJEÇÃO.
-                    $defaultRates = config('app.default_exchange_rates', []);
+                    $defaultRates = config('exchange_rates.default_rates', []);
                     $projectionRate = $defaultRates[$gigCurrency] ?? null;
 
                     if ($projectionRate) {

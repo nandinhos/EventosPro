@@ -118,7 +118,7 @@ class CommissionPaymentValidationService
             if (! $settlement) {
                 $settlement = new \App\Models\Settlement([
                     'gig_id' => $gig->id,
-                    'settlement_date' => now()->toDateString()
+                    'settlement_date' => now()->toDateString(),
                 ]);
             }
 
