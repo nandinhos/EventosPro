@@ -587,11 +587,11 @@ class AuditController extends Controller
                         'issue_type' => $issue['type'],
                         'severity' => $issue['severity'],
                         'description' => $issue['description'],
-                        'field' => $issue['field'],
+                        'field' => $issue['field'] ?? null,
                         'current_value' => $issue['current_value'] ?? '',
                         'suggested_value' => $issue['suggested_value'] ?? '',
                         'suggested_action' => $issue['suggested_action'],
-                        'can_fix' => isset($issue['suggested_value']) && $issue['severity'] === 'critical',
+                        'can_fix' => isset($issue['suggested_value']) && isset($issue['field']) && ! empty($issue['field']),
                     ];
                 }
             }
@@ -633,7 +633,9 @@ class AuditController extends Controller
             $issueType = $request->input('issue_type');
 
             // Validar se o campo pode ser editado
+            // Lista completa de campos que os comandos de auditoria podem corrigir
             $allowedFields = [
+                // Campos do modelo Gig
                 'artist_payment_status',
                 'booker_payment_status',
                 'artist_id',
@@ -641,6 +643,33 @@ class AuditController extends Controller
                 'cache_value',
                 'currency',
                 'contract_date',
+                'artist_payment_paid_at',
+                'booker_commission_paid_at',
+                'artist_payment_value',
+                'booker_commission_value_paid',
+                'artist_payment_proof',
+                'booker_commission_proof',
+                'settlement_date',
+                'agency_commission_value',
+                'booker_commission_value',
+                'liquid_commission_value',
+                'contract_status',
+                'agency_commission_rate',
+                'booker_commission_rate',
+                'payment_status',
+                'confirmed_at',
+                'gig_id',
+
+                // Campos relacionados (payments e costs) - formato especial
+                'payments.due_value',
+                'payments.received_value_actual',
+                'payments.currency',
+                'payments.confirmed_at',
+                'costs.currency',
+                'costs.amount',
+                'costs.cost_center_id',
+                'costs.is_confirmed',
+                'costs.description',
             ];
 
             if (! in_array($field, $allowedFields)) {
@@ -648,9 +677,38 @@ class AuditController extends Controller
             }
 
             // Aplicar correção
-            $oldValue = $gig->$field;
-            $gig->$field = $newValue;
-            $gig->save();
+            $oldValue = null;
+
+            // Verificar se é um campo relacionado (payments.* ou costs.*)
+            if (str_contains($field, '.')) {
+                [$relation, $relationField] = explode('.', $field, 2);
+
+                // Para campos relacionados, precisamos do ID específico
+                $relationId = $request->input('relation_id');
+
+                if ($relation === 'payments' && $relationId) {
+                    $payment = $gig->payments()->find($relationId);
+                    if ($payment) {
+                        $oldValue = $payment->$relationField;
+                        $payment->$relationField = $newValue;
+                        $payment->save();
+                    }
+                } elseif ($relation === 'costs' && $relationId) {
+                    $cost = $gig->gigCosts()->find($relationId);
+                    if ($cost) {
+                        $oldValue = $cost->$relationField;
+                        $cost->$relationField = $newValue;
+                        $cost->save();
+                    }
+                } else {
+                    throw new Exception("ID do relacionamento não fornecido para campo '{$field}'");
+                }
+            } else {
+                // Campo direto do Gig
+                $oldValue = $gig->$field;
+                $gig->$field = $newValue;
+                $gig->save();
+            }
 
             DB::commit();
 
@@ -705,16 +763,41 @@ class AuditController extends Controller
 
         // Lista de campos editáveis (mesmo whitelist do método individual)
         $editableFields = [
-            'artist_fee',
-            'production_cost',
-            'travel_cost',
-            'accommodation_cost',
-            'other_costs',
-            'total_cost',
-            'artist_name',
-            'location_event_details',
-            'gig_date',
-            'contract_number',
+            // Campos do modelo Gig
+            'artist_payment_status',
+            'booker_payment_status',
+            'artist_id',
+            'booker_id',
+            'cache_value',
+            'currency',
+            'contract_date',
+            'artist_payment_paid_at',
+            'booker_commission_paid_at',
+            'artist_payment_value',
+            'booker_commission_value_paid',
+            'artist_payment_proof',
+            'booker_commission_proof',
+            'settlement_date',
+            'agency_commission_value',
+            'booker_commission_value',
+            'liquid_commission_value',
+            'contract_status',
+            'agency_commission_rate',
+            'booker_commission_rate',
+            'payment_status',
+            'confirmed_at',
+            'gig_id',
+
+            // Campos relacionados (payments e costs) - formato especial
+            'payments.due_value',
+            'payments.received_value_actual',
+            'payments.currency',
+            'payments.confirmed_at',
+            'costs.currency',
+            'costs.amount',
+            'costs.cost_center_id',
+            'costs.is_confirmed',
+            'costs.description',
         ];
 
         DB::beginTransaction();
