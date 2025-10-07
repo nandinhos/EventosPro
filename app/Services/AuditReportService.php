@@ -10,7 +10,7 @@ class AuditReportService
 {
     protected array $availableAudits = [
         'settlements' => [
-            'name' => 'Settlements',
+            'name' => 'Acertos Financeiros',
             'command' => 'gig:audit-settlements',
             'description' => 'Auditoria de acertos financeiros (pagamentos a artistas e bookers)',
             'icon' => 'fas fa-hand-holding-usd',
@@ -18,7 +18,7 @@ class AuditReportService
             'critical_types' => ['payment_rule_violation', 'referential_integrity', 'value_divergence'],
         ],
         'payments' => [
-            'name' => 'Payments',
+            'name' => 'Parcelas de Pagamento',
             'command' => 'gig:audit-payments',
             'description' => 'Auditoria de parcelas de pagamento do cliente',
             'icon' => 'fas fa-money-bill-wave',
@@ -26,7 +26,7 @@ class AuditReportService
             'critical_types' => ['orphan_payments', 'payment_total_divergence', 'payment_status_inconsistency'],
         ],
         'business-rules' => [
-            'name' => 'Business Rules',
+            'name' => 'Regras de Negócio',
             'command' => 'gig:audit-business-rules',
             'description' => 'Validação de regras de negócio e cálculos de comissões',
             'icon' => 'fas fa-calculator',
@@ -34,7 +34,7 @@ class AuditReportService
             'critical_types' => ['commission_exceeds_cache', 'liquid_commission_incorrect', 'invalid_commission_rate'],
         ],
         'currency' => [
-            'name' => 'Currency',
+            'name' => 'Moedas',
             'command' => 'gig:audit-currency',
             'description' => 'Consistência de moedas entre gigs, payments e costs',
             'icon' => 'fas fa-dollar-sign',
@@ -42,7 +42,7 @@ class AuditReportService
             'critical_types' => ['missing_currency', 'payment_currency_mismatch'],
         ],
         'costs' => [
-            'name' => 'Costs',
+            'name' => 'Custos',
             'command' => 'gig:audit-costs',
             'description' => 'Validação de custos das gigs e cost centers',
             'icon' => 'fas fa-receipt',
@@ -50,7 +50,7 @@ class AuditReportService
             'critical_types' => ['orphan_cost', 'invalid_cost_value', 'missing_cost_center'],
         ],
         'duplicates' => [
-            'name' => 'Duplicates',
+            'name' => 'Duplicatas',
             'command' => 'gig:audit-duplicates',
             'description' => 'Detecção de gigs duplicadas e eventos similares',
             'icon' => 'fas fa-clone',
