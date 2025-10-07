@@ -7,32 +7,139 @@
 
     <div class="py-12" x-data="dataAuditApp()" x-init="init()">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            
+
+            <!-- Dashboard de Health Score -->
+            <div x-show="showDashboard" x-transition>
+                <x-card title="Sistema de Auditoria - Dashboard" icon="fas fa-heartbeat">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <!-- Health Score -->
+                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-6 text-center border-2 border-blue-200 dark:border-blue-700">
+                            <div class="text-4xl font-bold mb-2"
+                                 :class="healthScore >= 90 ? 'text-green-600 dark:text-green-400' :
+                                        healthScore >= 70 ? 'text-blue-600 dark:text-blue-400' :
+                                        healthScore >= 50 ? 'text-yellow-600 dark:text-yellow-400' :
+                                        'text-red-600 dark:text-red-400'"
+                                 x-text="healthScore + '%'"></div>
+                            <div class="text-sm text-gray-600 dark:text-gray-300 font-semibold">Health Score</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1" x-text="healthStatus"></div>
+                        </div>
+
+                        <!-- Total Issues -->
+                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 text-center">
+                            <div class="text-3xl font-bold text-blue-600 dark:text-blue-400" x-text="dashboardStats.total_issues"></div>
+                            <div class="text-sm text-blue-600 dark:text-blue-400 mt-1">Total de Issues</div>
+                        </div>
+
+                        <!-- Critical Issues -->
+                        <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-6 text-center">
+                            <div class="text-3xl font-bold text-red-600 dark:text-red-400" x-text="dashboardStats.total_critical"></div>
+                            <div class="text-sm text-red-600 dark:text-red-400 mt-1">Críticas</div>
+                        </div>
+
+                        <!-- Warnings -->
+                        <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-6 text-center">
+                            <div class="text-3xl font-bold text-yellow-600 dark:text-yellow-400" x-text="dashboardStats.total_warnings"></div>
+                            <div class="text-sm text-yellow-600 dark:text-yellow-400 mt-1">Warnings</div>
+                        </div>
+                    </div>
+                </x-card>
+            </div>
+
+            <!-- Seleção de Tipo de Auditoria -->
+            <x-card title="Selecionar Tipo de Auditoria" icon="fas fa-tasks">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <template x-for="audit in availableAudits" :key="audit.type">
+                        <div @click="selectAudit(audit.type)"
+                             class="relative cursor-pointer rounded-lg border-2 p-4 transition-all hover:shadow-lg"
+                             :class="selectedAuditType === audit.type ?
+                                    'border-blue-500 bg-blue-50 dark:bg-blue-900/20' :
+                                    'border-gray-200 dark:border-gray-700 hover:border-blue-300'">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-shrink-0">
+                                    <i :class="audit.icon + ' text-2xl text-' + audit.color + '-600 dark:text-' + audit.color + '-400'"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-semibold text-gray-900 dark:text-gray-100 mb-1" x-text="audit.name"></h4>
+                                    <p class="text-xs text-gray-600 dark:text-gray-400" x-text="audit.description"></p>
+
+                                    <!-- Status do último relatório -->
+                                    <template x-if="audit.lastReport">
+                                        <div class="mt-2 text-xs space-y-1">
+                                            <div class="flex items-center gap-1">
+                                                <i class="fas fa-clock text-gray-400"></i>
+                                                <span class="text-gray-500 dark:text-gray-400" x-text="audit.lastReport.last_run"></span>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                                                      :class="audit.lastReport.critical_issues > 0 ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                                                             audit.lastReport.warnings > 0 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                                             'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'">
+                                                    <span x-text="audit.lastReport.issues_found + ' issues'"></span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <!-- Check icon quando selecionado -->
+                                <template x-if="selectedAuditType === audit.type">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-check-circle text-blue-600 dark:text-blue-400 text-xl"></i>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Botão Executar Todas -->
+                <div class="mt-6 flex justify-between items-center">
+                    <button @click="runAllAudits()"
+                            :disabled="isLoading"
+                            class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
+                        <i class="fas fa-play-circle mr-2"></i>
+                        Executar Todas as Auditorias
+                    </button>
+
+                    <button @click="refreshDashboard()"
+                            :disabled="isLoading"
+                            class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
+                        <i class="fas fa-sync-alt mr-2" :class="isLoading ? 'animate-spin' : ''"></i>
+                        Atualizar Dashboard
+                    </button>
+                </div>
+            </x-card>
+
             <!-- Formulário de Configuração -->
             <x-card title="Configuração da Auditoria" icon="fas fa-cog">
                 <form id="auditForm" @submit.prevent="runAudit()" class="space-y-6">
                     @csrf
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- Tipo de Auditoria -->
+                        <div>
+                            <label for="audit_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Tipo de Auditoria
+                            </label>
+                            <select name="audit_type" id="audit_type" x-model="selectedAuditType"
+                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">Selecione um tipo</option>
+                                <template x-for="audit in availableAudits" :key="audit.type">
+                                    <option :value="audit.type" x-text="audit.name"></option>
+                                </template>
+                            </select>
+                        </div>
+
                         <!-- Modo de Operação -->
                         <div>
                             <label for="scan_only" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Modo de Operação
                             </label>
-                            <select name="scan_only" id="scan_only" 
+                            <select name="scan_only" id="scan_only"
                                     class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 <option value="true">Apenas Escanear</option>
                                 <option value="false">Permitir Correções</option>
                             </select>
-                        </div>
-
-                        <!-- Tamanho do Lote -->
-                        <div>
-                            <label for="batch_size" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Tamanho do Lote
-                            </label>
-                            <input type="number" name="batch_size" id="batch_size" value="100" min="1" max="1000"
-                                   class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                         </div>
 
                         <!-- Data Inicial -->
@@ -56,8 +163,8 @@
 
                     <!-- Botão Executar -->
                     <div class="flex justify-end">
-                        <button type="submit" 
-                                :disabled="isLoading"
+                        <button type="submit"
+                                :disabled="isLoading || !selectedAuditType"
                                 class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200">
                             <template x-if="isLoading">
                                 <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -68,7 +175,7 @@
                             <template x-if="!isLoading">
                                 <i class="fas fa-play mr-2"></i>
                             </template>
-                            <span x-text="isLoading ? 'Executando...' : 'Executar Auditoria'"></span>
+                            <span x-text="isLoading ? 'Executando...' : 'Executar Auditoria Selecionada'"></span>
                         </button>
                     </div>
                 </form>
@@ -359,22 +466,39 @@
                 showStatus: false,
                 showResults: false,
                 showModal: false,
+                showDashboard: false,
                 statusMessage: '',
-                
+
+                // Tipo de auditoria selecionado
+                selectedAuditType: '',
+
+                // Auditorias disponíveis
+                availableAudits: [],
+
+                // Dashboard
+                healthScore: 100,
+                healthStatus: 'Excelente',
+                dashboardStats: {
+                    total_issues: 0,
+                    total_critical: 0,
+                    total_warnings: 0,
+                    total_gigs: 0
+                },
+
                 // Dados
                 auditResults: [],
                 currentFix: null,
-                
+
                 // Seleção em lote
                 selectedIssues: [],
                 bulkFixing: false,
-                
+
                 // Filtros
                 filters: {
                     severity: '',
                     type: ''
                 },
-                
+
                 // Estatísticas
                 stats: {
                     total: 0,
@@ -384,8 +508,122 @@
                 },
 
                 // Inicialização
-                init() {
+                async init() {
                     console.log('Data Audit App initialized');
+                    await this.loadAvailableAudits();
+                    await this.refreshDashboard();
+                },
+
+                // Carregar auditorias disponíveis
+                async loadAvailableAudits() {
+                    try {
+                        const response = await fetch('{{ route("audit.available-audits") }}', {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            this.availableAudits = data.audits;
+                        }
+                    } catch (error) {
+                        console.error('Erro ao carregar auditorias:', error);
+                    }
+                },
+
+                // Atualizar dashboard
+                async refreshDashboard() {
+                    try {
+                        const response = await fetch('{{ route("audit.dashboard") }}', {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            }
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            this.healthScore = data.health_score.health_score;
+                            this.healthStatus = this.getHealthStatusLabel(data.health_score.health_status);
+                            this.dashboardStats = {
+                                total_issues: data.health_score.total_issues,
+                                total_critical: data.health_score.total_critical,
+                                total_warnings: data.health_score.total_warnings,
+                                total_gigs: data.health_score.total_gigs
+                            };
+
+                            // Atualizar status dos audits
+                            data.audits.forEach(auditSummary => {
+                                const audit = this.availableAudits.find(a => a.type === auditSummary.type);
+                                if (audit && auditSummary.last_run) {
+                                    audit.lastReport = auditSummary;
+                                }
+                            });
+
+                            this.showDashboard = true;
+                        }
+                    } catch (error) {
+                        console.error('Erro ao atualizar dashboard:', error);
+                    }
+                },
+
+                getHealthStatusLabel(status) {
+                    const labels = {
+                        'excellent': 'Excelente',
+                        'good': 'Bom',
+                        'fair': 'Regular',
+                        'poor': 'Ruim',
+                        'critical': 'Crítico'
+                    };
+                    return labels[status] || status;
+                },
+
+                // Selecionar auditoria
+                selectAudit(auditType) {
+                    this.selectedAuditType = auditType;
+                },
+
+                // Executar todas as auditorias
+                async runAllAudits() {
+                    this.isLoading = true;
+                    this.showStatus = true;
+                    this.statusMessage = 'Executando todas as auditorias...';
+
+                    try {
+                        const response = await fetch('{{ route("audit.run-all-audits") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify({
+                                scan_only: document.getElementById('scan_only').value === 'true',
+                                date_from: document.getElementById('date_from').value,
+                                date_to: document.getElementById('date_to').value
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            await this.refreshDashboard();
+                            this.showNotification('Todas as auditorias foram executadas com sucesso!', 'success');
+                        } else {
+                            throw new Error(data.error || 'Erro ao executar auditorias');
+                        }
+                    } catch (error) {
+                        console.error('Erro ao executar auditorias:', error);
+                        this.showNotification('Erro ao executar auditorias: ' + error.message, 'error');
+                    } finally {
+                        this.isLoading = false;
+                        this.showStatus = false;
+                    }
                 },
 
                 // Computed properties
@@ -414,21 +652,22 @@
 
                 // Métodos principais
                 async runAudit() {
+                    if (!this.selectedAuditType) {
+                        this.showNotification('Por favor, selecione um tipo de auditoria', 'warning');
+                        return;
+                    }
+
                     this.isLoading = true;
                     this.showStatus = true;
                     this.showResults = false;
                     this.statusMessage = 'Iniciando auditoria...';
-                    
+
                     try {
                         const formData = new FormData(document.getElementById('auditForm'));
-                        
-                        // Debug: verificar se o formulário está sendo enviado corretamente
-                        console.log('FormData criado com sucesso');
-                        console.log('URL da requisição:', '{{ route("audit.run-data-audit") }}');
-                        
+
                         this.statusMessage = 'Executando validações...';
-                        
-                        const response = await fetch('{{ route("audit.run-data-audit") }}', {
+
+                        const response = await fetch('{{ route("audit.run-specific-audit") }}', {
                             method: 'POST',
                             headers: {
                                 'Accept': 'application/json'
@@ -454,6 +693,7 @@
                         if (data.success && data.report_path) {
                             this.statusMessage = 'Carregando resultados...';
                             await this.loadAuditIssues(data.report_path);
+                            await this.refreshDashboard();
                             this.showNotification('Auditoria executada com sucesso!', 'success');
                         } else {
                             throw new Error(data.error || 'Erro ao executar auditoria');
