@@ -8,7 +8,7 @@ use Filament\Widgets\ChartWidget;
 
 class BookerCommissionsChart extends ChartWidget
 {
-    protected static ?string $heading = 'Evolução de Comissões Pagas (Últimos 12 Meses)';
+    protected ?string $heading = 'Evolução de Comissões Pagas (Últimos 12 Meses)';
 
     public ?Booker $record = null;
 

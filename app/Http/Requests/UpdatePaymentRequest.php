@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule; // Adicionar Log
@@ -82,14 +84,15 @@ class UpdatePaymentRequest extends FormRequest
      * Handle a failed validation attempt.
      * (Para logar erros de validação explicitamente)
      *
-     * @param  \Illuminate\Contracts\Validation\Validator  $validator
+     * @param Validator $validator
      * @return void
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     // protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
     // {
     //     Log::error('Falha na validação (UpdatePaymentRequest): ', $validator->errors()->toArray());
     //     parent::failedValidation($validator);
     // }
+
 }

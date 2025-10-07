@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\Booker;
@@ -64,7 +65,7 @@ class UserController extends Controller
                 ->route('users.index')
                 ->with('success', 'Usuário criado com sucesso!');
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Em caso de erro, redireciona de volta com os inputs e uma mensagem de erro.
             return back()
                 ->withInput()
@@ -95,7 +96,7 @@ class UserController extends Controller
             $this->userManagementService->updateUser($user, $request->validated());
 
             return redirect()->route('users.index')->with('success', 'Usuário atualizado com sucesso!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return back()->withInput()->with('error', 'Erro ao atualizar usuário: '.$e->getMessage());
         }
     }
@@ -124,7 +125,7 @@ class UserController extends Controller
             $this->userManagementService->deleteUser($user);
 
             return redirect()->route('users.index')->with('success', 'Usuário removido com sucesso.');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Em caso de erro, loga a exceção e redireciona com uma mensagem de erro.
             Log::error('Erro ao remover usuário: '.$e->getMessage(), ['exception' => $e]);
 

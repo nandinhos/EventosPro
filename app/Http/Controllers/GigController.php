@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use App\Http\Requests\StoreGigRequest;
 use App\Http\Requests\UpdateGigRequest;
 use App\Models\ActivityLog;
@@ -162,7 +163,7 @@ class GigController extends Controller
             // o que é ok, pois o GigObserver::saving() é idempotente no sentido de recálculo.
             return redirect()->route('gigs.show', ['gig' => $gig] + $backParams)->with('success', '🎉 Gig criada com sucesso!');
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('[GigController@store] Erro ao salvar Gig: '.$e->getMessage(), ['exception' => $e, 'data' => $request->all()]);
 
@@ -428,7 +429,7 @@ class GigController extends Controller
 
             return redirect()->route('gigs.show', ['gig' => $gig] + $backParams)->with('success', '🎉 Gig atualizada com sucesso!');
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error("[GigController@update] Erro ao atualizar Gig ID {$gig->id}: ".$e->getMessage(), ['exception' => $e, 'data' => $request->all()]);
 
@@ -455,7 +456,7 @@ class GigController extends Controller
             $backParams = $request->input('backParams', []); // Recupera dos inputs hidden
 
             return redirect()->route('gigs.index', $backParams)->with('success', '🗑️ Gig excluída com sucesso!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Erro ao excluir Gig: '.$e->getMessage(), ['exception' => $e, 'gig_id' => $gig->id]);
 
             return back()->with('error', '❌ Erro ao excluir a Gig.');

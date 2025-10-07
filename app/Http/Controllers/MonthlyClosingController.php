@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Artist;
 use App\Models\Booker;
 use App\Models\Gig;
 use App\Services\GigFinancialCalculatorService;
@@ -34,7 +35,7 @@ class MonthlyClosingController extends Controller
 
         // Obter lista de bookers para o filtro
         $bookers = Booker::orderBy('name')->get();
-        $artists = \App\Models\Artist::orderBy('name')->get();
+        $artists = Artist::orderBy('name')->get();
 
         // Preparar dados para os gráficos
         $bookerRevenueData = $this->prepareBookerRevenueData($reportData['booker_data']);
@@ -69,7 +70,7 @@ class MonthlyClosingController extends Controller
 
         $reportData = $this->generateReportData($startDate, $endDate, $bookerId, $artistId);
         $booker = $bookerId ? Booker::find($bookerId) : null;
-        $artist = $artistId ? \App\Models\Artist::find($artistId) : null;
+        $artist = $artistId ? Artist::find($artistId) : null;
 
         $filename = $this->generateFilename($startDate, $booker, $artist, $format);
 

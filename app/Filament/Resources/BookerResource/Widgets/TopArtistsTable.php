@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\BookerResource\Widgets;
 
+use App\Models\Artist;
+use Filament\Tables\Columns\TextColumn;
 use App\Models\Booker;
 use App\Services\BookerFinancialsService;
 use Filament\Tables;
@@ -32,15 +34,15 @@ class TopArtistsTable extends BaseWidget
 
         return $table
             ->query(
-                \App\Models\Artist::query()->whereIn('id', $artistIds)
+                Artist::query()->whereIn('id', $artistIds)
             )
             ->heading('Artistas em Destaque (Lifetime)')
             ->columns([
-                Tables\Columns\TextColumn::make('name')->label('Artista'),
+                TextColumn::make('name')->label('Artista'),
                 // Colunas calculadas que buscam os dados da nossa coleção
-                Tables\Columns\TextColumn::make('gigs_count')->label('Qtd. Gigs')
+                TextColumn::make('gigs_count')->label('Qtd. Gigs')
                     ->getStateUsing(fn ($record) => $topArtistsData->firstWhere('artist.id', $record->id)->gigs_count ?? 0),
-                Tables\Columns\TextColumn::make('total_value')->label('Valor Vendido (BRL)')
+                TextColumn::make('total_value')->label('Valor Vendido (BRL)')
                     ->money('BRL')
                     ->getStateUsing(fn ($record) => $topArtistsData->firstWhere('artist.id', $record->id)->total_value ?? 0),
             ])

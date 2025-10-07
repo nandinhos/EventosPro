@@ -31,10 +31,15 @@ class RolesAndPermissionsSeeder extends Seeder
         $roleBooker = Role::firstOrCreate(['name' => 'BOOKER']);
         $roleBooker->givePermissionTo(['view own gigs', 'view booker dashboard']);
 
-        // (Opcional) Atribui o papel ADMIN ao seu primeiro usuário
-        $adminUser = User::where('email', 'seu-email-de-admin@exemplo.com')->first();
-        if ($adminUser) {
+        // Atribuir roles aos usuários existentes
+        $adminUser = User::where('email', 'admin@eventospro.com')->first();
+        if ($adminUser && !$adminUser->hasRole('ADMIN')) {
             $adminUser->assignRole($roleAdmin);
+        }
+
+        $devUser = User::where('email', 'nandinhos@gmail.com')->first();
+        if ($devUser && !$devUser->hasRole('ADMIN')) {
+            $devUser->assignRole($roleAdmin);
         }
     }
 }

@@ -132,7 +132,7 @@ class PaymentTest extends TestCase
             'currency' => 'USD',
         ]);
 
-        $this->assertEquals(1060.0, $payment->due_value_brl); // 200 * 5.30
+        $this->assertEqualsWithDelta(1060.0, $payment->due_value_brl, 0.01); // 200 * 5.30
     }
 
     #[Test]

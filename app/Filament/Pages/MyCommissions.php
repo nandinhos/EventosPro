@@ -6,11 +6,11 @@ use Filament\Pages\Page;
 
 class MyCommissions extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-currency-dollar';
 
-    protected static string $view = 'filament.pages.my-commissions';
+    protected string $view = 'filament.pages.my-commissions';
 
-    protected static ?string $navigationGroup = 'Financeiro';
+    protected static string | \UnitEnum | null $navigationGroup = 'Financeiro';
 
     protected static ?int $navigationSort = 2;
 

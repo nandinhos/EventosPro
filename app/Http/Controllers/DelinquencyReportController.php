@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\GigFinancialCalculatorService;
 use App\Models\Artist;
 use App\Models\Booker;
 use App\Models\Gig;
@@ -180,7 +181,7 @@ class DelinquencyReportController extends Controller
         ]);
 
         // Instanciar o serviço de cálculo financeiro
-        $financialService = app(\App\Services\GigFinancialCalculatorService::class);
+        $financialService = app(GigFinancialCalculatorService::class);
 
         // Consulta para obter pagamentos com data de vencimento e carregar relacionamentos necessários
         $payments = Payment::query()
@@ -288,7 +289,7 @@ class DelinquencyReportController extends Controller
         ]);
 
         // Instanciar o serviço de cálculo financeiro
-        $financialService = app(\App\Services\GigFinancialCalculatorService::class);
+        $financialService = app(GigFinancialCalculatorService::class);
 
         // Consulta para obter pagamentos com data de vencimento e carregar relacionamentos necessários
         $payments = Payment::query()

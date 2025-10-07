@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use Exception;
 use App\Models\Booker;
 use App\Models\Gig;
 use Carbon\Carbon;
@@ -95,7 +96,7 @@ class GigDataAuditCommand extends Command
             $this->displayFinalReport();
 
             return 0;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error("❌ Erro durante a execução: {$e->getMessage()}");
             Log::error('GigDataAudit Error', ['exception' => $e]);
 
@@ -339,7 +340,7 @@ class GigDataAuditCommand extends Command
             $this->line('   Status de contrato: '.json_encode($contractStatusStats));
             $this->line('   Problemas potenciais detectados: '.array_sum($potentialIssues));
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::warning('GigDataAudit: Erro ao gerar estatísticas de distribuição', [
                 'error' => $e->getMessage(),
             ]);
@@ -382,7 +383,7 @@ class GigDataAuditCommand extends Command
                 }
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->stats['errors']++;
             Log::error("Erro ao auditar Gig ID {$gig->id}", ['exception' => $e]);
         }
@@ -635,7 +636,7 @@ class GigDataAuditCommand extends Command
                 'environment' => $this->isRunningInConsole() ? 'console' : 'web',
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             $this->stats['errors']++;
 

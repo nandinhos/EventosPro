@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class FaturamentoChart extends ChartWidget
 {
-    protected static ?string $heading = 'Faturamento Mensal (Contratos Assinados/Concluídos)';
+    protected ?string $heading = 'Faturamento Mensal (Contratos Assinados/Concluídos)';
 
     protected int|string|array $columnSpan = 'full';
 
