@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\ExchangeRateService;
+use Illuminate\Database\Eloquent\Collection;
 use App\Services\GigFinancialCalculatorService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -14,7 +16,6 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany; // Importar o novo Servi
 use Illuminate\Database\Eloquent\SoftDeletes; // Para resolver o Service
 use Illuminate\Support\Facades\App; // Para logs
 use Illuminate\Support\Facades\Log; // Importar para nova sintaxe de Accessor
-
 /**
  * @property int $id
  * @property int $artist_id
@@ -42,10 +43,10 @@ use Illuminate\Support\Facades\Log; // Importar para nova sintaxe de Accessor
  * @property \Carbon\Carbon|null $deleted_at
  * @property-read \App\Models\Artist $artist
  * @property-read \App\Models\Booker $booker
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Payment> $payments
+ * @property-read Collection<int, \App\Models\Payment> $payments
  * @property-read \App\Models\Settlement|null $settlement
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Tag> $tags
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\GigCost> $costs
+ * @property-read Collection<int, \App\Models\Tag> $tags
+ * @property-read Collection<int, \App\Models\GigCost> $costs
  */
 class Gig extends Model
 {
@@ -168,7 +169,7 @@ class Gig extends Model
         }
 
         // Prioridade 2: Usar ExchangeRateService para obter taxa atualizada
-        $exchangeRateService = app(\App\Services\ExchangeRateService::class);
+        $exchangeRateService = app(ExchangeRateService::class);
         $rate = $exchangeRateService->getExchangeRate($currencyCode, $date);
 
         if ($rate !== null) {

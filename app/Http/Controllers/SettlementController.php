@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
+use App\Services\CommissionPaymentValidationService;
 use App\Models\Gig;
 use App\Models\Settlement;
 use Illuminate\Http\RedirectResponse;
@@ -61,7 +63,7 @@ class SettlementController extends Controller
             DB::commit();
 
             return redirect()->route('gigs.show', $gig)->with('success', 'Pagamento ao artista registrado com sucesso!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error("Erro ao registrar pagamento ao artista para Gig {$gig->id}: ".$e->getMessage(), ['exception' => $e]);
 
@@ -79,7 +81,7 @@ class SettlementController extends Controller
         }
 
         // Validar regra de negócio: não permitir pagamento para eventos futuros
-        $validationService = app(\App\Services\CommissionPaymentValidationService::class);
+        $validationService = app(CommissionPaymentValidationService::class);
         $validation = $validationService->validateBookerCommissionPayment($gig, false);
 
         if (! $validation['valid']) {
@@ -121,7 +123,7 @@ class SettlementController extends Controller
             DB::commit();
 
             return redirect()->route('gigs.show', $gig)->with('success', 'Pagamento da comissão do booker registrado!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error("Erro ao registrar comissão do booker para Gig {$gig->id}: ".$e->getMessage(), ['exception' => $e]);
 
@@ -159,7 +161,7 @@ class SettlementController extends Controller
             DB::commit();
 
             return redirect()->route('gigs.show', $gig)->with('success', 'Pagamento ao artista revertido para pendente!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error("Erro ao reverter pagamento ao artista para Gig {$gig->id}: ".$e->getMessage(), ['exception' => $e]);
 
@@ -198,7 +200,7 @@ class SettlementController extends Controller
             DB::commit();
 
             return redirect()->route('gigs.show', $gig)->with('success', 'Pagamento da comissão do booker revertido para pendente!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error("Erro ao reverter comissão do booker para Gig {$gig->id}: ".$e->getMessage(), ['exception' => $e]);
 

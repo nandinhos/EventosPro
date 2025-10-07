@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -117,7 +118,7 @@ class ExchangeRateService
 
             Log::warning("Falha ao obter taxa do BCB para {$currencyCode}: ".$response->status());
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Erro ao consultar API do BCB para {$currencyCode}: ".$e->getMessage());
         }
 

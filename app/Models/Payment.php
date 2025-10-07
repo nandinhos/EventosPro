@@ -25,8 +25,8 @@ use Illuminate\Support\Facades\Log;
  * @property \Carbon\Carbon|null $created_at
  * @property \Carbon\Carbon|null $updated_at
  * @property \Carbon\Carbon|null $deleted_at
- * @property-read \App\Models\Gig $gig
- * @property-read \App\Models\User|null $confirmer
+ * @property-read Gig $gig
+ * @property-read User|null $confirmer
  * @property-read string $inferred_status
  * @property-read string $status_color
  * @property-read float $due_value_brl

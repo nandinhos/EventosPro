@@ -2,6 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booker;
+use App\Models\Artist;
+use App\Exports\DetailedPerformanceReportExport;
+use App\Services\CommissionPaymentValidationService;
+use Exception;
+use App\Exports\OverviewReportExport;
+use Illuminate\Pagination\LengthAwarePaginator;
 use App\Models\Gig;
 use App\Models\Payment;
 use App\Models\Settlement;
@@ -47,8 +54,8 @@ class FinancialReportController extends Controller
         $cashflowTable = collect($this->reportService->getCashflowTableData());
         $groupedExpensesReport = $this->reportService->getGroupedExpensesData();
 
-        $bookers = \App\Models\Booker::orderBy('name')->get();
-        $artists = \App\Models\Artist::withoutTrashed()->orderBy('name')->get();
+        $bookers = Booker::orderBy('name')->get();
+        $artists = Artist::withoutTrashed()->orderBy('name')->get();
 
         // Dados para os relatórios
         $monthlyClosingReport = [
@@ -93,7 +100,7 @@ class FinancialReportController extends Controller
         if ($type === 'overview') {
             $reportData = $this->reportService->getDetailedPerformanceData();
             if ($format === 'xlsx') {
-                return Excel::download(new \App\Exports\DetailedPerformanceReportExport($reportData['tableData']), "{$fileName}.xlsx");
+                return Excel::download(new DetailedPerformanceReportExport($reportData['tableData']), "{$fileName}.xlsx");
             }
             if ($format === 'pdf') {
                 $pdf = Pdf::loadView('reports.exports.detailed_performance', ['reportData' => $reportData, 'filters' => $filters])
@@ -127,7 +134,7 @@ class FinancialReportController extends Controller
         $errors = [];
 
         // Validar regras de negócio antes de processar
-        $validationService = app(\App\Services\CommissionPaymentValidationService::class);
+        $validationService = app(CommissionPaymentValidationService::class);
         $gigs = Gig::whereIn('id', $gigIds)->get();
         $batchValidation = $validationService->validateBatchPayment($gigs, false);
 
@@ -162,7 +169,7 @@ class FinancialReportController extends Controller
 
             DB::commit();
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Erro ao processar pagamento em massa de comissões: '.$e->getMessage(), ['exception' => $e]);
 
@@ -224,7 +231,7 @@ class FinancialReportController extends Controller
 
             DB::commit();
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Erro ao reverter pagamento em massa de comissões: '.$e->getMessage(), ['exception' => $e]);
 
@@ -267,7 +274,7 @@ class FinancialReportController extends Controller
         }
 
         if ($format === 'xlsx') {
-            return Excel::download(new \App\Exports\OverviewReportExport($overviewData), "{$fileName}.xlsx");
+            return Excel::download(new OverviewReportExport($overviewData), "{$fileName}.xlsx");
         }
 
         return redirect()->back()->with('error', 'Formato de exportação inválido.');
@@ -370,7 +377,7 @@ class FinancialReportController extends Controller
         // Paginar os resultados priorizados
         $currentPage = request()->get('page', 1);
         $perPage = 50;
-        $payments = new \Illuminate\Pagination\LengthAwarePaginator(
+        $payments = new LengthAwarePaginator(
             $prioritizedPayments->forPage($currentPage, $perPage),
             $prioritizedPayments->count(),
             $perPage,
@@ -412,16 +419,16 @@ class FinancialReportController extends Controller
 
         foreach ($paymentsByGig as $gigId => $gigPayments) {
             $gig = $gigPayments->first()->gig;
-            $gigDate = \Carbon\Carbon::parse($gig->gig_date)->startOfDay();
+            $gigDate = Carbon::parse($gig->gig_date)->startOfDay();
             $isEventRealized = $gigDate->lt($today);
 
             // Contar parcelas vencidas para esta gig
             $parcelasVencidas = $gigPayments->filter(function ($payment) use ($today) {
-                return \Carbon\Carbon::parse($payment->due_date)->startOfDay()->lt($today);
+                return Carbon::parse($payment->due_date)->startOfDay()->lt($today);
             });
 
             $parcelasAVencer = $gigPayments->filter(function ($payment) use ($today) {
-                return \Carbon\Carbon::parse($payment->due_date)->startOfDay()->gte($today);
+                return Carbon::parse($payment->due_date)->startOfDay()->gte($today);
             });
 
             // Verificar se é evento futuro com múltiplas parcelas vencidas
@@ -438,7 +445,7 @@ class FinancialReportController extends Controller
             } else {
                 // Processar pagamentos individualmente para outros grupos
                 foreach ($gigPayments as $payment) {
-                    $dueDate = \Carbon\Carbon::parse($payment->due_date)->startOfDay();
+                    $dueDate = Carbon::parse($payment->due_date)->startOfDay();
                     $isVencido = $dueDate->lt($today);
 
                     if ($isEventRealized && $isVencido) {
@@ -487,7 +494,7 @@ class FinancialReportController extends Controller
         try {
             ini_set('memory_limit', '512M'); // Aumenta para 512MB
             set_time_limit(300);             // Aumenta para 5 minutos
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::warning('Não foi possível aumentar os limites de execução para PDF: '.$e->getMessage());
         }
 

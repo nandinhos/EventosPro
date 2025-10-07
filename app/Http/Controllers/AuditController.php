@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
+use Exception;
 use App\Models\Gig;
 use App\Services\GigFinancialCalculatorService;
 use Illuminate\Http\Request;
@@ -136,7 +138,7 @@ class AuditController extends Controller
             } else {
                 // 3) ou 4) Verificar se evento já aconteceu
                 $hoje = now()->startOfDay();
-                $gigDate = $gig->gig_date ? \Carbon\Carbon::parse($gig->gig_date)->startOfDay() : null;
+                $gigDate = $gig->gig_date ? Carbon::parse($gig->gig_date)->startOfDay() : null;
 
                 if ($gigDate && $gigDate->lt($hoje)) {
                     $categoria = 'gigs_vencidas';
@@ -449,7 +451,7 @@ class AuditController extends Controller
                 'status_divergencia' => $this->getStatusDivergencia($divergencia),
             ];
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("[AuditController] Erro ao calcular auditoria para Gig ID {$gig->id}: ".$e->getMessage());
 
             return [
@@ -532,7 +534,7 @@ class AuditController extends Controller
                 'report_path' => $reportPath,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Erro ao executar auditoria de dados', ['exception' => $e]);
 
             return response()->json([
@@ -600,7 +602,7 @@ class AuditController extends Controller
                 'stats' => $reportData['stats'] ?? [],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Erro ao buscar issues de auditoria', ['exception' => $e]);
 
             return response()->json([
@@ -642,7 +644,7 @@ class AuditController extends Controller
             ];
 
             if (! in_array($field, $allowedFields)) {
-                throw new \Exception("Campo '{$field}' não pode ser editado via interface");
+                throw new Exception("Campo '{$field}' não pode ser editado via interface");
             }
 
             // Aplicar correção
@@ -668,7 +670,7 @@ class AuditController extends Controller
                 'new_value' => $newValue,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Erro ao aplicar correção', [
                 'gig_id' => $request->integer('gig_id'),
@@ -759,7 +761,7 @@ class AuditController extends Controller
                     ];
                     $successCount++;
 
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     $results[$index] = [
                         'success' => false,
                         'error' => $e->getMessage(),
@@ -784,7 +786,7 @@ class AuditController extends Controller
                 ],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Bulk fix failed', [
                 'error' => $e->getMessage(),

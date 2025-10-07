@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use App\Http\Requests\StoreBookerRequest;
 use App\Http\Requests\UpdateBookerRequest;
 use App\Models\Booker;
@@ -147,7 +148,7 @@ class BookerController extends Controller
                 'message' => 'Comissão atualizada com sucesso!',
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Erro ao atualizar comissão do evento: '.$e->getMessage());
 
             return response()->json([

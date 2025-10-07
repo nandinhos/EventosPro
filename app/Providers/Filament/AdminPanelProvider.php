@@ -2,6 +2,10 @@
 
 namespace App\Providers\Filament;
 
+use Filament\Pages\Dashboard;
+use Filament\Widgets\AccountWidget;
+use Filament\Widgets\FilamentInfoWidget;
+use App\Http\Middleware\RedirectIfBooker;
 use App\Filament\Resources\ArtistResource;
 use App\Filament\Resources\BookerResource;
 use App\Filament\Resources\GigResource;
@@ -24,6 +28,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 // ***** 1. IMPORTE SEUS NOVOS WIDGETS AQUI *****
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use DutchCodingCompany\FilamentDeveloperLogins\FilamentDeveloperLoginsPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -35,13 +40,24 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->colors(['primary' => Color::Purple])
+            ->plugin(
+                FilamentDeveloperLoginsPlugin::make()
+                    ->enabled(app()->environment('local'))
+                    ->switchable(true)
+                    ->users([
+                        'Admin' => 'admin@eventospro.com',
+                        'Admin DEV' => 'nandinhos@gmail.com',
+                        'Diretor' => 'diretor@eventospro.com',
+                        'Booker' => 'booker@eventospro.com',
+                    ])
+            )
             ->pages([
-                Pages\Dashboard::class,
+                Dashboard::class,
             ])
             // ***** 2. REGISTRE TODOS OS WIDGETS DO DASHBOARD AQUI *****
             ->widgets([
-                Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class, // Widget padrão do Filament
+                AccountWidget::class,
+                FilamentInfoWidget::class, // Widget padrão do Filament
                 VendasGeraisStats::class,          // Seu novo widget de KPIs
                 FaturamentoChart::class,           // Seu novo widget de gráfico
             ])
@@ -54,7 +70,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                \App\Http\Middleware\RedirectIfBooker::class,
+                RedirectIfBooker::class,
             ])
             ->authMiddleware([Authenticate::class])
             ->resources([
