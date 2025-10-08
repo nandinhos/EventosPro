@@ -310,9 +310,7 @@
                             <div style="font-size: 8px; font-weight: bold; margin-bottom: 2px;">
                                 {{ $gigDetail['date']->format('d/m/Y') }} | {{ $gigDetail['location'] }}
                             </div>
-                            <div style="font-size: 7px; color: #6b7280;">
-                                {{ $gigDetail['city_state'] }}
-                            </div>
+                          
                         </td>
                         <td class="text-right text-blue" style="white-space: nowrap;">R$ {{ number_format($gigDetail['cache_liquido'], 2, ',', '.') }}</td>
                         <td class="text-right text-indigo" style="white-space: nowrap;">R$ {{ number_format($gigDetail['comissao_agencia'], 2, ',', '.') }}</td>
@@ -378,9 +376,9 @@
                 @endphp
 
                 {{-- Cabeçalho do Booker --}}
-                <tr style="background: #e5e7eb; border-top: 2px solid #9ca3af;">
+                <tr style="background: #eef2ff; border-top: 2px solid #6366f1;">
                     <td colspan="3" style="padding: 10px 6px;">
-                        <span class="avatar" style="background: #6b7280; color: white;">
+                        <span class="avatar" style="background: #4f46e5; color: white;">
                             {{ strtoupper(substr($bookerGroup['booker']->name, 0, 2)) }}
                         </span>
                         <strong style="font-size: 10px;">{{ $bookerGroup['booker']->name }}</strong>
@@ -397,9 +395,7 @@
                                 <span style="color: #4f46e5; font-weight: bold;">{{ $gigDetail['artist_name'] }}</span>
                                 @ {{ $gigDetail['location'] }}
                             </div>
-                            <div style="font-size: 7px; color: #6b7280;">
-                                {{ $gigDetail['city_state'] }}
-                            </div>
+                            
                         </td>
                         <td class="text-right text-blue" style="white-space: nowrap;">R$ {{ number_format($gigDetail['cache_liquido'], 2, ',', '.') }}</td>
                         <td class="text-right text-purple" style="white-space: nowrap;">R$ {{ number_format($gigDetail['comissao_booker'], 2, ',', '.') }}</td>
