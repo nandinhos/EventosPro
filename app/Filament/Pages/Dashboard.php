@@ -2,10 +2,10 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Widgets\VendasGeraisStats;
-use App\Filament\Widgets\FaturamentoChart;
-use App\Models\User;
 use App\Filament\Widgets;
+use App\Filament\Widgets\FaturamentoChart;
+use App\Filament\Widgets\VendasGeraisStats;
+use App\Models\User;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,7 +13,7 @@ class Dashboard extends BaseDashboard
 {
     protected static ?string $title = 'Painel de Controle';
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-home';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-home';
 
     public function getWidgets(): array
     {

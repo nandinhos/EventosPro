@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use Exception;
-use Illuminate\Validation\ValidationException;
 use App\Events\PaymentSaved;
 use App\Http\Requests\ConfirmPaymentRequest;
 use App\Http\Requests\UpdatePaymentRequest;
 use App\Models\Gig;
 use App\Models\Payment;
+use Exception;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request; // <-- Importar o Evento
-use Illuminate\Support\Facades\DB; // Importar Rule para validação
-use Illuminate\Support\Facades\Log; // Importar Validator para validação
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule; // Importar o novo Form Request
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB; // <-- Importar o Evento
+use Illuminate\Support\Facades\Log; // Importar Rule para validação
+use Illuminate\Support\Facades\Validator; // Importar Validator para validação
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException; // Importar o novo Form Request
 
 class PaymentController extends Controller
 {

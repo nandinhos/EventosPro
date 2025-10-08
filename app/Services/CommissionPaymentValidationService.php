@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Settlement;
-use Exception;
 use App\Models\Gig;
+use App\Models\Settlement;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 

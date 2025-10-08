@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\GigFinancialCalculatorService;
 use App\Models\Artist;
 use App\Models\Booker;
 use App\Models\Gig;
 use App\Models\Payment;
+use App\Services\GigFinancialCalculatorService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 

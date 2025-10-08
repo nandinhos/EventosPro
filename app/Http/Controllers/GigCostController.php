@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Exception;
 use App\Http\Requests\StoreGigCostRequest;
 use App\Http\Requests\UpdateGigCostRequest;
 use App\Models\CostCenter;
-use App\Models\Gig; // Certifique-se de ter este Form Request
+use App\Models\Gig;
 use App\Models\GigCost; // Certifique-se de ter este Form Request
+use Exception; // Certifique-se de ter este Form Request
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -23,7 +23,7 @@ class GigCostController extends Controller
      */
     public function listJson(Gig $gig): JsonResponse
     {
-        $costsByCenter = $gig->costs()
+        $costsByCenter = $gig->gigCosts()()
             ->with(['costCenter', 'confirmer']) // Carrega quem confirmou também
             ->orderBy('expense_date', 'desc') // Ordena custos dentro do grupo
             ->orderBy('created_at', 'desc')

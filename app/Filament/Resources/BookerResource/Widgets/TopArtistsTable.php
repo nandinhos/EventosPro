@@ -3,10 +3,9 @@
 namespace App\Filament\Resources\BookerResource\Widgets;
 
 use App\Models\Artist;
-use Filament\Tables\Columns\TextColumn;
 use App\Models\Booker;
 use App\Services\BookerFinancialsService;
-use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 

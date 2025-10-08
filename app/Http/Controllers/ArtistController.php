@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Exception;
 use App\Http\Requests\StoreArtistRequest;
 use App\Http\Requests\UpdateArtistRequest;
 use App\Models\Artist;
 use App\Models\Tag;
 use App\Services\ArtistFinancialsService;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -116,7 +116,7 @@ class ArtistController extends Controller
 
         // 2. Busca e Filtra Gigs no período
         $gigsInPeriod = $artist->gigs()
-            ->with(['booker', 'costs.costCenter'])
+            ->with(['booker', 'gigCosts.costCenter'])
             ->whereBetween('gig_date', [$startDate, $endDate])
             ->orderBy('gig_date', 'desc')
             ->get();

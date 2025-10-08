@@ -2,9 +2,8 @@
 
 namespace App\Filament\Resources\ArtistResource\Pages;
 
-use Filament\Actions\DeleteAction;
 use App\Filament\Resources\ArtistResource;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditArtist extends EditRecord

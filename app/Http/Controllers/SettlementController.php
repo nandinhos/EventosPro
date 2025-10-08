@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Exception;
-use App\Services\CommissionPaymentValidationService;
 use App\Models\Gig;
 use App\Models\Settlement;
+use App\Services\CommissionPaymentValidationService;
+use Exception;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB; // Para lidar com uploads

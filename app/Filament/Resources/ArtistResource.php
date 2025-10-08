@@ -2,28 +2,25 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Actions\EditAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use App\Filament\Resources\ArtistResource\Pages\ListArtists;
 use App\Filament\Resources\ArtistResource\Pages\CreateArtist;
 use App\Filament\Resources\ArtistResource\Pages\EditArtist;
-use App\Filament\Resources\ArtistResource\Pages;
+use App\Filament\Resources\ArtistResource\Pages\ListArtists;
 use App\Models\Artist;
-use Filament\Forms;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class ArtistResource extends Resource
 {
     protected static ?string $model = Artist::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-microphone'; // Ícone sugerido
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-microphone'; // Ícone sugerido
 
     public static function form(Schema $schema): Schema
     {

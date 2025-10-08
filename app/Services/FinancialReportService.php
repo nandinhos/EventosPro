@@ -2,13 +2,13 @@
 
 namespace App\Services;
 
-use Exception;
-use Illuminate\Pagination\LengthAwarePaginator;
 use App\Models\Gig;
 use App\Models\GigCost;
 use App\Models\Payment;
 use App\Models\Settlement;
 use Carbon\Carbon;
+use Exception;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -870,7 +870,7 @@ class FinancialReportService
                 'gigs.*', // Seleciona todas as colunas de gigs
                 DB::raw('COALESCE(gigs.contract_date, gigs.gig_date) as sale_date') // 2. Cria a coluna virtual 'sale_date'
             )
-            ->with('costs'); // Carrega o relacionamento de custos para evitar N+1
+            ->with('gigCosts'); // Carrega o relacionamento de custos para evitar N+1
 
         // 3. Ordena pela "data da venda"
         $gigs = $gigsQuery->orderBy('sale_date', 'desc')->get();
@@ -881,7 +881,7 @@ class FinancialReportService
             $revenue = $gig->cache_value_brl ?? 0;
 
             // Soma das despesas confirmadas da Gig
-            $totalCosts = $gig->costs->where('is_confirmed', true)->sum('value_brl');
+            $totalCosts = $gig->gigCosts->where('is_confirmed', true)->sum('value_brl');
 
             // Cálculo da rentabilidade e margem
             $profitability = $revenue - $totalCosts;

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Exception;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\Booker;
 use App\Models\User;
 use App\Services\UserManagementService;
+use Exception;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;

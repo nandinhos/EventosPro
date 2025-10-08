@@ -232,7 +232,7 @@ class AuditController extends Controller
     {
         $gig->loadMissing(['artist', 'booker', 'payments' => function ($query) {
             $query->orderBy('due_date', 'asc');
-        }, 'costs.costCenter']);
+        }, 'gigCosts.costCenter']);
 
         $auditData = $this->calculateAuditData($gig);
 
@@ -591,6 +591,7 @@ class AuditController extends Controller
                         'current_value' => $issue['current_value'] ?? '',
                         'suggested_value' => $issue['suggested_value'] ?? '',
                         'suggested_action' => $issue['suggested_action'],
+                        'relation_id' => $issue['cost_id'] ?? $issue['payment_id'] ?? null,
                         'can_fix' => isset($issue['suggested_value']) && isset($issue['field']) && ! empty($issue['field']),
                     ];
                 }
@@ -643,13 +644,6 @@ class AuditController extends Controller
                 'cache_value',
                 'currency',
                 'contract_date',
-                'artist_payment_paid_at',
-                'booker_commission_paid_at',
-                'artist_payment_value',
-                'booker_commission_value_paid',
-                'artist_payment_proof',
-                'booker_commission_proof',
-                'settlement_date',
                 'agency_commission_value',
                 'booker_commission_value',
                 'liquid_commission_value',
@@ -660,16 +654,35 @@ class AuditController extends Controller
                 'confirmed_at',
                 'gig_id',
 
+                // Campos do modelo Settlement
+                'settlement_date',
+                'artist_payment_value',
+                'artist_payment_paid_at',
+                'artist_payment_proof',
+                'booker_commission_value_paid',
+                'booker_commission_paid_at',
+                'booker_commission_proof',
+
                 // Campos relacionados (payments e costs) - formato especial
                 'payments.due_value',
                 'payments.received_value_actual',
                 'payments.currency',
                 'payments.confirmed_at',
                 'costs.currency',
-                'costs.amount',
+                'costs.value',
                 'costs.cost_center_id',
                 'costs.is_confirmed',
-                'costs.description',
+            ];
+
+            // Campos que pertencem ao Settlement (não à Gig)
+            $settlementFields = [
+                'settlement_date',
+                'artist_payment_value',
+                'artist_payment_paid_at',
+                'artist_payment_proof',
+                'booker_commission_value_paid',
+                'booker_commission_paid_at',
+                'booker_commission_proof',
             ];
 
             if (! in_array($field, $allowedFields)) {
@@ -679,8 +692,32 @@ class AuditController extends Controller
             // Aplicar correção
             $oldValue = null;
 
-            // Verificar se é um campo relacionado (payments.* ou costs.*)
-            if (str_contains($field, '.')) {
+            // Verificar se é um campo de Settlement
+            if (in_array($field, $settlementFields)) {
+                // Campos de Settlement
+                $settlement = $gig->settlement;
+
+                // Se não existe settlement, criar um
+                if (! $settlement) {
+                    $settlement = new \App\Models\Settlement;
+                    $settlement->gig_id = $gig->id;
+                    $settlement->settlement_date = $gig->gig_date; // Data padrão
+                }
+
+                $oldValue = $settlement->$field;
+                $settlement->$field = $newValue;
+                $settlement->save();
+
+                // Atualizar status na Gig se necessário
+                if ($field === 'artist_payment_paid_at' && $newValue) {
+                    $gig->artist_payment_status = 'pago';
+                    $gig->save();
+                } elseif ($field === 'booker_commission_paid_at' && $newValue) {
+                    $gig->booker_payment_status = 'pago';
+                    $gig->save();
+                }
+            } elseif (str_contains($field, '.')) {
+                // Campos relacionados (payments.* ou costs.*)
                 [$relation, $relationField] = explode('.', $field, 2);
 
                 // Para campos relacionados, precisamos do ID específico
@@ -697,7 +734,14 @@ class AuditController extends Controller
                     $cost = $gig->gigCosts()->find($relationId);
                     if ($cost) {
                         $oldValue = $cost->$relationField;
-                        $cost->$relationField = $newValue;
+
+                        // Converter valores booleanos string para boolean
+                        $finalValue = $newValue;
+                        if ($newValue === 'true' || $newValue === 'false') {
+                            $finalValue = $newValue === 'true';
+                        }
+
+                        $cost->$relationField = $finalValue;
                         $cost->save();
                     }
                 } else {
@@ -771,13 +815,6 @@ class AuditController extends Controller
             'cache_value',
             'currency',
             'contract_date',
-            'artist_payment_paid_at',
-            'booker_commission_paid_at',
-            'artist_payment_value',
-            'booker_commission_value_paid',
-            'artist_payment_proof',
-            'booker_commission_proof',
-            'settlement_date',
             'agency_commission_value',
             'booker_commission_value',
             'liquid_commission_value',
@@ -788,16 +825,35 @@ class AuditController extends Controller
             'confirmed_at',
             'gig_id',
 
+            // Campos do modelo Settlement
+            'settlement_date',
+            'artist_payment_value',
+            'artist_payment_paid_at',
+            'artist_payment_proof',
+            'booker_commission_value_paid',
+            'booker_commission_paid_at',
+            'booker_commission_proof',
+
             // Campos relacionados (payments e costs) - formato especial
             'payments.due_value',
             'payments.received_value_actual',
             'payments.currency',
             'payments.confirmed_at',
             'costs.currency',
-            'costs.amount',
+            'costs.value',
             'costs.cost_center_id',
             'costs.is_confirmed',
-            'costs.description',
+        ];
+
+        // Campos que pertencem ao Settlement (não à Gig)
+        $settlementFields = [
+            'settlement_date',
+            'artist_payment_value',
+            'artist_payment_paid_at',
+            'artist_payment_proof',
+            'booker_commission_value_paid',
+            'booker_commission_paid_at',
+            'booker_commission_proof',
         ];
 
         DB::beginTransaction();
@@ -825,14 +881,74 @@ class AuditController extends Controller
                     // Buscar o gig
                     $gig = Gig::findOrFail($gigId);
 
-                    // Aplicar a correção
-                    $gig->update([$field => $newValue]);
+                    $oldValue = null;
+
+                    // Verificar se é um campo de Settlement
+                    if (in_array($field, $settlementFields)) {
+                        // Campos de Settlement
+                        $settlement = $gig->settlement;
+
+                        // Se não existe settlement, criar um
+                        if (! $settlement) {
+                            $settlement = new \App\Models\Settlement;
+                            $settlement->gig_id = $gig->id;
+                            $settlement->settlement_date = $gig->gig_date; // Data padrão
+                        }
+
+                        $oldValue = $settlement->$field;
+                        $settlement->$field = $newValue;
+                        $settlement->save();
+
+                        // Atualizar status na Gig se necessário
+                        if ($field === 'artist_payment_paid_at' && $newValue) {
+                            $gig->artist_payment_status = 'pago';
+                            $gig->save();
+                        } elseif ($field === 'booker_commission_paid_at' && $newValue) {
+                            $gig->booker_payment_status = 'pago';
+                            $gig->save();
+                        }
+                    } elseif (str_contains($field, '.')) {
+                        // Campos relacionados (payments.* ou costs.*)
+                        [$relation, $relationField] = explode('.', $field, 2);
+
+                        // Para campos relacionados, precisamos do ID específico
+                        $relationId = $fix['relation_id'] ?? null;
+
+                        if ($relation === 'payments' && $relationId) {
+                            $payment = $gig->payments()->find($relationId);
+                            if ($payment) {
+                                $oldValue = $payment->$relationField;
+                                $payment->$relationField = $newValue;
+                                $payment->save();
+                            }
+                        } elseif ($relation === 'costs' && $relationId) {
+                            $cost = $gig->gigCosts()->find($relationId);
+                            if ($cost) {
+                                $oldValue = $cost->$relationField;
+
+                                // Converter valores booleanos string para boolean
+                                $finalValue = $newValue;
+                                if ($newValue === 'true' || $newValue === 'false') {
+                                    $finalValue = $newValue === 'true';
+                                }
+
+                                $cost->$relationField = $finalValue;
+                                $cost->save();
+                            }
+                        } else {
+                            throw new Exception("ID do relacionamento não fornecido para campo '{$field}'");
+                        }
+                    } else {
+                        // Campo direto do Gig
+                        $oldValue = $gig->$field;
+                        $gig->update([$field => $newValue]);
+                    }
 
                     // Log da correção
                     Log::info('Bulk fix applied', [
                         'gig_id' => $gigId,
                         'field' => $field,
-                        'old_value' => $gig->getOriginal($field),
+                        'old_value' => $oldValue,
                         'new_value' => $newValue,
                         'issue_type' => $issueType,
                     ]);

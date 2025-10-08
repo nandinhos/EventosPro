@@ -2,9 +2,8 @@
 
 namespace App\Filament\Resources\GigResource\Pages;
 
-use Filament\Actions\CreateAction;
 use App\Filament\Resources\GigResource;
-use Filament\Actions;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListGigs extends ListRecords
