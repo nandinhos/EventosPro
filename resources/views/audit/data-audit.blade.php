@@ -756,6 +756,7 @@
                         field: issue.field,
                         new_value: issue.suggested_value,
                         issue_type: issue.issue_type,
+                        relation_id: issue.payment_id || issue.cost_id || issue.relation_id,
                         gig_info: `${issue.contract_number} - ${issue.artist_name}`,
                         current_value: issue.current_value,
                         suggested_value: issue.suggested_value,
@@ -785,7 +786,8 @@
                                 gig_id: this.currentFix.gig_id,
                                 field: this.currentFix.field,
                                 new_value: this.currentFix.new_value,
-                                issue_type: this.currentFix.issue_type
+                                issue_type: this.currentFix.issue_type,
+                                relation_id: this.currentFix.relation_id
                             })
                         });
                         
@@ -860,7 +862,8 @@
                              gig_id: issue.gig_id,
                              field: issue.field,
                              new_value: issue.suggested_value,
-                             issue_type: issue.issue_type
+                             issue_type: issue.issue_type,
+                             relation_id: issue.payment_id || issue.cost_id || issue.relation_id
                          }));
                          
                          const response = await fetch('{{ route("audit.apply-bulk-fix") }}', {

@@ -2,10 +2,10 @@
 
 namespace App\Console\Commands;
 
-use Exception;
 use App\Models\Booker;
 use App\Models\Gig;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

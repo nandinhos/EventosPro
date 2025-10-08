@@ -123,7 +123,7 @@ class AuditBusinessRulesCommand extends Command
     protected function performAudit($batchSize, $dateFrom, $dateTo, $scanOnly, $autoFix)
     {
         // Construir query base
-        $query = Gig::with(['artist', 'booker', 'payments', 'settlement', 'costs']);
+        $query = Gig::with(['artist', 'booker', 'payments', 'settlement', 'gigCosts']);
 
         if ($dateFrom) {
             $query->where('gig_date', '>=', $dateFrom);
@@ -330,8 +330,9 @@ class AuditBusinessRulesCommand extends Command
                     'description' => 'Taxa percentual de comissão da agência inválida',
                     'field' => 'agency_commission_rate',
                     'current_value' => $gig->agency_commission_rate,
-                    'suggested_action' => 'Ajustar taxa percentual (deve estar entre 0 e 100)',
-                    'can_auto_fix' => false,
+                    'suggested_value' => '20', // Valor padrão comum para agência
+                    'suggested_action' => 'Ajustar para taxa padrão de 20%',
+                    'can_auto_fix' => true,
                 ];
             }
         }
@@ -345,8 +346,9 @@ class AuditBusinessRulesCommand extends Command
                     'description' => 'Taxa percentual de comissão do booker inválida',
                     'field' => 'booker_commission_rate',
                     'current_value' => $gig->booker_commission_rate,
-                    'suggested_action' => 'Ajustar taxa percentual (deve estar entre 0 e 100)',
-                    'can_auto_fix' => false,
+                    'suggested_value' => '5', // Valor padrão comum para booker
+                    'suggested_action' => 'Ajustar para taxa padrão de 5%',
+                    'can_auto_fix' => true,
                 ];
             }
         }

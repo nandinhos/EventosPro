@@ -115,7 +115,7 @@ class AuditCostsCommand extends Command
     protected function performAudit($batchSize, $dateFrom, $dateTo, $scanOnly, $autoFix)
     {
         // Construir query base
-        $query = Gig::with(['costs.costCenter', 'artist', 'booker']);
+        $query = Gig::with(['gigCosts.costCenter', 'artist', 'booker']);
 
         if ($dateFrom) {
             $query->where('gig_date', '>=', $dateFrom);
@@ -175,7 +175,7 @@ class AuditCostsCommand extends Command
         try {
             $gigIssues = [];
 
-            foreach ($gig->costs as $cost) {
+            foreach ($gig->gigCosts as $cost) {
                 // 1. Verificar se cost tem cost_center válido
                 $this->checkCostCenter($cost, $gigIssues);
 
@@ -187,9 +187,6 @@ class AuditCostsCommand extends Command
 
                 // 4. Verificar status de confirmação
                 $this->checkCostConfirmation($cost, $gig, $gigIssues);
-
-                // 5. Verificar descrição do custo
-                $this->checkCostDescription($cost, $gigIssues);
             }
 
             // Registrar issues encontradas
@@ -219,26 +216,13 @@ class AuditCostsCommand extends Command
 
     protected function checkCostValue($cost, array &$issues)
     {
-        if ($cost->amount <= 0) {
-            $issues[] = [
-                'type' => 'invalid_cost_value',
-                'severity' => 'critical',
-                'description' => "GigCost #{$cost->id} com valor inválido (≤ 0)",
-                'field' => 'amount',
-                'current_value' => number_format($cost->amount, 2, '.', ''),
-                'suggested_action' => 'Corrigir valor do custo ou removê-lo',
-                'can_auto_fix' => false,
-                'cost_id' => $cost->id,
-            ];
-        }
-
-        if ($cost->amount < 0) {
+        if ($cost->value < 0) {
             $issues[] = [
                 'type' => 'negative_cost_value',
                 'severity' => 'critical',
                 'description' => "GigCost #{$cost->id} com valor negativo",
-                'field' => 'amount',
-                'current_value' => number_format($cost->amount, 2, '.', ''),
+                'field' => 'value',
+                'current_value' => number_format($cost->value, 2, '.', ''),
                 'suggested_action' => 'Corrigir valor negativo',
                 'can_auto_fix' => false,
                 'cost_id' => $cost->id,
@@ -253,11 +237,11 @@ class AuditCostsCommand extends Command
                 'type' => 'cost_currency_mismatch',
                 'severity' => 'warning',
                 'description' => "GigCost #{$cost->id} com moeda diferente da gig ({$cost->currency} vs {$gig->currency})",
-                'field' => 'currency',
+                'field' => 'costs.currency',
                 'current_value' => $cost->currency,
                 'suggested_value' => $gig->currency,
-                'suggested_action' => 'Verificar se moeda está correta (pode ser despesa em moeda estrangeira)',
-                'can_auto_fix' => false,
+                'suggested_action' => 'Alinhar moeda do custo com a moeda da gig',
+                'can_auto_fix' => true,
                 'cost_id' => $cost->id,
             ];
         }
@@ -271,26 +255,11 @@ class AuditCostsCommand extends Command
                 'type' => 'cost_confirmed_future_event',
                 'severity' => 'warning',
                 'description' => "GigCost #{$cost->id} confirmado mas evento ainda não aconteceu",
-                'field' => 'is_confirmed',
+                'field' => 'costs.is_confirmed',
                 'current_value' => 'true',
-                'suggested_action' => 'Verificar se confirmação está correta',
-                'can_auto_fix' => false,
-                'cost_id' => $cost->id,
-            ];
-        }
-    }
-
-    protected function checkCostDescription($cost, array &$issues)
-    {
-        if (! $cost->description || trim($cost->description) === '') {
-            $issues[] = [
-                'type' => 'missing_cost_description',
-                'severity' => 'warning',
-                'description' => "GigCost #{$cost->id} sem descrição",
-                'field' => 'description',
-                'current_value' => null,
-                'suggested_action' => 'Adicionar descrição ao custo',
-                'can_auto_fix' => false,
+                'suggested_value' => 'false',
+                'suggested_action' => 'Desmarcar confirmação do custo',
+                'can_auto_fix' => true,
                 'cost_id' => $cost->id,
             ];
         }
@@ -359,7 +328,7 @@ class AuditCostsCommand extends Command
     protected function processIssues(Gig $gig, array $gigIssues, $autoFix)
     {
         foreach ($gigIssues as $issue) {
-            if ($issue['severity'] === 'critical' && ($issue['can_auto_fix'] ?? false)) {
+            if ($issue['can_auto_fix'] ?? false) {
                 if ($autoFix || $this->confirmFix($gig, $issue)) {
                     $this->applyFix($gig, $issue);
                 }
@@ -390,20 +359,66 @@ class AuditCostsCommand extends Command
         try {
             DB::beginTransaction();
 
-            $message = '';
+            $costId = $issue['cost_id'] ?? null;
+            $field = $issue['field'] ?? null;
+            $suggestedValue = $issue['suggested_value'] ?? null;
 
-            // A maioria das correções de custos requer revisão manual
-            Log::warning('Cost issue requer atenção manual', [
+            if (! $costId || ! $field || $suggestedValue === null) {
+                Log::warning('Cost issue sem dados suficientes para correção automática', [
+                    'gig_id' => $gig->id,
+                    'issue' => $issue,
+                ]);
+                DB::rollBack();
+
+                return;
+            }
+
+            // Buscar o custo
+            $cost = GigCost::find($costId);
+            if (! $cost) {
+                $this->warn("⚠️  GigCost #{$costId} não encontrado");
+                DB::rollBack();
+
+                return;
+            }
+
+            // Extrair nome do campo (costs.currency -> currency)
+            $fieldName = str_contains($field, '.') ? explode('.', $field)[1] : $field;
+
+            // Aplicar correção
+            $oldValue = $cost->$fieldName;
+
+            // Converter valores booleanos string para boolean
+            $finalValue = $suggestedValue;
+            if ($suggestedValue === 'true' || $suggestedValue === 'false') {
+                $finalValue = $suggestedValue === 'true';
+            }
+
+            $cost->$fieldName = $finalValue;
+            $cost->save();
+
+            DB::commit();
+
+            $this->stats['corrections_applied']++;
+            $this->info("✅ Corrigido: GigCost #{$costId} campo '{$fieldName}' de '{$oldValue}' para '{$suggestedValue}'");
+
+            Log::info('Cost correction applied', [
                 'gig_id' => $gig->id,
-                'issue' => $issue,
+                'cost_id' => $costId,
+                'field' => $fieldName,
+                'old_value' => $oldValue,
+                'new_value' => $suggestedValue,
             ]);
-
-            DB::rollBack();
 
         } catch (Exception $e) {
             DB::rollBack();
             $this->stats['errors']++;
             $this->error("❌ Erro ao aplicar correção: {$e->getMessage()}");
+            Log::error('Cost correction error', [
+                'gig_id' => $gig->id,
+                'issue' => $issue,
+                'exception' => $e,
+            ]);
         }
     }
 

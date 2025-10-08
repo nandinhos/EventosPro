@@ -78,7 +78,7 @@ class MonthlyClosingController extends Controller
     protected function generateReportData($startDate, $endDate, $bookerId = null)
     {
         // Query base com eager loading
-        $query = Gig::with(['artist', 'booker', 'payments', 'costs.costCenter'])
+        $query = Gig::with(['artist', 'booker', 'payments', 'gigCosts.costCenter'])
             ->whereBetween('gig_date', [$startDate, $endDate])
             ->orderBy('gig_date');
 
@@ -104,7 +104,7 @@ class MonthlyClosingController extends Controller
         }
 
         // ============================
-        // TABELA 1: RESUMO POR ARTISTA
+        // TABELA 1: ANALÍTICA POR ARTISTA
         // ============================
 
         $artistData = $gigs->groupBy('artist_id')->map(function ($artistGigs) {
@@ -114,19 +114,26 @@ class MonthlyClosingController extends Controller
                 return null;
             }
 
-            $cacheLiquido = 0;
-            $comissaoAgencia = 0;
-            $comissaoBooker = 0;
-            $vendas = $artistGigs->count();
+            // Processar cada gig com os cálculos do service
+            $gigsDetailed = $artistGigs->sortBy('gig_date')->map(function ($gig) {
+                return [
+                    'gig' => $gig,
+                    'date' => $gig->gig_date,
+                    'location' => $gig->location_event_details,
+                    'city_state' => $gig->location_city.'/'.$gig->location_state,
+                    'cache_liquido' => $this->gigCalculator->calculateGrossCashBrl($gig),
+                    'comissao_agencia' => $this->gigCalculator->calculateAgencyNetCommissionBrl($gig),
+                    'comissao_booker' => $this->gigCalculator->calculateBookerCommissionBrl($gig),
+                    'comissao_liquida' => $this->gigCalculator->calculateAgencyNetCommissionBrl($gig),
+                ];
+            });
 
-            foreach ($artistGigs as $gig) {
-                $cacheLiquido += $this->gigCalculator->calculateGrossCashBrl($gig);
-                $comissaoAgencia += $this->gigCalculator->calculateAgencyNetCommissionBrl($gig);
-                $comissaoBooker += $this->gigCalculator->calculateBookerCommissionBrl($gig);
-            }
-
-            // Comissão Líquida = Comissão Agência Líquida (já deduzida a comissão do booker)
-            $comissaoLiquida = $comissaoAgencia;
+            // Totais do artista
+            $cacheLiquido = $gigsDetailed->sum('cache_liquido');
+            $comissaoAgencia = $gigsDetailed->sum('comissao_agencia');
+            $comissaoBooker = $gigsDetailed->sum('comissao_booker');
+            $comissaoLiquida = $gigsDetailed->sum('comissao_liquida');
+            $vendas = $gigsDetailed->count();
 
             return [
                 'artist' => $artist,
@@ -135,12 +142,12 @@ class MonthlyClosingController extends Controller
                 'comissao_booker' => $comissaoBooker,
                 'comissao_liquida' => $comissaoLiquida,
                 'vendas' => $vendas,
-                'gigs' => $artistGigs,
+                'gigs_detailed' => $gigsDetailed,
             ];
         })->filter()->sortByDesc('cache_liquido');
 
         // ============================
-        // TABELA 2: DESEMPENHO POR BOOKER
+        // TABELA 2: ANALÍTICA POR BOOKER
         // ============================
 
         $bookerData = $gigs->groupBy('booker_id')->map(function ($bookerGigs) {
@@ -150,20 +157,30 @@ class MonthlyClosingController extends Controller
                 return null;
             }
 
-            $cacheLiquido = 0;
-            $comissaoBooker = 0;
-            $vendas = $bookerGigs->count();
+            // Processar cada gig com os cálculos do service
+            $gigsDetailed = $bookerGigs->sortBy('gig_date')->map(function ($gig) {
+                return [
+                    'gig' => $gig,
+                    'date' => $gig->gig_date,
+                    'artist_name' => $gig->artist->name ?? 'N/A',
+                    'location' => $gig->location_event_details,
+                    'city_state' => $gig->location_city.'/'.$gig->location_state,
+                    'cache_liquido' => $this->gigCalculator->calculateGrossCashBrl($gig),
+                    'comissao_booker' => $this->gigCalculator->calculateBookerCommissionBrl($gig),
+                ];
+            });
 
-            foreach ($bookerGigs as $gig) {
-                $cacheLiquido += $this->gigCalculator->calculateGrossCashBrl($gig);
-                $comissaoBooker += $this->gigCalculator->calculateBookerCommissionBrl($gig);
-            }
+            // Totais do booker
+            $cacheLiquido = $gigsDetailed->sum('cache_liquido');
+            $comissaoBooker = $gigsDetailed->sum('comissao_booker');
+            $vendas = $gigsDetailed->count();
 
             return [
                 'booker' => $booker,
                 'cache_liquido' => $cacheLiquido,
                 'comissao_booker' => $comissaoBooker,
                 'vendas' => $vendas,
+                'gigs_detailed' => $gigsDetailed,
             ];
         })->filter()->sortByDesc('cache_liquido');
 

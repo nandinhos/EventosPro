@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use Exception;
 use App\Http\Requests\StoreGigRequest;
 use App\Http\Requests\UpdateGigRequest;
 use App\Models\ActivityLog;
 use App\Models\Artist;
 use App\Models\Booker;
-use App\Models\CostCenter; // Adicionado para manipulação direta
-use App\Models\Gig;
+use App\Models\CostCenter;
+use App\Models\Gig; // Adicionado para manipulação direta
 use App\Models\GigCost;
 use App\Models\Tag;
 use App\Services\GigFinancialCalculatorService;
+use Exception;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -142,7 +142,7 @@ class GigController extends Controller
                     if (isset($expenseItem['_deleted']) && $expenseItem['_deleted']) {
                         continue; // Pular despesas marcadas para exclusão no formulário de criação (não deveria acontecer)
                     }
-                    $gig->costs()->create([
+                    $gig->gigCosts()()->create([
                         'cost_center_id' => $expenseItem['cost_center_id'],
                         'description' => $expenseItem['description'] ?? null,
                         'value' => $expenseItem['value'],
@@ -183,7 +183,7 @@ class GigController extends Controller
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
 
         // Carrega todos os relacionamentos necessários para a view de uma vez (Eager Loading)
-        $gig->loadMissing(['artist', 'booker', 'payments' => fn ($q) => $q->orderBy('due_date', 'asc')->orderBy('id', 'asc'), 'settlement', 'tags', 'costs.costCenter', 'costs.confirmer']);
+        $gig->loadMissing(['artist', 'booker', 'payments' => fn ($q) => $q->orderBy('due_date', 'asc')->orderBy('id', 'asc'), 'settlement', 'tags', 'gigCosts.costCenter', 'gigCosts.confirmer']);
 
         // Instancia o service para fazer TODOS os cálculos
         $financialCalculator = App::make(GigFinancialCalculatorService::class);
@@ -288,9 +288,9 @@ class GigController extends Controller
         if ($oldExpenses !== null && is_array($oldExpenses) && count($oldExpenses) > 0) {
             // Usar dados old() quando disponíveis (erro de validação com dados preenchidos)
             $expensesDataForView = $oldExpenses;
-        } elseif ($gig->exists && $gig->costs->isNotEmpty()) {
+        } elseif ($gig->exists && $gig->gigCosts()->isNotEmpty()) {
             // Usar dados originais do banco quando old() está vazio ou não existe
-            $expensesDataForView = $gig->costs->map(function ($cost) {
+            $expensesDataForView = $gig->gigCosts()->map(function ($cost) {
                 return [
                     'id' => $cost->id,
                     'cost_center_id' => (string) ($cost->cost_center_id ?? ''),
@@ -376,7 +376,7 @@ class GigController extends Controller
             Log::info("[GigController@update] Tags sincronizadas para Gig ID: {$gig->id}.");
 
             // Sincronizar Despesas (GigCosts) - Lógica mais robusta
-            $existingCostIds = $gig->costs()->pluck('id')->all();
+            $existingCostIds = $gig->gigCosts()()->pluck('id')->all();
             $formCostIds = [];
 
             if (! empty($expensesData)) {
@@ -413,7 +413,7 @@ class GigController extends Controller
                             $formCostIds[] = $costId;
                         }
                     } elseif (! $costId && ! $isDeleted) { // Criar novo
-                        $newCost = $gig->costs()->create($dataToUpsert);
+                        $newCost = $gig->gigCosts()()->create($dataToUpsert);
                         $formCostIds[] = $newCost->id;
                     }
                 }
@@ -449,7 +449,7 @@ class GigController extends Controller
                 // ou se desejar manter a integridade para restauração.
                 // Se cascadeOnDelete estiver configurado nas migrations, isso pode ser automático.
                 // $gig->payments()->delete(); // Se usar softDeletes no Payment
-                // $gig->costs()->delete();    // Se usar softDeletes no GigCost
+                // $gig->gigCosts()()->delete();    // Se usar softDeletes no GigCost
                 $gig->delete(); // Soft delete da Gig
             });
 
@@ -468,7 +468,7 @@ class GigController extends Controller
      */
     public function showRequestNfForm(Gig $gig, Request $request): View
     {
-        $gig->loadMissing(['artist', 'costs.costCenter']);
+        $gig->loadMissing(['artist', 'gigCosts.costCenter']);
 
         // Instanciar o service para fazer os cálculos
         $financialCalculator = App::make(GigFinancialCalculatorService::class);
@@ -506,7 +506,7 @@ class GigController extends Controller
      */
     public function debugFinancials(Gig $gig): View
     {
-        $gig->loadMissing(['costs.costCenter', 'artist', 'booker', 'payments']);
+        $gig->loadMissing(['gigCosts.costCenter', 'artist', 'booker', 'payments']);
         $calculator = App::make(GigFinancialCalculatorService::class);
         $cacheBrlDetails = $gig->cacheValueBrlDetails; // Chama o accessor do modelo Gig
 

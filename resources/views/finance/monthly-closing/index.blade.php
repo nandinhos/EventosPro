@@ -159,14 +159,14 @@
                 </div>
             </div>
 
-            {{-- TABELA 1: RESUMO POR ARTISTA --}}
+            {{-- TABELA 1: ANALÍTICA POR ARTISTA --}}
             <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        Resumo por Artista
+                        Relatório Analítico por Artista
                     </h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400">
-                        Performance detalhada de cada artista no período
+                        Detalhamento completo de eventos por artista
                     </p>
                 </div>
                 <div class="overflow-x-auto">
@@ -174,7 +174,7 @@
                         <thead class="bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                    Artista
+                                    Data | Local do Evento
                                 </th>
                                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                     Cachê Líquido
@@ -188,88 +188,123 @@
                                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                     Comissão Líquida
                                 </th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                    Vendas
-                                </th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        <tbody class="bg-white dark:bg-gray-800">
                             @php
-                                $totalCacheLiquido = 0;
-                                $totalComAgencia = 0;
-                                $totalComBooker = 0;
-                                $totalComLiquida = 0;
-                                $totalVendas = 0;
+                                $totalGeralCache = 0;
+                                $totalGeralAgencia = 0;
+                                $totalGeralBooker = 0;
+                                $totalGeralLiquida = 0;
                             @endphp
 
-                            @forelse($reportData['artist_data'] ?? [] as $artist)
+                            @forelse($reportData['artist_data'] ?? [] as $artistGroup)
                                 @php
-                                    $totalCacheLiquido += $artist['cache_liquido'];
-                                    $totalComAgencia += $artist['comissao_agencia'];
-                                    $totalComBooker += $artist['comissao_booker'];
-                                    $totalComLiquida += $artist['comissao_liquida'];
-                                    $totalVendas += $artist['vendas'];
+                                    $totalGeralCache += $artistGroup['cache_liquido'];
+                                    $totalGeralAgencia += $artistGroup['comissao_agencia'];
+                                    $totalGeralBooker += $artistGroup['comissao_booker'];
+                                    $totalGeralLiquida += $artistGroup['comissao_liquida'];
+
+                                    $percentual = $reportData['total_faturamento'] > 0
+                                        ? ($artistGroup['cache_liquido'] / $reportData['total_faturamento']) * 100
+                                        : 0;
                                 @endphp
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="flex items-center">
-                                            <div class="h-10 w-10 flex-shrink-0 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
-                                                <span class="text-primary-700 dark:text-primary-300 font-semibold text-sm">
-                                                    {{ strtoupper(substr($artist['artist']->name, 0, 2)) }}
-                                                </span>
-                                            </div>
-                                            <div class="ml-4">
-                                                <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                                    {{ $artist['artist']->name }}
+
+                                {{-- Cabeçalho do Artista --}}
+                                <tr class="bg-primary-50 dark:bg-primary-900/20 border-t-2 border-primary-500">
+                                    <td colspan="5" class="px-6 py-3">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <div class="h-10 w-10 flex-shrink-0 bg-primary-500 rounded-full flex items-center justify-center">
+                                                    <span class="text-white font-bold text-sm">
+                                                        {{ strtoupper(substr($artistGroup['artist']->name, 0, 2)) }}
+                                                    </span>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-bold text-primary-900 dark:text-primary-100">
+                                                        {{ $artistGroup['artist']->name }}
+                                                    </div>
+                                                    <div class="text-xs text-primary-700 dark:text-primary-300">
+                                                        {{ $artistGroup['vendas'] }} {{ $artistGroup['vendas'] > 1 ? 'eventos' : 'evento' }}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                        R$ {{ number_format($artist['cache_liquido'], 2, ',', '.') }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-                                        R$ {{ number_format($artist['comissao_agencia'], 2, ',', '.') }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-purple-600 dark:text-purple-400">
-                                        R$ {{ number_format($artist['comissao_booker'], 2, ',', '.') }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-green-600 dark:text-green-400">
-                                        R$ {{ number_format($artist['comissao_liquida'], 2, ',', '.') }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-center">
-                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                                            {{ $artist['vendas'] }}
+                                </tr>
+
+                                {{-- Eventos do Artista --}}
+                                @foreach($artistGroup['gigs_detailed'] as $gigDetail)
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                        <td class="px-6 py-3 text-sm">
+                                            <div class="font-medium text-gray-900 dark:text-white">
+                                                {{ $gigDetail['date']->format('d/m/Y') }} | {{ $gigDetail['location'] }}
+                                            </div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                {{ $gigDetail['city_state'] }}
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-3 text-right text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                            R$ {{ number_format($gigDetail['cache_liquido'], 2, ',', '.') }}
+                                        </td>
+                                        <td class="px-6 py-3 text-right text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                                            R$ {{ number_format($gigDetail['comissao_agencia'], 2, ',', '.') }}
+                                        </td>
+                                        <td class="px-6 py-3 text-right text-sm font-semibold text-purple-600 dark:text-purple-400">
+                                            R$ {{ number_format($gigDetail['comissao_booker'], 2, ',', '.') }}
+                                        </td>
+                                        <td class="px-6 py-3 text-right text-sm font-semibold text-green-600 dark:text-green-400">
+                                            R$ {{ number_format($gigDetail['comissao_liquida'], 2, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+
+                                {{-- Subtotal do Artista --}}
+                                <tr class="bg-gray-100 dark:bg-gray-700 font-bold border-b-2 border-gray-300 dark:border-gray-600">
+                                    <td class="px-6 py-3 text-sm">
+                                        <span class="text-gray-900 dark:text-white">SUBTOTAL {{ strtoupper($artistGroup['artist']->name) }}</span>
+                                        <span class="ml-2 text-xs font-normal text-gray-600 dark:text-gray-400">
+                                            ({{ number_format($percentual, 1) }}% do total)
                                         </span>
+                                    </td>
+                                    <td class="px-6 py-3 text-right text-sm text-blue-700 dark:text-blue-300">
+                                        R$ {{ number_format($artistGroup['cache_liquido'], 2, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-3 text-right text-sm text-indigo-700 dark:text-indigo-300">
+                                        R$ {{ number_format($artistGroup['comissao_agencia'], 2, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-3 text-right text-sm text-purple-700 dark:text-purple-300">
+                                        R$ {{ number_format($artistGroup['comissao_booker'], 2, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-3 text-right text-sm text-green-700 dark:text-green-300">
+                                        R$ {{ number_format($artistGroup['comissao_liquida'], 2, ',', '.') }}
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                                    <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                                         Nenhum artista encontrado no período selecionado
                                     </td>
                                 </tr>
                             @endforelse
 
                             @if(count($reportData['artist_data'] ?? []) > 0)
-                                <tr class="bg-gray-100 dark:bg-gray-700 font-bold">
-                                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                                        TOTAL
+                                {{-- Total Geral --}}
+                                <tr class="bg-primary-600 dark:bg-primary-700 text-white font-bold">
+                                    <td class="px-6 py-4 text-sm">
+                                        TOTAL GERAL - {{ $reportData['total_gigs'] }} EVENTOS
                                     </td>
-                                    <td class="px-6 py-4 text-right text-sm text-blue-700 dark:text-blue-300">
-                                        R$ {{ number_format($totalCacheLiquido, 2, ',', '.') }}
+                                    <td class="px-6 py-4 text-right text-sm">
+                                        R$ {{ number_format($totalGeralCache, 2, ',', '.') }}
                                     </td>
-                                    <td class="px-6 py-4 text-right text-sm text-indigo-700 dark:text-indigo-300">
-                                        R$ {{ number_format($totalComAgencia, 2, ',', '.') }}
+                                    <td class="px-6 py-4 text-right text-sm">
+                                        R$ {{ number_format($totalGeralAgencia, 2, ',', '.') }}
                                     </td>
-                                    <td class="px-6 py-4 text-right text-sm text-purple-700 dark:text-purple-300">
-                                        R$ {{ number_format($totalComBooker, 2, ',', '.') }}
+                                    <td class="px-6 py-4 text-right text-sm">
+                                        R$ {{ number_format($totalGeralBooker, 2, ',', '.') }}
                                     </td>
-                                    <td class="px-6 py-4 text-right text-sm text-green-700 dark:text-green-300">
-                                        R$ {{ number_format($totalComLiquida, 2, ',', '.') }}
-                                    </td>
-                                    <td class="px-6 py-4 text-center text-sm text-gray-900 dark:text-white">
-                                        {{ $totalVendas }}
+                                    <td class="px-6 py-4 text-right text-sm">
+                                        R$ {{ number_format($totalGeralLiquida, 2, ',', '.') }}
                                     </td>
                                 </tr>
                             @endif
@@ -291,14 +326,14 @@
                 </div>
             </div>
 
-            {{-- TABELA 2: DESEMPENHO POR BOOKER --}}
+            {{-- TABELA 2: ANALÍTICA POR BOOKER --}}
             <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        Desempenho por Booker
+                        Relatório Analítico por Booker
                     </h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400">
-                        Métricas de performance e comissões dos bookers
+                        Detalhamento completo de eventos por booker
                     </p>
                 </div>
                 <div class="overflow-x-auto">
@@ -306,7 +341,7 @@
                         <thead class="bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                    Booker
+                                    Data | Artista @ Local
                                 </th>
                                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                     Cachê Líquido
@@ -314,72 +349,101 @@
                                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                     Comissão Booker
                                 </th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                    Vendas
-                                </th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        <tbody class="bg-white dark:bg-gray-800">
                             @php
-                                $totalBookerCache = 0;
-                                $totalBookerCom = 0;
-                                $totalBookerVendas = 0;
+                                $totalGeralBookerCache = 0;
+                                $totalGeralBookerCom = 0;
                             @endphp
 
-                            @forelse($reportData['booker_data'] ?? [] as $booker)
+                            @forelse($reportData['booker_data'] ?? [] as $bookerGroup)
                                 @php
-                                    $totalBookerCache += $booker['cache_liquido'];
-                                    $totalBookerCom += $booker['comissao_booker'];
-                                    $totalBookerVendas += $booker['vendas'];
+                                    $totalGeralBookerCache += $bookerGroup['cache_liquido'];
+                                    $totalGeralBookerCom += $bookerGroup['comissao_booker'];
+
+                                    $percentual = $reportData['total_faturamento'] > 0
+                                        ? ($bookerGroup['cache_liquido'] / $reportData['total_faturamento']) * 100
+                                        : 0;
                                 @endphp
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="flex items-center">
-                                            <div class="h-10 w-10 flex-shrink-0 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
-                                                <span class="text-purple-700 dark:text-purple-300 font-semibold text-sm">
-                                                    {{ strtoupper(substr($booker['booker']->name, 0, 2)) }}
-                                                </span>
-                                            </div>
-                                            <div class="ml-4">
-                                                <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                                    {{ $booker['booker']->name }}
+
+                                {{-- Cabeçalho do Booker --}}
+                                <tr class="bg-purple-50 dark:bg-purple-900/20 border-t-2 border-purple-500">
+                                    <td colspan="3" class="px-6 py-3">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <div class="h-10 w-10 flex-shrink-0 bg-purple-500 rounded-full flex items-center justify-center">
+                                                    <span class="text-white font-bold text-sm">
+                                                        {{ strtoupper(substr($bookerGroup['booker']->name, 0, 2)) }}
+                                                    </span>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-bold text-purple-900 dark:text-purple-100">
+                                                        {{ $bookerGroup['booker']->name }}
+                                                    </div>
+                                                    <div class="text-xs text-purple-700 dark:text-purple-300">
+                                                        {{ $bookerGroup['vendas'] }} {{ $bookerGroup['vendas'] > 1 ? 'eventos' : 'evento' }}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                        R$ {{ number_format($booker['cache_liquido'], 2, ',', '.') }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-purple-600 dark:text-purple-400">
-                                        R$ {{ number_format($booker['comissao_booker'], 2, ',', '.') }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-center">
-                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                                            {{ $booker['vendas'] }}
+                                </tr>
+
+                                {{-- Eventos do Booker --}}
+                                @foreach($bookerGroup['gigs_detailed'] as $gigDetail)
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                        <td class="px-6 py-3 text-sm">
+                                            <div class="font-medium text-gray-900 dark:text-white">
+                                                {{ $gigDetail['date']->format('d/m/Y') }} | {{ $gigDetail['artist_name'] }} @ {{ $gigDetail['location'] }}
+                                            </div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                {{ $gigDetail['city_state'] }}
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-3 text-right text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                            R$ {{ number_format($gigDetail['cache_liquido'], 2, ',', '.') }}
+                                        </td>
+                                        <td class="px-6 py-3 text-right text-sm font-semibold text-purple-600 dark:text-purple-400">
+                                            R$ {{ number_format($gigDetail['comissao_booker'], 2, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+
+                                {{-- Subtotal do Booker --}}
+                                <tr class="bg-gray-100 dark:bg-gray-700 font-bold border-b-2 border-gray-300 dark:border-gray-600">
+                                    <td class="px-6 py-3 text-sm">
+                                        <span class="text-gray-900 dark:text-white">SUBTOTAL {{ strtoupper($bookerGroup['booker']->name) }}</span>
+                                        <span class="ml-2 text-xs font-normal text-gray-600 dark:text-gray-400">
+                                            ({{ number_format($percentual, 1) }}% do total)
                                         </span>
+                                    </td>
+                                    <td class="px-6 py-3 text-right text-sm text-blue-700 dark:text-blue-300">
+                                        R$ {{ number_format($bookerGroup['cache_liquido'], 2, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-3 text-right text-sm text-purple-700 dark:text-purple-300">
+                                        R$ {{ number_format($bookerGroup['comissao_booker'], 2, ',', '.') }}
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                                    <td colspan="3" class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                                         Nenhum booker encontrado no período selecionado
                                     </td>
                                 </tr>
                             @endforelse
 
                             @if(count($reportData['booker_data'] ?? []) > 0)
-                                <tr class="bg-gray-100 dark:bg-gray-700 font-bold">
-                                    <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                                        TOTAL
+                                {{-- Total Geral --}}
+                                <tr class="bg-purple-600 dark:bg-purple-700 text-white font-bold">
+                                    <td class="px-6 py-4 text-sm">
+                                        TOTAL GERAL - {{ $reportData['total_gigs'] }} EVENTOS
                                     </td>
-                                    <td class="px-6 py-4 text-right text-sm text-blue-700 dark:text-blue-300">
-                                        R$ {{ number_format($totalBookerCache, 2, ',', '.') }}
+                                    <td class="px-6 py-4 text-right text-sm">
+                                        R$ {{ number_format($totalGeralBookerCache, 2, ',', '.') }}
                                     </td>
-                                    <td class="px-6 py-4 text-right text-sm text-purple-700 dark:text-purple-300">
-                                        R$ {{ number_format($totalBookerCom, 2, ',', '.') }}
-                                    </td>
-                                    <td class="px-6 py-4 text-center text-sm text-gray-900 dark:text-white">
-                                        {{ $totalBookerVendas }}
+                                    <td class="px-6 py-4 text-right text-sm">
+                                        R$ {{ number_format($totalGeralBookerCom, 2, ',', '.') }}
                                     </td>
                                 </tr>
                             @endif

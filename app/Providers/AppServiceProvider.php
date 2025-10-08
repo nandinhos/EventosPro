@@ -2,12 +2,12 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\Facades\Blade;
 use App\Models\Gig;
 use App\Models\GigCost;
 use App\Observers\GigCostObserver;
 use App\Observers\GigObserver;
 use App\Policies\GigPolicy;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider

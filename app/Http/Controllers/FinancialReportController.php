@@ -2,21 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Booker;
-use App\Models\Artist;
 use App\Exports\DetailedPerformanceReportExport;
-use App\Services\CommissionPaymentValidationService;
-use Exception;
 use App\Exports\OverviewReportExport;
-use Illuminate\Pagination\LengthAwarePaginator;
+use App\Models\Artist;
+use App\Models\Booker;
 use App\Models\Gig;
 use App\Models\Payment;
 use App\Models\Settlement;
+use App\Services\CommissionPaymentValidationService;
 use App\Services\FinancialReportService;
 use App\Services\GigFinancialCalculatorService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;

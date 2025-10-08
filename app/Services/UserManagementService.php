@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use Exception;
 use App\Models\Booker;
 use App\Models\User;
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;

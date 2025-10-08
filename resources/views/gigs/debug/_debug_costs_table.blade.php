@@ -3,7 +3,7 @@
 <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg">
     <div class="p-6 text-gray-900 dark:text-gray-100">
         <h3 class="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-3 mb-4">Despesas Consideradas</h3>
-        @if($gig->costs->isNotEmpty())
+        @if($gig->gigCosts->isNotEmpty())
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                     <thead class="bg-gray-50 dark:bg-gray-900/50">

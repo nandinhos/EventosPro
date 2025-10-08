@@ -122,7 +122,7 @@ class AuditCurrencyCommand extends Command
     protected function performAudit($batchSize, $dateFrom, $dateTo, $scanOnly, $autoFix)
     {
         // Construir query base
-        $query = Gig::with(['payments', 'costs.costCenter', 'artist', 'booker']);
+        $query = Gig::with(['payments', 'gigCosts.costCenter', 'artist', 'booker']);
 
         if ($dateFrom) {
             $query->where('gig_date', '>=', $dateFrom);
@@ -243,7 +243,7 @@ class AuditCurrencyCommand extends Command
     {
         $gigCurrency = $gig->currency;
 
-        foreach ($gig->costs as $cost) {
+        foreach ($gig->gigCosts as $cost) {
             if ($cost->currency && $cost->currency !== $gigCurrency) {
                 $issues[] = [
                     'type' => 'cost_currency_mismatch',
@@ -281,7 +281,7 @@ class AuditCurrencyCommand extends Command
 
     protected function checkMultipleCurrenciesInCosts(Gig $gig, array &$issues)
     {
-        $currencies = $gig->costs->pluck('currency')->unique()->filter()->values();
+        $currencies = $gig->gigCosts()->pluck('currency')->unique()->filter()->values();
 
         if ($currencies->count() > 1) {
             $currencyList = $currencies->implode(', ');

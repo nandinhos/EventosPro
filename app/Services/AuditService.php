@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use Exception;
 use App\Models\Gig;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 

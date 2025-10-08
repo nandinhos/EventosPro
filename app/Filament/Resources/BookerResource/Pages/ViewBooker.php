@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\BookerResource\Pages;
 
-use App\Filament\Resources\BookerResource\Widgets\BookerStatsOverview;
-use App\Filament\Resources\BookerResource\Widgets\BookerCommissionsChart;
-use App\Filament\Resources\BookerResource\Widgets\TopArtistsTable;
 use App\Filament\Resources\BookerResource;
+use App\Filament\Resources\BookerResource\Widgets\BookerCommissionsChart;
+use App\Filament\Resources\BookerResource\Widgets\BookerStatsOverview;
+use App\Filament\Resources\BookerResource\Widgets\TopArtistsTable;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewBooker extends ViewRecord

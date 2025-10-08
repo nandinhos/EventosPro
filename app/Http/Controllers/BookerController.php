@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Exception;
 use App\Http\Requests\StoreBookerRequest;
 use App\Http\Requests\UpdateBookerRequest;
 use App\Models\Booker;
 use App\Models\Gig;
 use App\Services\BookerFinancialsService;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;

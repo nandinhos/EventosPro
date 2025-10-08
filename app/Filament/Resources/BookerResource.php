@@ -2,27 +2,25 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Schemas\Schema;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Actions\ViewAction;
 use App\Filament\Resources\BookerResource\Pages\ListBookers;
 use App\Filament\Resources\BookerResource\Pages\ViewBooker;
-use App\Filament\Resources\BookerResource\Widgets\BookerStatsOverview;
+use App\Filament\Resources\BookerResource\Widgets;
 use App\Filament\Resources\BookerResource\Widgets\BookerCommissionsChart;
+use App\Filament\Resources\BookerResource\Widgets\BookerStatsOverview;
 use App\Filament\Resources\BookerResource\Widgets\TopArtistsTable;
-use Illuminate\Database\Eloquent\Builder;
-use App\Filament\Resources\BookerResource\Pages;
-use App\Filament\Resources\BookerResource\Widgets; // Adicionar este use
 use App\Models\Booker;
+use Filament\Actions\ViewAction;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema; // Adicionar este use
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class BookerResource extends Resource
 {
     protected static ?string $model = Booker::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user-group';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
     public static function form(Schema $schema): Schema
     {
