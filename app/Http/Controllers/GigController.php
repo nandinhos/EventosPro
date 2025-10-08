@@ -279,7 +279,7 @@ class GigController extends Controller
         });
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
 
-        $gig->load('costs');
+        $gig->load('gigCosts');
 
         // Preservar dados originais das despesas em caso de erro de validação
         $oldExpenses = old('expenses');
