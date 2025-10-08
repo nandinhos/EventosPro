@@ -159,6 +159,73 @@
                 </div>
             </div>
 
+            {{-- TABELA COMPARATIVA DE BOOKERS (HORIZONTAL) --}}
+            @if(count($reportData['booker_comparison'] ?? []) > 0)
+            <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        Comparativo de Performance - Bookers
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Análise horizontal de indicadores financeiros por booker
+                    </p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-100 dark:bg-gray-600">
+                                    Indicador
+                                </th>
+                                @foreach($reportData['booker_comparison'] as $booker)
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        {{ $booker['name'] }}
+                                    </th>
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            {{-- Linha: Vendas --}}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50">
+                                    Vendas
+                                </td>
+                                @foreach($reportData['booker_comparison'] as $booker)
+                                    <td class="px-6 py-4 text-right text-sm font-bold text-blue-600 dark:text-blue-400">
+                                        {{ $booker['vendas'] }}
+                                    </td>
+                                @endforeach
+                            </tr>
+
+                            {{-- Linha: Cachê Bruto --}}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50">
+                                    Cachê Bruto
+                                </td>
+                                @foreach($reportData['booker_comparison'] as $booker)
+                                    <td class="px-6 py-4 text-right text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                                        R$ {{ number_format($booker['cache_bruto'], 2, ',', '.') }}
+                                    </td>
+                                @endforeach
+                            </tr>
+
+                            {{-- Linha: Cachê Booker --}}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50">
+                                    Cachê Booker
+                                </td>
+                                @foreach($reportData['booker_comparison'] as $booker)
+                                    <td class="px-6 py-4 text-right text-sm font-bold text-purple-600 dark:text-purple-400">
+                                        R$ {{ number_format($booker['cache_booker'], 2, ',', '.') }}
+                                    </td>
+                                @endforeach
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+
             {{-- TABELA 1: ANALÍTICA POR ARTISTA --}}
             <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
@@ -235,25 +302,44 @@
 
                                 {{-- Eventos do Artista --}}
                                 @foreach($artistGroup['gigs_detailed'] as $gigDetail)
-                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                        <td class="px-6 py-3 text-sm">
-                                            <div class="font-medium text-gray-900 dark:text-white">
-                                                {{ $gigDetail['date']->format('d/m/Y') }} | {{ $gigDetail['location'] }}
-                                            </div>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                {{ $gigDetail['city_state'] }}
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-start space-x-3">
+                                                {{-- Link do Contrato --}}
+                                                <a href="{{ route('gigs.show', $gigDetail['gig_id']) }}"
+                                                   class="flex-shrink-0 inline-flex items-center px-2.5 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-bold rounded-md hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
+                                                   title="Ver detalhes da Gig">
+                                                    #{{ $gigDetail['contract_number'] ?? $gigDetail['gig_id'] }}
+                                                </a>
+
+                                                {{-- Detalhes do Evento --}}
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="flex items-center space-x-2 mb-1">
+                                                        <span class="inline-flex items-center text-sm font-semibold text-gray-900 dark:text-white">
+                                                            <svg class="w-4 h-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                            </svg>
+                                                            {{ $gigDetail['date']->format('d/m/Y') }}
+                                                        </span>
+                                                        <span class="text-gray-400">|</span>
+                                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                            {{ $gigDetail['location'] }}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                </div>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-3 text-right text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                        <td class="px-6 py-4 text-right text-sm font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                                             R$ {{ number_format($gigDetail['cache_liquido'], 2, ',', '.') }}
                                         </td>
-                                        <td class="px-6 py-3 text-right text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                                        <td class="px-6 py-4 text-right text-sm font-semibold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
                                             R$ {{ number_format($gigDetail['comissao_agencia'], 2, ',', '.') }}
                                         </td>
-                                        <td class="px-6 py-3 text-right text-sm font-semibold text-purple-600 dark:text-purple-400">
+                                        <td class="px-6 py-4 text-right text-sm font-semibold text-purple-600 dark:text-purple-400 whitespace-nowrap">
                                             R$ {{ number_format($gigDetail['comissao_booker'], 2, ',', '.') }}
                                         </td>
-                                        <td class="px-6 py-3 text-right text-sm font-semibold text-green-600 dark:text-green-400">
+                                        <td class="px-6 py-4 text-right text-sm font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">
                                             R$ {{ number_format($gigDetail['comissao_liquida'], 2, ',', '.') }}
                                         </td>
                                     </tr>
@@ -392,19 +478,42 @@
 
                                 {{-- Eventos do Booker --}}
                                 @foreach($bookerGroup['gigs_detailed'] as $gigDetail)
-                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                        <td class="px-6 py-3 text-sm">
-                                            <div class="font-medium text-gray-900 dark:text-white">
-                                                {{ $gigDetail['date']->format('d/m/Y') }} | {{ $gigDetail['artist_name'] }} @ {{ $gigDetail['location'] }}
-                                            </div>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                {{ $gigDetail['city_state'] }}
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-start space-x-3">
+                                                {{-- Link do Contrato --}}
+                                                <a href="{{ route('gigs.show', $gigDetail['gig_id']) }}"
+                                                   class="flex-shrink-0 inline-flex items-center px-2.5 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-bold rounded-md hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
+                                                   title="Ver detalhes da Gig">
+                                                    #{{ $gigDetail['contract_number'] ?? $gigDetail['gig_id'] }}
+                                                </a>
+
+                                                {{-- Detalhes do Evento --}}
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="flex items-center space-x-2 mb-1">
+                                                        <span class="inline-flex items-center text-sm font-semibold text-gray-900 dark:text-white">
+                                                            <svg class="w-4 h-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                            </svg>
+                                                            {{ $gigDetail['date']->format('d/m/Y') }}
+                                                        </span>
+                                                        <span class="text-gray-400">|</span>
+                                                        <span class="text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                                                            {{ $gigDetail['artist_name'] }}
+                                                        </span>
+                                                        <span class="text-gray-400">@</span>
+                                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                            {{ $gigDetail['location'] }}
+                                                        </span>
+                                                    </div>
+                                                   
+                                                </div>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-3 text-right text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                        <td class="px-6 py-4 text-right text-sm font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                                             R$ {{ number_format($gigDetail['cache_liquido'], 2, ',', '.') }}
                                         </td>
-                                        <td class="px-6 py-3 text-right text-sm font-semibold text-purple-600 dark:text-purple-400">
+                                        <td class="px-6 py-4 text-right text-sm font-semibold text-purple-600 dark:text-purple-400 whitespace-nowrap">
                                             R$ {{ number_format($gigDetail['comissao_booker'], 2, ',', '.') }}
                                         </td>
                                     </tr>

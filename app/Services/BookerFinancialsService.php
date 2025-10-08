@@ -118,7 +118,7 @@ class BookerFinancialsService
     {
         return $booker->gigs()->whereNull('deleted_at')
             // ***** ALTERAÇÃO AQUI: Eager load dos custos *****
-            ->with(['artist:id,name', 'costs'])
+            ->with(['artist:id,name', 'gigCosts'])
             ->orderByDesc(DB::raw('COALESCE(contract_date, gig_date)'))
             ->limit($limit)
             ->get();
@@ -143,7 +143,7 @@ class BookerFinancialsService
     public function getRealizedEvents(Booker $booker, ?Carbon $startDate = null, ?Carbon $endDate = null): Collection
     {
         $query = $booker->gigs()->whereNull('deleted_at')
-            ->with(['artist:id,name', 'payments', 'costs'])
+            ->with(['artist:id,name', 'payments', 'gigCosts'])
             ->where('gig_date', '<', now()->startOfDay());
 
         // Se houver filtros de data, aplicar no gig_date
@@ -179,7 +179,7 @@ class BookerFinancialsService
     public function getFutureEvents(Booker $booker, ?Carbon $startDate = null, ?Carbon $endDate = null): Collection
     {
         $query = $booker->gigs()->whereNull('deleted_at')
-            ->with(['artist:id,name', 'payments', 'costs'])
+            ->with(['artist:id,name', 'payments', 'gigCosts'])
             ->where('gig_date', '>=', now()->startOfDay());
 
         // Se houver filtros de data, aplicar no gig_date

@@ -221,6 +221,48 @@
         </div>
     </div>
 
+    {{-- TABELA COMPARATIVA DE BOOKERS (HORIZONTAL) --}}
+    @if(count($reportData['booker_comparison'] ?? []) > 0)
+    <div class="section-title">COMPARATIVO DE PERFORMANCE - BOOKERS</div>
+    <table style="margin-bottom: 20px;">
+        <thead>
+            <tr>
+                <th style="width: 20%; background: #d1d5db;">INDICADOR</th>
+                @foreach($reportData['booker_comparison'] as $booker)
+                    <th class="text-right" style="width: {{ 80 / count($reportData['booker_comparison']) }}%;">
+                        {{ strtoupper($booker['name']) }}
+                    </th>
+                @endforeach
+            </tr>
+        </thead>
+        <tbody>
+            {{-- Linha: Vendas --}}
+            <tr>
+                <td class="font-bold" style="background: #f3f4f6;">Vendas</td>
+                @foreach($reportData['booker_comparison'] as $booker)
+                    <td class="text-right text-blue font-bold">{{ $booker['vendas'] }}</td>
+                @endforeach
+            </tr>
+
+            {{-- Linha: Cachê Bruto --}}
+            <tr>
+                <td class="font-bold" style="background: #f3f4f6;">Cachê Bruto</td>
+                @foreach($reportData['booker_comparison'] as $booker)
+                    <td class="text-right text-indigo font-bold">R$ {{ number_format($booker['cache_bruto'], 2, ',', '.') }}</td>
+                @endforeach
+            </tr>
+
+            {{-- Linha: Cachê Booker --}}
+            <tr>
+                <td class="font-bold" style="background: #f3f4f6;">Cachê Booker</td>
+                @foreach($reportData['booker_comparison'] as $booker)
+                    <td class="text-right text-purple font-bold">R$ {{ number_format($booker['cache_booker'], 2, ',', '.') }}</td>
+                @endforeach
+            </tr>
+        </tbody>
+    </table>
+    @endif
+
     {{-- TABELA 1: ANALÍTICA POR ARTISTA --}}
     <div class="section-title">ANALÍTICA POR ARTISTA</div>
     <table>
@@ -265,13 +307,17 @@
                 @foreach($artistGroup['gigs_detailed'] as $gigDetail)
                     <tr>
                         <td style="padding: 5px 6px;">
-                            <strong style="font-size: 8px;">{{ $gigDetail['date']->format('d/m/Y') }} | {{ $gigDetail['location'] }}</strong>
-                            <div style="font-size: 7px; color: #6b7280;">{{ $gigDetail['city_state'] }}</div>
+                            <div style="font-size: 8px; font-weight: bold; margin-bottom: 2px;">
+                                {{ $gigDetail['date']->format('d/m/Y') }} | {{ $gigDetail['location'] }}
+                            </div>
+                            <div style="font-size: 7px; color: #6b7280;">
+                                {{ $gigDetail['city_state'] }}
+                            </div>
                         </td>
-                        <td class="text-right text-blue">R$ {{ number_format($gigDetail['cache_liquido'], 2, ',', '.') }}</td>
-                        <td class="text-right text-indigo">R$ {{ number_format($gigDetail['comissao_agencia'], 2, ',', '.') }}</td>
-                        <td class="text-right text-purple">R$ {{ number_format($gigDetail['comissao_booker'], 2, ',', '.') }}</td>
-                        <td class="text-right text-green">R$ {{ number_format($gigDetail['comissao_liquida'], 2, ',', '.') }}</td>
+                        <td class="text-right text-blue" style="white-space: nowrap;">R$ {{ number_format($gigDetail['cache_liquido'], 2, ',', '.') }}</td>
+                        <td class="text-right text-indigo" style="white-space: nowrap;">R$ {{ number_format($gigDetail['comissao_agencia'], 2, ',', '.') }}</td>
+                        <td class="text-right text-purple" style="white-space: nowrap;">R$ {{ number_format($gigDetail['comissao_booker'], 2, ',', '.') }}</td>
+                        <td class="text-right text-green" style="white-space: nowrap;">R$ {{ number_format($gigDetail['comissao_liquida'], 2, ',', '.') }}</td>
                     </tr>
                 @endforeach
 
@@ -332,13 +378,13 @@
                 @endphp
 
                 {{-- Cabeçalho do Booker --}}
-                <tr style="background: #f3e8ff; border-top: 2px solid #7c3aed;">
-                    <td colspan="3" style="padding: 8px 6px;">
-                        <span class="avatar" style="background: #7c3aed; color: white;">
+                <tr style="background: #e5e7eb; border-top: 2px solid #9ca3af;">
+                    <td colspan="3" style="padding: 10px 6px;">
+                        <span class="avatar" style="background: #6b7280; color: white;">
                             {{ strtoupper(substr($bookerGroup['booker']->name, 0, 2)) }}
                         </span>
-                        <strong>{{ $bookerGroup['booker']->name }}</strong>
-                        <span style="font-size: 7px; color: #6b7280;"> ({{ $bookerGroup['vendas'] }} eventos)</span>
+                        <strong style="font-size: 10px;">{{ $bookerGroup['booker']->name }}</strong>
+                        <span style="font-size: 8px; color: #6b7280;"> ({{ $bookerGroup['vendas'] }} eventos)</span>
                     </td>
                 </tr>
 
@@ -346,11 +392,17 @@
                 @foreach($bookerGroup['gigs_detailed'] as $gigDetail)
                     <tr>
                         <td style="padding: 5px 6px;">
-                            <strong style="font-size: 8px;">{{ $gigDetail['date']->format('d/m/Y') }} | {{ $gigDetail['artist_name'] }} @ {{ $gigDetail['location'] }}</strong>
-                            <div style="font-size: 7px; color: #6b7280;">{{ $gigDetail['city_state'] }}</div>
+                            <div style="font-size: 8px; font-weight: bold; margin-bottom: 2px;">
+                                {{ $gigDetail['date']->format('d/m/Y') }} |
+                                <span style="color: #4f46e5; font-weight: bold;">{{ $gigDetail['artist_name'] }}</span>
+                                @ {{ $gigDetail['location'] }}
+                            </div>
+                            <div style="font-size: 7px; color: #6b7280;">
+                                {{ $gigDetail['city_state'] }}
+                            </div>
                         </td>
-                        <td class="text-right text-blue">R$ {{ number_format($gigDetail['cache_liquido'], 2, ',', '.') }}</td>
-                        <td class="text-right text-purple">R$ {{ number_format($gigDetail['comissao_booker'], 2, ',', '.') }}</td>
+                        <td class="text-right text-blue" style="white-space: nowrap;">R$ {{ number_format($gigDetail['cache_liquido'], 2, ',', '.') }}</td>
+                        <td class="text-right text-purple" style="white-space: nowrap;">R$ {{ number_format($gigDetail['comissao_booker'], 2, ',', '.') }}</td>
                     </tr>
                 @endforeach
 

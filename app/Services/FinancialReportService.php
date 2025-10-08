@@ -906,7 +906,7 @@ class FinancialReportService
     public function getOverviewData(): array
     {
         $gigs = $this->applyFilters(Gig::query()->whereNull('deleted_at'))
-            ->with(['artist', 'booker', 'costs'])
+            ->with(['artist', 'booker', 'gigCosts'])
             ->get();
 
         $dataByArtist = $gigs->groupBy('artist.name')
