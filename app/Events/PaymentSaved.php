@@ -33,7 +33,7 @@ class PaymentSaved
      * Get the channels the event should broadcast on.
      * (Não precisamos de broadcasting agora)
      *
-     * @return array<int, \Illuminate\Broadcasting\Channel>
+     * @return array<int, Channel>
      */
     public function broadcastOn(): array
     {

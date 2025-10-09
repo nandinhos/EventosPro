@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ArtistResource\Pages;
 
 use App\Filament\Resources\ArtistResource;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditArtist extends EditRecord
@@ -13,7 +13,7 @@ class EditArtist extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

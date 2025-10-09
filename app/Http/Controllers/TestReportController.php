@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
@@ -15,7 +16,7 @@ class TestReportController extends Controller
             $coverageData = $this->getCoverageData();
 
             return view('test-report.index', compact('testResults', 'coverageData'));
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Erro ao carregar relatório de testes', ['error' => $e->getMessage()]);
 
             // Dados padrão em caso de erro
@@ -78,7 +79,7 @@ class TestReportController extends Controller
             Log::info('[DEBUG] Resposta a ser retornada', $response);
 
             return response()->json($response);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('[DEBUG] Exceção capturada', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
@@ -132,7 +133,7 @@ class TestReportController extends Controller
                     'summary' => $summary,
                 ];
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::warning('Não foi possível obter resultados reais dos testes', ['error' => $e->getMessage()]);
         }
 
@@ -166,7 +167,7 @@ class TestReportController extends Controller
             } else {
                 $overallPercentage = 0;
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::warning('Não foi possível obter dados reais de cobertura', ['error' => $e->getMessage()]);
             $overallPercentage = 0;
         }

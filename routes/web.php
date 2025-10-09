@@ -150,6 +150,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/audit/apply-fix', [AuditController::class, 'applyFix'])->name('audit.apply-fix');
     Route::post('/audit/apply-bulk-fix', [AuditController::class, 'applyBulkFix'])->name('audit.apply-bulk-fix');
 
+    // New Audit System Routes (Phase 3)
+    Route::get('/audit/available-audits', [AuditController::class, 'getAvailableAudits'])->name('audit.available-audits');
+    Route::get('/audit/dashboard', [AuditController::class, 'getDashboard'])->name('audit.dashboard');
+    Route::post('/audit/run-specific-audit', [AuditController::class, 'runSpecificAudit'])->name('audit.run-specific-audit');
+    Route::post('/audit/run-all-audits', [AuditController::class, 'runAllAudits'])->name('audit.run-all-audits');
+
 });
 
 // Rotas de autenticação (geradas pelo Breeze)

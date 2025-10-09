@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Gig;
+use App\Models\Settlement;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -116,7 +118,7 @@ class CommissionPaymentValidationService
         try {
             $settlement = $gig->settlement;
             if (! $settlement) {
-                $settlement = new \App\Models\Settlement([
+                $settlement = new Settlement([
                     'gig_id' => $gig->id,
                     'settlement_date' => now()->toDateString(),
                 ]);
@@ -127,7 +129,7 @@ class CommissionPaymentValidationService
             $settlement->save();
 
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Erro ao criar exceção de pagamento para Gig {$gig->id}: ".$e->getMessage());
 
             return false;

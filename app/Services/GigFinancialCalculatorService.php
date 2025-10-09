@@ -19,7 +19,7 @@ class GigFinancialCalculatorService
      */
     public function calculateGrossCashBrl(Gig $gig): float
     {
-        $gig->loadMissing('costs');
+        $gig->loadMissing('gigCosts');
 
         // Pega os detalhes do valor do contrato em BRL
         $contractBrlDetails = $gig->cacheValueBrlDetails; // Usa o novo accessor
@@ -33,7 +33,7 @@ class GigFinancialCalculatorService
 
         $contractValueBrl = $contractBrlDetails['value'];
 
-        $totalConfirmedExpensesBrl = $gig->costs->where('is_confirmed', true)->sum('value_brl');
+        $totalConfirmedExpensesBrl = $gig->gigCosts->where('is_confirmed', true)->sum('value_brl');
 
         $grossCashBrl = $contractValueBrl - $totalConfirmedExpensesBrl;
 
@@ -146,8 +146,8 @@ class GigFinancialCalculatorService
      */
     public function calculateTotalConfirmedExpensesBrl(Gig $gig): float
     {
-        $gig->loadMissing('costs');
-        $total = $gig->costs->where('is_confirmed', true)->sum('value_brl');
+        $gig->loadMissing('gigCosts');
+        $total = $gig->gigCosts->where('is_confirmed', true)->sum('value_brl');
         Log::debug("[GigFinancialCalculatorService] Total TODAS Despesas Confirmadas BRL para Gig ID {$gig->id}: {$total}");
 
         return (float) $total;
@@ -158,8 +158,8 @@ class GigFinancialCalculatorService
      */
     public function calculateTotalReimbursableExpensesBrl(Gig $gig): float
     {
-        $gig->loadMissing('costs');
-        $total = $gig->costs
+        $gig->loadMissing('gigCosts');
+        $total = $gig->gigCosts
             ->where('is_confirmed', true)
             ->where('is_invoice', true)
             ->sum('value_brl');

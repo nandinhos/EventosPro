@@ -8,6 +8,7 @@ use App\Models\Artist;
 use App\Models\Tag;
 use App\Services\ArtistFinancialsService;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -50,7 +51,7 @@ class ArtistController extends Controller
             DB::commit();
 
             return redirect()->route('artists.index')->with('success', 'Artista criado com sucesso!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Erro ao criar Artista: '.$e->getMessage());
 
@@ -77,7 +78,7 @@ class ArtistController extends Controller
             DB::commit();
 
             return redirect()->route('artists.index')->with('success', 'Artista atualizado com sucesso!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Erro ao atualizar Artista: '.$e->getMessage());
 
@@ -93,7 +94,7 @@ class ArtistController extends Controller
             $artist->delete(); // Soft delete
 
             return redirect()->route('artists.index')->with('success', 'Artista excluído com sucesso!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Erro ao excluir Artista: '.$e->getMessage());
 
             return back()->with('error', 'Erro ao excluir artista.');
@@ -115,7 +116,7 @@ class ArtistController extends Controller
 
         // 2. Busca e Filtra Gigs no período
         $gigsInPeriod = $artist->gigs()
-            ->with(['booker', 'costs.costCenter'])
+            ->with(['booker', 'gigCosts.costCenter'])
             ->whereBetween('gig_date', [$startDate, $endDate])
             ->orderBy('gig_date', 'desc')
             ->get();

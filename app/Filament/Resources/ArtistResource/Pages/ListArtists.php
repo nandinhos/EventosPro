@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\ArtistResource\Pages;
 
 use App\Filament\Resources\ArtistResource;
-use Filament\Actions;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListArtists extends ListRecords
@@ -13,7 +13,7 @@ class ListArtists extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 }

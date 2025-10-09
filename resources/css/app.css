@@ -1,13 +1,13 @@
 /* resources/css/app.css */
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
 
-/* --- ESSA LINHA É CRUCIAL --- */
+/* External imports must come first */
 @import '@fortawesome/fontawesome-free/css/all.css';
-
-/* SweetAlert2 */
 @import 'sweetalert2/dist/sweetalert2.min.css';
+
+/* Tailwind directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Alpine.js x-cloak - Esconde elementos até o Alpine.js carregar */
 [x-cloak] {

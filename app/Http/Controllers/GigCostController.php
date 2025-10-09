@@ -5,8 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreGigCostRequest;
 use App\Http\Requests\UpdateGigCostRequest;
 use App\Models\CostCenter;
-use App\Models\Gig; // Certifique-se de ter este Form Request
+use App\Models\Gig;
 use App\Models\GigCost; // Certifique-se de ter este Form Request
+use Exception; // Certifique-se de ter este Form Request
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -22,7 +23,7 @@ class GigCostController extends Controller
      */
     public function listJson(Gig $gig): JsonResponse
     {
-        $costsByCenter = $gig->costs()
+        $costsByCenter = $gig->gigCosts()()
             ->with(['costCenter', 'confirmer']) // Carrega quem confirmou também
             ->orderBy('expense_date', 'desc') // Ordena custos dentro do grupo
             ->orderBy('created_at', 'desc')
@@ -90,7 +91,7 @@ class GigCostController extends Controller
             $cost = GigCost::create($data);
 
             return response()->json(['message' => 'Despesa adicionada com sucesso!', 'cost' => $cost], 201);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Erro ao adicionar despesa à Gig {$gig->id}: ".$e->getMessage(), ['exception' => $e, 'request_data' => $request->all()]);
 
             return response()->json(['message' => 'Erro ao adicionar despesa.'], 500);
@@ -127,7 +128,7 @@ class GigCostController extends Controller
             $cost->update($data);
 
             return response()->json(['message' => 'Despesa atualizada com sucesso!', 'cost' => $cost->fresh()]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Erro ao atualizar despesa {$cost->id}: ".$e->getMessage());
 
             return response()->json(['message' => 'Erro ao atualizar despesa.'], 500);
@@ -151,7 +152,7 @@ class GigCostController extends Controller
 
             // event(new GigDataChanged($gig));
             return response()->json(['message' => 'Despesa removida com sucesso!']);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Erro ao remover despesa {$cost->id}: ".$e->getMessage());
 
             return response()->json(['message' => 'Erro ao remover despesa.'], 500);
@@ -187,7 +188,7 @@ class GigCostController extends Controller
                 'message' => 'Despesa confirmada com sucesso!',
                 'cost' => $cost->fresh()->load('confirmer', 'costCenter'),
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Erro ao confirmar despesa {$cost->id}: ".$e->getMessage());
 
             return response()->json(['message' => 'Erro interno ao confirmar despesa.'], 500);
@@ -216,7 +217,7 @@ class GigCostController extends Controller
 
             // event(new GigDataChanged($gig));
             return response()->json(['message' => 'Confirmação da despesa revertida!', 'cost' => $cost->fresh()]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("Erro ao desconfirmar despesa {$cost->id}: ".$e->getMessage());
 
             return response()->json(['message' => 'Erro ao desconfirmar despesa.'], 500);
@@ -239,7 +240,7 @@ class GigCostController extends Controller
             $message = $cost->is_invoice ? 'Despesa marcada como inclusa na NF!' : 'Marcação de NF removida da despesa!';
 
             return response()->json(['message' => $message, 'cost' => $cost->fresh()->load('costCenter', 'confirmer')]);
-        } catch (\Exception $e) { /* ... */
+        } catch (Exception $e) { /* ... */
         }
     }
 

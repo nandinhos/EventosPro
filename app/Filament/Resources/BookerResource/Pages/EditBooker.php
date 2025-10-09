@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\BookerResource\Pages;
 
 use App\Filament\Resources\BookerResource;
-use Filament\Actions;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditBooker extends EditRecord
@@ -13,7 +13,7 @@ class EditBooker extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

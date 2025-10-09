@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\BookerResource\Pages;
 
 use App\Filament\Resources\BookerResource;
-use Filament\Actions;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListBookers extends ListRecords
@@ -13,7 +13,7 @@ class ListBookers extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 }

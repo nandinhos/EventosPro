@@ -7,6 +7,8 @@ use App\Models\GigCost;
 use App\Models\Payment;
 use App\Models\Settlement;
 use Carbon\Carbon;
+use Exception;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -103,7 +105,7 @@ class FinancialReportService
                     'commission' => $commission,
                     'net_profit' => $revenue - ($costs + $commission),
                 ];
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 Log::error("Erro ao mapear dados da Gig ID {$gig->id}: ".$e->getMessage());
 
                 return [
@@ -144,7 +146,7 @@ class FinancialReportService
                 if ($profit > 0) {
                     $profitableEvents++;
                 }
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 Log::error("Erro ao calcular resumo de rentabilidade para Gig ID {$gig->id}: ".$e->getMessage());
             }
         }
@@ -182,7 +184,7 @@ class FinancialReportService
                         'profit' => $profit,
                         'margin' => $margin,
                     ];
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     Log::error("Erro ao mapear dados de rentabilidade para Gig ID {$gig->id}: ".$e->getMessage());
 
                     return [
@@ -331,7 +333,7 @@ class FinancialReportService
                     $totalCommissions += $commission;
                     $eventsWithCommissionsCount++; // <<-- Incrementa o contador
                 }
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 Log::error("Erro ao calcular resumo de comissões para Gig ID {$gig->id}: ".$e->getMessage());
             }
         }
@@ -365,7 +367,7 @@ class FinancialReportService
                     'commission' => $bookerCommission,
                     'percentage' => $percentage,
                 ];
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 Log::error("Erro ao mapear dados de comissões para Gig ID {$gig->id}: ".$e->getMessage());
 
                 return [
@@ -407,7 +409,7 @@ class FinancialReportService
                             'value_brl' => $expense->value_brl,
                             'currency' => $expense->currency ?? 'BRL',
                         ];
-                    } catch (\Exception $e) {
+                    } catch (Exception $e) {
                         Log::error("Erro ao mapear despesa ID {$expense->id}: ".$e->getMessage());
 
                         return [
@@ -477,7 +479,7 @@ class FinancialReportService
                 // Agrupar faturamento por booker
                 $bookerName = $gig->booker->name ?? 'N/A';
                 $revenueByBooker[$bookerName][] = $contractValue;
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 Log::error("Erro ao processar Gig ID {$gig->id}: ".$e->getMessage());
             }
         }
@@ -711,7 +713,7 @@ class FinancialReportService
     /**
      * Obtém uma lista paginada de despesas detalhadas com base em filtros avançados.
      *
-     * @return \Illuminate\Pagination\LengthAwarePaginator
+     * @return LengthAwarePaginator
      */
     public function getDetailedExpenses()
     {
@@ -860,7 +862,7 @@ class FinancialReportService
      * Obtém os dados de rentabilidade por "venda" (Gig),
      * ordenados pela data do contrato ou, na sua ausência, pela data do evento.
      */
-    public function getSalesProfitabilityData(): \Illuminate\Support\Collection
+    public function getSalesProfitabilityData(): Collection
     {
         // 1. Define a "data da venda" usando COALESCE e aplica os filtros
         $gigsQuery = $this->applyFilters(Gig::query()->whereNull('deleted_at'))
@@ -868,7 +870,7 @@ class FinancialReportService
                 'gigs.*', // Seleciona todas as colunas de gigs
                 DB::raw('COALESCE(gigs.contract_date, gigs.gig_date) as sale_date') // 2. Cria a coluna virtual 'sale_date'
             )
-            ->with('costs'); // Carrega o relacionamento de custos para evitar N+1
+            ->with('gigCosts'); // Carrega o relacionamento de custos para evitar N+1
 
         // 3. Ordena pela "data da venda"
         $gigs = $gigsQuery->orderBy('sale_date', 'desc')->get();
@@ -879,14 +881,14 @@ class FinancialReportService
             $revenue = $gig->cache_value_brl ?? 0;
 
             // Soma das despesas confirmadas da Gig
-            $totalCosts = $gig->costs->where('is_confirmed', true)->sum('value_brl');
+            $totalCosts = $gig->gigCosts->where('is_confirmed', true)->sum('value_brl');
 
             // Cálculo da rentabilidade e margem
             $profitability = $revenue - $totalCosts;
             $margin = ($revenue > 0) ? ($profitability / $revenue) * 100 : 0;
 
             return [
-                'sale_date' => \Carbon\Carbon::parse($gig->sale_date)->format('d/m/Y'),
+                'sale_date' => Carbon::parse($gig->sale_date)->format('d/m/Y'),
                 'gig_id' => $gig->id,
                 'gig_name' => $gig->artist->name.' @ '.Str::limit($gig->location_event_details, 30),
                 'gig_contract_number' => $gig->contract_number,
@@ -904,7 +906,7 @@ class FinancialReportService
     public function getOverviewData(): array
     {
         $gigs = $this->applyFilters(Gig::query()->whereNull('deleted_at'))
-            ->with(['artist', 'booker', 'costs'])
+            ->with(['artist', 'booker', 'gigCosts'])
             ->get();
 
         $dataByArtist = $gigs->groupBy('artist.name')

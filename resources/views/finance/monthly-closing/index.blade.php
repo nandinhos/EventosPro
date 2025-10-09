@@ -1,640 +1,680 @@
 <x-app-layout>
     @section('title', 'Fechamento Mensal')
-    @php
-        $months = [
-            '01' => 'Janeiro', '02' => 'Fevereiro', '03' => 'Março',
-            '04' => 'Abril', '05' => 'Maio', '06' => 'Junho',
-            '07' => 'Julho', '08' => 'Agosto', '09' => 'Setembro',
-            '10' => 'Outubro', '11' => 'Novembro', '12' => 'Dezembro'
-        ];
-        
-        $currentYear = date('Y');
-        $years = array_combine(range($currentYear, $currentYear - 5), range($currentYear, $currentYear - 5));
-    @endphp
 
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-white leading-tight">
-            {{ __('Fechamento Mensal') }}
-        </h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">Relatório consolidado de vendas, comissões e cachês por período</p>
+        <div class="flex justify-between items-center">
+            <div>
+                <h2 class="font-semibold text-xl text-gray-800 dark:text-white leading-tight">
+                    Fechamento Mensal
+                </h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Relatório executivo de performance e comissões
+                </p>
+            </div>
+            <form action="{{ route('finance.monthly-closing.exportPdf') }}" method="GET" class="inline-block">
+                <input type="hidden" name="year" value="{{ $selectedYear }}">
+                <input type="hidden" name="month" value="{{ $selectedMonth }}">
+                @if($selectedBookerId)
+                    <input type="hidden" name="booker_id" value="{{ $selectedBookerId }}">
+                @endif
+                <button type="submit" class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-sm transition">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Exportar PDF
+                </button>
+            </form>
+        </div>
     </x-slot>
 
     <div class="py-6">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
-        <!-- Filtros -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">
-            <form action="{{ route('finance.monthly-closing') }}" method="GET" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                        <label for="month" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mês</label>
-                        <select name="month" id="month" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
-                            @foreach($months as $value => $name)
-                                <option value="{{ $value }}" {{ $selectedMonth == $value ? 'selected' : '' }}>{{ $name }}</option>
-                            @endforeach
-                        </select>
+            {{-- FILTROS --}}
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                <form action="{{ route('finance.monthly-closing') }}" method="GET" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label for="month" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Mês
+                            </label>
+                            <select name="month" id="month" class="block w-full rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                @foreach($months as $value => $name)
+                                    <option value="{{ $value }}" {{ $selectedMonth == $value ? 'selected' : '' }}>
+                                        {{ $name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="year" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Ano
+                            </label>
+                            <select name="year" id="year" class="block w-full rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                @foreach($years as $year => $yearLabel)
+                                    <option value="{{ $year }}" {{ $selectedYear == $year ? 'selected' : '' }}>
+                                        {{ $yearLabel }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="booker_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Booker (Opcional)
+                            </label>
+                            <select name="booker_id" id="booker_id" class="block w-full rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                <option value="">Todos os Bookers</option>
+                                @foreach($bookers as $booker)
+                                    <option value="{{ $booker->id }}" {{ $selectedBookerId == $booker->id ? 'selected' : '' }}>
+                                        {{ $booker->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md shadow-sm transition">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                </svg>
+                                Filtrar
+                            </button>
+                        </div>
                     </div>
-                    <div>
-                        <label for="year" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ano</label>
-                        <select name="year" id="year" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
-                            @foreach($years as $year => $yearLabel)
-                                <option value="{{ $year }}" {{ $selectedYear == $year ? 'selected' : '' }}>{{ $yearLabel }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label for="booker_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Booker (opcional)</label>
-                        <select name="booker_id" id="booker_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md">
-                            <option value="">Todos os Bookers</option>
-                            @foreach($bookers as $booker)
-                                <option value="{{ $booker->id }}" {{ $selectedBookerId == $booker->id ? 'selected' : '' }}>{{ $booker->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="flex items-end">
-                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </form>
+            </div>
+
+            {{-- CARDS PRINCIPAIS --}}
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {{-- Card 1: Faturamento --}}
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-blue-100 uppercase tracking-wide">Faturamento</p>
+                            <p class="text-3xl font-bold mt-2">
+                                R$ {{ number_format($reportData['total_faturamento'] ?? 0, 2, ',', '.') }}
+                            </p>
+                            <p class="text-sm text-blue-100 mt-1">
+                                {{ $reportData['total_gigs'] ?? 0 }} eventos realizados
+                            </p>
+                        </div>
+                        <div class="bg-white/20 rounded-full p-3">
+                            <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
                             </svg>
-                            Filtrar
-                        </button>
-                        @if(request()->hasAny(['month', 'year', 'booker_id']))
-                            <a href="{{ route('finance.monthly-closing') }}" class="ml-2 inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                                Limpar
-                            </a>
-                        @endif
+                        </div>
                     </div>
                 </div>
-            </form>
-        </div>
 
-        <!-- Cartões de Totalizadores -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <!-- Card Verde: Cachê Bruto -->
-            <div class="bg-green-100 dark:bg-green-900/20 p-4 rounded-lg">
-                <h3 class="text-sm text-gray-500 dark:text-gray-400">Cachê Bruto</h3>
-                <p class="text-lg font-semibold text-green-800 dark:text-green-300">
-                    R$ {{ isset($reportData['total_cache_brl']) ? number_format($reportData['total_cache_brl'], 2, ',', '.') : '0,00' }}
-                </p>
-                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    {{ isset($reportData['total_gigs']) ? $reportData['total_gigs'] : 0 }} gigs
-                </p>
-            </div>
-
-            <!-- Card Roxo: Comissão Booker -->
-            <div class="bg-purple-100 dark:bg-purple-900/20 p-4 rounded-lg">
-                <h3 class="text-sm text-gray-500 dark:text-gray-400">Comissão Booker</h3>
-                <p class="text-lg font-semibold text-purple-800 dark:text-purple-300">
-                    R$ {{ isset($reportData['total_booker_commission']) ? number_format($reportData['total_booker_commission'], 2, ',', '.') : '0,00' }}
-                </p>
-                @php
-                    $bookerPercentage = isset($reportData['total_cache_brl']) && $reportData['total_cache_brl'] > 0 
-                        ? ($reportData['total_booker_commission'] / $reportData['total_cache_brl']) * 100 
-                        : 0;
-                @endphp
-                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    {{ number_format($bookerPercentage, 1) }}% do cachê
-                </p>
-            </div>
-
-            <!-- Card Índigo: Comissão Agência -->
-            <div class="bg-indigo-100 dark:bg-indigo-900/20 p-4 rounded-lg">
-                <h3 class="text-sm text-gray-500 dark:text-gray-400">Comissão Agência</h3>
-                <p class="text-lg font-semibold text-indigo-800 dark:text-indigo-300">
-                    R$ {{ isset($reportData['total_agency_commission']) ? number_format($reportData['total_agency_commission'], 2, ',', '.') : '0,00' }}
-                </p>
-                @php
-                    $agencyPercentage = isset($reportData['total_cache_brl']) && $reportData['total_cache_brl'] > 0 
-                        ? ($reportData['total_agency_commission'] / $reportData['total_cache_brl']) * 100 
-                        : 0;
-                @endphp
-                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    {{ number_format($agencyPercentage, 1) }}% do cachê
-                </p>
-            </div>
-
-            <!-- Card Azul: Valor Líquido -->
-            <div class="bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg">
-                <h3 class="text-sm text-gray-500 dark:text-gray-400">Valor Líquido</h3>
-                @php
-                    $totalNetValue = isset($reportData['total_cache_brl']) && isset($reportData['total_booker_commission']) && isset($reportData['total_agency_commission'])
-                        ? $reportData['total_cache_brl'] - $reportData['total_booker_commission'] - $reportData['total_agency_commission']
-                        : 0;
-                @endphp
-                <p class="text-lg font-semibold {{ $totalNetValue < 0 ? 'text-red-600 dark:text-red-400' : 'text-blue-800 dark:text-blue-300' }}">
-                    {{ $totalNetValue < 0 ? '-' : '' }}R$ {{ number_format(abs($totalNetValue), 2, ',', '.') }}
-                </p>
-                @php
-                    $netPercentage = isset($reportData['total_cache_brl']) && $reportData['total_cache_brl'] > 0 
-                        ? ($totalNetValue / $reportData['total_cache_brl']) * 100 
-                        : 0;
-                @endphp
-                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    {{ number_format($netPercentage, 1) }}% margem
-                </p>
-            </div>
-        </div>
-
-        <!-- Gráfico de Faturamento por Booker -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Faturamento por Booker</h3>
-            <div class="relative" style="height: 400px;">
-                <canvas id="bookerRevenueChart"></canvas>
-                <div id="noRevenueData" class="hidden absolute inset-0 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg">
-                    <p class="text-gray-500 dark:text-gray-400 text-center p-4">Nenhum dado disponível para o período selecionado</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tabela de Faturamento por Booker -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden mb-6">
-            <div class="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Faturamento por Booker</h3>
-                    <div class="flex items-center space-x-4">
-                        @include('components.export-filter', [
-                             'route' => route('finance.monthly-closing.export'),
-                             'artists' => $artists ?? [],
-                             'bookers' => $bookers ?? [],
-                             'selectedArtist' => null,
-                             'selectedBooker' => $selectedBookerId,
-                             'selectedMonth' => $selectedMonth,
-                             'selectedYear' => $selectedYear,
-                             'title' => 'Exportar Relatório'
-                         ])
-                    </div>
-                </div>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">BOOKER</th>
-                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">CACHÊ LÍQUIDO</th>
-                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">COMISSÃO BOOKER</th>
-                            <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">VALOR LÍQUIDO</th>
-                            <th scope="col" class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">GIGS</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        @php
-                            $totalGigs = 0;
-                            $totalCacheLiquido = 0;
-                            $totalBookerCommission = 0;
-                            $totalNetValue = 0;
-                        @endphp
-                        
-                        @forelse(($reportData['booker_data'] ?? []) as $booker)
+                {{-- Card 2: Comissão Agência --}}
+                <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-lg p-6 text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-indigo-100 uppercase tracking-wide">Comissão Agência</p>
+                            <p class="text-3xl font-bold mt-2">
+                                R$ {{ number_format($reportData['total_comissao_agencia'] ?? 0, 2, ',', '.') }}
+                            </p>
                             @php
-                                $totalGigs += $booker['total_gigs'];
-                                $totalCacheLiquido += $booker['cache_liquido_base'];
-                                $totalBookerCommission += $booker['total_booker_commission'];
-                                $totalNetValue += $booker['net_value'];
+                                $percentAgencia = $reportData['total_faturamento'] > 0
+                                    ? ($reportData['total_comissao_agencia'] / $reportData['total_faturamento']) * 100
+                                    : 0;
                             @endphp
-                            
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                    {{ $booker['booker']->name }}
-                                </td>
-                                <td class="px-3 py-3 whitespace-nowrap text-sm text-right {{ $booker['cache_liquido_base'] < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white' }}">
-                                    {{ $booker['cache_liquido_base'] < 0 ? '-' : '' }}R$ {{ number_format(abs($booker['cache_liquido_base']), 2, ',', '.') }}
-                                </td>
-                                <td class="px-3 py-3 whitespace-nowrap text-sm text-right {{ $booker['total_booker_commission'] < 0 ? 'text-red-600 dark:text-red-400' : 'text-purple-600 dark:text-purple-400' }}">
-                                    {{ $booker['total_booker_commission'] < 0 ? '-' : '' }}R$ {{ number_format(abs($booker['total_booker_commission']), 2, ',', '.') }}
-                                </td>
-                                <td class="px-3 py-3 whitespace-nowrap text-sm text-right {{ $booker['net_value'] < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' }}">
-                                    {{ $booker['net_value'] < 0 ? '-' : '' }}R$ {{ number_format(abs($booker['net_value']), 2, ',', '.') }}
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                                        ({{ number_format($booker['lucro_percentual'], 1) }}%)
-                                    </span>
-                                </td>
-                                <td class="px-3 py-3 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-300">
-                                    {{ $booker['total_gigs'] }}
-                                </td>
-                            </tr>
-                        @empty
+                            <p class="text-sm text-indigo-100 mt-1">
+                                {{ number_format($percentAgencia, 1) }}% do faturamento
+                            </p>
+                        </div>
+                        <div class="bg-white/20 rounded-full p-3">
+                            <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Card 3: Comissão Booker --}}
+                <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-purple-100 uppercase tracking-wide">Comissão Booker</p>
+                            <p class="text-3xl font-bold mt-2">
+                                R$ {{ number_format($reportData['total_comissao_booker'] ?? 0, 2, ',', '.') }}
+                            </p>
+                            @php
+                                $percentBooker = $reportData['total_faturamento'] > 0
+                                    ? ($reportData['total_comissao_booker'] / $reportData['total_faturamento']) * 100
+                                    : 0;
+                            @endphp
+                            <p class="text-sm text-purple-100 mt-1">
+                                {{ number_format($percentBooker, 1) }}% do faturamento
+                            </p>
+                        </div>
+                        <div class="bg-white/20 rounded-full p-3">
+                            <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- TABELA COMPARATIVA DE BOOKERS (HORIZONTAL) --}}
+            @if(count($reportData['booker_comparison'] ?? []) > 0)
+            <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        Comparativo de Performance - Bookers
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Análise horizontal de indicadores financeiros por booker
+                    </p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                                    Nenhum dado disponível para o período selecionado.
-                                </td>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-100 dark:bg-gray-600">
+                                    Indicador
+                                </th>
+                                @foreach($reportData['booker_comparison'] as $booker)
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        {{ $booker['name'] }}
+                                    </th>
+                                @endforeach
                             </tr>
-                        @endforelse
-                    </tbody>
-                    <tfoot class="bg-gray-50 dark:bg-gray-700 font-semibold">
-                        <tr>
-                            <td class="px-3 py-3 text-left text-sm font-medium text-gray-900 dark:text-white">TOTAL</td>
-                            <td class="px-3 py-3 text-right text-sm font-semibold {{ $totalCacheLiquido < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white' }}">
-                                {{ $totalCacheLiquido < 0 ? '-' : '' }}R$ {{ number_format(abs($totalCacheLiquido), 2, ',', '.') }}
-                            </td>
-                            <td class="px-3 py-3 text-right text-sm font-semibold {{ $totalBookerCommission < 0 ? 'text-red-600 dark:text-red-400' : 'text-purple-600 dark:text-purple-400' }}">
-                                {{ $totalBookerCommission < 0 ? '-' : '' }}R$ {{ number_format(abs($totalBookerCommission), 2, ',', '.') }}
-                            </td>
-                            <td class="px-3 py-3 text-right text-sm font-semibold {{ $totalNetValue < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' }}">
-                                {{ $totalNetValue < 0 ? '-' : '' }}R$ {{ number_format(abs($totalNetValue), 2, ',', '.') }}
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            {{-- Linha: Vendas --}}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50">
+                                    Vendas
+                                </td>
+                                @foreach($reportData['booker_comparison'] as $booker)
+                                    <td class="px-6 py-4 text-right text-sm font-bold text-blue-600 dark:text-blue-400">
+                                        {{ $booker['vendas'] }}
+                                    </td>
+                                @endforeach
+                            </tr>
+
+                            {{-- Linha: Cachê Bruto --}}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50">
+                                    Cachê Bruto
+                                </td>
+                                @foreach($reportData['booker_comparison'] as $booker)
+                                    <td class="px-6 py-4 text-right text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                                        R$ {{ number_format($booker['cache_bruto'], 2, ',', '.') }}
+                                    </td>
+                                @endforeach
+                            </tr>
+
+                            {{-- Linha: Cachê Booker --}}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50">
+                                    Cachê Booker
+                                </td>
+                                @foreach($reportData['booker_comparison'] as $booker)
+                                    <td class="px-6 py-4 text-right text-sm font-bold text-purple-600 dark:text-purple-400">
+                                        R$ {{ number_format($booker['cache_booker'], 2, ',', '.') }}
+                                    </td>
+                                @endforeach
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+
+            {{-- TABELA 1: ANALÍTICA POR ARTISTA --}}
+            <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        Relatório Analítico por Artista
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Detalhamento completo de eventos por artista
+                    </p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Data | Local do Evento
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Cachê Líquido
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Comissão Agência
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Comissão Booker
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Comissão Líquida
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800">
+                            @php
+                                $totalGeralCache = 0;
+                                $totalGeralAgencia = 0;
+                                $totalGeralBooker = 0;
+                                $totalGeralLiquida = 0;
+                            @endphp
+
+                            @forelse($reportData['artist_data'] ?? [] as $artistGroup)
                                 @php
-                                    $totalPercentage = $totalCacheLiquido > 0 ? ($totalNetValue / $totalCacheLiquido) * 100 : 0;
+                                    $totalGeralCache += $artistGroup['cache_liquido'];
+                                    $totalGeralAgencia += $artistGroup['comissao_agencia'];
+                                    $totalGeralBooker += $artistGroup['comissao_booker'];
+                                    $totalGeralLiquida += $artistGroup['comissao_liquida'];
+
+                                    $percentual = $reportData['total_faturamento'] > 0
+                                        ? ($artistGroup['cache_liquido'] / $reportData['total_faturamento']) * 100
+                                        : 0;
                                 @endphp
-                                <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                                    ({{ number_format($totalPercentage, 1) }}%)
-                                </span>
-                            </td>
-                            <td class="px-3 py-3 text-center text-sm text-gray-500 dark:text-gray-300">
-                                {{ $totalGigs }}
-                            </td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <!-- Gráfico de Pizza por Booker -->
-            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Distribuição por Booker</h3>
-                <div class="relative h-64">
-                    <canvas id="bookerDistributionChart"></canvas>
-                    <div id="noPieData" class="hidden absolute inset-0 flex items-center justify-center">
-                        <p class="text-gray-500 dark:text-gray-400 text-center">Nenhum dado disponível para exibir o gráfico</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Gráfico de Performance dos Artistas -->
-            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Performance dos Artistas</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Quantidade de shows por artista no período</p>
-                <div class="relative h-64">
-                    <canvas id="artistPerformanceChart"></canvas>
-                    <div id="noArtistData" class="hidden absolute inset-0 flex items-center justify-center">
-                        <p class="text-gray-500 dark:text-gray-400 text-center">Nenhum dado disponível para exibir o gráfico</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-
-        <!-- Lista de Gigs -->
-        <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden mb-6">
-            <div class="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Detalhes das Gigs</h3>
-                        <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">Lista completa de eventos agrupados por artista</p>
-                    </div>
-                    @include('components.export-filter', [
-                        'route' => 'finance.monthly-closing.export',
-                        'artists' => $artists,
-                        'bookers' => $bookers,
-                        'selectedArtist' => request('artist_id'),
-                        'selectedBooker' => $selectedBookerId,
-                        'selectedMonth' => $selectedMonth,
-                        'selectedYear' => $selectedYear,
-                        'title' => 'Detalhes das Gigs'
-                    ])
-                </div>
-            </div>
-            <div class="overflow-x-auto">
-
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs">
-                    <thead class="bg-gray-50 dark:bg-gray-700/50">
-                        <tr>
-                            <th class="px-3 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Data</th>
-                            <th class="px-3 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Local</th>
-                            <th class="px-3 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Cachê Bruto</th>
-                            <th class="px-3 py-3 text-right font-medium text-purple-500 dark:text-purple-300">Comissão Booker</th>
-                            <th class="px-3 py-3 text-right font-medium text-indigo-500 dark:text-indigo-300">Comissão Agência</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white dark:bg-gray-800">
-                        @forelse ($reportData['artist_gigs'] ?? [] as $artistData)
-                            <!-- Cabeçalho do Artista -->
-                            <tr class="bg-gray-100 dark:bg-gray-700/50">
-                                <td class="px-3 py-3 font-bold text-sm text-primary-700 dark:text-primary-400" colspan="5">
-                                    <i class="fas fa-music fa-fw mr-2"></i>{{ $artistData['artist']->name }}
-                                </td>
-                            </tr>
-                            <!-- Gigs do Artista -->
-                            @foreach ($artistData['gigs'] as $gig)
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer" onclick="window.location.href = '/gigs/{{ $gig->id }}'">
-                                     <td class="px-3 py-2 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900 dark:text-white font-medium">{{ $gig->gig_date->format('d/m/Y') }}</div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ $gig->gig_date->format('l') }}</div>
-                                    </td>
-                                    <td class="px-3 py-2">
-                                        <div class="text-sm text-gray-900 dark:text-white font-medium">{{ $gig->location_event_details }}</div>
-                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ $gig->location_city }}/{{ $gig->location_state }}</div>
-                                        @if($gig->venue_name)
-                                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $gig->venue_name }}</div>
-                                        @endif
-                                    </td>
-                                    <td class="px-3 py-2 text-right whitespace-nowrap">
-                                        <div class="font-medium {{ $gig->cache_value_brl < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white' }}">
-                                            {{ $gig->cache_value_brl < 0 ? '-' : '' }}R$ {{ number_format(abs($gig->cache_value_brl), 2, ',', '.') }}
-                                        </div>
-                                        @if($gig->currency && $gig->currency !== 'BRL')
-                                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                {{ $gig->currency }} {{ number_format($gig->cache_value, 2, ',', '.') }}
+                                {{-- Cabeçalho do Artista --}}
+                                <tr class="bg-primary-50 dark:bg-primary-900/20 border-t-2 border-primary-500">
+                                    <td colspan="5" class="px-6 py-3">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <div class="h-10 w-10 flex-shrink-0 bg-primary-500 rounded-full flex items-center justify-center">
+                                                    <span class="text-white font-bold text-sm">
+                                                        {{ strtoupper(substr($artistGroup['artist']->name, 0, 2)) }}
+                                                    </span>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-bold text-primary-900 dark:text-primary-100">
+                                                        {{ $artistGroup['artist']->name }}
+                                                    </div>
+                                                    <div class="text-xs text-primary-700 dark:text-primary-300">
+                                                        {{ $artistGroup['vendas'] }} {{ $artistGroup['vendas'] > 1 ? 'eventos' : 'evento' }}
+                                                    </div>
+                                                </div>
                                             </div>
-                                        @endif
-                                    </td>
-                                    <td class="px-3 py-2 text-right whitespace-nowrap">
-                                        <div class="font-medium text-purple-600 dark:text-purple-400">
-                                            {{ $gig->booker_commission_value < 0 ? '-' : '' }}R$ {{ number_format(abs($gig->booker_commission_value), 2, ',', '.') }}
                                         </div>
-                                        @if($gig->booker_commission_percentage)
-                                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                {{ number_format($gig->booker_commission_percentage, 2, ',', '.') }}%
-                                            </div>
-                                        @endif
-                                    </td>
-                                    <td class="px-3 py-2 text-right whitespace-nowrap">
-                                        <div class="font-medium text-indigo-600 dark:text-indigo-400">
-                                            {{ $gig->agency_commission_value < 0 ? '-' : '' }}R$ {{ number_format(abs($gig->agency_commission_value), 2, ',', '.') }}
-                                        </div>
-                                        @if($gig->agency_commission_percentage)
-                                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                {{ number_format($gig->agency_commission_percentage, 2, ',', '.') }}%
-                                            </div>
-                                        @endif
                                     </td>
                                 </tr>
-                            @endforeach
-                            <!-- Linha de Subtotal do Artista -->
-                            <tr class="bg-gray-50 dark:bg-gray-800/80 font-bold border-b-2 border-gray-300 dark:border-gray-600">
-                                <td class="px-3 py-2 text-right" colspan="2">SUBTOTAL ({{ $artistData['total_gigs'] }} {{ $artistData['total_gigs'] > 1 ? 'Gigs' : 'Gig' }}):</td>
-                                <td class="px-3 py-2 text-right">R$ {{ number_format($artistData['total_cache_brl'], 2, ',', '.') }}</td>
-                                <td class="px-3 py-2 text-right">R$ {{ number_format($artistData['total_booker_commission'], 2, ',', '.') }}</td>
-                                <td class="px-3 py-2 text-right">R$ {{ number_format($artistData['total_agency_commission'], 2, ',', '.') }}</td>
-                            </tr>
-                        @empty
-                             <tr>
-                                 <td class="text-center py-10" colspan="5">Nenhuma gig encontrada para o período selecionado.</td>
-                             </tr>
-                         @endforelse
-                         
-                         @if(!empty($reportData['artist_gigs']))
-                             <!-- Linha de Totais Gerais -->
-                             <tr class="bg-primary-100 dark:bg-primary-900/30 font-bold text-primary-800 dark:text-primary-200 border-t-4 border-primary-500">
-                                 <td class="px-3 py-3 text-right" colspan="2">
-                                     <i class="fas fa-calculator fa-fw mr-2"></i>TOTAL GERAL ({{ $reportData['total_gigs'] ?? 0 }} {{ ($reportData['total_gigs'] ?? 0) > 1 ? 'Gigs' : 'Gig' }}):
-                                 </td>
-                                 <td class="px-3 py-3 text-right">R$ {{ number_format($reportData['total_cache_brl'] ?? 0, 2, ',', '.') }}</td>
-                                 <td class="px-3 py-3 text-right">R$ {{ number_format($reportData['total_booker_commission'] ?? 0, 2, ',', '.') }}</td>
-                                 <td class="px-3 py-3 text-right">R$ {{ number_format($reportData['total_agency_commission'] ?? 0, 2, ',', '.') }}</td>
-                             </tr>
-                         @endif
-                     </tbody>
-                </table>
+
+                                {{-- Eventos do Artista --}}
+                                @foreach($artistGroup['gigs_detailed'] as $gigDetail)
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-start space-x-3">
+                                                {{-- Link do Contrato --}}
+                                                <a href="{{ route('gigs.show', $gigDetail['gig_id']) }}"
+                                                   class="flex-shrink-0 inline-flex items-center px-2.5 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-bold rounded-md hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
+                                                   title="Ver detalhes da Gig">
+                                                    #{{ $gigDetail['contract_number'] ?? $gigDetail['gig_id'] }}
+                                                </a>
+
+                                                {{-- Detalhes do Evento --}}
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="flex items-center space-x-2 mb-1">
+                                                        <span class="inline-flex items-center text-sm font-semibold text-gray-900 dark:text-white">
+                                                            <svg class="w-4 h-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                            </svg>
+                                                            {{ $gigDetail['date']->format('d/m/Y') }}
+                                                        </span>
+                                                        <span class="text-gray-400">|</span>
+                                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                            {{ $gigDetail['location'] }}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-right text-sm font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                                            R$ {{ number_format($gigDetail['cache_liquido'], 2, ',', '.') }}
+                                        </td>
+                                        <td class="px-6 py-4 text-right text-sm font-semibold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+                                            R$ {{ number_format($gigDetail['comissao_agencia'], 2, ',', '.') }}
+                                        </td>
+                                        <td class="px-6 py-4 text-right text-sm font-semibold text-purple-600 dark:text-purple-400 whitespace-nowrap">
+                                            R$ {{ number_format($gigDetail['comissao_booker'], 2, ',', '.') }}
+                                        </td>
+                                        <td class="px-6 py-4 text-right text-sm font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">
+                                            R$ {{ number_format($gigDetail['comissao_liquida'], 2, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+
+                                {{-- Subtotal do Artista --}}
+                                <tr class="bg-gray-100 dark:bg-gray-700 font-bold border-b-2 border-gray-300 dark:border-gray-600">
+                                    <td class="px-6 py-3 text-sm">
+                                        <span class="text-gray-900 dark:text-white">SUBTOTAL {{ strtoupper($artistGroup['artist']->name) }}</span>
+                                        <span class="ml-2 text-xs font-normal text-gray-600 dark:text-gray-400">
+                                            ({{ number_format($percentual, 1) }}% do total)
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-3 text-right text-sm text-blue-700 dark:text-blue-300">
+                                        R$ {{ number_format($artistGroup['cache_liquido'], 2, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-3 text-right text-sm text-indigo-700 dark:text-indigo-300">
+                                        R$ {{ number_format($artistGroup['comissao_agencia'], 2, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-3 text-right text-sm text-purple-700 dark:text-purple-300">
+                                        R$ {{ number_format($artistGroup['comissao_booker'], 2, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-3 text-right text-sm text-green-700 dark:text-green-300">
+                                        R$ {{ number_format($artistGroup['comissao_liquida'], 2, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                                        Nenhum artista encontrado no período selecionado
+                                    </td>
+                                </tr>
+                            @endforelse
+
+                            @if(count($reportData['artist_data'] ?? []) > 0)
+                                {{-- Total Geral --}}
+                                <tr class="bg-primary-600 dark:bg-primary-700 text-white font-bold">
+                                    <td class="px-6 py-4 text-sm">
+                                        TOTAL GERAL - {{ $reportData['total_gigs'] }} EVENTOS
+                                    </td>
+                                    <td class="px-6 py-4 text-right text-sm">
+                                        R$ {{ number_format($totalGeralCache, 2, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-4 text-right text-sm">
+                                        R$ {{ number_format($totalGeralAgencia, 2, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-4 text-right text-sm">
+                                        R$ {{ number_format($totalGeralBooker, 2, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-4 text-right text-sm">
+                                        R$ {{ number_format($totalGeralLiquida, 2, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
+            {{-- GRÁFICO: Distribuição de Faturamento --}}
+            <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Distribuição de Faturamento
+                </h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                    Composição do faturamento total do período
+                </p>
+                <div class="relative" style="height: 300px;">
+                    <canvas id="distributionChart"></canvas>
+                </div>
+            </div>
+
+            {{-- TABELA 2: ANALÍTICA POR BOOKER --}}
+            <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        Relatório Analítico por Booker
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Detalhamento completo de eventos por booker
+                    </p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Data | Artista @ Local
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Cachê Líquido
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Comissão Booker
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800">
+                            @php
+                                $totalGeralBookerCache = 0;
+                                $totalGeralBookerCom = 0;
+                            @endphp
+
+                            @forelse($reportData['booker_data'] ?? [] as $bookerGroup)
+                                @php
+                                    $totalGeralBookerCache += $bookerGroup['cache_liquido'];
+                                    $totalGeralBookerCom += $bookerGroup['comissao_booker'];
+
+                                    $percentual = $reportData['total_faturamento'] > 0
+                                        ? ($bookerGroup['cache_liquido'] / $reportData['total_faturamento']) * 100
+                                        : 0;
+                                @endphp
+
+                                {{-- Cabeçalho do Booker --}}
+                                <tr class="bg-purple-50 dark:bg-purple-900/20 border-t-2 border-purple-500">
+                                    <td colspan="3" class="px-6 py-3">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <div class="h-10 w-10 flex-shrink-0 bg-purple-500 rounded-full flex items-center justify-center">
+                                                    <span class="text-white font-bold text-sm">
+                                                        {{ strtoupper(substr($bookerGroup['booker']->name, 0, 2)) }}
+                                                    </span>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-bold text-purple-900 dark:text-purple-100">
+                                                        {{ $bookerGroup['booker']->name }}
+                                                    </div>
+                                                    <div class="text-xs text-purple-700 dark:text-purple-300">
+                                                        {{ $bookerGroup['vendas'] }} {{ $bookerGroup['vendas'] > 1 ? 'eventos' : 'evento' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                {{-- Eventos do Booker --}}
+                                @foreach($bookerGroup['gigs_detailed'] as $gigDetail)
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-start space-x-3">
+                                                {{-- Link do Contrato --}}
+                                                <a href="{{ route('gigs.show', $gigDetail['gig_id']) }}"
+                                                   class="flex-shrink-0 inline-flex items-center px-2.5 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-bold rounded-md hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
+                                                   title="Ver detalhes da Gig">
+                                                    #{{ $gigDetail['contract_number'] ?? $gigDetail['gig_id'] }}
+                                                </a>
+
+                                                {{-- Detalhes do Evento --}}
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="flex items-center space-x-2 mb-1">
+                                                        <span class="inline-flex items-center text-sm font-semibold text-gray-900 dark:text-white">
+                                                            <svg class="w-4 h-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                            </svg>
+                                                            {{ $gigDetail['date']->format('d/m/Y') }}
+                                                        </span>
+                                                        <span class="text-gray-400">|</span>
+                                                        <span class="text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                                                            {{ $gigDetail['artist_name'] }}
+                                                        </span>
+                                                        <span class="text-gray-400">@</span>
+                                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                            {{ $gigDetail['location'] }}
+                                                        </span>
+                                                    </div>
+                                                   
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-right text-sm font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                                            R$ {{ number_format($gigDetail['cache_liquido'], 2, ',', '.') }}
+                                        </td>
+                                        <td class="px-6 py-4 text-right text-sm font-semibold text-purple-600 dark:text-purple-400 whitespace-nowrap">
+                                            R$ {{ number_format($gigDetail['comissao_booker'], 2, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+
+                                {{-- Subtotal do Booker --}}
+                                <tr class="bg-gray-100 dark:bg-gray-700 font-bold border-b-2 border-gray-300 dark:border-gray-600">
+                                    <td class="px-6 py-3 text-sm">
+                                        <span class="text-gray-900 dark:text-white">SUBTOTAL {{ strtoupper($bookerGroup['booker']->name) }}</span>
+                                        <span class="ml-2 text-xs font-normal text-gray-600 dark:text-gray-400">
+                                            ({{ number_format($percentual, 1) }}% do total)
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-3 text-right text-sm text-blue-700 dark:text-blue-300">
+                                        R$ {{ number_format($bookerGroup['cache_liquido'], 2, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-3 text-right text-sm text-purple-700 dark:text-purple-300">
+                                        R$ {{ number_format($bookerGroup['comissao_booker'], 2, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                                        Nenhum booker encontrado no período selecionado
+                                    </td>
+                                </tr>
+                            @endforelse
+
+                            @if(count($reportData['booker_data'] ?? []) > 0)
+                                {{-- Total Geral --}}
+                                <tr class="bg-purple-600 dark:bg-purple-700 text-white font-bold">
+                                    <td class="px-6 py-4 text-sm">
+                                        TOTAL GERAL - {{ $reportData['total_gigs'] }} EVENTOS
+                                    </td>
+                                    <td class="px-6 py-4 text-right text-sm">
+                                        R$ {{ number_format($totalGeralBookerCache, 2, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-4 text-right text-sm">
+                                        R$ {{ number_format($totalGeralBookerCom, 2, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {{-- GRÁFICO: Top Bookers --}}
+            <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Top Bookers por Faturamento
+                </h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                    Ranking dos bookers com maior volume de vendas
+                </p>
+                <div class="relative" style="height: 350px;">
+                    <canvas id="bookerChart"></canvas>
+                </div>
+            </div>
+
         </div>
-    </div>
     </div>
 
     @push('scripts')
-<script type="text/javascript">
-// Dados dos gráficos
-window.chartData = JSON.parse('{!! addslashes(json_encode($bookerRevenueData ?? [])) !!}');
-window.chartData.bookerPieData = JSON.parse('{!! addslashes(json_encode($bookerPieData ?? [])) !!}');
-window.chartData.artistPerformanceData = JSON.parse('{!! addslashes(json_encode($artistPerformanceData ?? [])) !!}');
-window.chartData.bookerRevenueData = window.chartData;
-
-function loadChartJS(callback) {
-    if (window.Chart) {
-        console.log('Chart.js já está carregado');
-        if (callback) callback();
-        return;
-    }
-
-    console.log('Carregando Chart.js...');
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
-    script.crossOrigin = 'anonymous';
-    
-    script.onload = function() {
-        console.log('Chart.js carregado com sucesso');
-        if (callback) callback();
-    };
-    
-    script.onerror = function() {
-        console.error('Falha ao carregar Chart.js');
-        const fallbackScript = document.createElement('script');
-        fallbackScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
-        fallbackScript.crossOrigin = 'anonymous';
-        fallbackScript.onload = function() {
-            console.log('Chart.js carregado via fallback');
-            if (callback) callback();
-        };
-        fallbackScript.onerror = function() {
-            console.error('Falha ao carregar Chart.js via fallback');
-        };
-        document.head.appendChild(fallbackScript);
-    };
-    
-    document.head.appendChild(script);
-}
-
-if (!window.monthlyClosingScriptExecuted) {
-    window.monthlyClosingScriptExecuted = true;
-
-    loadChartJS(function() {
-        window.revenueChart = null;
-        window.pieChart = null;
-
-        function initializeCharts() {
-            console.log('Iniciando script do relatório de fechamento mensal');
-
-            if (typeof Chart === 'undefined') {
-                console.error('Chart.js não foi carregado corretamente');
-                return;
-            }
-
-            // === GRÁFICO DE BARRAS ===
-            const bookerRevenueData = window.chartData.bookerRevenueData;
-            const revenueCtx = document.getElementById('bookerRevenueChart');
-            const noRevenueData = document.getElementById('noRevenueData');
-
-            console.log('Dados para o gráfico de barras:', bookerRevenueData);
-
-            if (revenueCtx) {
-                if (window.revenueChart?.destroy) {
-                    console.log('Destruindo gráfico de barras existente...');
-                    window.revenueChart.destroy();
-                }
-
-                if (bookerRevenueData.length > 0) {
-                    noRevenueData?.classList.add('hidden');
-                    try {
-                        window.revenueChart = new Chart(revenueCtx, {
-                            type: 'bar',
-                            data: {
-                                labels: bookerRevenueData.map(item => item.label),
-                                datasets: [
-                                    {
-                                        label: 'Faturamento Bruto',
-                                        data: bookerRevenueData.map(item => item.revenue || 0),
-                                        backgroundColor: bookerRevenueData.map(item => item.color || '#3b82f6'),
-                                        borderColor: bookerRevenueData.map(item => item.color || '#3b82f6'),
-                                        borderWidth: 1,
-                                        borderRadius: 4,
-                                        barPercentage: 0.8,
-                                        categoryPercentage: 0.8
-                                    },
-                                    {
-                                        label: 'Comissão Booker',
-                                        data: bookerRevenueData.map(item => item.booker_commission || 0),
-                                        backgroundColor: 'rgba(147, 51, 234, 0.7)',
-                                        borderColor: 'rgba(147, 51, 234, 1)',
-                                        borderWidth: 1,
-                                        borderRadius: 4,
-                                        barPercentage: 0.8,
-                                        categoryPercentage: 0.8
-                                    },
-                                    {
-                                        label: 'Comissão Agência',
-                                        data: bookerRevenueData.map(item => item.agency_commission || 0),
-                                        backgroundColor: 'rgba(99, 102, 241, 0.7)',
-                                        borderColor: 'rgba(99, 102, 241, 1)',
-                                        borderWidth: 1,
-                                        borderRadius: 4,
-                                        barPercentage: 0.8,
-                                        categoryPercentage: 0.8
-                                    },
-                                    {
-                                        label: 'Valor Líquido',
-                                        data: bookerRevenueData.map(item => item.net_value || 0),
-                                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
-                                        borderColor: 'rgba(16, 185, 129, 1)',
-                                        borderWidth: 1,
-                                        borderRadius: 4,
-                                        barPercentage: 0.8,
-                                        categoryPercentage: 0.8
-                                    }
-                                ]
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Gráfico de Distribuição
+            const distributionData = @json($reportData['chart_distribution'] ?? []);
+            if (distributionData.length > 0) {
+                new Chart(document.getElementById('distributionChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: distributionData.map(d => d.label),
+                        datasets: [{
+                            data: distributionData.map(d => d.value),
+                            backgroundColor: distributionData.map(d => d.color),
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true,
+                                    font: { size: 12 }
+                                }
                             },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false
-                            }
-                        });
-                    } catch (error) {
-                        console.error('Erro ao criar gráfico de barras:', error);
-                        noRevenueData?.classList.remove('hidden');
-                    }
-                } else {
-                    noRevenueData?.classList.remove('hidden');
-                }
-            }
-
-            // === GRÁFICO DE PIZZA ===
-            const bookerPieData = window.chartData.bookerPieData;
-            const pieCtx = document.getElementById('bookerDistributionChart');
-            const noPieData = document.getElementById('noPieData');
-
-            console.log('Dados para o gráfico de pizza:', bookerPieData);
-
-            if (pieCtx) {
-                if (window.pieChart?.destroy) {
-                    console.log('Destruindo gráfico de pizza existente...');
-                    window.pieChart.destroy();
-                }
-
-                if (bookerPieData.length > 0) {
-                    noPieData?.classList.add('hidden');
-                    const filteredData = bookerPieData.filter(item => item.value > 0);
-
-                    if (filteredData.length > 0) {
-                        window.pieChart = new Chart(pieCtx, {
-                            type: 'pie',
-                            data: {
-                                labels: filteredData.map(item => item.label),
-                                datasets: [{
-                                    data: filteredData.map(item => item.value),
-                                    backgroundColor: filteredData.map(item => item.color || '#cccccc'),
-                                    borderWidth: 1,
-                                    borderColor: '#fff'
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false
-                            }
-                        });
-                    } else {
-                        noPieData?.classList.remove('hidden');
-                    }
-                } else {
-                    noPieData?.classList.remove('hidden');
-                }
-            }
-
-            // === GRÁFICO DE PERFORMANCE DOS ARTISTAS ===
-            const artistPerformanceData = window.chartData.artistPerformanceData;
-            const artistCtx = document.getElementById('artistPerformanceChart');
-            const noArtistData = document.getElementById('noArtistData');
-
-            console.log('Dados para o gráfico de performance dos artistas:', artistPerformanceData);
-
-            if (artistCtx) {
-                if (window.artistChart?.destroy) {
-                    console.log('Destruindo gráfico de artistas existente...');
-                    window.artistChart.destroy();
-                }
-
-                if (artistPerformanceData.length > 0) {
-                    noArtistData?.classList.add('hidden');
-                    try {
-                        window.artistChart = new Chart(artistCtx, {
-                            type: 'doughnut',
-                            data: {
-                                labels: artistPerformanceData.map(item => item.label),
-                                datasets: [{
-                                    label: 'Quantidade de Shows',
-                                    data: artistPerformanceData.map(item => item.gigs_count),
-                                    backgroundColor: artistPerformanceData.map(item => item.color || '#cccccc'),
-                                    borderWidth: 2,
-                                    borderColor: '#fff'
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: {
-                                        position: 'bottom',
-                                        labels: {
-                                            padding: 20,
-                                            usePointStyle: true
-                                        }
-                                    },
-                                    tooltip: {
-                                        callbacks: {
-                                            label: function(context) {
-                                                const data = artistPerformanceData[context.dataIndex];
-                                                return `${data.label}: ${data.gigs_count} shows (R$ ${data.total_revenue.toLocaleString('pt-BR', {minimumFractionDigits: 2})})`;
-                                            }
-                                        }
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.parsed || 0;
+                                        return context.label + ': R$ ' + value.toLocaleString('pt-BR', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        });
                                     }
                                 }
                             }
-                        });
-                    } catch (error) {
-                        console.error('Erro ao criar gráfico de artistas:', error);
-                        noArtistData?.classList.remove('hidden');
+                        }
                     }
-                } else {
-                    noArtistData?.classList.remove('hidden');
-                }
+                });
             }
-        }
 
-        // Inicializar SOMENTE quando tudo (incluindo CSS) estiver carregado
-        window.addEventListener('load', function() {
-            setTimeout(initializeCharts, 100);
+            // Gráfico de Bookers
+            const bookerData = @json($reportData['chart_booker_comparison'] ?? []);
+            if (bookerData.length > 0) {
+                new Chart(document.getElementById('bookerChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: bookerData.map(d => d.label),
+                        datasets: [{
+                            label: 'Cachê Líquido',
+                            data: bookerData.map(d => d.cache_liquido),
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 6
+                        }, {
+                            label: 'Comissão Booker',
+                            data: bookerData.map(d => d.comissao_booker),
+                            backgroundColor: '#8b5cf6',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.parsed.y || 0;
+                                        return context.dataset.label + ': R$ ' + value.toLocaleString('pt-BR', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        });
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'R$ ' + value.toLocaleString('pt-BR');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
         });
-    });
-}
-</script>
-@endpush
-
+    </script>
+    @endpush
 </x-app-layout>
