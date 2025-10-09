@@ -8,20 +8,24 @@ use App\Filament\Resources\GigResource;
 use App\Filament\Resources\UserResource;
 use App\Filament\Widgets\FaturamentoChart;
 use App\Filament\Widgets\VendasGeraisStats;
+use App\Http\Middleware\RedirectIfBooker;
+use DutchCodingCompany\FilamentDeveloperLogins\FilamentDeveloperLoginsPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationItem;
-use Filament\Pages;
+use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
+use Filament\Widgets\AccountWidget;
+use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
-use Illuminate\Routing\Middleware\SubstituteBindings;
 // ***** 1. IMPORTE SEUS NOVOS WIDGETS AQUI *****
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
@@ -35,13 +39,24 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->colors(['primary' => Color::Purple])
+            ->plugin(
+                FilamentDeveloperLoginsPlugin::make()
+                    ->enabled(app()->environment('local'))
+                    ->switchable(true)
+                    ->users([
+                        'Admin' => 'admin@eventospro.com',
+                        'Admin DEV' => 'nandinhos@gmail.com',
+                        'Diretor' => 'diretor@eventospro.com',
+                        'Booker' => 'booker@eventospro.com',
+                    ])
+            )
             ->pages([
-                Pages\Dashboard::class,
+                Dashboard::class,
             ])
             // ***** 2. REGISTRE TODOS OS WIDGETS DO DASHBOARD AQUI *****
             ->widgets([
-                Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class, // Widget padrão do Filament
+                AccountWidget::class,
+                FilamentInfoWidget::class, // Widget padrão do Filament
                 VendasGeraisStats::class,          // Seu novo widget de KPIs
                 FaturamentoChart::class,           // Seu novo widget de gráfico
             ])
@@ -54,7 +69,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                \App\Http\Middleware\RedirectIfBooker::class,
+                RedirectIfBooker::class,
             ])
             ->authMiddleware([Authenticate::class])
             ->resources([

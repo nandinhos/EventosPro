@@ -3,6 +3,9 @@
 namespace App\Filament\Resources\BookerResource\Pages;
 
 use App\Filament\Resources\BookerResource;
+use App\Filament\Resources\BookerResource\Widgets\BookerCommissionsChart;
+use App\Filament\Resources\BookerResource\Widgets\BookerStatsOverview;
+use App\Filament\Resources\BookerResource\Widgets\TopArtistsTable;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewBooker extends ViewRecord
@@ -19,7 +22,7 @@ class ViewBooker extends ViewRecord
     protected function getHeaderWidgets(): array
     {
         return [
-            BookerResource\Widgets\BookerStatsOverview::class,
+            BookerStatsOverview::class,
         ];
     }
 
@@ -27,8 +30,8 @@ class ViewBooker extends ViewRecord
     protected function getFooterWidgets(): array
     {
         return [
-            BookerResource\Widgets\BookerCommissionsChart::class,
-            BookerResource\Widgets\TopArtistsTable::class,
+            BookerCommissionsChart::class,
+            TopArtistsTable::class,
         ];
     }
 }

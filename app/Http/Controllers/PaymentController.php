@@ -7,12 +7,14 @@ use App\Http\Requests\ConfirmPaymentRequest;
 use App\Http\Requests\UpdatePaymentRequest;
 use App\Models\Gig;
 use App\Models\Payment;
+use Exception;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request; // <-- Importar o Evento
-use Illuminate\Support\Facades\DB; // Importar Rule para validação
-use Illuminate\Support\Facades\Log; // Importar Validator para validação
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule; // Importar o novo Form Request
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB; // <-- Importar o Evento
+use Illuminate\Support\Facades\Log; // Importar Rule para validação
+use Illuminate\Support\Facades\Validator; // Importar Validator para validação
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException; // Importar o novo Form Request
 
 class PaymentController extends Controller
 {
@@ -73,7 +75,7 @@ class PaymentController extends Controller
 
             return redirect()->route('gigs.show', $gig)->with('success', 'Parcela prevista registrada com sucesso!');
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error("Erro CRÍTICO ao registrar Parcela Prevista para Gig ID {$gig->id}: ".$e->getMessage()."\n".$e->getTraceAsString());
 
@@ -111,7 +113,7 @@ class PaymentController extends Controller
 
             return redirect()->route('gigs.show', $gig)->with('success', 'Registro de pagamento excluído com sucesso!');
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Erro ao excluir pagamento: '.$e->getMessage(), ['exception' => $e, 'payment_id' => $payment->id]);
 
@@ -169,12 +171,12 @@ class PaymentController extends Controller
 
             return redirect()->route('gigs.show', $gig)->with('success', 'Registro de pagamento atualizado!');
 
-        } catch (\Illuminate\Validation\ValidationException $e) { // Captura erro de validação explicitamente
+        } catch (ValidationException $e) { // Captura erro de validação explicitamente
             DB::rollBack();
             Log::error('Erro de Validação ao atualizar pagamento: ', $e->errors());
 
             return back()->withErrors($e->validator, 'paymentUpdate')->withInput()->with('error_payment_id', $payment->id); // Usa error bag e passa ID de volta
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Erro CRÍTICO ao atualizar pagamento: '.$e->getMessage()."\n".$e->getTraceAsString());
 
@@ -221,13 +223,13 @@ class PaymentController extends Controller
 
             return redirect()->route('gigs.show', $gig)->with('success', 'Pagamento confirmado!');
 
-        } catch (\Illuminate\Validation\ValidationException $e) { // Captura erro de validação explicitamente
+        } catch (ValidationException $e) { // Captura erro de validação explicitamente
             DB::rollBack();
             Log::error('Erro de Validação ao confirmar pagamento: ', $e->errors());
 
             // Redireciona com o error bag específico e o ID do pagamento que deu erro
             return back()->withErrors($e->validator, 'paymentConfirm'.$payment->id)->withInput()->with('error_payment_id', $payment->id);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Erro CRÍTICO ao confirmar pagamento: '.$e->getMessage(), ['exception' => $e]);
 
@@ -274,7 +276,7 @@ class PaymentController extends Controller
 
             return redirect()->route('gigs.show', $gig)->with('success', 'Confirmação do pagamento revertida!');
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Erro ao desconfirmar pagamento: '.$e->getMessage(), ['exception' => $e, 'payment_id' => $payment->id]);
 

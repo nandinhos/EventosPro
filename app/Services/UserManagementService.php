@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Booker;
 use App\Models\User;
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -15,7 +16,7 @@ class UserManagementService
      *
      * @param  array  $userData  Dados validados do usuário.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function createUser(array $userData): User
     {
@@ -39,7 +40,7 @@ class UserManagementService
                     // Valida se o booker existente já não está associado a outro usuário
                     $existingBooker = Booker::find($bookerId);
                     if ($existingBooker && $existingBooker->user) {
-                        throw new \Exception('O booker selecionado já está associado a outro usuário.');
+                        throw new Exception('O booker selecionado já está associado a outro usuário.');
                     }
                 }
             }
@@ -56,7 +57,7 @@ class UserManagementService
 
             return $user;
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack(); // Reverte a transação em caso de erro
             Log::error('Erro ao criar usuário no serviço: '.$e->getMessage(), ['exception' => $e, 'user_data' => $userData]);
             throw $e; // Re-lança a exceção para o controller lidar com a resposta
@@ -69,7 +70,7 @@ class UserManagementService
      * @param  User  $user  Instância do usuário a ser atualizado.
      * @param  array  $userData  Dados validados para atualização.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function updateUser(User $user, array $userData): User
     {
@@ -102,7 +103,7 @@ class UserManagementService
                         // Valida se o booker existente já não está associado a outro usuário (exceto o próprio)
                         $existingBooker = Booker::find($bookerIdToAssociate);
                         if ($existingBooker && $existingBooker->user && $existingBooker->user->id !== $user->id) {
-                            throw new \Exception('O booker selecionado já está associado a outro usuário.');
+                            throw new Exception('O booker selecionado já está associado a outro usuário.');
                         }
                         $user->booker_id = $bookerIdToAssociate;
                         $user->save();
@@ -138,7 +139,7 @@ class UserManagementService
 
             return $user;
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack(); // Reverte a transação
             Log::error('Erro ao atualizar usuário no serviço: '.$e->getMessage(), ['exception' => $e, 'user_id' => $user->id, 'user_data' => $userData]);
             throw $e; // Re-lança a exceção
@@ -151,7 +152,7 @@ class UserManagementService
      * @param  User  $user  Instância do usuário a ser removido.
      * @return bool True se a remoção foi bem-sucedida, false caso contrário.
      *
-     * @throws \Exception
+     * @throws Exception
      */
     public function deleteUser(User $user): bool
     {
@@ -170,7 +171,7 @@ class UserManagementService
 
             return true;
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack(); // Reverte a transação
             Log::error('Erro ao remover usuário no serviço: '.$e->getMessage(), ['exception' => $e, 'user_id' => $user->id]);
             throw $e; // Re-lança a exceção para o controller

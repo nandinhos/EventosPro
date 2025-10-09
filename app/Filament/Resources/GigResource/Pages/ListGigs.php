@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\GigResource\Pages;
 
 use App\Filament\Resources\GigResource;
-use Filament\Actions;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListGigs extends ListRecords
@@ -13,7 +13,7 @@ class ListGigs extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 }

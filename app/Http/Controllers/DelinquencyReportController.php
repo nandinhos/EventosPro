@@ -6,6 +6,7 @@ use App\Models\Artist;
 use App\Models\Booker;
 use App\Models\Gig;
 use App\Models\Payment;
+use App\Services\GigFinancialCalculatorService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
@@ -180,7 +181,7 @@ class DelinquencyReportController extends Controller
         ]);
 
         // Instanciar o serviço de cálculo financeiro
-        $financialService = app(\App\Services\GigFinancialCalculatorService::class);
+        $financialService = app(GigFinancialCalculatorService::class);
 
         // Consulta para obter pagamentos com data de vencimento e carregar relacionamentos necessários
         $payments = Payment::query()
@@ -288,7 +289,7 @@ class DelinquencyReportController extends Controller
         ]);
 
         // Instanciar o serviço de cálculo financeiro
-        $financialService = app(\App\Services\GigFinancialCalculatorService::class);
+        $financialService = app(GigFinancialCalculatorService::class);
 
         // Consulta para obter pagamentos com data de vencimento e carregar relacionamentos necessários
         $payments = Payment::query()

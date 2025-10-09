@@ -2,43 +2,49 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\BookerResource\Pages;
-use App\Filament\Resources\BookerResource\Widgets; // Adicionar este use
+use App\Filament\Resources\BookerResource\Pages\ListBookers;
+use App\Filament\Resources\BookerResource\Pages\ViewBooker;
+use App\Filament\Resources\BookerResource\Widgets;
+use App\Filament\Resources\BookerResource\Widgets\BookerCommissionsChart;
+use App\Filament\Resources\BookerResource\Widgets\BookerStatsOverview;
+use App\Filament\Resources\BookerResource\Widgets\TopArtistsTable;
 use App\Models\Booker;
-use Filament\Forms\Form;
+use Filament\Actions\ViewAction;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema; // Adicionar este use
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class BookerResource extends Resource
 {
     protected static ?string $model = Booker::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([/* ... campos se necessário ... */]);
+        return $schema->components([/* ... campos se necessário ... */]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')->label('Booker')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('gigs_count')->counts('gigs')->label('Qtd. Gigs'),
+                TextColumn::make('name')->label('Booker')->searchable()->sortable(),
+                TextColumn::make('gigs_count')->counts('gigs')->label('Qtd. Gigs'),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make(), // Ação para ir para a página de detalhes
+            ->recordActions([
+                ViewAction::make(), // Ação para ir para a página de detalhes
             ]);
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListBookers::route('/'),
+            'index' => ListBookers::route('/'),
             // ***** REGISTRA A NOVA PÁGINA DE VISUALIZAÇÃO *****
-            'view' => Pages\ViewBooker::route('/{record}'),
+            'view' => ViewBooker::route('/{record}'),
         ];
     }
 
@@ -46,13 +52,13 @@ class BookerResource extends Resource
     public static function getWidgets(): array
     {
         return [
-            Widgets\BookerStatsOverview::class,
-            Widgets\BookerCommissionsChart::class,
-            Widgets\TopArtistsTable::class,
+            BookerStatsOverview::class,
+            BookerCommissionsChart::class,
+            TopArtistsTable::class,
         ];
     }
 
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
         $user = auth()->user();
 

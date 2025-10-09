@@ -2,28 +2,34 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ArtistResource\Pages;
+use App\Filament\Resources\ArtistResource\Pages\CreateArtist;
+use App\Filament\Resources\ArtistResource\Pages\EditArtist;
+use App\Filament\Resources\ArtistResource\Pages\ListArtists;
 use App\Models\Artist;
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class ArtistResource extends Resource
 {
     protected static ?string $model = Artist::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-microphone'; // Ícone sugerido
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-microphone'; // Ícone sugerido
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('name')
+        return $schema
+            ->components([
+                TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\Textarea::make('contact_info')
+                Textarea::make('contact_info')
                     ->maxLength(65535)
                     ->columnSpanFull(),
             ]);
@@ -37,17 +43,17 @@ class ArtistResource extends Resource
         return $table
             ->columns([
                 // ***** ADICIONE AS COLUNAS AQUI *****
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->label('Nome do Artista')
                     ->searchable() // Permite buscar por nome
                     ->sortable(), // Permite ordenar por nome
 
-                Tables\Columns\TextColumn::make('gigs_count')
+                TextColumn::make('gigs_count')
                     ->counts('gigs') // Conta a quantidade de gigs relacionadas
                     ->label('Qtd. Gigs')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Criado em')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
@@ -56,12 +62,12 @@ class ArtistResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -76,9 +82,9 @@ class ArtistResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListArtists::route('/'),
-            'create' => Pages\CreateArtist::route('/create'),
-            'edit' => Pages\EditArtist::route('/{record}/edit'),
+            'index' => ListArtists::route('/'),
+            'create' => CreateArtist::route('/create'),
+            'edit' => EditArtist::route('/{record}/edit'),
         ];
     }
 }

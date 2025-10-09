@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Gig;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -76,7 +77,7 @@ class AuditService
                 'ultima_atualizacao' => now()->format('d/m/Y H:i:s'),
             ];
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("[AuditService] Erro ao calcular auditoria para Gig ID {$gig->id}: ".$e->getMessage());
 
             return $this->getErrorAuditData($gig->id, $e->getMessage());

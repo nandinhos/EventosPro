@@ -52,7 +52,7 @@
                         <div class="pl-4 space-y-1">
                             @php
                                 // Carregar os custos apenas uma vez se ainda não estiverem carregados e ordenados
-                                $confirmedCostsGrouped = $gig->costs()
+                                $confirmedCostsGrouped = $gig->gigCosts()
                                     ->where('is_confirmed', true)
                                     ->with('costCenter') // Eager load para evitar N+1
                                     ->get()
@@ -111,7 +111,7 @@
 
                 {{-- Despesas Pagas pelo Artista (Reembolsáveis, is_invoice = true) --}}
                 @php
-                    $despesasReembolsaveisAoArtista = $gig->costs->where('is_confirmed', true)->where('is_invoice', true);
+                    $despesasReembolsaveisAoArtista = $gig->gigCosts->where('is_confirmed', true)->where('is_invoice', true);
                     $totalDespesasReembolsaveisAoArtista = $despesasReembolsaveisAoArtista->sum('value');
                 @endphp
                 @if($despesasReembolsaveisAoArtista->isNotEmpty())

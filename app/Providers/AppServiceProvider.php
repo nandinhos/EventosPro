@@ -7,6 +7,7 @@ use App\Models\GigCost;
 use App\Observers\GigCostObserver;
 use App\Observers\GigObserver;
 use App\Policies\GigPolicy;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -33,9 +34,9 @@ class AppServiceProvider extends ServiceProvider
         GigCost::observe(GigCostObserver::class);
 
         // Registra os componentes Blade
-        \Illuminate\Support\Facades\Blade::component('reports.components.tab-nav', 'tab-nav');
-        \Illuminate\Support\Facades\Blade::component('reports.components.chart', 'chart');
-        \Illuminate\Support\Facades\Blade::component('reports.components.slot-button', 'slot-button');
-        \Illuminate\Support\Facades\Blade::component('components.status-dot', 'status-dot');
+        Blade::component('reports.components.tab-nav', 'tab-nav');
+        Blade::component('reports.components.chart', 'chart');
+        Blade::component('reports.components.slot-button', 'slot-button');
+        Blade::component('components.status-dot', 'status-dot');
     }
 }

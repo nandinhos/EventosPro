@@ -39,7 +39,7 @@
     <div class="pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50">
         <span class="text-gray-600 dark:text-gray-400 block mb-1">(-) Total Despesas Confirmadas (Deduzidas da Base):</span>
         <div class="pl-2 space-y-1">
-            @forelse($gig->costs->where('is_confirmed', true) as $cost)
+            @forelse($gig->gigCosts->where('is_confirmed', true) as $cost)
                 <div class="flex justify-between text-[11px] sm:text-xs">
                     <span class="text-gray-500 dark:text-gray-400">- {{ __('cost_centers.' . ($cost->costCenter->name ?? 'N/A')) }}: {{ $cost->description }}</span>
                             <span class="font-medium text-red-500 dark:text-red-400">R$ {{ number_format($cost->value, 2, ',', '.') }}</span>
@@ -73,7 +73,7 @@
         <div class="pt-2 mt-0 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-700/30 px-3 -mx-3">
             <span class="text-gray-600 dark:text-gray-400 block mb-1 font-semibold">(+) Reembolso Despesas Pagas pelo Artista:</span>
             <div class="pl-2 space-y-1">
-                @foreach($gig->costs->where('is_confirmed', true)->where('is_invoice', true) as $cost)
+                @foreach($gig->gigCosts->where('is_confirmed', true)->where('is_invoice', true) as $cost)
                     <div class="flex justify-between text-[11px] sm:text-xs">
                         <span class="text-gray-500 dark:text-gray-400">- {{ __('cost_centers.' . ($cost->costCenter->name ?? 'N/A')) }}: {{ $cost->description }}</span>
                                 <span class="font-medium text-green-600 dark:text-green-400">R$ {{ number_format($cost->value, 2, ',', '.') }}</span>

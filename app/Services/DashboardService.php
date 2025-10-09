@@ -163,7 +163,7 @@ class DashboardService
                 });
         })
             ->whereIn('contract_status', ['assinado', 'concluido', 'para_assinatura', 'n/a'])
-            ->with(['payments', 'costs', 'artist', 'booker'])
+            ->with(['payments', 'gigCosts', 'artist', 'booker'])
             ->get();
 
         // Agrupa os dados por mês/ano

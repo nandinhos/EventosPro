@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Services\ExchangeRateService;
 use App\Services\GigFinancialCalculatorService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -42,10 +44,10 @@ use Illuminate\Support\Facades\Log; // Importar para nova sintaxe de Accessor
  * @property \Carbon\Carbon|null $deleted_at
  * @property-read \App\Models\Artist $artist
  * @property-read \App\Models\Booker $booker
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Payment> $payments
+ * @property-read Collection<int, \App\Models\Payment> $payments
  * @property-read \App\Models\Settlement|null $settlement
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Tag> $tags
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\GigCost> $costs
+ * @property-read Collection<int, \App\Models\Tag> $tags
+ * @property-read Collection<int, \App\Models\GigCost> $gigCosts
  */
 class Gig extends Model
 {
@@ -119,7 +121,7 @@ class Gig extends Model
         return $this->morphToMany(Tag::class, 'taggable');
     }
 
-    public function costs(): HasMany
+    public function gigCosts(): HasMany
     {
         return $this->hasMany(GigCost::class);
     }
@@ -168,7 +170,7 @@ class Gig extends Model
         }
 
         // Prioridade 2: Usar ExchangeRateService para obter taxa atualizada
-        $exchangeRateService = app(\App\Services\ExchangeRateService::class);
+        $exchangeRateService = app(ExchangeRateService::class);
         $rate = $exchangeRateService->getExchangeRate($currencyCode, $date);
 
         if ($rate !== null) {
@@ -398,12 +400,12 @@ class Gig extends Model
     public function getAreAllCostsConfirmedAttribute(): bool
     {
         // Se não houver custos, consideramos que "todos" estão confirmados.
-        if ($this->costs->isEmpty()) {
+        if ($this->gigCosts->isEmpty()) {
             return true;
         }
 
         // Retorna true apenas se NÃO EXISTIR nenhum custo com is_confirmed = false.
-        return $this->costs()->where('is_confirmed', false)->doesntExist();
+        return $this->gigCosts()->where('is_confirmed', false)->doesntExist();
     }
 
     // Manteremos os campos `agency_commission_value`, `booker_commission_value`,

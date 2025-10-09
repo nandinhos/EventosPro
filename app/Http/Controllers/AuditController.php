@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Gig;
 use App\Services\GigFinancialCalculatorService;
+use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -136,7 +138,7 @@ class AuditController extends Controller
             } else {
                 // 3) ou 4) Verificar se evento já aconteceu
                 $hoje = now()->startOfDay();
-                $gigDate = $gig->gig_date ? \Carbon\Carbon::parse($gig->gig_date)->startOfDay() : null;
+                $gigDate = $gig->gig_date ? Carbon::parse($gig->gig_date)->startOfDay() : null;
 
                 if ($gigDate && $gigDate->lt($hoje)) {
                     $categoria = 'gigs_vencidas';
@@ -230,7 +232,7 @@ class AuditController extends Controller
     {
         $gig->loadMissing(['artist', 'booker', 'payments' => function ($query) {
             $query->orderBy('due_date', 'asc');
-        }, 'costs.costCenter']);
+        }, 'gigCosts.costCenter']);
 
         $auditData = $this->calculateAuditData($gig);
 
@@ -449,7 +451,7 @@ class AuditController extends Controller
                 'status_divergencia' => $this->getStatusDivergencia($divergencia),
             ];
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error("[AuditController] Erro ao calcular auditoria para Gig ID {$gig->id}: ".$e->getMessage());
 
             return [
@@ -532,7 +534,7 @@ class AuditController extends Controller
                 'report_path' => $reportPath,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Erro ao executar auditoria de dados', ['exception' => $e]);
 
             return response()->json([
@@ -585,11 +587,12 @@ class AuditController extends Controller
                         'issue_type' => $issue['type'],
                         'severity' => $issue['severity'],
                         'description' => $issue['description'],
-                        'field' => $issue['field'],
+                        'field' => $issue['field'] ?? null,
                         'current_value' => $issue['current_value'] ?? '',
                         'suggested_value' => $issue['suggested_value'] ?? '',
                         'suggested_action' => $issue['suggested_action'],
-                        'can_fix' => isset($issue['suggested_value']) && $issue['severity'] === 'critical',
+                        'relation_id' => $issue['cost_id'] ?? $issue['payment_id'] ?? null,
+                        'can_fix' => isset($issue['suggested_value']) && isset($issue['field']) && ! empty($issue['field']),
                     ];
                 }
             }
@@ -600,7 +603,7 @@ class AuditController extends Controller
                 'stats' => $reportData['stats'] ?? [],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Erro ao buscar issues de auditoria', ['exception' => $e]);
 
             return response()->json([
@@ -631,7 +634,9 @@ class AuditController extends Controller
             $issueType = $request->input('issue_type');
 
             // Validar se o campo pode ser editado
+            // Lista completa de campos que os comandos de auditoria podem corrigir
             $allowedFields = [
+                // Campos do modelo Gig
                 'artist_payment_status',
                 'booker_payment_status',
                 'artist_id',
@@ -639,16 +644,115 @@ class AuditController extends Controller
                 'cache_value',
                 'currency',
                 'contract_date',
+                'agency_commission_value',
+                'booker_commission_value',
+                'liquid_commission_value',
+                'contract_status',
+                'agency_commission_rate',
+                'booker_commission_rate',
+                'payment_status',
+                'confirmed_at',
+                'gig_id',
+
+                // Campos do modelo Settlement
+                'settlement_date',
+                'artist_payment_value',
+                'artist_payment_paid_at',
+                'artist_payment_proof',
+                'booker_commission_value_paid',
+                'booker_commission_paid_at',
+                'booker_commission_proof',
+
+                // Campos relacionados (payments e costs) - formato especial
+                'payments.due_value',
+                'payments.received_value_actual',
+                'payments.currency',
+                'payments.confirmed_at',
+                'costs.currency',
+                'costs.value',
+                'costs.cost_center_id',
+                'costs.is_confirmed',
+            ];
+
+            // Campos que pertencem ao Settlement (não à Gig)
+            $settlementFields = [
+                'settlement_date',
+                'artist_payment_value',
+                'artist_payment_paid_at',
+                'artist_payment_proof',
+                'booker_commission_value_paid',
+                'booker_commission_paid_at',
+                'booker_commission_proof',
             ];
 
             if (! in_array($field, $allowedFields)) {
-                throw new \Exception("Campo '{$field}' não pode ser editado via interface");
+                throw new Exception("Campo '{$field}' não pode ser editado via interface");
             }
 
             // Aplicar correção
-            $oldValue = $gig->$field;
-            $gig->$field = $newValue;
-            $gig->save();
+            $oldValue = null;
+
+            // Verificar se é um campo de Settlement
+            if (in_array($field, $settlementFields)) {
+                // Campos de Settlement
+                $settlement = $gig->settlement;
+
+                // Se não existe settlement, criar um
+                if (! $settlement) {
+                    $settlement = new \App\Models\Settlement;
+                    $settlement->gig_id = $gig->id;
+                    $settlement->settlement_date = $gig->gig_date; // Data padrão
+                }
+
+                $oldValue = $settlement->$field;
+                $settlement->$field = $newValue;
+                $settlement->save();
+
+                // Atualizar status na Gig se necessário
+                if ($field === 'artist_payment_paid_at' && $newValue) {
+                    $gig->artist_payment_status = 'pago';
+                    $gig->save();
+                } elseif ($field === 'booker_commission_paid_at' && $newValue) {
+                    $gig->booker_payment_status = 'pago';
+                    $gig->save();
+                }
+            } elseif (str_contains($field, '.')) {
+                // Campos relacionados (payments.* ou costs.*)
+                [$relation, $relationField] = explode('.', $field, 2);
+
+                // Para campos relacionados, precisamos do ID específico
+                $relationId = $request->input('relation_id');
+
+                if ($relation === 'payments' && $relationId) {
+                    $payment = $gig->payments()->find($relationId);
+                    if ($payment) {
+                        $oldValue = $payment->$relationField;
+                        $payment->$relationField = $newValue;
+                        $payment->save();
+                    }
+                } elseif ($relation === 'costs' && $relationId) {
+                    $cost = $gig->gigCosts()->find($relationId);
+                    if ($cost) {
+                        $oldValue = $cost->$relationField;
+
+                        // Converter valores booleanos string para boolean
+                        $finalValue = $newValue;
+                        if ($newValue === 'true' || $newValue === 'false') {
+                            $finalValue = $newValue === 'true';
+                        }
+
+                        $cost->$relationField = $finalValue;
+                        $cost->save();
+                    }
+                } else {
+                    throw new Exception("ID do relacionamento não fornecido para campo '{$field}'");
+                }
+            } else {
+                // Campo direto do Gig
+                $oldValue = $gig->$field;
+                $gig->$field = $newValue;
+                $gig->save();
+            }
 
             DB::commit();
 
@@ -668,7 +772,7 @@ class AuditController extends Controller
                 'new_value' => $newValue,
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Erro ao aplicar correção', [
                 'gig_id' => $request->integer('gig_id'),
@@ -703,16 +807,53 @@ class AuditController extends Controller
 
         // Lista de campos editáveis (mesmo whitelist do método individual)
         $editableFields = [
-            'artist_fee',
-            'production_cost',
-            'travel_cost',
-            'accommodation_cost',
-            'other_costs',
-            'total_cost',
-            'artist_name',
-            'location_event_details',
-            'gig_date',
-            'contract_number',
+            // Campos do modelo Gig
+            'artist_payment_status',
+            'booker_payment_status',
+            'artist_id',
+            'booker_id',
+            'cache_value',
+            'currency',
+            'contract_date',
+            'agency_commission_value',
+            'booker_commission_value',
+            'liquid_commission_value',
+            'contract_status',
+            'agency_commission_rate',
+            'booker_commission_rate',
+            'payment_status',
+            'confirmed_at',
+            'gig_id',
+
+            // Campos do modelo Settlement
+            'settlement_date',
+            'artist_payment_value',
+            'artist_payment_paid_at',
+            'artist_payment_proof',
+            'booker_commission_value_paid',
+            'booker_commission_paid_at',
+            'booker_commission_proof',
+
+            // Campos relacionados (payments e costs) - formato especial
+            'payments.due_value',
+            'payments.received_value_actual',
+            'payments.currency',
+            'payments.confirmed_at',
+            'costs.currency',
+            'costs.value',
+            'costs.cost_center_id',
+            'costs.is_confirmed',
+        ];
+
+        // Campos que pertencem ao Settlement (não à Gig)
+        $settlementFields = [
+            'settlement_date',
+            'artist_payment_value',
+            'artist_payment_paid_at',
+            'artist_payment_proof',
+            'booker_commission_value_paid',
+            'booker_commission_paid_at',
+            'booker_commission_proof',
         ];
 
         DB::beginTransaction();
@@ -740,14 +881,74 @@ class AuditController extends Controller
                     // Buscar o gig
                     $gig = Gig::findOrFail($gigId);
 
-                    // Aplicar a correção
-                    $gig->update([$field => $newValue]);
+                    $oldValue = null;
+
+                    // Verificar se é um campo de Settlement
+                    if (in_array($field, $settlementFields)) {
+                        // Campos de Settlement
+                        $settlement = $gig->settlement;
+
+                        // Se não existe settlement, criar um
+                        if (! $settlement) {
+                            $settlement = new \App\Models\Settlement;
+                            $settlement->gig_id = $gig->id;
+                            $settlement->settlement_date = $gig->gig_date; // Data padrão
+                        }
+
+                        $oldValue = $settlement->$field;
+                        $settlement->$field = $newValue;
+                        $settlement->save();
+
+                        // Atualizar status na Gig se necessário
+                        if ($field === 'artist_payment_paid_at' && $newValue) {
+                            $gig->artist_payment_status = 'pago';
+                            $gig->save();
+                        } elseif ($field === 'booker_commission_paid_at' && $newValue) {
+                            $gig->booker_payment_status = 'pago';
+                            $gig->save();
+                        }
+                    } elseif (str_contains($field, '.')) {
+                        // Campos relacionados (payments.* ou costs.*)
+                        [$relation, $relationField] = explode('.', $field, 2);
+
+                        // Para campos relacionados, precisamos do ID específico
+                        $relationId = $fix['relation_id'] ?? null;
+
+                        if ($relation === 'payments' && $relationId) {
+                            $payment = $gig->payments()->find($relationId);
+                            if ($payment) {
+                                $oldValue = $payment->$relationField;
+                                $payment->$relationField = $newValue;
+                                $payment->save();
+                            }
+                        } elseif ($relation === 'costs' && $relationId) {
+                            $cost = $gig->gigCosts()->find($relationId);
+                            if ($cost) {
+                                $oldValue = $cost->$relationField;
+
+                                // Converter valores booleanos string para boolean
+                                $finalValue = $newValue;
+                                if ($newValue === 'true' || $newValue === 'false') {
+                                    $finalValue = $newValue === 'true';
+                                }
+
+                                $cost->$relationField = $finalValue;
+                                $cost->save();
+                            }
+                        } else {
+                            throw new Exception("ID do relacionamento não fornecido para campo '{$field}'");
+                        }
+                    } else {
+                        // Campo direto do Gig
+                        $oldValue = $gig->$field;
+                        $gig->update([$field => $newValue]);
+                    }
 
                     // Log da correção
                     Log::info('Bulk fix applied', [
                         'gig_id' => $gigId,
                         'field' => $field,
-                        'old_value' => $gig->getOriginal($field),
+                        'old_value' => $oldValue,
                         'new_value' => $newValue,
                         'issue_type' => $issueType,
                     ]);
@@ -759,7 +960,7 @@ class AuditController extends Controller
                     ];
                     $successCount++;
 
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     $results[$index] = [
                         'success' => false,
                         'error' => $e->getMessage(),
@@ -784,7 +985,7 @@ class AuditController extends Controller
                 ],
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error('Bulk fix failed', [
                 'error' => $e->getMessage(),
@@ -805,6 +1006,242 @@ class AuditController extends Controller
     {
         $logsPath = storage_path('logs');
         $files = glob($logsPath.'/gig_audit_*.json');
+
+        if (empty($files)) {
+            return null;
+        }
+
+        // Ordenar por data de modificação (mais recente primeiro)
+        usort($files, function ($a, $b) {
+            return filemtime($b) - filemtime($a);
+        });
+
+        return $files[0];
+    }
+
+    /**
+     * Retorna lista de auditorias disponíveis (Phase 3)
+     */
+    public function getAvailableAudits()
+    {
+        try {
+            $auditService = app(\App\Services\AuditReportService::class);
+            $audits = $auditService->getAvailableAudits();
+
+            // Converter para formato que o frontend espera
+            $formattedAudits = [];
+            foreach ($audits as $type => $config) {
+                $formattedAudits[] = [
+                    'type' => $type,
+                    'name' => $config['name'],
+                    'description' => $config['description'],
+                    'icon' => $config['icon'],
+                    'color' => $config['color'],
+                    'command' => $config['command'],
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'audits' => $formattedAudits,
+            ]);
+        } catch (Exception $e) {
+            Log::error('Erro ao buscar auditorias disponíveis', ['exception' => $e]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao carregar auditorias: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Retorna dados do dashboard de auditorias (Phase 3)
+     */
+    public function getDashboard()
+    {
+        try {
+            $auditService = app(\App\Services\AuditReportService::class);
+            $consolidatedReport = $auditService->generateConsolidatedReport();
+
+            return response()->json([
+                'success' => true,
+                'health_score' => $consolidatedReport['health_score'],
+                'audits' => $consolidatedReport['audits'],
+                'generated_at' => $consolidatedReport['generated_at'],
+            ]);
+        } catch (Exception $e) {
+            Log::error('Erro ao gerar dashboard de auditorias', ['exception' => $e]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao carregar dashboard: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Executa uma auditoria específica (Phase 3)
+     */
+    public function runSpecificAudit(Request $request)
+    {
+        $request->validate([
+            'audit_type' => 'required|string',
+            'scan_only' => 'required|in:true,false,1,0',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+        ]);
+
+        try {
+            $auditType = $request->input('audit_type');
+            $scanOnly = $request->scan_only;
+            $dateFrom = $request->date_from;
+            $dateTo = $request->date_to;
+
+            // Mapeamento de tipos para comandos
+            $commandMap = [
+                'settlements' => 'gig:audit-settlements',
+                'payments' => 'gig:audit-payments',
+                'business-rules' => 'gig:audit-business-rules',
+                'currency' => 'gig:audit-currency',
+                'costs' => 'gig:audit-costs',
+                'duplicates' => 'gig:audit-duplicates',
+            ];
+
+            if (! isset($commandMap[$auditType])) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Tipo de auditoria inválido',
+                ], 400);
+            }
+
+            $command = $commandMap[$auditType];
+
+            // Preparar parâmetros do comando
+            $params = [];
+
+            if ($dateFrom) {
+                $params['--date-from'] = $dateFrom;
+            }
+            if ($dateTo) {
+                $params['--date-to'] = $dateTo;
+            }
+
+            // Processar modo de correção
+            if ($scanOnly === 'true' || $scanOnly === '1') {
+                $params['--scan-only'] = true;
+            } else {
+                $params['--auto-fix'] = true;
+            }
+
+            // Executar comando
+            $exitCode = Artisan::call($command, $params);
+            $output = Artisan::output();
+
+            // Buscar o arquivo de relatório mais recente
+            $reportPath = $this->getLatestAuditReportByType($auditType);
+
+            return response()->json([
+                'success' => $exitCode === 0,
+                'output' => $output,
+                'report_path' => $reportPath,
+                'audit_type' => $auditType,
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Erro ao executar auditoria específica', [
+                'audit_type' => $request->input('audit_type'),
+                'exception' => $e,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao executar auditoria: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Executa todas as auditorias (Phase 3)
+     */
+    public function runAllAudits(Request $request)
+    {
+        $request->validate([
+            'scan_only' => 'required|boolean',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+        ]);
+
+        try {
+            $scanOnly = $request->boolean('scan_only');
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+
+            $commands = [
+                'gig:audit-settlements',
+                'gig:audit-payments',
+                'gig:audit-business-rules',
+                'gig:audit-currency',
+                'gig:audit-costs',
+                'gig:audit-duplicates',
+            ];
+
+            $results = [];
+            $allSuccessful = true;
+
+            foreach ($commands as $command) {
+                $params = [];
+
+                if ($dateFrom) {
+                    $params['--date-from'] = $dateFrom;
+                }
+                if ($dateTo) {
+                    $params['--date-to'] = $dateTo;
+                }
+
+                if ($scanOnly) {
+                    $params['--scan-only'] = true;
+                } else {
+                    $params['--auto-fix'] = true;
+                }
+
+                $exitCode = Artisan::call($command, $params);
+
+                $results[$command] = [
+                    'success' => $exitCode === 0,
+                    'exit_code' => $exitCode,
+                ];
+
+                if ($exitCode !== 0) {
+                    $allSuccessful = false;
+                }
+            }
+
+            return response()->json([
+                'success' => $allSuccessful,
+                'message' => $allSuccessful
+                    ? 'Todas as auditorias foram executadas com sucesso'
+                    : 'Algumas auditorias falharam',
+                'results' => $results,
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Erro ao executar todas as auditorias', ['exception' => $e]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erro ao executar auditorias: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Busca o arquivo de relatório mais recente de um tipo específico
+     */
+    private function getLatestAuditReportByType(string $auditType): ?string
+    {
+        $logsPath = storage_path('logs');
+        $files = glob($logsPath."/audit_{$auditType}_*.json");
 
         if (empty($files)) {
             return null;

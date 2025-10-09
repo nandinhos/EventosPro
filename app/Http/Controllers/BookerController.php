@@ -8,6 +8,7 @@ use App\Models\Booker;
 use App\Models\Gig;
 use App\Services\BookerFinancialsService;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -147,7 +148,7 @@ class BookerController extends Controller
                 'message' => 'Comissão atualizada com sucesso!',
             ]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Erro ao atualizar comissão do evento: '.$e->getMessage());
 
             return response()->json([
