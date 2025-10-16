@@ -142,7 +142,7 @@ class GigController extends Controller
                     if (isset($expenseItem['_deleted']) && $expenseItem['_deleted']) {
                         continue; // Pular despesas marcadas para exclusão no formulário de criação (não deveria acontecer)
                     }
-                    $gig->gigCosts()()->create([
+                    $gig->gigCosts()->create([
                         'cost_center_id' => $expenseItem['cost_center_id'],
                         'description' => $expenseItem['description'] ?? null,
                         'value' => $expenseItem['value'],
@@ -288,9 +288,9 @@ class GigController extends Controller
         if ($oldExpenses !== null && is_array($oldExpenses) && count($oldExpenses) > 0) {
             // Usar dados old() quando disponíveis (erro de validação com dados preenchidos)
             $expensesDataForView = $oldExpenses;
-        } elseif ($gig->exists && $gig->gigCosts()->isNotEmpty()) {
+        } elseif ($gig->exists && $gig->gigCosts->isNotEmpty()) {
             // Usar dados originais do banco quando old() está vazio ou não existe
-            $expensesDataForView = $gig->gigCosts()->map(function ($cost) {
+            $expensesDataForView = $gig->gigCosts->map(function ($cost) {
                 return [
                     'id' => $cost->id,
                     'cost_center_id' => (string) ($cost->cost_center_id ?? ''),
@@ -376,7 +376,7 @@ class GigController extends Controller
             Log::info("[GigController@update] Tags sincronizadas para Gig ID: {$gig->id}.");
 
             // Sincronizar Despesas (GigCosts) - Lógica mais robusta
-            $existingCostIds = $gig->gigCosts()()->pluck('id')->all();
+            $existingCostIds = $gig->gigCosts()->pluck('id')->all();
             $formCostIds = [];
 
             if (! empty($expensesData)) {
@@ -413,7 +413,7 @@ class GigController extends Controller
                             $formCostIds[] = $costId;
                         }
                     } elseif (! $costId && ! $isDeleted) { // Criar novo
-                        $newCost = $gig->gigCosts()()->create($dataToUpsert);
+                        $newCost = $gig->gigCosts()->create($dataToUpsert);
                         $formCostIds[] = $newCost->id;
                     }
                 }
@@ -449,7 +449,7 @@ class GigController extends Controller
                 // ou se desejar manter a integridade para restauração.
                 // Se cascadeOnDelete estiver configurado nas migrations, isso pode ser automático.
                 // $gig->payments()->delete(); // Se usar softDeletes no Payment
-                // $gig->gigCosts()()->delete();    // Se usar softDeletes no GigCost
+                // $gig->gigCosts()->delete();    // Se usar softDeletes no GigCost
                 $gig->delete(); // Soft delete da Gig
             });
 

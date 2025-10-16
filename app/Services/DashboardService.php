@@ -91,7 +91,7 @@ class DashboardService
         ];
 
         // Gigs do mês (data do evento)
-        $gigsThisMonth = Gig::with(['payments', 'costs', 'artist', 'booker'])
+        $gigsThisMonth = Gig::with(['payments', 'gigCosts', 'artist', 'booker'])
             ->whereBetween('gig_date', [$startOfMonth, $endOfMonth])
             ->get();
 
@@ -113,7 +113,7 @@ class DashboardService
         });
 
         // Vendas do mês (data de contrato) - Usando a mesma lógica do relatório de desempenho
-        $salesThisMonth = Gig::with(['payments', 'costs', 'artist', 'booker'])
+        $salesThisMonth = Gig::with(['payments', 'gigCosts', 'artist', 'booker'])
             ->whereNull('deleted_at')
             ->whereBetween(DB::raw('COALESCE(contract_date, gig_date)'), [$startOfMonth, $endOfMonth])
             ->whereIn('contract_status', ['assinado', 'concluido', 'para_assinatura', 'n/a'])
