@@ -63,10 +63,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/delinquency', [DelinquencyReportController::class, 'index'])->name('reports.delinquency');
     // Rota para exportação inadimplentes
     Route::get('/reports/delinquency/export/pdf', [DelinquencyReportController::class, 'exportPdf'])->name('reports.delinquency.exportPdf');
-    // pagamentos em massa
+    // pagamentos em massa - bookers
     Route::post('/reports/commissions/settle-batch', [App\Http\Controllers\FinancialReportController::class, 'settleBatchBookerCommissions'])->name('reports.commissions.settleBatch');
-    // desfazer pagaementos em massa
+    // desfazer pagaementos em massa - bookers
     Route::patch('/reports/commissions/unsettle-batch', [App\Http\Controllers\FinancialReportController::class, 'unsettleBatchBookerCommissions'])->name('reports.commissions.unsettleBatch');
+    // pagamentos em massa - artistas
+    Route::post('/reports/artist-payments/settle-batch', [App\Http\Controllers\FinancialReportController::class, 'settleBatchArtistPayments'])->name('reports.artist-payments.settleBatch');
+    // desfazer pagamentos em massa - artistas
+    Route::patch('/reports/artist-payments/unsettle-batch', [App\Http\Controllers\FinancialReportController::class, 'unsettleBatchArtistPayments'])->name('reports.artist-payments.unsettleBatch');
     // para exportar em excel/pdf
     Route::get('/reports/export/{type}/{format}', [FinancialReportController::class, 'export'])->name('reports.export');
 
@@ -82,6 +86,10 @@ Route::middleware('auth')->group(function () {
     // Rota para atualizar comissão de eventos
     Route::post('/bookers/events/{eventId}/commission', [BookerController::class, 'updateEventCommission'])->name('bookers.events.commission.update');
 
+    // Booker Performance Export Routes
+    Route::get('/bookers/{booker}/export/pdf', [BookerController::class, 'exportPdf'])->name('bookers.export.pdf');
+    Route::get('/bookers/{booker}/export/excel', [BookerController::class, 'exportExcel'])->name('bookers.export.excel');
+
     // Financial Projections
     Route::get('/projections', [FinancialProjectionController::class, 'index'])->name('projections.index');
 
@@ -94,7 +102,8 @@ Route::middleware('auth')->group(function () {
 
     // Artist Performance Reports
     Route::get('/reports/artist-performance', [ArtistPerformanceController::class, 'index'])->name('reports.artist-performance.index');
-    Route::get('/reports/artist-performance/export', [ArtistPerformanceController::class, 'exportPdf'])->name('reports.artist-performance.export');
+    Route::get('/reports/artist-performance/export/pdf', [ArtistPerformanceController::class, 'exportPdf'])->name('reports.artist-performance.export.pdf');
+    Route::get('/reports/artist-performance/export/excel', [ArtistPerformanceController::class, 'exportExcel'])->name('reports.artist-performance.export.excel');
 
     // Audit routes
     Route::get('/auditoria', [AuditController::class, 'index'])->name('audit.index');

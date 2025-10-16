@@ -35,11 +35,23 @@
                             <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Data Final</label>
                             <input type="date" name="end_date" id="end_date" value="{{ $filters['end_date'] ?? '' }}" class="mt-1 block w-full text-sm rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-primary-500 focus:border-primary-500">
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-semibold flex items-center">
-                                <i class="fas fa-filter mr-2"></i>Aplicar
+                        <div class="flex items-center gap-2">
+                            <button type="submit" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm rounded-md shadow transition-colors duration-200">
+                                <i class="fas fa-filter mr-2"></i>
+                                Aplicar
                             </button>
-                            <a href="{{ route('bookers.show', $booker) }}" class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500 px-4 py-2 rounded-md text-sm font-semibold">Limpar</a>
+                            <a href="{{ route('bookers.show', $booker) }}" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-500 text-white font-semibold text-sm rounded-md shadow transition-colors duration-200">
+                                <i class="fas fa-eraser mr-2"></i>
+                                Limpar
+                            </a>
+                            <a href="{{ route('bookers.export.pdf', array_merge(['booker' => $booker->id], $filters)) }}" target="_blank" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm rounded-md shadow transition-colors duration-200">
+                                <i class="fas fa-file-pdf mr-2"></i>
+                                PDF
+                            </a>
+                            <a href="{{ route('bookers.export.excel', array_merge(['booker' => $booker->id], $filters)) }}" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold text-sm rounded-md shadow transition-colors duration-200">
+                                <i class="fas fa-file-excel mr-2"></i>
+                                Excel
+                            </a>
                         </div>
                     </div>
                 </form>

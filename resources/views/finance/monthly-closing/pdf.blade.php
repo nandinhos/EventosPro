@@ -189,7 +189,7 @@
         @if($booker)
             <p><strong>Booker:</strong> {{ $booker->name }}</p>
         @endif
-        <p style="font-size: 8px; margin-top: 5px;">Gerado em: {{ now()->format('d/m/Y H:i') }}</p>
+        <p style="font-size: 8px; margin-top: 5px;">Gerado em: {{ now()->format('d/m/Y H:i') }} por {{ $generatedBy }}</p>
     </div>
 
     {{-- CARDS PRINCIPAIS --}}
