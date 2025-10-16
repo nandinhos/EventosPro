@@ -135,17 +135,21 @@ class FinancialReportController extends Controller
 
         // Validar regras de negócio antes de processar
         $validationService = app(CommissionPaymentValidationService::class);
-        $gigs = Gig::whereIn('id', $gigIds)->get();
+        // Eager load relationships para evitar N+1
+        $gigs = Gig::with(['booker', 'artist'])->whereIn('id', $gigIds)->get();
         $batchValidation = $validationService->validateBatchPayment($gigs, false);
 
         if ($batchValidation['invalid_gigs']->isNotEmpty()) {
             return back()->with('error', 'Alguns eventos não podem ser pagos: '.implode('; ', $batchValidation['errors']));
         }
 
+        // Criar lookup para evitar queries no loop
+        $gigsById = $gigs->keyBy('id');
+
         DB::beginTransaction();
         try {
             foreach ($gigIds as $gigId) {
-                $gig = Gig::find($gigId);
+                $gig = $gigsById->get($gigId);
 
                 if (! $gig || ! $gig->booker_id || $gig->booker_payment_status === 'pago') {
                     $errors[] = "Comissão da Gig #{$gigId} não pôde ser paga (não encontrada, sem booker ou já paga).";
@@ -207,10 +211,14 @@ class FinancialReportController extends Controller
         $unsettledCount = 0;
         $errors = [];
 
+        // Eager load relationships para evitar N+1
+        $gigs = Gig::with('settlement')->whereIn('id', $gigIds)->get();
+        $gigsById = $gigs->keyBy('id');
+
         DB::beginTransaction();
         try {
             foreach ($gigIds as $gigId) {
-                $gig = Gig::with('settlement')->find($gigId);
+                $gig = $gigsById->get($gigId);
 
                 if (! $gig || $gig->booker_payment_status !== 'pago') {
                     $errors[] = "Comissão da Gig #{$gigId} não pôde ser revertida (não encontrada ou não estava paga).";

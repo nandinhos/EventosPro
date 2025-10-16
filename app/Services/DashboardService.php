@@ -137,7 +137,7 @@ class DashboardService
         ]);
 
         // Próximas gigs
-        $data['nextGigs'] = Gig::with('artist')
+        $data['nextGigs'] = Gig::with(['artist', 'booker'])
             ->where('gig_date', '>=', $today)
             ->orderBy('gig_date', 'asc')
             ->limit(5)

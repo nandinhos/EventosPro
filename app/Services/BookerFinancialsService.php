@@ -25,7 +25,8 @@ class BookerFinancialsService
             $query->whereBetween(DB::raw('COALESCE(contract_date, gig_date)'), [$startDate, $endDate]);
         }
 
-        $gigsInPeriod = $query->get();
+        // Eager load para evitar N+1 se usado em calculadora financeira
+        $gigsInPeriod = $query->with(['payments', 'gigCosts'])->get();
 
         return [
             'total_sold_value' => $gigsInPeriod->sum(fn ($gig) => $gig->cache_value_brl),
@@ -39,7 +40,9 @@ class BookerFinancialsService
             ->whereNotNull('booker_commission_paid_at')
             ->sum('booker_commission_value_paid');
 
+        // Eager load para evitar N+1 no calculator
         $commissionToReceive = $booker->gigs()->where('booker_payment_status', 'pendente')
+            ->with(['payments', 'gigCosts'])
             ->get()
             ->sum(fn ($gig) => $this->gigCalculator->calculateBookerCommissionBrl($gig));
 
@@ -85,7 +88,8 @@ class BookerFinancialsService
             $query->whereBetween(DB::raw('COALESCE(contract_date, gig_date)'), [$startDate, $endDate]);
         }
 
-        $gigsInPeriod = $query->with('artist:id,name')->get();
+        // Eager load para evitar N+1
+        $gigsInPeriod = $query->with(['artist:id,name', 'payments', 'gigCosts'])->get();
 
         return $gigsInPeriod
             ->groupBy('artist.name')
@@ -131,7 +135,8 @@ class BookerFinancialsService
                 'gigs.*',
                 DB::raw('COALESCE(gigs.contract_date, gigs.gig_date) as sale_date') // <-- CORREÇÃO AQUI
             )
-            ->with(['artist'])
+            // Eager load para evitar N+1
+            ->with(['artist', 'payments', 'gigCosts'])
             ->whereBetween(DB::raw('COALESCE(contract_date, gig_date)'), [$startDate, $endDate])
             ->orderByDesc(DB::raw('COALESCE(contract_date, gig_date)'))
             ->get();
