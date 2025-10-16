@@ -16,7 +16,7 @@
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
             @forelse ($gigs as $gig)
                 @php
-                    $gigCosts = $gig->costs;
+                    $gigCosts = $gig->gigCosts;
                     $confirmedCosts = $gigCosts->where('is_confirmed', true);
                     $pendingCosts = $gigCosts->where('is_confirmed', false);
                     $totalConfirmed = $confirmedCosts->sum('value_brl');

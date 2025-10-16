@@ -4,8 +4,8 @@ namespace Tests\Unit\Exports;
 
 use App\Exports\DetailedPerformanceReportExport;
 use Illuminate\Support\Collection;
-use PHPUnit\Framework\TestCase;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PHPUnit\Framework\TestCase;
 
 class DetailedPerformanceReportExportTest extends TestCase
 {
@@ -43,7 +43,7 @@ class DetailedPerformanceReportExportTest extends TestCase
                 'comissao_agencia_liquida_brl' => 450.00,
                 'contract_status' => 'Pendente',
                 'payment_status' => 'Pendente',
-            ]
+            ],
         ]);
     }
 

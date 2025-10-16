@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreArtistRequest;
 use App\Http\Requests\UpdateArtistRequest;
 use App\Models\Artist;
+use App\Models\Gig;
+use App\Models\Settlement;
 use App\Models\Tag;
 use App\Services\ArtistFinancialsService;
+use App\Services\GigFinancialCalculatorService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\RedirectResponse;
@@ -138,5 +141,144 @@ class ArtistController extends Controller
             'futureGigs',
             'metrics'
         ));
+    }
+
+    /**
+     * Settle batch artist payments for multiple gigs at once.
+     */
+    public function settleBatchArtistPayments(Request $request, GigFinancialCalculatorService $calculator): RedirectResponse
+    {
+        $validated = $request->validate([
+            'gig_ids' => 'required|array',
+            'gig_ids.*' => 'integer|exists:gigs,id',
+            'payment_date' => 'required|date|before_or_equal:today',
+        ]);
+
+        $gigIds = $validated['gig_ids'];
+        $paymentDate = Carbon::parse($validated['payment_date']);
+
+        // Fetch the gigs with necessary relationships
+        $gigs = Gig::with(['artist', 'gigCosts'])
+            ->whereIn('id', $gigIds)
+            ->get();
+
+        // Validate all gigs before processing
+        $errors = [];
+        foreach ($gigs as $gig) {
+            // Business rule: Can only pay for realized events (past gig_date)
+            if ($gig->gig_date->isFuture()) {
+                $errors[] = "Gig #{$gig->id} ainda não aconteceu. Não é possível pagar antecipadamente.";
+            }
+
+            // Check if already paid
+            if ($gig->artist_payment_status === 'pago') {
+                $errors[] = "Gig #{$gig->id} já está marcado como pago.";
+            }
+
+            // Validate all costs are confirmed
+            $pendingCosts = $gig->gigCosts->where('is_confirmed', false);
+            if ($pendingCosts->count() > 0) {
+                $errors[] = "Gig #{$gig->id} possui despesas não confirmadas. Confirme todas as despesas antes de pagar.";
+            }
+        }
+
+        if (! empty($errors)) {
+            return back()->with('error', 'Erros encontrados: '.implode(' | ', $errors));
+        }
+
+        // Process batch payment in transaction
+        DB::beginTransaction();
+        try {
+            $totalPaid = 0;
+            $processedCount = 0;
+
+            foreach ($gigs as $gig) {
+                // Calculate artist net payout
+                $artistNetPayout = $calculator->calculateArtistNetPayoutBrl($gig);
+
+                // Create or update settlement record
+                $settlement = Settlement::firstOrNew(['gig_id' => $gig->id]);
+                $settlement->settlement_date = $paymentDate; // Required field
+                $settlement->artist_payment_value = $artistNetPayout;
+                $settlement->artist_payment_paid_at = $paymentDate;
+                $settlement->save();
+
+                // Update gig payment status
+                $gig->artist_payment_status = 'pago';
+                $gig->save();
+
+                $totalPaid += $artistNetPayout;
+                $processedCount++;
+            }
+
+            DB::commit();
+
+            return back()->with('success', "Pagamento em massa realizado com sucesso! {$processedCount} evento(s) processado(s). Total pago: R$ ".number_format($totalPaid, 2, ',', '.'));
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao processar pagamento em massa de artistas: '.$e->getMessage());
+
+            return back()->with('error', 'Erro ao processar pagamento em massa. Tente novamente.');
+        }
+    }
+
+    /**
+     * Unsettle (reverse) batch artist payments for multiple gigs at once.
+     */
+    public function unsettleBatchArtistPayments(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'gig_ids' => 'required|array',
+            'gig_ids.*' => 'integer|exists:gigs,id',
+        ]);
+
+        $gigIds = $validated['gig_ids'];
+
+        // Fetch the gigs
+        $gigs = Gig::whereIn('id', $gigIds)->get();
+
+        // Validate all gigs before processing
+        $errors = [];
+        foreach ($gigs as $gig) {
+            // Check if payment status is 'pago'
+            if ($gig->artist_payment_status !== 'pago') {
+                $errors[] = "Gig #{$gig->id} não está marcado como pago.";
+            }
+        }
+
+        if (! empty($errors)) {
+            return back()->with('error', 'Erros encontrados: '.implode(' | ', $errors));
+        }
+
+        // Process batch unsettle in transaction
+        DB::beginTransaction();
+        try {
+            $processedCount = 0;
+
+            foreach ($gigs as $gig) {
+                // Find settlement record and nullify artist payment fields
+                $settlement = Settlement::where('gig_id', $gig->id)->first();
+                if ($settlement) {
+                    $settlement->artist_payment_value = null;
+                    $settlement->artist_payment_paid_at = null;
+                    $settlement->save();
+                }
+
+                // Update gig payment status to pending
+                $gig->artist_payment_status = 'pendente';
+                $gig->save();
+
+                $processedCount++;
+            }
+
+            DB::commit();
+
+            return back()->with('success', "Pagamento desfeito com sucesso! {$processedCount} evento(s) marcado(s) como pendente.");
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao desfazer pagamento em massa de artistas: '.$e->getMessage());
+
+            return back()->with('error', 'Erro ao desfazer pagamento em massa. Tente novamente.');
+        }
     }
 }

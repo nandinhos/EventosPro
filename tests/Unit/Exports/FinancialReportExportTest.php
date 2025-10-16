@@ -11,7 +11,7 @@ class FinancialReportExportTest extends TestCase
     public function test_it_can_be_instantiated()
     {
         $data = [
-            ['contract' => 'C001', 'date' => '2024-01-01', 'artist' => 'Artist 1', 'booker' => 'Booker 1', 'revenue' => 1000, 'costs' => 200, 'commission' => 100, 'profit' => 700]
+            ['contract' => 'C001', 'date' => '2024-01-01', 'artist' => 'Artist 1', 'booker' => 'Booker 1', 'revenue' => 1000, 'costs' => 200, 'commission' => 100, 'profit' => 700],
         ];
         $type = 'overview';
 
@@ -24,7 +24,7 @@ class FinancialReportExportTest extends TestCase
     {
         $data = [
             ['contract' => 'C001', 'date' => '2024-01-01', 'artist' => 'Artist 1'],
-            ['contract' => 'C002', 'date' => '2024-01-02', 'artist' => 'Artist 2']
+            ['contract' => 'C002', 'date' => '2024-01-02', 'artist' => 'Artist 2'],
         ];
         $type = 'overview';
 

@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./vendor/bin/sail ps)",
+      "Bash(php:*)",
+      "Bash(node:*)",
+      "Bash(./vendor/bin/sail composer --version)",
+      "Bash(./vendor/bin/sail artisan --version)",
+      "Bash(./vendor/bin/sail npm:*)",
+      "Bash(./vendor/bin/sail artisan test)",
+      "Bash(./vendor/bin/sail artisan test --without-tty)",
+      "Bash(./vendor/bin/sail artisan tinker:*)",
+      "Bash(./vendor/bin/sail composer:*)",
+      "Bash(./vendor/bin/sail artisan gig:audit-currency:*)",
+      "Bash(./vendor/bin/sail artisan gig:audit-costs:*)",
+      "Bash(./vendor/bin/sail artisan list)",
+      "Bash(./vendor/bin/sail bash:*)",
+      "Bash(./vendor/bin/sail artisan config:clear)",
+      "Bash(./vendor/bin/sail artisan cache:clear)",
+      "Bash(./vendor/bin/sail artisan view:clear)",
+      "Bash(column:*)",
+      "Bash(./vendor/bin/sail artisan route:clear)",
+      "Bash(./vendor/bin/sail artisan route:list --name=finance.monthly-closing)",
+      "Bash(./vendor/bin/sail artisan view:cache)",
+      "Bash(./vendor/bin/sail:*)",
+      "Bash(netstat:*)",
+      "Bash(sort:*)",
+      "Bash(lsof:*)",
+      "Bash(ss:*)",
+      "Bash(awk:*)",
+      "Bash(curl:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: add artist performance reports and batch payment management system\n\nThis commit implements a comprehensive artist management system including:\n\n## Artist Performance Reports\n- New ArtistPerformanceController with performance analytics\n- Artist performance view with 4 metric cards (gigs, contracts, gross cash, net payout)\n- Expandable table grouped by artist showing detailed financial breakdowns\n- PDF export functionality\n- Date range and artist filters\n- Updated sidebar with expandable Artists menu (List + Performance)\n\n## Batch Payment Management for Artists\n- settleBatchArtistPayments() method for mass payment processing\n- unsettleBatchArtistPayments() method for payment reversal\n- Business rules validation:\n  * Only realized events can be paid\n  * All costs must be confirmed before payment\n  * Cannot pay already paid events\n  * Payment date cannot be in the future\n- Transaction-based processing with rollback on errors\n- Settlement record management with settlement_date field\n\n## Enhanced Financial Closing Interface\n- Expandable expenses subtable with detailed breakdown\n- Inline status toggle for confirming/unconfirming expenses\n- Visual highlighting for events with pending costs\n- Batch selection with \"select all\" functionality\n- Real-time counter showing selected events\n- Date picker for payment date\n- SweetAlert2 confirmation dialogs\n- Direct links to gig details from Local/Evento column\n\n## Testing\n- 10 comprehensive unit tests (100% passing - 50 assertions)\n- Tests cover all validation rules and edge cases\n- Proper factories usage for test data generation\n\n## Bug Fixes\n- Fixed relationship name in gigs-table.blade.php (costs → gigCosts)\n- Added missing settlement_date field to Settlement creation\n\nRoutes added:\n- POST /artists/payments/settle-batch\n- PATCH /artists/payments/unsettle-batch\n- GET /reports/artist-performance\n- GET /reports/artist-performance/export\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "laravel-boost"
+  ]
+}

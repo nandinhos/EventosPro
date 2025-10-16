@@ -8,7 +8,6 @@ use App\Models\Gig;
 use App\Models\Payment;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\Test;
@@ -19,6 +18,7 @@ class PaymentTest extends TestCase
     use RefreshDatabase;
 
     private Gig $gig;
+
     private Payment $payment;
 
     protected function setUp(): void
@@ -140,12 +140,12 @@ class PaymentTest extends TestCase
     {
         // Salvar configuração original
         $originalConfig = config('exchange_rates.default_rates');
-        
+
         Log::shouldReceive('warning')->twice(); // Uma vez no Gig e uma vez no Payment
 
         // Remover configuração padrão para simular ausência de taxa
         Config::set('exchange_rates.default_rates', []);
-        
+
         // Mock do ExchangeRateService retornando null ANTES de criar qualquer modelo
         $exchangeRateService = $this->createMock(\App\Services\ExchangeRateService::class);
         $exchangeRateService->method('getExchangeRate')->willReturn(null);
@@ -171,7 +171,7 @@ class PaymentTest extends TestCase
         } finally {
             // Restaurar configuração original
             Config::set('exchange_rates.default_rates', $originalConfig);
-            
+
             // Limpar o mock do container
             $this->app->forgetInstance(\App\Services\ExchangeRateService::class);
         }

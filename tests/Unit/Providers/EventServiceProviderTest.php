@@ -54,7 +54,7 @@ class EventServiceProviderTest extends TestCase
     {
         // Test that the boot method can be called without throwing exceptions
         $this->provider->boot();
-        
+
         // If we reach this point, boot() executed successfully
         $this->assertTrue(true);
     }

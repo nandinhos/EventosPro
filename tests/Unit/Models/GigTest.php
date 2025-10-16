@@ -23,7 +23,9 @@ class GigTest extends TestCase
     use RefreshDatabase;
 
     private Artist $artist;
+
     private Booker $booker;
+
     private Gig $gig;
 
     protected function setUp(): void
@@ -207,10 +209,6 @@ class GigTest extends TestCase
 
         $this->assertNull($rate);
     }
-
-
-
-
 
     #[Test]
     public function it_calculates_gross_cash_brl_via_accessor()

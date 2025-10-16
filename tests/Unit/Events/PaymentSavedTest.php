@@ -16,7 +16,9 @@ class PaymentSavedTest extends TestCase
     use RefreshDatabase;
 
     private Artist $artist;
+
     private Booker $booker;
+
     private Gig $gig;
 
     protected function setUp(): void
