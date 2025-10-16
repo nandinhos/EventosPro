@@ -43,10 +43,29 @@
             </div>
 
             <div class="rounded-xl">
-                <div x-data="{ tab: '{{ request()->get('tab', 'overview') }}' }" x-init="$watch('tab', value => $dispatch('tab-changed', value))" class="p-4 sm:p-6 lg:p-8">
+                <div x-data="{
+                    tab: '{{ request()->get('tab', 'overview') }}',
+                    init() {
+                        // Listen for browser back/forward buttons
+                        window.addEventListener('popstate', () => {
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const tabFromUrl = urlParams.get('tab') || 'overview';
+                            this.tab = tabFromUrl;
+                            this.$dispatch('tab-changed', tabFromUrl);
+                        });
+                    },
+                    changeTab(newTab) {
+                        this.tab = newTab;
+                        this.$dispatch('tab-changed', newTab);
+                        // Update URL without reloading
+                        const url = new URL(window.location);
+                        url.searchParams.set('tab', newTab);
+                        window.history.pushState({}, '', url);
+                    }
+                }" class="p-4 sm:p-6 lg:p-8">
                     <div class="sm:hidden">
                         <label for="tabs" class="sr-only">Select a tab</label>
-                        <select id="tabs" name="tabs" @change="tab = $event.target.value" class="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                        <select id="tabs" name="tabs" @change="changeTab($event.target.value)" class="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="overview" :selected="tab === 'overview'">Visão Geral</option>
                             <option value="events" :selected="tab === 'events'">Eventos</option>
                             <option value="financials" :selected="tab === 'financials'">Fechamento Financeiro</option>
@@ -55,9 +74,9 @@
                     <div class="hidden sm:block">
                         <div class="border-b border-gray-200">
                             <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                                <a href="#" @click.prevent="tab = 'overview'" :class="{'border-indigo-500 text-indigo-600': tab === 'overview', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': tab !== 'overview'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Visão Geral</a>
-                                <a href="#" @click.prevent="tab = 'events'" :class="{'border-indigo-500 text-indigo-600': tab === 'events', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': tab !== 'events'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Eventos</a>
-                                <a href="#" @click.prevent="tab = 'financials'" :class="{'border-indigo-500 text-indigo-600': tab === 'financials', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': tab !== 'financials'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Fechamento Financeiro</a>
+                                <a href="#" @click.prevent="changeTab('overview')" :class="{'border-indigo-500 text-indigo-600': tab === 'overview', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': tab !== 'overview'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Visão Geral</a>
+                                <a href="#" @click.prevent="changeTab('events')" :class="{'border-indigo-500 text-indigo-600': tab === 'events', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': tab !== 'events'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Eventos</a>
+                                <a href="#" @click.prevent="changeTab('financials')" :class="{'border-indigo-500 text-indigo-600': tab === 'financials', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': tab !== 'financials'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Fechamento Financeiro</a>
                             </nav>
                         </div>
                     </div>
