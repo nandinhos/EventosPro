@@ -23,7 +23,7 @@ class GigCostController extends Controller
      */
     public function listJson(Gig $gig): JsonResponse
     {
-        $costsByCenter = $gig->gigCosts()()
+        $costsByCenter = $gig->gigCosts()
             ->with(['costCenter', 'confirmer']) // Carrega quem confirmou também
             ->orderBy('expense_date', 'desc') // Ordena custos dentro do grupo
             ->orderBy('created_at', 'desc')
@@ -106,9 +106,9 @@ class GigCostController extends Controller
         if ($cost->gig_id !== $gig->id) {
             return response()->json(['message' => 'Acesso não autorizado.'], 403);
         }
-        if ($cost->is_confirmed && ! $request->user()->can('edit_confirmed_costs')) { // Exemplo de Policy
-            return response()->json(['message' => 'Despesas confirmadas não podem ser editadas por você.'], 403);
-        }
+        // if ($cost->is_confirmed && ! $request->user()->can('edit_confirmed_costs')) { // Exemplo de Policy
+        //     return response()->json(['message' => 'Despesas confirmadas não podem ser editadas por você.'], 403);
+        // }
 
         try {
             $data = $request->validated();
@@ -138,14 +138,14 @@ class GigCostController extends Controller
     /**
      * Remove uma despesa (Soft Delete).
      */
-    public function destroy(Gig $gig, GigCost $cost): JsonResponse
+    public function destroy(Request $request, Gig $gig, GigCost $cost): JsonResponse
     {
         if ($cost->gig_id !== $gig->id) {
             return response()->json(['message' => 'Acesso não autorizado.'], 403);
         }
-        if ($cost->is_confirmed && ! $request->user()->can('delete_confirmed_costs')) { // Exemplo de Policy
-            return response()->json(['message' => 'Despesas confirmadas não podem ser excluídas por você.'], 403);
-        }
+        // if ($cost->is_confirmed && ! $request->user()->can('delete_confirmed_costs')) { // Exemplo de Policy
+        //     return response()->json(['message' => 'Despesas confirmadas não podem ser excluídas por você.'], 403);
+        // }
 
         try {
             $cost->delete();
@@ -240,7 +240,10 @@ class GigCostController extends Controller
             $message = $cost->is_invoice ? 'Despesa marcada como inclusa na NF!' : 'Marcação de NF removida da despesa!';
 
             return response()->json(['message' => $message, 'cost' => $cost->fresh()->load('costCenter', 'confirmer')]);
-        } catch (Exception $e) { /* ... */
+        } catch (Exception $e) {
+            Log::error("Erro ao alternar invoice da despesa {$cost->id}: ".$e->getMessage());
+
+            return response()->json(['message' => 'Erro ao alternar status de NF.'], 500);
         }
     }
 

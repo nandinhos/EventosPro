@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreArtistRequest;
 use App\Http\Requests\UpdateArtistRequest;
 use App\Models\Artist;
+use App\Models\CostCenter;
 use App\Models\Gig;
 use App\Models\Settlement;
 use App\Models\Tag;
@@ -132,14 +133,18 @@ class ArtistController extends Controller
         // 4. Calcula Métricas Financeiras para o período
         $metrics = $financialsService->getFinancialMetrics($artist, $gigsInPeriod);
 
-        // 5. Retorna a view com os dados
+        // 5. Busca Cost Centers para o gerenciamento de despesas
+        $costCenters = CostCenter::orderBy('name')->get();
+
+        // 6. Retorna a view com os dados
         return view('artists.show', compact(
             'artist',
             'startDate',
             'endDate',
             'realizedGigs',
             'futureGigs',
-            'metrics'
+            'metrics',
+            'costCenters'
         ));
     }
 
@@ -152,6 +157,7 @@ class ArtistController extends Controller
             'gig_ids' => 'required|array',
             'gig_ids.*' => 'integer|exists:gigs,id',
             'payment_date' => 'required|date|before_or_equal:today',
+            'tab' => 'nullable|string',
         ]);
 
         $gigIds = $validated['gig_ids'];
@@ -182,8 +188,10 @@ class ArtistController extends Controller
             }
         }
 
+        $tab = $validated['tab'] ?? 'overview';
+
         if (! empty($errors)) {
-            return back()->with('error', 'Erros encontrados: '.implode(' | ', $errors));
+            return back()->withInput()->with('error', 'Erros encontrados: '.implode(' | ', $errors));
         }
 
         // Process batch payment in transaction
@@ -213,7 +221,11 @@ class ArtistController extends Controller
 
             DB::commit();
 
-            return back()->with('success', "Pagamento em massa realizado com sucesso! {$processedCount} evento(s) processado(s). Total pago: R$ ".number_format($totalPaid, 2, ',', '.'));
+            // Get the first gig to find the artist
+            $firstGig = $gigs->first();
+
+            return redirect()->route('artists.show', ['artist' => $firstGig->artist_id, 'tab' => $tab])
+                ->with('success', "Pagamento em massa realizado com sucesso! {$processedCount} evento(s) processado(s). Total pago: R$ ".number_format($totalPaid, 2, ',', '.'));
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Erro ao processar pagamento em massa de artistas: '.$e->getMessage());
@@ -230,9 +242,11 @@ class ArtistController extends Controller
         $validated = $request->validate([
             'gig_ids' => 'required|array',
             'gig_ids.*' => 'integer|exists:gigs,id',
+            'tab' => 'nullable|string',
         ]);
 
         $gigIds = $validated['gig_ids'];
+        $tab = $validated['tab'] ?? 'overview';
 
         // Fetch the gigs
         $gigs = Gig::whereIn('id', $gigIds)->get();
@@ -247,7 +261,7 @@ class ArtistController extends Controller
         }
 
         if (! empty($errors)) {
-            return back()->with('error', 'Erros encontrados: '.implode(' | ', $errors));
+            return back()->withInput()->with('error', 'Erros encontrados: '.implode(' | ', $errors));
         }
 
         // Process batch unsettle in transaction
@@ -273,7 +287,11 @@ class ArtistController extends Controller
 
             DB::commit();
 
-            return back()->with('success', "Pagamento desfeito com sucesso! {$processedCount} evento(s) marcado(s) como pendente.");
+            // Get the first gig to find the artist
+            $firstGig = $gigs->first();
+
+            return redirect()->route('artists.show', ['artist' => $firstGig->artist_id, 'tab' => $tab])
+                ->with('success', "Pagamento desfeito com sucesso! {$processedCount} evento(s) marcado(s) como pendente.");
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Erro ao desfazer pagamento em massa de artistas: '.$e->getMessage());

@@ -20,8 +20,9 @@
                 </div>
             </div>
 
-            <div class="p-6 sm:px-20 bg-white dark:bg-gray-800">
+            <div class="p-6 sm:px-20 bg-white dark:bg-gray-800" x-data="{ currentTab: '{{ request()->get('tab', 'overview') }}' }" @tab-changed.window="currentTab = $event.detail">
                 <form method="GET" action="{{ route('artists.show', $artist) }}">
+                    <input type="hidden" name="tab" :value="currentTab">
                     <div class="flex items-center space-x-4">
                         <div class="flex-grow">
                             <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Período de Análise</label>
@@ -42,7 +43,7 @@
             </div>
 
             <div class="rounded-xl">
-                <div x-data="{ tab: 'overview' }" class="p-4 sm:p-6 lg:p-8">
+                <div x-data="{ tab: '{{ request()->get('tab', 'overview') }}' }" x-init="$watch('tab', value => $dispatch('tab-changed', value))" class="p-4 sm:p-6 lg:p-8">
                     <div class="sm:hidden">
                         <label for="tabs" class="sr-only">Select a tab</label>
                         <select id="tabs" name="tabs" @change="tab = $event.target.value" class="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
