@@ -19,8 +19,8 @@ class GigPolicyTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->policy = new GigPolicy();
-        
+        $this->policy = new GigPolicy;
+
         // Create roles
         Role::create(['name' => 'ADMIN']);
         Role::create(['name' => 'DIRETOR']);
@@ -97,7 +97,7 @@ class GigPolicyTest extends TestCase
     {
         $user = User::factory()->create();
         $user->assignRole('BOOKER');
-        
+
         // Create another booker and gig
         $otherBooker = \App\Models\Booker::factory()->create();
         $gig = Gig::factory()->create(['booker_id' => $otherBooker->id]);

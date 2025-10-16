@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ArtistController;
+use App\Http\Controllers\ArtistPerformanceController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\BookerController;
 use App\Http\Controllers\DashboardController;
@@ -71,6 +72,9 @@ Route::middleware('auth')->group(function () {
 
     // Artists
     Route::resource('artists', ArtistController::class);
+    // Batch payment routes for artists
+    Route::post('/artists/payments/settle-batch', [ArtistController::class, 'settleBatchArtistPayments'])->name('artists.payments.settleBatch');
+    Route::patch('/artists/payments/unsettle-batch', [ArtistController::class, 'unsettleBatchArtistPayments'])->name('artists.payments.unsettleBatch');
 
     // Bookers
     Route::resource('bookers', BookerController::class);
@@ -87,6 +91,10 @@ Route::middleware('auth')->group(function () {
     // Performance Reports
     Route::get('/reports/performance', [PerformanceReportController::class, 'index'])->name('reports.performance.index');
     Route::get('/reports/performance/export', [PerformanceReportController::class, 'exportPdf'])->name('reports.performance.export');
+
+    // Artist Performance Reports
+    Route::get('/reports/artist-performance', [ArtistPerformanceController::class, 'index'])->name('reports.artist-performance.index');
+    Route::get('/reports/artist-performance/export', [ArtistPerformanceController::class, 'exportPdf'])->name('reports.artist-performance.export');
 
     // Audit routes
     Route::get('/auditoria', [AuditController::class, 'index'])->name('audit.index');

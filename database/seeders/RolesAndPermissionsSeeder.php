@@ -33,12 +33,12 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Atribuir roles aos usuários existentes
         $adminUser = User::where('email', 'admin@eventospro.com')->first();
-        if ($adminUser && !$adminUser->hasRole('ADMIN')) {
+        if ($adminUser && ! $adminUser->hasRole('ADMIN')) {
             $adminUser->assignRole($roleAdmin);
         }
 
         $devUser = User::where('email', 'nandinhos@gmail.com')->first();
-        if ($devUser && !$devUser->hasRole('ADMIN')) {
+        if ($devUser && ! $devUser->hasRole('ADMIN')) {
             $devUser->assignRole($roleAdmin);
         }
     }

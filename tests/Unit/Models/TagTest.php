@@ -30,7 +30,7 @@ class TagTest extends TestCase
     public function it_has_correct_fillable_attributes()
     {
         $fillable = ['name', 'slug', 'type'];
-        
+
         $this->assertEquals($fillable, $this->tag->getFillable());
     }
 
@@ -161,9 +161,9 @@ class TagTest extends TestCase
     public function it_can_be_deleted()
     {
         $tagId = $this->tag->id;
-        
+
         $this->tag->delete();
-        
+
         $this->assertDatabaseMissing('tags', ['id' => $tagId]);
     }
 }

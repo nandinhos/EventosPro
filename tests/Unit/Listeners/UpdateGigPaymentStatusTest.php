@@ -9,7 +9,6 @@ use App\Models\Payment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Mockery;
 use Tests\TestCase;
 
 class UpdateGigPaymentStatusTest extends TestCase
@@ -21,7 +20,7 @@ class UpdateGigPaymentStatusTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->listener = new UpdateGigPaymentStatus();
+        $this->listener = new UpdateGigPaymentStatus;
     }
 
     public function test_it_can_be_instantiated()
@@ -38,7 +37,7 @@ class UpdateGigPaymentStatusTest extends TestCase
         $gig = Gig::factory()->create([
             'cache_value' => 1000.00,
             'currency' => 'USD',
-            'payment_status' => 'a_vencer'
+            'payment_status' => 'a_vencer',
         ]);
 
         // Create a confirmed payment that covers the full amount
@@ -47,7 +46,7 @@ class UpdateGigPaymentStatusTest extends TestCase
             'due_value' => 1000.00,
             'received_value_actual' => 1000.00,
             'currency' => 'USD',
-            'confirmed_at' => now()
+            'confirmed_at' => now(),
         ]);
 
         $event = new PaymentSaved($payment);
@@ -66,7 +65,7 @@ class UpdateGigPaymentStatusTest extends TestCase
         $gig = Gig::factory()->create([
             'cache_value' => 1000.00,
             'currency' => 'USD',
-            'payment_status' => 'a_vencer'
+            'payment_status' => 'a_vencer',
         ]);
 
         // Create an unconfirmed payment that is overdue
@@ -75,7 +74,7 @@ class UpdateGigPaymentStatusTest extends TestCase
             'due_value' => 1000.00,
             'currency' => 'USD',
             'due_date' => now()->subDays(5), // Overdue
-            'confirmed_at' => null
+            'confirmed_at' => null,
         ]);
 
         $event = new PaymentSaved($payment);
@@ -94,7 +93,7 @@ class UpdateGigPaymentStatusTest extends TestCase
         $gig = Gig::factory()->create([
             'cache_value' => 1000.00,
             'currency' => 'USD',
-            'payment_status' => 'a_vencer'
+            'payment_status' => 'a_vencer',
         ]);
 
         // Create an unconfirmed payment that is not overdue
@@ -103,7 +102,7 @@ class UpdateGigPaymentStatusTest extends TestCase
             'due_value' => 500.00,
             'currency' => 'USD',
             'due_date' => now()->addDays(5), // Future date
-            'confirmed_at' => null
+            'confirmed_at' => null,
         ]);
 
         $event = new PaymentSaved($payment);
@@ -122,7 +121,7 @@ class UpdateGigPaymentStatusTest extends TestCase
         $gig = Gig::factory()->create([
             'cache_value' => 1000.00,
             'currency' => 'USD',
-            'payment_status' => 'a_vencer'
+            'payment_status' => 'a_vencer',
         ]);
 
         // Create partial confirmed payment
@@ -131,7 +130,7 @@ class UpdateGigPaymentStatusTest extends TestCase
             'due_value' => 500.00,
             'received_value_actual' => 500.00,
             'currency' => 'USD',
-            'confirmed_at' => now()
+            'confirmed_at' => now(),
         ]);
 
         // Create remaining unconfirmed payment (not overdue)
@@ -140,7 +139,7 @@ class UpdateGigPaymentStatusTest extends TestCase
             'due_value' => 500.00,
             'currency' => 'USD',
             'due_date' => now()->addDays(10),
-            'confirmed_at' => null
+            'confirmed_at' => null,
         ]);
 
         $event = new PaymentSaved($payment1);
@@ -159,7 +158,7 @@ class UpdateGigPaymentStatusTest extends TestCase
         $gig = Gig::factory()->create([
             'cache_value' => 1000.00,
             'currency' => 'USD',
-            'payment_status' => 'a_vencer'
+            'payment_status' => 'a_vencer',
         ]);
 
         // Create payment that is slightly less than total due (within tolerance)
@@ -168,7 +167,7 @@ class UpdateGigPaymentStatusTest extends TestCase
             'due_value' => 999.99,
             'received_value_actual' => 999.99,
             'currency' => 'USD',
-            'confirmed_at' => now()
+            'confirmed_at' => now(),
         ]);
 
         $event = new PaymentSaved($payment);
@@ -187,7 +186,7 @@ class UpdateGigPaymentStatusTest extends TestCase
         $gig = Gig::factory()->create([
             'cache_value' => 1000.00,
             'currency' => 'USD',
-            'payment_status' => 'a_vencer'
+            'payment_status' => 'a_vencer',
         ]);
 
         // Create unconfirmed payment that would cover full amount
@@ -197,7 +196,7 @@ class UpdateGigPaymentStatusTest extends TestCase
             'received_value_actual' => 1000.00,
             'currency' => 'USD',
             'confirmed_at' => null,
-            'due_date' => now()->addDays(10)
+            'due_date' => now()->addDays(10),
         ]);
 
         $event = new PaymentSaved($payment);
@@ -216,7 +215,7 @@ class UpdateGigPaymentStatusTest extends TestCase
         $gig = Gig::factory()->create([
             'cache_value' => 1000.00,
             'currency' => 'USD',
-            'payment_status' => 'a_vencer'
+            'payment_status' => 'a_vencer',
         ]);
 
         // Create confirmed payment in different currency
@@ -225,7 +224,7 @@ class UpdateGigPaymentStatusTest extends TestCase
             'due_value' => 5000.00,
             'received_value_actual' => 5000.00,
             'currency' => 'BRL', // Different currency
-            'confirmed_at' => now()
+            'confirmed_at' => now(),
         ]);
 
         $event = new PaymentSaved($payment);
@@ -235,8 +234,6 @@ class UpdateGigPaymentStatusTest extends TestCase
         $gig->refresh();
         $this->assertEquals('a_vencer', $gig->payment_status);
     }
-
-
 
     public function test_uses_database_transaction()
     {
@@ -252,7 +249,7 @@ class UpdateGigPaymentStatusTest extends TestCase
         $gig = Gig::factory()->create([
             'cache_value' => 1000.00,
             'currency' => 'USD',
-            'payment_status' => 'a_vencer'
+            'payment_status' => 'a_vencer',
         ]);
 
         $payment = Payment::factory()->create([
@@ -260,7 +257,7 @@ class UpdateGigPaymentStatusTest extends TestCase
             'due_value' => 1000.00,
             'received_value_actual' => 1000.00,
             'currency' => 'USD',
-            'confirmed_at' => now()
+            'confirmed_at' => now(),
         ]);
 
         $event = new PaymentSaved($payment);
@@ -273,7 +270,7 @@ class UpdateGigPaymentStatusTest extends TestCase
         $gig = Gig::factory()->create([
             'cache_value' => 0,
             'currency' => 'USD',
-            'payment_status' => 'a_vencer'
+            'payment_status' => 'a_vencer',
         ]);
 
         $payment = Payment::factory()->create(['gig_id' => $gig->id]);

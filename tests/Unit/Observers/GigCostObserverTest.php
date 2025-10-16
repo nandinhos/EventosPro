@@ -5,7 +5,6 @@ namespace Tests\Unit\Observers;
 use App\Models\Gig;
 use App\Models\GigCost;
 use App\Observers\GigCostObserver;
-use App\Services\GigFinancialCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\Test;
@@ -40,10 +39,10 @@ class GigCostObserverTest extends TestCase
         $gigCost = GigCost::factory()->create(['gig_id' => $gig->id]);
 
         $observer = app(GigCostObserver::class);
-        
+
         // Should not throw any exceptions
         $observer->saved($gigCost);
-        
+
         $this->assertTrue(true);
     }
 
@@ -58,10 +57,10 @@ class GigCostObserverTest extends TestCase
         $gigCost = GigCost::factory()->create(['gig_id' => $gig->id]);
 
         $observer = app(GigCostObserver::class);
-        
+
         // Should not throw any exceptions
         $observer->deleted($gigCost);
-        
+
         $this->assertTrue(true);
     }
 
@@ -72,7 +71,7 @@ class GigCostObserverTest extends TestCase
         Log::shouldReceive('error')->zeroOrMoreTimes();
 
         // Create a gig cost without a valid gig
-        $gigCost = new GigCost();
+        $gigCost = new GigCost;
         $gigCost->id = 1;
         $gigCost->gig_id = 999; // Non-existent gig
 
@@ -80,7 +79,7 @@ class GigCostObserverTest extends TestCase
 
         // Should not throw any exceptions
         $observer->saved($gigCost);
-        
+
         $this->assertTrue(true);
     }
 
@@ -91,7 +90,7 @@ class GigCostObserverTest extends TestCase
         Log::shouldReceive('error')->zeroOrMoreTimes();
 
         // Create a gig cost without a valid gig
-        $gigCost = new GigCost();
+        $gigCost = new GigCost;
         $gigCost->id = 1;
         $gigCost->gig_id = 999; // Non-existent gig
 
@@ -99,7 +98,7 @@ class GigCostObserverTest extends TestCase
 
         // Should not throw any exceptions
         $observer->deleted($gigCost);
-        
+
         $this->assertTrue(true);
     }
 }

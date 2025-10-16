@@ -4,8 +4,8 @@ namespace Tests\Unit\Exports;
 
 use App\Exports\OverviewReportExport;
 use Illuminate\Support\Collection;
-use PHPUnit\Framework\TestCase;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PHPUnit\Framework\TestCase;
 
 class OverviewReportExportTest extends TestCase
 {
@@ -47,8 +47,8 @@ class OverviewReportExportTest extends TestCase
                             'comissao_agencia_liquida_brl' => 450.00,
                             'contract_status' => 'Pendente',
                             'payment_status' => 'Pendente',
-                        ]
-                    ]
+                        ],
+                    ],
                 ],
                 [
                     'artist_name' => 'Artist Two',
@@ -68,10 +68,10 @@ class OverviewReportExportTest extends TestCase
                             'comissao_agencia_liquida_brl' => 280.00,
                             'contract_status' => 'Confirmado',
                             'payment_status' => 'Pago',
-                        ]
-                    ]
-                ]
-            ]
+                        ],
+                    ],
+                ],
+            ],
         ];
     }
 
@@ -210,13 +210,13 @@ class OverviewReportExportTest extends TestCase
             'dataByArtist' => [
                 [
                     'artist_name' => 'Artist One',
-                    'gigs' => []
+                    'gigs' => [],
                 ],
                 [
                     'artist_name' => 'Artist Two',
-                    'gigs' => []
-                ]
-            ]
+                    'gigs' => [],
+                ],
+            ],
         ];
         $export = new OverviewReportExport($data);
 

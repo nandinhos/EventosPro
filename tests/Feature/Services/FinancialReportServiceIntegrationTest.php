@@ -20,30 +20,34 @@ class FinancialReportServiceIntegrationTest extends TestCase
     use RefreshDatabase;
 
     protected FinancialReportService $reportService;
+
     protected GigFinancialCalculatorService $gigCalculator;
+
     protected Artist $artist;
+
     protected Booker $booker;
+
     protected CostCenter $costCenter;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->gigCalculator = $this->app->make(GigFinancialCalculatorService::class);
         $this->reportService = new FinancialReportService($this->gigCalculator);
-        
+
         // Criar dados base para os testes
         $this->artist = Artist::factory()->create([
-            'name' => 'Test Artist'
+            'name' => 'Test Artist',
         ]);
-        
+
         $this->booker = Booker::factory()->create([
             'name' => 'Test Booker',
-            'default_commission_rate' => 10.0
+            'default_commission_rate' => 10.0,
         ]);
-        
+
         $this->costCenter = CostCenter::factory()->create([
-            'name' => 'Production Costs'
+            'name' => 'Production Costs',
         ]);
     }
 
@@ -54,13 +58,13 @@ class FinancialReportServiceIntegrationTest extends TestCase
         $gig1 = $this->createCompleteGig([
             'gig_date' => Carbon::now()->subDays(5),
             'artist_id' => $this->artist->id,
-            'booker_id' => $this->booker->id
+            'booker_id' => $this->booker->id,
         ]);
 
         $gig2 = $this->createCompleteGig([
             'gig_date' => Carbon::now()->subDays(10),
             'artist_id' => $this->artist->id,
-            'booker_id' => $this->booker->id
+            'booker_id' => $this->booker->id,
         ]);
 
         // Adicionar pagamentos confirmados
@@ -70,18 +74,18 @@ class FinancialReportServiceIntegrationTest extends TestCase
         // Adicionar custos confirmados
         $this->createConfirmedCosts($gig1, [
             ['amount' => 5000, 'description' => 'Sound Equipment'],
-            ['amount' => 3000, 'description' => 'Transportation']
+            ['amount' => 3000, 'description' => 'Transportation'],
         ]);
-        
+
         $this->createConfirmedCosts($gig2, [
             ['amount' => 8000, 'description' => 'Venue Rental'],
-            ['amount' => 4000, 'description' => 'Catering']
+            ['amount' => 4000, 'description' => 'Catering'],
         ]);
 
         // Act: Executar relatório financeiro completo
         $this->reportService->setFilters([
             'start_date' => Carbon::now()->subDays(15)->format('Y-m-d'),
-            'end_date' => Carbon::now()->format('Y-m-d')
+            'end_date' => Carbon::now()->format('Y-m-d'),
         ]);
 
         $overviewSummary = $this->reportService->getOverviewSummary();
@@ -95,11 +99,11 @@ class FinancialReportServiceIntegrationTest extends TestCase
 
         // Verificar dados da tabela
         $this->assertCount(2, $overviewTable);
-        
+
         // Verificar que ambos os gigs estão presentes
         $revenues = $overviewTable->pluck('revenue')->sort()->values();
         $this->assertEquals([50000, 82500], $revenues->toArray());
-        
+
         $costs = $overviewTable->pluck('costs')->sort()->values();
         $this->assertEquals([8000, 12000], $costs->toArray());
 
@@ -114,15 +118,15 @@ class FinancialReportServiceIntegrationTest extends TestCase
     {
         // Arrange: Gigs em diferentes moedas
         $usdGig = $this->createCompleteGig([
-            'gig_date' => Carbon::now()->subDays(3)
+            'gig_date' => Carbon::now()->subDays(3),
         ]);
 
         $eurGig = $this->createCompleteGig([
-            'gig_date' => Carbon::now()->subDays(7)
+            'gig_date' => Carbon::now()->subDays(7),
         ]);
 
         $brlGig = $this->createCompleteGig([
-            'gig_date' => Carbon::now()->subDays(1)
+            'gig_date' => Carbon::now()->subDays(1),
         ]);
 
         // Pagamentos em diferentes moedas
@@ -133,7 +137,7 @@ class FinancialReportServiceIntegrationTest extends TestCase
         // Act
         $this->reportService->setFilters([
             'start_date' => Carbon::now()->subDays(10)->format('Y-m-d'),
-            'end_date' => Carbon::now()->format('Y-m-d')
+            'end_date' => Carbon::now()->format('Y-m-d'),
         ]);
 
         $summary = $this->reportService->getOverviewSummary();
@@ -155,7 +159,7 @@ class FinancialReportServiceIntegrationTest extends TestCase
     {
         // Arrange: Gig com estrutura complexa de custos
         $gig = $this->createCompleteGig([
-            'gig_date' => Carbon::now()->subDays(2)
+            'gig_date' => Carbon::now()->subDays(2),
         ]);
 
         $this->createConfirmedPayment($gig, 100000);
@@ -168,7 +172,7 @@ class FinancialReportServiceIntegrationTest extends TestCase
             ['amount' => 15000, 'description' => 'Stage Setup', 'cost_center_id' => $productionCenter->id],
             ['amount' => 8000, 'description' => 'Sound System', 'cost_center_id' => $productionCenter->id],
             ['amount' => 5000, 'description' => 'Promotion', 'cost_center_id' => $marketingCenter->id],
-            ['amount' => 3000, 'description' => 'Social Media', 'cost_center_id' => $marketingCenter->id]
+            ['amount' => 3000, 'description' => 'Social Media', 'cost_center_id' => $marketingCenter->id],
         ]);
 
         // Custos não confirmados (não devem aparecer)
@@ -179,13 +183,13 @@ class FinancialReportServiceIntegrationTest extends TestCase
             'description' => 'Unconfirmed Cost',
             'cost_center_id' => $productionCenter->id,
             'is_confirmed' => false,
-            'confirmed_at' => null
+            'confirmed_at' => null,
         ]);
 
         // Act
         $this->reportService->setFilters([
             'start_date' => Carbon::now()->subDays(5)->format('Y-m-d'),
-            'end_date' => Carbon::now()->format('Y-m-d')
+            'end_date' => Carbon::now()->format('Y-m-d'),
         ]);
 
         $summary = $this->reportService->getOverviewSummary();
@@ -212,19 +216,19 @@ class FinancialReportServiceIntegrationTest extends TestCase
         $gig1 = $this->createCompleteGig([
             'artist_id' => $this->artist->id,
             'booker_id' => $this->booker->id,
-            'gig_date' => Carbon::now()->subDays(5)
+            'gig_date' => Carbon::now()->subDays(5),
         ]);
 
         $gig2 = $this->createCompleteGig([
             'artist_id' => $artist2->id,
             'booker_id' => $this->booker->id,
-            'gig_date' => Carbon::now()->subDays(3)
+            'gig_date' => Carbon::now()->subDays(3),
         ]);
 
         $gig3 = $this->createCompleteGig([
             'artist_id' => $this->artist->id,
             'booker_id' => $booker2->id,
-            'gig_date' => Carbon::now()->subDays(1)
+            'gig_date' => Carbon::now()->subDays(1),
         ]);
 
         // Pagamentos para todos
@@ -236,7 +240,7 @@ class FinancialReportServiceIntegrationTest extends TestCase
         $this->reportService->setFilters([
             'artist_id' => $this->artist->id,
             'start_date' => Carbon::now()->subDays(10)->format('Y-m-d'),
-            'end_date' => Carbon::now()->format('Y-m-d')
+            'end_date' => Carbon::now()->format('Y-m-d'),
         ]);
 
         $artistSummary = $this->reportService->getOverviewSummary();
@@ -249,7 +253,7 @@ class FinancialReportServiceIntegrationTest extends TestCase
         $this->reportService->setFilters([
             'booker_id' => $this->booker->id,
             'start_date' => Carbon::now()->subDays(10)->format('Y-m-d'),
-            'end_date' => Carbon::now()->format('Y-m-d')
+            'end_date' => Carbon::now()->format('Y-m-d'),
         ]);
 
         $bookerSummary = $this->reportService->getOverviewSummary();
@@ -268,7 +272,7 @@ class FinancialReportServiceIntegrationTest extends TestCase
             'artist_id' => $this->artist->id,
             'booker_id' => $this->booker->id,
             'cache_value' => 0, // Valor zero para testar edge case
-            'currency' => 'INVALID' // Moeda inválida para testar edge case
+            'currency' => 'INVALID', // Moeda inválida para testar edge case
         ]);
 
         // Payment com valor baixo (edge case)
@@ -277,13 +281,13 @@ class FinancialReportServiceIntegrationTest extends TestCase
             'due_value' => 1,
             'currency' => 'BRL',
             'exchange_rate' => 1.0,
-            'confirmed_at' => Carbon::now()
+            'confirmed_at' => Carbon::now(),
         ]);
 
         // Act
         $this->reportService->setFilters([
             'start_date' => Carbon::now()->subDays(5)->format('Y-m-d'),
-            'end_date' => Carbon::now()->format('Y-m-d')
+            'end_date' => Carbon::now()->format('Y-m-d'),
         ]);
 
         $summary = $this->reportService->getOverviewSummary();
@@ -297,12 +301,12 @@ class FinancialReportServiceIntegrationTest extends TestCase
 
         $this->assertCount(1, $tableData);
         $gigData = $tableData->first();
-        
+
         // Verificar que dados problemáticos são tratados graciosamente
         $this->assertEquals('Test Artist', $gigData['artist']);
         $this->assertEquals('Test Booker', $gigData['booker']);
         $this->assertIsNumeric($gigData['revenue']);
-        
+
         // Verificar que valores baixos são tratados corretamente
         $this->assertGreaterThanOrEqual(0, $gigData['revenue']);
     }
@@ -311,10 +315,10 @@ class FinancialReportServiceIntegrationTest extends TestCase
     private function createCompleteGig(array $attributes = []): Gig
     {
         return Gig::factory()->create(array_merge([
-            'contract_number' => 'TEST-' . rand(1000, 9999),
+            'contract_number' => 'TEST-'.rand(1000, 9999),
             'gig_date' => Carbon::now()->subDays(1),
             'artist_id' => $this->artist->id,
-            'booker_id' => $this->booker->id
+            'booker_id' => $this->booker->id,
         ], $attributes));
     }
 
@@ -325,7 +329,7 @@ class FinancialReportServiceIntegrationTest extends TestCase
             'due_value' => $value,
             'currency' => 'BRL',
             'exchange_rate' => 1.0,
-            'confirmed_at' => Carbon::now()
+            'confirmed_at' => Carbon::now(),
         ]);
     }
 
@@ -339,7 +343,7 @@ class FinancialReportServiceIntegrationTest extends TestCase
                 'description' => $cost['description'],
                 'cost_center_id' => $cost['cost_center_id'] ?? $this->costCenter->id,
                 'is_confirmed' => true,
-                'confirmed_at' => Carbon::now()->subDays(1)
+                'confirmed_at' => Carbon::now()->subDays(1),
             ]);
         }
     }

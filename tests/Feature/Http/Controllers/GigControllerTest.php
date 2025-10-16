@@ -9,13 +9,9 @@ use App\Models\Gig;
 use App\Models\GigCost;
 use App\Models\Tag;
 use App\Models\User;
-use App\Services\GigFinancialCalculatorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -25,20 +21,24 @@ class GigControllerTest extends TestCase
     use RefreshDatabase, WithFaker;
 
     protected User $user;
+
     protected Artist $artist;
+
     protected Booker $booker;
+
     protected CostCenter $costCenter;
+
     protected Tag $tag;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create roles first
         Role::create(['name' => 'ADMIN']);
         Role::create(['name' => 'DIRETOR']);
         Role::create(['name' => 'BOOKER']);
-        
+
         // Criar usuário autenticado
         $this->user = User::factory()->create();
         $this->user->assignRole('ADMIN');
@@ -79,7 +79,7 @@ class GigControllerTest extends TestCase
             'contract_number' => 'SEARCH123',
             'artist_id' => $this->artist->id,
         ]);
-        
+
         $gig2 = Gig::factory()->create([
             'contract_number' => 'OTHER456',
             'artist_id' => $this->artist->id,
@@ -100,7 +100,7 @@ class GigControllerTest extends TestCase
             'artist_id' => $this->artist->id,
             'location_event_details' => 'Evento Pago Test',
         ]);
-        
+
         $gigVencido = Gig::factory()->create([
             'payment_status' => 'vencido',
             'artist_id' => $this->artist->id,
@@ -121,7 +121,7 @@ class GigControllerTest extends TestCase
             'gig_date' => '2024-01-01',
             'artist_id' => $this->artist->id,
         ]);
-        
+
         $gig2 = Gig::factory()->create([
             'gig_date' => '2024-02-01',
             'artist_id' => $this->artist->id,
@@ -129,7 +129,7 @@ class GigControllerTest extends TestCase
 
         $response = $this->get(route('gigs.index', [
             'sort_by' => 'gig_date',
-            'sort_direction' => 'asc'
+            'sort_direction' => 'asc',
         ]));
 
         $response->assertStatus(200);
@@ -168,7 +168,7 @@ class GigControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertViewHas('financialData');
-        
+
         $financialData = $response->viewData('financialData');
         $this->assertArrayHasKey('totalReceivedInOriginalCurrency', $financialData);
         $this->assertArrayHasKey('pendingBalanceInOriginalCurrency', $financialData);
@@ -236,8 +236,8 @@ class GigControllerTest extends TestCase
                     'currency' => 'BRL',
                     'expense_date' => '2024-12-31',
                     'is_confirmed' => true,
-                ]
-            ]
+                ],
+            ],
         ];
 
         $response = $this->post(route('gigs.store'), $gigData);
@@ -267,7 +267,7 @@ class GigControllerTest extends TestCase
             'location_event_details' => 'Test Event',
             'contract_status' => 'assinado',
             'payment_status' => 'a_vencer',
-            'tags' => [$tag1->id, $tag2->id]
+            'tags' => [$tag1->id, $tag2->id],
         ];
 
         $response = $this->post(route('gigs.store'), $gigData);
@@ -369,8 +369,8 @@ class GigControllerTest extends TestCase
                     'currency' => 'BRL',
                     'expense_date' => '2024-12-31',
                     'is_confirmed' => true,
-                ]
-            ]
+                ],
+            ],
         ];
 
         $response = $this->put(route('gigs.update', $gig), $updateData);
@@ -412,7 +412,7 @@ class GigControllerTest extends TestCase
             'gigCacheValueBrl',
             'totalConfirmedExpensesBrl',
             'calculatedGrossCashBrl',
-            'finalArtistInvoiceValueBrl'
+            'finalArtistInvoiceValueBrl',
         ]);
     }
 
@@ -465,7 +465,7 @@ class GigControllerTest extends TestCase
             'booker_id' => $this->booker->id,
             'contract_number' => 'WITH-BOOKER-123',
         ]);
-        
+
         $gigWithoutBooker = Gig::factory()->create([
             'artist_id' => $this->artist->id,
             'booker_id' => null,
@@ -475,15 +475,15 @@ class GigControllerTest extends TestCase
         $response = $this->get(route('gigs.index', ['booker_id' => 'sem_booker']));
 
         $response->assertStatus(200);
-        
+
         // Check that the gig without booker is in the results
         $response->assertViewHas('gigs', function ($gigs) use ($gigWithoutBooker) {
             return $gigs->contains('id', $gigWithoutBooker->id);
         });
-        
+
         // Check that the gig with booker is NOT in the results
         $response->assertViewHas('gigs', function ($gigs) use ($gigWithBooker) {
-            return !$gigs->contains('id', $gigWithBooker->id);
+            return ! $gigs->contains('id', $gigWithBooker->id);
         });
     }
 
@@ -491,11 +491,11 @@ class GigControllerTest extends TestCase
     public function show_saves_url_params_in_session()
     {
         $gig = Gig::factory()->create(['artist_id' => $this->artist->id]);
-        
+
         $params = [
             'search' => 'test',
             'payment_status' => 'pago',
-            'page' => 2
+            'page' => 2,
         ];
 
         $response = $this->get(route('gigs.show', array_merge(['gig' => $gig], $params)));
@@ -534,8 +534,8 @@ class GigControllerTest extends TestCase
                     'expense_date' => '2024-12-31',
                     'is_confirmed' => false,
                     '_deleted' => true,
-                ]
-            ]
+                ],
+            ],
         ];
 
         $response = $this->put(route('gigs.update', $gig), $updateData);
