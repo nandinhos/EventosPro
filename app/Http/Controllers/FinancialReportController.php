@@ -44,6 +44,7 @@ class FinancialReportController extends Controller
         $overviewData = $this->reportService->getOverviewData();
 
         $commissionsReport = $this->reportService->getGroupedCommissionsData();
+        $artistCommissionsReport = $this->reportService->getGroupedArtistCommissionsData();
         $detailedPerformanceReport = $this->reportService->getDetailedPerformanceData();
         $profitabilityReport = $this->reportService->getProfitabilityAnalysisData();
 
@@ -78,6 +79,7 @@ class FinancialReportController extends Controller
             'profitabilityReport' => $profitabilityReport,
             'groupedExpensesReport' => $groupedExpensesReport,
             'commissionsReport' => $commissionsReport,
+            'artistCommissionsReport' => $artistCommissionsReport,
             'cashflowSummary' => $cashflowSummary,
             'cashflowTable' => $cashflowTable,
             'bookers' => $bookers,
@@ -250,6 +252,152 @@ class FinancialReportController extends Controller
         $redirectParams['tab'] = 'commissions';
 
         $message = "{$unsettledCount} comissões foram revertidas para 'Pendente'.";
+        if (! empty($errors)) {
+            $message .= ' Avisos: '.implode(', ', $errors);
+
+            return Redirect::route('reports.index', $redirectParams)->with('warning', $message);
+        }
+
+        return Redirect::route('reports.index', $redirectParams)->with('success', $message);
+    }
+
+    /**
+     * Processa o pagamento em massa de cachês de artistas.
+     */
+    public function settleBatchArtistPayments(Request $request)
+    {
+        $validated = $request->validate([
+            'gig_ids' => 'required|array',
+            'gig_ids.*' => 'integer|exists:gigs,id',
+            'payment_date' => 'required|date|before_or_equal:today',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'booker_id' => 'nullable',
+            'artist_id' => 'nullable|integer',
+        ]);
+
+        $gigIds = $validated['gig_ids'];
+        $paymentDate = Carbon::parse($validated['payment_date']);
+        $settledCount = 0;
+        $errors = [];
+
+        // Validar regras de negócio antes de processar
+        $validationService = app(CommissionPaymentValidationService::class);
+        // Eager load relationships para evitar N+1
+        $gigs = Gig::with(['artist', 'booker'])->whereIn('id', $gigIds)->get();
+        $batchValidation = $validationService->validateBatchArtistPayment($gigs, false);
+
+        if ($batchValidation['invalid_gigs']->isNotEmpty()) {
+            return back()->with('error', 'Alguns eventos não podem ser pagos: '.implode('; ', $batchValidation['errors']));
+        }
+
+        // Criar lookup para evitar queries no loop
+        $gigsById = $gigs->keyBy('id');
+
+        DB::beginTransaction();
+        try {
+            foreach ($gigIds as $gigId) {
+                $gig = $gigsById->get($gigId);
+
+                if (! $gig || ! $gig->artist_id || $gig->artist_payment_status === 'pago') {
+                    $errors[] = "Pagamento da Gig #{$gigId} não pôde ser realizado (não encontrada, sem artista ou já pago).";
+
+                    continue;
+                }
+
+                $artistPayoutValue = $this->gigCalculatorService->calculateArtistNetPayoutBrl($gig);
+
+                $settlement = Settlement::firstOrNew(['gig_id' => $gig->id]);
+                $settlement->settlement_date = $settlement->settlement_date ?? $paymentDate;
+                $settlement->artist_payment_value = $artistPayoutValue;
+                $settlement->artist_payment_paid_at = $paymentDate;
+                $settlement->notes = trim(($settlement->notes ?? '')."\n[Artist Batch ".now()->format('d/m/y H:i').']: Pago via lote.');
+                $settlement->save();
+
+                $gig->artist_payment_status = 'pago';
+                $gig->save();
+                $settledCount++;
+            }
+
+            DB::commit();
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao processar pagamento em massa de artistas: '.$e->getMessage(), ['exception' => $e]);
+
+            return redirect()->back()->with('error', 'Ocorreu um erro inesperado ao processar os pagamentos.');
+        }
+
+        $redirectParams = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
+        $redirectParams['tab'] = 'artist_commissions';
+
+        $message = "{$settledCount} pagamentos de artistas foram marcados como pagos.";
+        if (! empty($errors)) {
+            $message .= ' Avisos: '.implode(', ', $errors);
+
+            return Redirect::route('reports.index', $redirectParams)->with('warning', $message);
+        }
+
+        return Redirect::route('reports.index', $redirectParams)->with('success', $message);
+    }
+
+    /**
+     * Reverte o pagamento em massa de cachês de artistas.
+     */
+    public function unsettleBatchArtistPayments(Request $request)
+    {
+        $validated = $request->validate([
+            'gig_ids' => 'required|array',
+            'gig_ids.*' => 'integer|exists:gigs,id',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'booker_id' => 'nullable',
+            'artist_id' => 'nullable|integer',
+        ]);
+
+        $gigIds = $validated['gig_ids'];
+        $unsettledCount = 0;
+        $errors = [];
+
+        // Eager load relationships para evitar N+1
+        $gigs = Gig::with('settlement')->whereIn('id', $gigIds)->get();
+        $gigsById = $gigs->keyBy('id');
+
+        DB::beginTransaction();
+        try {
+            foreach ($gigIds as $gigId) {
+                $gig = $gigsById->get($gigId);
+
+                if (! $gig || $gig->artist_payment_status !== 'pago') {
+                    $errors[] = "Pagamento da Gig #{$gigId} não pôde ser revertido (não encontrada ou não estava pago).";
+
+                    continue;
+                }
+
+                if ($gig->settlement) {
+                    $gig->settlement->update([
+                        'artist_payment_value' => null,
+                        'artist_payment_paid_at' => null,
+                    ]);
+                }
+
+                $gig->update(['artist_payment_status' => 'pendente']);
+                $unsettledCount++;
+            }
+
+            DB::commit();
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao reverter pagamento em massa de artistas: '.$e->getMessage(), ['exception' => $e]);
+
+            return redirect()->back()->with('error', 'Ocorreu um erro inesperado ao reverter os pagamentos.');
+        }
+
+        $redirectParams = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
+        $redirectParams['tab'] = 'artist_commissions';
+
+        $message = "{$unsettledCount} pagamentos de artistas foram revertidos para 'Pendente'.";
         if (! empty($errors)) {
             $message .= ' Avisos: '.implode(', ', $errors);
 

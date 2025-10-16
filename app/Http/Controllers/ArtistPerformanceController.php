@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ArtistPerformanceReportExport;
 use App\Models\Artist;
 use App\Models\Gig;
 use App\Services\GigFinancialCalculatorService;
@@ -9,6 +10,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ArtistPerformanceController extends Controller
 {
@@ -58,9 +60,23 @@ class ArtistPerformanceController extends Controller
         $pdf = Pdf::loadView('artist-performance.export_pdf', [
             'performanceData' => $performanceData,
             'filters' => $filters,
-        ]);
+        ])->setPaper('a4', 'landscape');
 
         return $pdf->download('relatorio-desempenho-artistas-'.now()->format('Y-m-d').'.pdf');
+    }
+
+    /**
+     * Exporta o relatório de desempenho para Excel.
+     */
+    public function exportExcel(Request $request)
+    {
+        $performanceData = $this->getPerformanceData($request);
+        $tableData = $performanceData['tableData'];
+
+        return Excel::download(
+            new ArtistPerformanceReportExport($tableData),
+            'relatorio-desempenho-artistas-'.now()->format('Y-m-d').'.xlsx'
+        );
     }
 
     /**

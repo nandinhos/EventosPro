@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\BookerPerformanceReportExport;
 use App\Http\Requests\StoreBookerRequest;
 use App\Http\Requests\UpdateBookerRequest;
 use App\Models\Booker;
 use App\Models\Gig;
 use App\Services\BookerFinancialsService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\RedirectResponse;
@@ -14,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
 
 class BookerController extends Controller
 {
@@ -218,5 +221,49 @@ class BookerController extends Controller
             'recentGigs' => $recentGigs,
             'analyticalTableData' => $analyticalTableData,
         ]);
+    }
+
+    /**
+     * Exporta o relatório de desempenho do booker para PDF.
+     */
+    public function exportPdf(Booker $booker, Request $request)
+    {
+        $filters = $request->only(['start_date', 'end_date']);
+        $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : null;
+        $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : null;
+
+        $salesKpis = $this->financialService->getSalesKpis($booker, $startDate, $endDate);
+        $commissionKpis = $this->financialService->getCommissionKpis($booker);
+        $realizedEvents = $this->financialService->getRealizedEvents($booker, $startDate, $endDate);
+        $futureEvents = $this->financialService->getFutureEvents($booker, $startDate, $endDate);
+
+        $pdf = Pdf::loadView('bookers.export_pdf', [
+            'booker' => $booker,
+            'filters' => $filters,
+            'salesKpis' => $salesKpis,
+            'commissionKpis' => $commissionKpis,
+            'realizedEvents' => $realizedEvents,
+            'futureEvents' => $futureEvents,
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download('relatorio-desempenho-booker-'.$booker->name.'-'.now()->format('Y-m-d').'.pdf');
+    }
+
+    /**
+     * Exporta o relatório de desempenho do booker para Excel.
+     */
+    public function exportExcel(Booker $booker, Request $request)
+    {
+        $filters = $request->only(['start_date', 'end_date']);
+        $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : null;
+        $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : null;
+
+        $realizedEvents = $this->financialService->getRealizedEvents($booker, $startDate, $endDate);
+        $futureEvents = $this->financialService->getFutureEvents($booker, $startDate, $endDate);
+
+        return Excel::download(
+            new BookerPerformanceReportExport($realizedEvents, $futureEvents),
+            'relatorio-desempenho-booker-'.$booker->name.'-'.now()->format('Y-m-d').'.xlsx'
+        );
     }
 }

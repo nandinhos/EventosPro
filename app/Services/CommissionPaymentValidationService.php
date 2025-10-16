@@ -59,7 +59,7 @@ class CommissionPaymentValidationService
     }
 
     /**
-     * Valida múltiplos eventos para pagamento em lote
+     * Valida múltiplos eventos para pagamento em lote de comissões de bookers
      *
      * @param  Collection|array  $gigs
      * @return array ['valid_gigs' => Collection, 'invalid_gigs' => Collection, 'errors' => array]
@@ -72,6 +72,36 @@ class CommissionPaymentValidationService
 
         foreach ($gigs as $gig) {
             $validation = $this->validateBookerCommissionPayment($gig, $allowExceptions);
+
+            if ($validation['valid']) {
+                $validGigs->push($gig);
+            } else {
+                $invalidGigs->push($gig);
+                $errors[] = "Gig #{$gig->id} ({$gig->artist->name}): {$validation['message']}";
+            }
+        }
+
+        return [
+            'valid_gigs' => $validGigs,
+            'invalid_gigs' => $invalidGigs,
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * Valida múltiplos eventos para pagamento em lote de cachês de artistas
+     *
+     * @param  Collection|array  $gigs
+     * @return array ['valid_gigs' => Collection, 'invalid_gigs' => Collection, 'errors' => array]
+     */
+    public function validateBatchArtistPayment($gigs, bool $allowExceptions = false): array
+    {
+        $validGigs = collect();
+        $invalidGigs = collect();
+        $errors = [];
+
+        foreach ($gigs as $gig) {
+            $validation = $this->validateArtistPayment($gig, $allowExceptions);
 
             if ($validation['valid']) {
                 $validGigs->push($gig);

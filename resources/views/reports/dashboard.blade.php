@@ -7,7 +7,8 @@
             ['id' => 'overview', 'label' => 'Visão Geral'],
             ['id' => 'profitability', 'label' => 'Rentabilidade'],
             ['id' => 'cashflow', 'label' => 'Fluxo de Caixa'],
-            ['id' => 'commissions', 'label' => 'Comissões'],
+            ['id' => 'commissions', 'label' => 'Comissões Booker'],
+            ['id' => 'artist_commissions', 'label' => 'Comissões Artistas'],
             ['id' => 'expenses', 'label' => 'Despesas']
         ];
     @endphp
@@ -59,7 +60,10 @@
                     @include('reports.partials.cashflow-table', ['cashflowSummary' => $cashflowSummary ?? [], 'cashflowTable' => $cashflowTable ?? collect([])])
                 </div>
                  <div x-show="activeTab === 'commissions'" role="tabpanel">
-                    @include('reports.partials.commissions-table', ['commissionsSummary' => $commissionsSummary ?? [], 'commissionsTable' => $commissionsTable ?? collect([])])
+                    @include('reports.partials.commissions-table', ['commissionsReport' => $commissionsReport ?? []])
+                </div>
+                 <div x-show="activeTab === 'artist_commissions'" role="tabpanel">
+                    @include('reports.partials.artist-commissions-table', ['artistCommissionsReport' => $artistCommissionsReport ?? []])
                 </div>
                  <div x-show="activeTab === 'expenses'" role="tabpanel">
                     @include('reports.partials.expenses-table', ['expensesSummary' => $expensesSummary ?? [], 'expensesTable' => $expensesTable ?? collect([])])

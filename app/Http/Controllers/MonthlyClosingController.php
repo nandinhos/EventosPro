@@ -70,6 +70,7 @@ class MonthlyClosingController extends Controller
             'period' => $startDate->format('m/Y'),
             'startDate' => $startDate,
             'endDate' => $endDate,
+            'generatedBy' => auth()->user()->name ?? 'Sistema',
         ])->setPaper('a4', 'landscape');
 
         return $pdf->download($filename);

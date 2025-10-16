@@ -859,6 +859,57 @@ class FinancialReportService
     }
 
     /**
+     * Obtém os dados de cachês de artistas, agrupados por artista.
+     *
+     * @return array Contendo 'groups' e dados para o 'summary'.
+     */
+    public function getGroupedArtistCommissionsData(): array
+    {
+        // 1. Aplica os filtros e busca as Gigs com relacionamentos
+        $gigs = $this->applyFilters(Gig::query())
+            ->with(['artist', 'booker'])
+            ->get();
+
+        // 2. Calcula os valores necessários para cada gig
+        $gigsWithPayouts = $gigs->map(function ($gig) {
+            // Usa o service central para obter os valores e adicioná-los como propriedades temporárias ao objeto Gig
+            $gig->calculated_artist_payout = $this->calculator->calculateArtistNetPayoutBrl($gig);
+            $gig->calculated_gross_cash_brl = $this->calculator->calculateGrossCashBrl($gig); // Base de cálculo
+
+            return $gig;
+        })->filter(function ($gig) {
+            return $gig->calculated_artist_payout > 0;
+        });
+
+        // 3. Calcula os totais para os cards de resumo
+        $totalPayouts = $gigsWithPayouts->sum('calculated_artist_payout');
+        $eventsWithPayoutsCount = $gigsWithPayouts->count();
+        $totalPayoutBase = $gigsWithPayouts->sum('calculated_gross_cash_brl');
+
+        // 4. Agrupa os resultados por Nome do Artista
+        $groupedByArtist = $gigsWithPayouts->groupBy('artist.name')
+            ->map(function ($artistGigs, $artistName) {
+                return [
+                    'artist_name' => $artistName,
+                    'gig_count' => $artistGigs->count(),
+                    'total_payout_base' => $artistGigs->sum('calculated_gross_cash_brl'),
+                    'total_payout_value' => $artistGigs->sum('calculated_artist_payout'),
+                    'gigs' => $artistGigs, // A coleção de gigs contém as propriedades calculadas
+                ];
+            })
+            ->sortByDesc('total_payout_value');
+
+        return [
+            'summary' => [
+                'total_payouts' => $totalPayouts,
+                'events_with_payouts' => $eventsWithPayoutsCount,
+                'total_payout_base' => $totalPayoutBase,
+            ],
+            'groups' => $groupedByArtist,
+        ];
+    }
+
+    /**
      * Obtém os dados de rentabilidade por "venda" (Gig),
      * ordenados pela data do contrato ou, na sua ausência, pela data do evento.
      */

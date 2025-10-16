@@ -30,9 +30,19 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-md shadow w-full transition-colors duration-200"><i class="fas fa-filter mr-2"></i>Filtrar</button>
-                            <a href="{{ route('reports.artist-performance.export', request()->query()) }}" target="_blank" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-md shadow w-full transition-colors duration-200"><i class="fas fa-file-pdf mr-2"></i>PDF</a>
+                        <div class="flex items-center gap-2">
+                            <button type="submit" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm rounded-md shadow transition-colors duration-200">
+                                <i class="fas fa-filter mr-2"></i>
+                                Filtrar
+                            </button>
+                            <a href="{{ route('reports.artist-performance.export.pdf', request()->query()) }}" target="_blank" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm rounded-md shadow transition-colors duration-200">
+                                <i class="fas fa-file-pdf mr-2"></i>
+                                PDF
+                            </a>
+                            <a href="{{ route('reports.artist-performance.export.excel', request()->query()) }}" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold text-sm rounded-md shadow transition-colors duration-200">
+                                <i class="fas fa-file-excel mr-2"></i>
+                                Excel
+                            </a>
                         </div>
                     </div>
                 </form>
