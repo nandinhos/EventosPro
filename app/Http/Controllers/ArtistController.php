@@ -118,9 +118,9 @@ class ArtistController extends Controller
         $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date')) : Carbon::now()->startOfYear();
         $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date')) : Carbon::now()->endOfYear();
 
-        // 2. Busca e Filtra Gigs no período
+        // 2. Busca e Filtra Gigs no período (eager load para evitar N+1)
         $gigsInPeriod = $artist->gigs()
-            ->with(['booker', 'gigCosts.costCenter'])
+            ->with(['booker', 'gigCosts.costCenter', 'payments'])
             ->whereBetween('gig_date', [$startDate, $endDate])
             ->orderBy('gig_date', 'desc')
             ->get();
@@ -163,8 +163,8 @@ class ArtistController extends Controller
         $gigIds = $validated['gig_ids'];
         $paymentDate = Carbon::parse($validated['payment_date']);
 
-        // Fetch the gigs with necessary relationships
-        $gigs = Gig::with(['artist', 'gigCosts'])
+        // Fetch the gigs with necessary relationships (eager load para evitar N+1)
+        $gigs = Gig::with(['artist', 'gigCosts', 'payments'])
             ->whereIn('id', $gigIds)
             ->get();
 
