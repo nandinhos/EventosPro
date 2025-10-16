@@ -221,6 +221,56 @@
         </div>
     </div>
 
+    {{-- TABELA COMPARATIVA DE ARTISTAS (HORIZONTAL) --}}
+    @if(count($reportData['artist_comparison'] ?? []) > 0)
+    <div class="section-title">COMPARATIVO DE PERFORMANCE - ARTISTAS</div>
+    <table style="margin-bottom: 20px;">
+        <thead>
+            <tr>
+                <th style="width: 20%; background: #d1d5db;">INDICADOR</th>
+                @foreach($reportData['artist_comparison'] as $artist)
+                    <th class="text-right" style="width: {{ 80 / count($reportData['artist_comparison']) }}%;">
+                        {{ strtoupper($artist['name']) }}
+                    </th>
+                @endforeach
+            </tr>
+        </thead>
+        <tbody>
+            {{-- Linha: Vendas --}}
+            <tr>
+                <td class="font-bold" style="background: #f3f4f6;">Vendas</td>
+                @foreach($reportData['artist_comparison'] as $artist)
+                    <td class="text-right text-blue font-bold">{{ $artist['vendas'] }}</td>
+                @endforeach
+            </tr>
+
+            {{-- Linha: Cachê Líquido --}}
+            <tr>
+                <td class="font-bold" style="background: #f3f4f6;">Cachê Líquido</td>
+                @foreach($reportData['artist_comparison'] as $artist)
+                    <td class="text-right text-indigo font-bold">R$ {{ number_format($artist['cache_liquido'], 2, ',', '.') }}</td>
+                @endforeach
+            </tr>
+
+            {{-- Linha: Comissão Agência --}}
+            <tr>
+                <td class="font-bold" style="background: #f3f4f6;">Comissão Agência</td>
+                @foreach($reportData['artist_comparison'] as $artist)
+                    <td class="text-right text-purple font-bold">R$ {{ number_format($artist['comissao_agencia'], 2, ',', '.') }}</td>
+                @endforeach
+            </tr>
+
+            {{-- Linha: Comissão Líquida --}}
+            <tr>
+                <td class="font-bold" style="background: #f3f4f6;">Comissão Líquida</td>
+                @foreach($reportData['artist_comparison'] as $artist)
+                    <td class="text-right text-green font-bold">R$ {{ number_format($artist['comissao_liquida'], 2, ',', '.') }}</td>
+                @endforeach
+            </tr>
+        </tbody>
+    </table>
+    @endif
+
     {{-- TABELA COMPARATIVA DE BOOKERS (HORIZONTAL) --}}
     @if(count($reportData['booker_comparison'] ?? []) > 0)
     <div class="section-title">COMPARATIVO DE PERFORMANCE - BOOKERS</div>

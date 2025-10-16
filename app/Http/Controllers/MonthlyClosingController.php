@@ -230,6 +230,19 @@ class MonthlyClosingController extends Controller
         ];
 
         // ============================
+        // TABELA COMPARATIVA DE ARTISTAS (HORIZONTAL)
+        // ============================
+        $artistComparison = $artistData->map(function ($data) {
+            return [
+                'name' => $data['artist']->name,
+                'vendas' => $data['vendas'],
+                'cache_liquido' => $data['cache_liquido'],
+                'comissao_agencia' => $data['comissao_agencia'],
+                'comissao_liquida' => $data['comissao_liquida'],
+            ];
+        })->values()->toArray();
+
+        // ============================
         // TABELA COMPARATIVA DE BOOKERS (HORIZONTAL)
         // ============================
         $bookerComparison = $bookerData->map(function ($data) {
@@ -260,7 +273,8 @@ class MonthlyClosingController extends Controller
             'chart_top_artists' => $chartTopArtists,
             'chart_distribution' => $chartDistribution,
 
-            // Tabela Comparativa de Bookers
+            // Tabelas Comparativas
+            'artist_comparison' => $artistComparison,
             'booker_comparison' => $bookerComparison,
 
             // Dados brutos
