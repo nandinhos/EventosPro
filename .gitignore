@@ -23,3 +23,5 @@ yarn-error.log
 /.zed
 /storage/debugbar
 /coverage-report
+# Claude Code local settings
+.claude/settings.local.json
