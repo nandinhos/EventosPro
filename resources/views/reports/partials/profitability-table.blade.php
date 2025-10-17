@@ -7,19 +7,19 @@
     {{-- Cards de Resumo para a Aba de Rentabilidade --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg">
-            <h3 class="text-sm text-gray-500 dark:text-gray-400">Receita Bruta Total</h3>
+            <h3 class="text-sm text-gray-500 dark:text-gray-400">Contrato Bruto</h3>
             <p class="text-lg font-semibold text-blue-800 dark:text-blue-300">R$ {{ number_format($tableData->sum('revenue'), 2, ',', '.') }}</p>
         </div>
         <div class="bg-red-100 dark:bg-red-900/20 p-4 rounded-lg">
-            <h3 class="text-sm text-gray-500 dark:text-gray-400">Custos Totais</h3>
+            <h3 class="text-sm text-gray-500 dark:text-gray-400">Custos</h3>
             <p class="text-lg font-semibold text-red-800 dark:text-red-300">R$ {{ number_format($tableData->sum('costs'), 2, ',', '.') }}</p>
         </div>
         <div class="bg-green-100 dark:bg-green-900/20 p-4 rounded-lg">
-            <h3 class="text-sm text-gray-500 dark:text-gray-400">Rentabilidade Total</h3>
+            <h3 class="text-sm text-gray-500 dark:text-gray-400">Contrato Líquido</h3>
             <p class="text-lg font-semibold text-green-800 dark:text-green-300">R$ {{ number_format($tableData->sum('profitability'), 2, ',', '.') }}</p>
         </div>
         <div class="bg-yellow-100 dark:bg-yellow-900/20 p-4 rounded-lg">
-            <h3 class="text-sm text-gray-500 dark:text-gray-400">Margem Média</h3>
+            <h3 class="text-sm text-gray-500 dark:text-gray-400">Margem</h3>
             @php
                 $totalRevenue = $tableData->sum('revenue');
                 $totalProfit = $tableData->sum('profitability');
