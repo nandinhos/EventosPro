@@ -17,8 +17,20 @@ class FinancialProjectionController extends Controller
 
     public function index(Request $request)
     {
-        $period = $request->input('period', '30_days');
-        $this->projectionService->setPeriod($period);
+        // Valida os inputs
+        $validated = $request->validate([
+            'period' => 'nullable|string|in:30_days,60_days,90_days,next_semester,next_year,custom',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+        ]);
+
+        // Garante que $period nunca seja null
+        $period = $request->input('period') ?? '30_days';
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        // Define o período no serviço
+        $this->projectionService->setPeriod($period, $startDate, $endDate);
 
         return view('projections.dashboard', [
             'accounts_receivable' => $this->projectionService->getAccountsReceivable(),
@@ -39,9 +51,19 @@ class FinancialProjectionController extends Controller
      */
     public function debug(Request $request): View
     {
+        // Valida os inputs
+        $validated = $request->validate([
+            'period' => 'nullable|string|in:30_days,60_days,90_days,next_semester,next_year,custom',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+        ]);
+
         // Pega o período do request ou usa o default
         $period = $request->input('period', '30_days');
-        $this->projectionService->setPeriod($period);
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        $this->projectionService->setPeriod($period, $startDate, $endDate);
 
         // Armazena todos os resultados dos cálculos em um array
         $debugData = [

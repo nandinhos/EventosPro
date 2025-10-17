@@ -33,10 +33,32 @@ class FinancialProjectionService
      * Define o período da projeção.
      *
      * @param  string  $period  Identificador do período.
+     * @param  string|null  $startDate  Data de início customizada (formato Y-m-d).
+     * @param  string|null  $endDate  Data final customizada (formato Y-m-d).
      */
-    public function setPeriod(string $period): void
+    public function setPeriod(string $period, ?string $startDate = null, ?string $endDate = null): void
     {
         $today = Carbon::today()->startOfDay(); // Usar startOfDay para consistência
+
+        // Se datas customizadas foram fornecidas, usa elas
+        if ($period === 'custom' && $startDate && $endDate) {
+            $this->startDate = Carbon::parse($startDate)->startOfDay();
+            $this->endDate = Carbon::parse($endDate)->endOfDay();
+            Log::info("[FinancialProjectionService] Período customizado definido: De {$this->startDate->toDateString()} até {$this->endDate->toDateString()}");
+
+            return;
+        }
+
+        // Se apenas uma data foi fornecida (sem período predefinido)
+        if (! $period && ($startDate || $endDate)) {
+            $this->startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : $today;
+            $this->endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : $today->copy()->addYear()->endOfDay();
+            Log::info("[FinancialProjectionService] Período parcial definido: De {$this->startDate->toDateString()} até {$this->endDate->toDateString()}");
+
+            return;
+        }
+
+        // Períodos predefinidos
         $this->startDate = $today; // Projeção sempre começa de hoje
 
         switch ($period) {
@@ -68,18 +90,25 @@ class FinancialProjectionService
     }
 
     /**
-     * Calcula o total de contas a receber de clientes.
-     * Soma o valor de TODAS as parcelas não confirmadas (vencidas ou a vencer).
+     * Calcula o total de contas a receber de clientes NO PERÍODO DE PROJEÇÃO.
+     * Inclui parcelas vencidas não confirmadas + parcelas a vencer no período.
      *
      * @return float O valor total a receber em BRL.
      */
     public function getAccountsReceivable(): float
     {
-        // Contas a receber: todas as parcelas não confirmadas, independente da data de vencimento.
-        // Se uma parcela venceu no passado e não foi confirmada, ela ainda é "a receber".
+        // Contas a receber NO PERÍODO:
+        // 1. Parcelas vencidas (antes de startDate) não confirmadas
+        // 2. Parcelas com vencimento no período de projeção (startDate até endDate)
         $payments = Payment::whereNull('confirmed_at')
             ->whereHas('gig') // Garante que a gig não foi deletada
+            ->where(function ($query) {
+                $query->where('due_date', '<', $this->startDate) // Vencidas
+                    ->orWhereBetween('due_date', [$this->startDate, $this->endDate]); // A vencer no período
+            })
             ->get();
+
+        Log::info('[FinancialProjectionService] Total Contas a Receber (Vencidas + Período): '.$payments->sum('due_value_brl').' | Quantidade: '.$payments->count());
 
         return (float) $payments->sum('due_value_brl'); // Accessor já converte para BRL
     }
@@ -119,6 +148,7 @@ class FinancialProjectionService
                 $query->where('gig_date', '<', $this->startDate) // Gigs passadas
                     ->orWhereBetween('gig_date', [$this->startDate, $this->endDate]); // Gigs no período de projeção
             })
+            ->with(['artist', 'gigCosts']) // Eager load para evitar N+1
             ->get();
 
         $total = 0;
@@ -146,6 +176,7 @@ class FinancialProjectionService
                 $query->where('gig_date', '<', $this->startDate) // Gigs passadas
                     ->orWhereBetween('gig_date', [$this->startDate, $this->endDate]); // Gigs no período de projeção
             })
+            ->with(['booker']) // Eager load para evitar N+1
             ->get();
 
         $total = 0;

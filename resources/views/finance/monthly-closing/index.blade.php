@@ -28,7 +28,7 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             {{-- FILTROS --}}
             <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
@@ -159,7 +159,7 @@
                 </div>
             </div>
 
-            {{-- TABELA COMPARATIVA DE ARTISTAS (HORIZONTAL) --}}
+            {{-- TABELA COMPARATIVA DE ARTISTAS (VERTICAL) --}}
             @if(count($reportData['artist_comparison'] ?? []) > 0)
             <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
@@ -167,70 +167,77 @@
                         Comparativo de Performance - Artistas
                     </h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400">
-                        Análise horizontal de indicadores financeiros por artista
+                        Análise vertical de indicadores financeiros por artista
                     </p>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-100 dark:bg-gray-600">
-                                    Indicador
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Artista
                                 </th>
-                                @foreach($reportData['artist_comparison'] as $artist)
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        {{ $artist['name'] }}
-                                    </th>
-                                @endforeach
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Vendas
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Cachê Líquido
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Comissão Agência
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Comissão Líquida
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            {{-- Linha: Vendas --}}
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50">
-                                    Vendas
-                                </td>
-                                @foreach($reportData['artist_comparison'] as $artist)
-                                    <td class="px-6 py-4 text-right text-sm font-bold text-blue-600 dark:text-blue-400">
-                                        {{ $artist['vendas'] }}
+                            @foreach($reportData['artist_comparison'] as $artist)
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center">
+                                            <div class="h-10 w-10 flex-shrink-0 bg-primary-500 rounded-full flex items-center justify-center">
+                                                <span class="text-white font-bold text-sm">
+                                                    {{ strtoupper(substr($artist['name'], 0, 2)) }}
+                                                </span>
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-bold text-gray-900 dark:text-white">
+                                                    {{ $artist['name'] }}
+                                                </div>
+                                            </div>
+                                        </div>
                                     </td>
-                                @endforeach
-                            </tr>
-
-                            {{-- Linha: Cachê Líquido --}}
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50">
-                                    Cachê Líquido
-                                </td>
-                                @foreach($reportData['artist_comparison'] as $artist)
-                                    <td class="px-6 py-4 text-right text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300">
+                                            {{ $artist['vendas'] }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right text-sm font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
                                         R$ {{ number_format($artist['cache_liquido'], 2, ',', '.') }}
                                     </td>
-                                @endforeach
-                            </tr>
-
-                            {{-- Linha: Comissão Agência --}}
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50">
-                                    Comissão Agência
-                                </td>
-                                @foreach($reportData['artist_comparison'] as $artist)
-                                    <td class="px-6 py-4 text-right text-sm font-bold text-purple-600 dark:text-purple-400">
+                                    <td class="px-6 py-4 text-right text-sm font-bold text-purple-600 dark:text-purple-400 whitespace-nowrap">
                                         R$ {{ number_format($artist['comissao_agencia'], 2, ',', '.') }}
                                     </td>
-                                @endforeach
-                            </tr>
-
-                            {{-- Linha: Comissão Líquida --}}
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50">
-                                    Comissão Líquida
-                                </td>
-                                @foreach($reportData['artist_comparison'] as $artist)
-                                    <td class="px-6 py-4 text-right text-sm font-bold text-green-600 dark:text-green-400">
+                                    <td class="px-6 py-4 text-right text-sm font-bold text-green-600 dark:text-green-400 whitespace-nowrap">
                                         R$ {{ number_format($artist['comissao_liquida'], 2, ',', '.') }}
                                     </td>
-                                @endforeach
+                                </tr>
+                            @endforeach
+
+                            {{-- Linha de Total --}}
+                            @php
+                                $totalVendas = collect($reportData['artist_comparison'])->sum('vendas');
+                                $totalCacheLiquido = collect($reportData['artist_comparison'])->sum('cache_liquido');
+                                $totalComissaoAgencia = collect($reportData['artist_comparison'])->sum('comissao_agencia');
+                                $totalComissaoLiquida = collect($reportData['artist_comparison'])->sum('comissao_liquida');
+                            @endphp
+                            <tr class="bg-primary-600 dark:bg-primary-700 text-white font-bold">
+                                <td class="px-6 py-4 text-sm uppercase">Total Geral</td>
+                                <td class="px-6 py-4 text-center text-sm">{{ $totalVendas }}</td>
+                                <td class="px-6 py-4 text-right text-sm whitespace-nowrap">R$ {{ number_format($totalCacheLiquido, 2, ',', '.') }}</td>
+                                <td class="px-6 py-4 text-right text-sm whitespace-nowrap">R$ {{ number_format($totalComissaoAgencia, 2, ',', '.') }}</td>
+                                <td class="px-6 py-4 text-right text-sm whitespace-nowrap">R$ {{ number_format($totalComissaoLiquida, 2, ',', '.') }}</td>
                             </tr>
                         </tbody>
                     </table>

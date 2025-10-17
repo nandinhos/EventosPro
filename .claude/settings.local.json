@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(./vendor/bin/sail bash:*)",
+      "Bash(./vendor/bin/sail:*)",
+      "Bash(docker system prune:*)"
     ],
     "deny": [],
     "ask": []
