@@ -9,6 +9,40 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## 🚀 Deploy Automatizado
+
+Para facilitar o processo de deploy e desenvolvimento, criamos um script automatizado que cuida de todo o processo de configuração:
+
+### Deploy Completo (Recomendado)
+
+```bash
+# Deploy completo da aplicação
+./deploy.sh
+
+# Ou com opções específicas:
+./deploy.sh --fresh    # Deploy fresco (remove containers antigos)
+./deploy.sh --quick    # Deploy rápido (pula instalações)
+./deploy.sh --assets   # Apenas rebuild dos assets
+./deploy.sh --migrate  # Apenas migração do banco
+```
+
+### O que o script faz:
+
+✅ Verifica se o Docker está rodando
+✅ Para containers existentes
+✅ Inicia containers com Laravel Sail
+✅ Instala dependências Composer e NPM
+✅ Build dos assets
+✅ Gera chave da aplicação (se necessário)
+✅ Executa migrações e seeders
+✅ Cache das configurações
+✅ Verifica saúde da aplicação
+
+### URLs após deploy:
+
+- 🌐 **Aplicação Web**: http://localhost:8081
+- 🗄️ **phpMyAdmin**: http://localhost:8089
+
 ## 🐳 Ambiente de Desenvolvimento - Laravel Sail
 
 **⚠️ IMPORTANTE**: Este projeto utiliza Laravel Sail como ambiente de desenvolvimento padrão. Todos os comandos devem ser executados através do Sail para garantir consistência.
