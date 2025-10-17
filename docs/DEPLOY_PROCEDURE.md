@@ -1,5 +1,16 @@
 # Procedimento de Deploy - EventosPro
 
+## Portas padrão usadas (alteradas para evitar conflitos locais)
+
+Se você tem outros containers locais, estas são as portas recomendadas por este projeto para evitar conflitos. Elas estão configuradas no arquivo `.env` do projeto (variáveis: APP_PORT, VITE_PORT, FORWARD_DB_PORT, FORWARD_PHPMYADMIN_PORT).
+
+- HTTP da aplicação: 8081 (host) -> 80 (container)
+- Vite (dev server): 5174 (host) -> 5174 (container)
+- MySQL (host): 3307 -> 3306 (container)
+- phpMyAdmin (host): 8089 -> 80 (container)
+
+Se alguma dessas portas conflitar com outro serviço, edite o arquivo `.env` e ajuste as variáveis acima antes de subir os containers.
+
 ## Guia Completo de Deploy da Aplicação EventosPro
 
 Este documento contém o procedimento testado e validado para fazer o deploy correto da aplicação EventosPro, baseado na resolução bem-sucedida de problemas de permissões e configuração.
