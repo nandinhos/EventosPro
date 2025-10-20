@@ -94,6 +94,7 @@ class FinancialProjectionServiceTest extends TestCase
         // Create pending payment
         Payment::factory()->create([
             'gig_id' => $gig->id,
+            'due_date' => Carbon::now()->addDays(5),
             'due_value' => 500,
             'currency' => 'BRL',
             'confirmed_at' => null, // Not confirmed
@@ -235,6 +236,7 @@ class FinancialProjectionServiceTest extends TestCase
 
         Payment::factory()->create([
             'gig_id' => $gig->id,
+            'due_date' => Carbon::now()->addDays(5),
             'due_value' => 50, // USD
             'currency' => 'USD',
             'exchange_rate' => null, // Force use of gig's exchange rate

@@ -364,4 +364,199 @@ class FinancialProjectionService
             ->orderBy('gig_date')
             ->get();
     }
+
+    /**
+     * Calcula métricas consolidadas para a diretoria.
+     * Métricas gerenciais incluem liquidez, margem operacional e indicadores de risco.
+     */
+    public function getExecutiveSummary(): array
+    {
+        $receivable = $this->getAccountsReceivable();
+        $payableArtists = $this->getAccountsPayableArtists();
+        $payableBookers = $this->getAccountsPayableBookers();
+        $payableExpenses = $this->getAccountsPayableExpenses();
+        $totalPayable = $payableArtists + $payableBookers + $payableExpenses;
+        $cashFlow = $this->getProjectedCashFlow();
+
+        // Índice de Liquidez Projetada (Contas a Receber / Total a Pagar)
+        $liquidityIndex = $totalPayable > 0 ? ($receivable / $totalPayable) : 0;
+
+        // Margem Operacional Projetada (%)
+        $operationalMargin = $receivable > 0 ? (($cashFlow / $receivable) * 100) : 0;
+
+        // Grau de Comprometimento (Total a Pagar / Contas a Receber * 100)
+        $commitmentRate = $receivable > 0 ? (($totalPayable / $receivable) * 100) : 0;
+
+        // Análise de Risco
+        $riskLevel = $this->calculateRiskLevel($liquidityIndex, $cashFlow, $receivable);
+
+        return [
+            'receivable' => $receivable,
+            'total_payable' => $totalPayable,
+            'cash_flow' => $cashFlow,
+            'liquidity_index' => $liquidityIndex,
+            'operational_margin' => $operationalMargin,
+            'commitment_rate' => $commitmentRate,
+            'risk_level' => $riskLevel,
+            'breakdown' => [
+                'payable_artists' => $payableArtists,
+                'payable_bookers' => $payableBookers,
+                'payable_expenses' => $payableExpenses,
+            ],
+        ];
+    }
+
+    /**
+     * Calcula o nível de risco financeiro baseado em métricas.
+     */
+    private function calculateRiskLevel(float $liquidityIndex, float $cashFlow, float $receivable): string
+    {
+        // Risco Alto: Liquidez < 1 OU Fluxo Negativo > 20% do Recebível
+        if ($liquidityIndex < 1.0 || ($cashFlow < 0 && abs($cashFlow) > ($receivable * 0.2))) {
+            return 'high';
+        }
+
+        // Risco Médio: Liquidez entre 1 e 1.2 OU Fluxo Negativo < 20% do Recebível
+        if ($liquidityIndex < 1.2 || ($cashFlow < 0 && abs($cashFlow) <= ($receivable * 0.2))) {
+            return 'medium';
+        }
+
+        // Risco Baixo: Liquidez >= 1.2 E Fluxo Positivo
+        return 'low';
+    }
+
+    /**
+     * Retorna análise detalhada de pagamentos vencidos.
+     */
+    public function getOverdueAnalysis(): array
+    {
+        $today = Carbon::today();
+
+        // Parcelas vencidas de clientes
+        $overduePayments = Payment::whereNull('confirmed_at')
+            ->whereHas('gig')
+            ->where('due_date', '<', $today)
+            ->with(['gig.artist'])
+            ->orderBy('due_date')
+            ->get();
+
+        $totalOverdue = $overduePayments->sum('due_value_brl');
+        $overdueCount = $overduePayments->count();
+
+        // Agrupar por tempo de atraso
+        $overdueByPeriod = [
+            '0-30' => 0,
+            '31-60' => 0,
+            '61-90' => 0,
+            '90+' => 0,
+        ];
+
+        foreach ($overduePayments as $payment) {
+            $daysOverdue = $today->diffInDays($payment->due_date);
+
+            if ($daysOverdue <= 30) {
+                $overdueByPeriod['0-30'] += (float) $payment->due_value_brl;
+            } elseif ($daysOverdue <= 60) {
+                $overdueByPeriod['31-60'] += (float) $payment->due_value_brl;
+            } elseif ($daysOverdue <= 90) {
+                $overdueByPeriod['61-90'] += (float) $payment->due_value_brl;
+            } else {
+                $overdueByPeriod['90+'] += (float) $payment->due_value_brl;
+            }
+        }
+
+        return [
+            'total_overdue' => $totalOverdue,
+            'overdue_count' => $overdueCount,
+            'overdue_by_period' => $overdueByPeriod,
+            'overdue_payments' => $overduePayments,
+        ];
+    }
+
+    /**
+     * Retorna análise de eventos futuros no período.
+     */
+    public function getFutureEventsAnalysis(): array
+    {
+        $futureGigs = Gig::whereBetween('gig_date', [$this->startDate, $this->endDate])
+            ->with(['artist', 'booker', 'gigCosts'])
+            ->orderBy('gig_date')
+            ->get();
+
+        $totalEvents = $futureGigs->count();
+        $totalProjectedRevenue = 0;
+        $totalProjectedCosts = 0;
+
+        foreach ($futureGigs as $gig) {
+            $totalProjectedRevenue += $this->calculatorService->calculateGrossCashBrl($gig);
+            $totalProjectedCosts += $gig->gigCosts->sum('value_brl');
+        }
+
+        $projectedNetRevenue = $totalProjectedRevenue - $totalProjectedCosts;
+        $averageRevenuePerEvent = $totalEvents > 0 ? ($totalProjectedRevenue / $totalEvents) : 0;
+
+        return [
+            'total_events' => $totalEvents,
+            'total_projected_revenue' => $totalProjectedRevenue,
+            'total_projected_costs' => $totalProjectedCosts,
+            'projected_net_revenue' => $projectedNetRevenue,
+            'average_revenue_per_event' => $averageRevenuePerEvent,
+            'events' => $futureGigs,
+        ];
+    }
+
+    /**
+     * Retorna comparação com período anterior (mesmo tamanho).
+     */
+    public function getComparativePeriodAnalysis(): array
+    {
+        $periodDays = $this->startDate->diffInDays($this->endDate);
+
+        // Período anterior tem o mesmo tamanho
+        $previousStart = $this->startDate->copy()->subDays($periodDays + 1);
+        $previousEnd = $this->startDate->copy()->subDay();
+
+        // Temporariamente salva as datas atuais
+        $currentStart = $this->startDate;
+        $currentEnd = $this->endDate;
+
+        // Define período anterior
+        $this->startDate = $previousStart;
+        $this->endDate = $previousEnd;
+
+        $previousReceivable = $this->getAccountsReceivable();
+        $previousPayable = $this->getAccountsPayableArtists() + $this->getAccountsPayableBookers() + $this->getAccountsPayableExpenses();
+        $previousCashFlow = $this->getProjectedCashFlow();
+
+        // Restaura período atual
+        $this->startDate = $currentStart;
+        $this->endDate = $currentEnd;
+
+        $currentReceivable = $this->getAccountsReceivable();
+        $currentPayable = $this->getAccountsPayableArtists() + $this->getAccountsPayableBookers() + $this->getAccountsPayableExpenses();
+        $currentCashFlow = $this->getProjectedCashFlow();
+
+        // Calcula variações percentuais
+        $receivableVariation = $previousReceivable > 0 ? ((($currentReceivable - $previousReceivable) / $previousReceivable) * 100) : 0;
+        $payableVariation = $previousPayable > 0 ? ((($currentPayable - $previousPayable) / $previousPayable) * 100) : 0;
+        $cashFlowVariation = $previousCashFlow != 0 ? ((($currentCashFlow - $previousCashFlow) / abs($previousCashFlow)) * 100) : 0;
+
+        return [
+            'current' => [
+                'receivable' => $currentReceivable,
+                'payable' => $currentPayable,
+                'cash_flow' => $currentCashFlow,
+            ],
+            'previous' => [
+                'receivable' => $previousReceivable,
+                'payable' => $previousPayable,
+                'cash_flow' => $previousCashFlow,
+            ],
+            'variations' => [
+                'receivable' => $receivableVariation,
+                'payable' => $payableVariation,
+                'cash_flow' => $cashFlowVariation,
+            ],
+        ];
+    }
 }

@@ -5,7 +5,9 @@
       "Bash(git commit:*)",
       "Bash(./vendor/bin/sail bash:*)",
       "Bash(./vendor/bin/sail:*)",
-      "Bash(docker system prune:*)"
+      "Bash(docker system prune:*)",
+      "Bash(php artisan view:cache:*)",
+      "Bash(php artisan:*)"
     ],
     "deny": [],
     "ask": []
