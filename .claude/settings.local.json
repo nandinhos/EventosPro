@@ -8,7 +8,8 @@
       "Bash(docker system prune:*)",
       "Bash(php artisan view:cache:*)",
       "Bash(php artisan:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

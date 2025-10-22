@@ -63,7 +63,7 @@ $gig = Gig::find(1);
 $auditData = $auditService->calculateGigAuditData($gig);
 
 if ($auditData['has_divergence']) {
-    Log::warning('Divergência encontrada', $auditData);
+    //Log::warning('Divergência encontrada', $auditData);
 }
 ```
 
@@ -221,7 +221,7 @@ echo "Válidos: " . $batchResult['valid_gigs']->count();
 echo "Inválidos: " . $batchResult['invalid_gigs']->count();
 
 foreach ($batchResult['errors'] as $error) {
-    Log::warning($error);
+    //Log::warning($error);
 }
 ```
 

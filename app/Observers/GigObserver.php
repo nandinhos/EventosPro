@@ -24,7 +24,7 @@ class GigObserver
      */
     public function saving(Gig $gig): void
     {
-        Log::info('[GigObserver@saving] Iniciando para Gig ID: '.($gig->id ?? 'NOVA GIG'));
+        // Log::info('[GigObserver@saving] Iniciando para Gig ID: '.($gig->id ?? 'NOVA GIG'));
 
         // Verifica se os campos de input de comissão foram alterados nesta requisição
         $isAgencyCommissionDirty = $gig->isDirty('agency_commission_type') || $gig->isDirty('agency_commission_value');
@@ -33,7 +33,7 @@ class GigObserver
         // --- PREPARAÇÃO PARA COMISSÃO DA AGÊNCIA ---
         // SÓ executa esta lógica se os campos de comissão da agência vieram do formulário
         if ($isAgencyCommissionDirty) {
-            Log::debug('[GigObserver@saving] Detectada alteração na comissão da agência. Reinterpretando inputs.');
+            // Log::debug('[GigObserver@saving] Detectada alteração na comissão da agência. Reinterpretando inputs.');
             $agencyCommissionInputValue = $gig->agency_commission_value; // Valor/Taxa do input
 
             if (strtoupper($gig->agency_commission_type ?? '') === 'PERCENT') {
@@ -51,7 +51,7 @@ class GigObserver
 
         // --- PREPARAÇÃO PARA COMISSÃO DO BOOKER ---
         if ($isBookerCommissionDirty) {
-            Log::debug('[GigObserver@saving] Detectada alteração na comissão do booker. Reinterpretando inputs.');
+            // Log::debug('[GigObserver@saving] Detectada alteração na comissão do booker. Reinterpretando inputs.');
             $bookerCommissionInputValue = $gig->booker_commission_value;
 
             if ($gig->booker_id) {
@@ -76,16 +76,6 @@ class GigObserver
         // estão corretos para o service usar. O service sempre será chamado para garantir
         // que os valores sejam consistentes, mesmo que só uma despesa tenha mudado.
 
-        Log::debug('[GigObserver@saving] Dados da Gig antes de chamar o service:', [
-            'id' => $gig->id ?? 'NOVA',
-            'agency_type' => $gig->agency_commission_type,
-            'agency_rate' => $gig->agency_commission_rate,
-            'agency_value_pre_calc' => $gig->agency_commission_value,
-            'booker_type' => $gig->booker_commission_type,
-            'booker_rate' => $gig->booker_commission_rate,
-            'booker_value_pre_calc' => $gig->booker_commission_value,
-        ]);
-
         // Calcula os VALORES FINAIS EM BRL das comissões
         $calculatedAgencyGrossCommissionBrl = $this->financialCalculator->calculateAgencyGrossCommissionBrl($gig);
         $calculatedBookerCommissionBrl = $this->financialCalculator->calculateBookerCommissionBrl($gig);
@@ -96,30 +86,23 @@ class GigObserver
         $gig->booker_commission_value = $calculatedBookerCommissionBrl;
         $gig->liquid_commission_value = $calculatedAgencyNetCommissionBrl;
 
-        Log::info('[GigObserver@saving] Gig ID: '.($gig->id ?? 'NOVA').' - VALORES FINAIS PARA SALVAR NO BANCO:', [
-            'agency_commission_rate' => $gig->agency_commission_rate,
-            'persisted_agency_commission_value_brl' => $gig->agency_commission_value,
-            'booker_commission_rate' => $gig->booker_commission_rate,
-            'persisted_booker_commission_value_brl' => $gig->booker_commission_value,
-            'persisted_liquid_commission_value_brl' => $gig->liquid_commission_value,
-        ]);
     }
 
     public function created(Gig $gig): void
     {
-        Log::info("[GigObserver@created] Gig ID: {$gig->id} criada com sucesso.");
+        // Log::info("[GigObserver@created] Gig ID: {$gig->id} criada com sucesso.");
     }
 
     public function updated(Gig $gig): void
     {
-        Log::info("[GigObserver@updated] Gig ID: {$gig->id} atualizada com sucesso.");
+        // Log::info("[GigObserver@updated] Gig ID: {$gig->id} atualizada com sucesso.");
         if ($gig->wasChanged()) {
-            Log::debug('[GigObserver@updated] Campos alterados: ', $gig->getChanges());
+            // Log::debug('[GigObserver@updated] Campos alterados: ', $gig->getChanges());
         }
     }
 
     public function deleted(Gig $gig): void
     {
-        Log::info("[GigObserver@deleted] Gig ID: {$gig->id} excluída (soft delete).");
+        // Log::info("[GigObserver@deleted] Gig ID: {$gig->id} excluída (soft delete).");
     }
 }

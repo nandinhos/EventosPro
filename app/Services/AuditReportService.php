@@ -138,7 +138,7 @@ class AuditReportService
                     $reports[] = $report;
                 }
             } catch (\Exception $e) {
-                Log::warning("Erro ao ler relatório: {$file}", ['exception' => $e]);
+                // Log::warning("Erro ao ler relatório: {$file}", ['exception' => $e]);
             }
         }
 

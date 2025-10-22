@@ -24,7 +24,7 @@ class StoreGigRequest extends FormRequest
      */
     public function rules(): array
     {
-        Log::debug('[StoreGigRequest] Dados recebidos para validação (rules): ', $this->all());
+        // Log::debug('[StoreGigRequest] Dados recebidos para validação (rules): ', $this->all());
 
         return [
             'artist_id' => ['required', 'integer', 'exists:artists,id'],
@@ -143,6 +143,6 @@ class StoreGigRequest extends FormRequest
         if (! empty($toMerge)) {
             $this->merge($toMerge);
         }
-        Log::debug('[StoreGigRequest] Dados após prepareForValidation: ', $this->all());
+        // Log::debug('[StoreGigRequest] Dados após prepareForValidation: ', $this->all());
     }
 }

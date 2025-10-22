@@ -166,8 +166,8 @@ $gigs = Gig::select(['id', 'gig_date', 'artist_id'])
 #### 6.2. Logs Estratégicos
 ```php
 // ✅ Adicionar logs em Service layers críticos
-Log::info("[Service] Total calculado: {$total}");
-Log::debug("[Service] Processing item {$item->id}");
+//Log::info("[Service] Total calculado: {$total}");
+//Log::debug("[Service] Processing item {$item->id}");
 ```
 
 ---

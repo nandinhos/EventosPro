@@ -23,7 +23,7 @@ class PaymentController extends Controller
      */
     public function store(Request $request, Gig $gig): RedirectResponse // Usar Request ou criar StorePaymentRequest
     {
-        Log::info('Dados recebidos no Payment Store (Parcela Prevista):', $request->all());
+        // Log::info('Dados recebidos no Payment Store (Parcela Prevista):', $request->all());
 
         // Validação para os campos da PARCELA PREVISTA
         $validated = $request->validate([
@@ -38,11 +38,11 @@ class PaymentController extends Controller
             'description' => ['nullable', 'string', 'max:255'], // Adicionar description se tiver no form
             'notes' => ['nullable', 'string', 'max:65535'],
         ]);
-        Log::info('Dados validados para Parcela Prevista:', $validated);
+        // Log::info('Dados validados para Parcela Prevista:', $validated);
 
         DB::beginTransaction();
         try {
-            Log::info("Iniciando criação da Parcela Prevista para Gig ID: {$gig->id}");
+            // Log::info("Iniciando criação da Parcela Prevista para Gig ID: {$gig->id}");
 
             // Adiciona gig_id e preenche campos de confirmação como NULL
             $validated['gig_id'] = $gig->id;
@@ -60,18 +60,18 @@ class PaymentController extends Controller
             // Adiciona description se não veio do form
             $validated['description'] = $validated['description'] ?? 'Parcela Prevista';
 
-            Log::info('Dados para criar Payment (Previsto):', $validated);
+            // Log::info('Dados para criar Payment (Previsto):', $validated);
             $payment = Payment::create($validated);
-            Log::info("Parcela Prevista criada com ID: {$payment->id}");
+            // Log::info("Parcela Prevista criada com ID: {$payment->id}");
 
             // Disparar o evento para recalcular o status da Gig (A VENCER/VENCIDO)
-            Log::info('Disparando evento PaymentSaved (para recalcular status da Gig)...');
+            // Log::info('Disparando evento PaymentSaved (para recalcular status da Gig)...');
             event(new PaymentSaved($payment));
-            Log::info('Evento PaymentSaved disparado.');
+            // Log::info('Evento PaymentSaved disparado.');
 
-            Log::info('Commitando transação...');
+            // Log::info('Commitando transação...');
             DB::commit();
-            Log::info('Transação commitada.');
+            // Log::info('Transação commitada.');
 
             return redirect()->route('gigs.show', $gig)->with('success', 'Parcela prevista registrada com sucesso!');
 
@@ -96,18 +96,18 @@ class PaymentController extends Controller
 
         DB::beginTransaction();
         try {
-            Log::info("Excluindo Pagamento ID: {$payment->id} para Gig ID: {$gig->id}");
+            // Log::info("Excluindo Pagamento ID: {$payment->id} para Gig ID: {$gig->id}");
 
             $payment->delete(); // Executa Soft Delete se configurado no Modelo Payment
 
-            Log::info("Pagamento ID: {$payment->id} marcado como excluído.");
+            // Log::info("Pagamento ID: {$payment->id} marcado como excluído.");
 
             // Dispara o mesmo evento 'PaymentSaved' passando a GIG
             // O listener vai recalcular o status baseado nos pagamentos restantes.
             // Precisamos garantir que o listener busque os pagamentos *não deletados*.
-            Log::info("Disparando evento para atualizar status da Gig ID: {$gig->id} após exclusão de pagamento.");
+            // Log::info("Disparando evento para atualizar status da Gig ID: {$gig->id} após exclusão de pagamento.");
             event(new PaymentSaved($payment)); // Passa o pagamento (que contém a gig_id)
-            Log::info('Evento disparado após exclusão.');
+            // Log::info('Evento disparado após exclusão.');
 
             DB::commit();
 
@@ -126,13 +126,13 @@ class PaymentController extends Controller
      */
     public function update(UpdatePaymentRequest $request, Gig $gig, Payment $payment): RedirectResponse
     {
-        Log::info('--- Iniciando Payment Update ---');
-        Log::info("Gig ID: {$gig->id}, Payment ID: {$payment->id}");
-        Log::info('Dados Recebidos:', $request->all()); // Log dos dados brutos
+        // Log::info('--- Iniciando Payment Update ---');
+        // Log::info("Gig ID: {$gig->id}, Payment ID: {$payment->id}");
+        // Log::info('Dados Recebidos:', $request->all()); // Log dos dados brutos
 
         // Validação feita pelo UpdatePaymentRequest
         $validated = $request->validated();
-        Log::info('Dados Validados:', $validated);
+        // Log::info('Dados Validados:', $validated);
 
         // Opcional: Verificar se o pagamento pertence à Gig
         if ($payment->gig_id !== $gig->id) {
@@ -142,7 +142,7 @@ class PaymentController extends Controller
 
         DB::beginTransaction();
         try {
-            Log::info("Atualizando Pagamento ID: {$payment->id} com dados validados.");
+            // Log::info("Atualizando Pagamento ID: {$payment->id} com dados validados.");
 
             // Lógica para 'paid_at' e 'status' se forem editáveis (removido por enquanto)
             // $validated['paid_at'] = ...;
@@ -154,20 +154,20 @@ class PaymentController extends Controller
             }
 
             $updated = $payment->update($validated); // update() retorna true ou false
-            Log::info('Resultado do payment->update(): '.($updated ? 'Sucesso' : 'Falha'));
+            // Log::info('Resultado do payment->update(): '.($updated ? 'Sucesso' : 'Falha'));
 
             if ($updated) {
-                Log::info("Pagamento ID: {$payment->id} atualizado no DB.");
+                // Log::info("Pagamento ID: {$payment->id} atualizado no DB.");
                 // Disparar evento APENAS se o update foi bem-sucedido
                 event(new PaymentSaved($payment));
-                Log::info('Evento PaymentSaved disparado após atualização.');
+                // Log::info('Evento PaymentSaved disparado após atualização.');
             } else {
-                Log::warning("Falha ao atualizar Pagamento ID: {$payment->id}. Update retornou false.");
+                // Log::warning("Falha ao atualizar Pagamento ID: {$payment->id}. Update retornou false.");
             }
 
-            Log::info('Commitando transação...');
+            // Log::info('Commitando transação...');
             DB::commit();
-            Log::info('Transação commitada.');
+            // Log::info('Transação commitada.');
 
             return redirect()->route('gigs.show', $gig)->with('success', 'Registro de pagamento atualizado!');
 
@@ -214,10 +214,10 @@ class PaymentController extends Controller
             }
 
             $payment->update($updateData);
-            Log::info("Pagamento ID: {$payment->id} confirmado por User ID: ".auth()->id());
+            // Log::info("Pagamento ID: {$payment->id} confirmado por User ID: ".auth()->id());
 
             event(new PaymentSaved($payment)); // Dispara evento para recalcular status da Gig
-            Log::info('Evento PaymentSaved disparado após confirmação.');
+            // Log::info('Evento PaymentSaved disparado após confirmação.');
 
             DB::commit();
 
@@ -251,7 +251,7 @@ class PaymentController extends Controller
 
         DB::beginTransaction();
         try {
-            Log::info("Desconfirmando Pagamento ID: {$payment->id} para Gig ID: {$gig->id}");
+            // Log::info("Desconfirmando Pagamento ID: {$payment->id} para Gig ID: {$gig->id}");
 
             // Limpa os campos relacionados à confirmação
             $payment->update([
@@ -266,11 +266,11 @@ class PaymentController extends Controller
 
             ]);
 
-            Log::info("Pagamento ID: {$payment->id} desconfirmado.");
+            // Log::info("Pagamento ID: {$payment->id} desconfirmado.");
 
             // Dispara evento para recalcular status da Gig
             event(new PaymentSaved($payment));
-            Log::info('Evento disparado após desconfirmação do pagamento.');
+            // Log::info('Evento disparado após desconfirmação do pagamento.');
 
             DB::commit();
 

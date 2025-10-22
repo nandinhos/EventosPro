@@ -455,10 +455,6 @@ class AuditSettlementsCommand extends Command
                 $message = "✅ Settlement {$settlement->id} removido (órfão)";
             } else {
                 // Para outros casos, logar sem aplicar correção automática
-                Log::warning('Settlement issue requer atenção manual', [
-                    'settlement_id' => $settlement->id,
-                    'issue' => $issue,
-                ]);
                 DB::rollBack();
 
                 return;
