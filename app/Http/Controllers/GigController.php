@@ -234,7 +234,9 @@ class GigController extends Controller
         $bookersForSelect = $bookers->pluck('name', 'id');
         $bookersData = $bookers->keyBy('id')->toArray();
         $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type');
-        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
+        $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center) {
+            return [$center->id => __('cost_centers.'.$center->name)];
+        });
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
         $gig = new Gig; // Para o formulário
 
