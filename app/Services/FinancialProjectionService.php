@@ -156,7 +156,7 @@ class FinancialProjectionService
         $costs = $this->queryBuilder->pendingExpensesQuery($this->endDate, true);
         $totalExpenses = (float) $costs->sum('value_brl');
 
-        Log::info("[FinancialProjectionService] Total Contas a Pagar Despesas: {$totalExpenses}. Quantidade de custos: ".$costs->count());
+        // Log::info("[FinancialProjectionService] Total Contas a Pagar Despesas: {$totalExpenses}. Quantidade de custos: ".$costs->count());
 
         return $totalExpenses;
     }
@@ -224,7 +224,7 @@ class FinancialProjectionService
         $totalPayable = $payableArtists + $payableBookers + $payableExpenses;
         $cashFlow = $receivable - $totalPayable;
 
-        Log::info("[FinancialProjectionService] Fluxo de Caixa Projetado: Recebível {$receivable} - Total a Pagar {$totalPayable} = {$cashFlow}");
+        // Log::info("[FinancialProjectionService] Fluxo de Caixa Projetado: Recebível {$receivable} - Total a Pagar {$totalPayable} = {$cashFlow}");
 
         return (float) $cashFlow;
     }
@@ -372,7 +372,7 @@ class FinancialProjectionService
     public function clearCache(): void
     {
         Cache::tags(['projections'])->flush();
-        Log::info('[FinancialProjectionService] Cache de projeções invalidado.');
+        // Log::info('[FinancialProjectionService] Cache de projeções invalidado.');
     }
 
     /**
