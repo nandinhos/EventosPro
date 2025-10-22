@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\FinancialProjectionService;
 use App\Services\GigFinancialCalculatorService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
@@ -269,7 +270,7 @@ class FinancialProjectionController extends Controller
         // Agrupar por status de vencimento
         $today = now()->startOfDay();
         $receivableGrouped = $clientPayments->groupBy(function ($payment) use ($today) {
-            $dueDate = \Carbon\Carbon::parse($payment->due_date);
+            $dueDate = Carbon::parse($payment->due_date);
             if ($dueDate->lt($today)) {
                 return 'vencido';
             } elseif ($dueDate->lte($today->copy()->addDays(7))) {
@@ -309,9 +310,9 @@ class FinancialProjectionController extends Controller
 
             // Agrupar gigs por mês para melhor visualização
             $gigsByMonth = $group->groupBy(function ($gig) {
-                return \Carbon\Carbon::parse($gig->gig_date)->format('m/Y');
+                return Carbon::parse($gig->gig_date)->format('m/Y');
             })->map(function ($gigsInMonth) {
-                $monthName = \Carbon\Carbon::parse($gigsInMonth->first()->gig_date)->format('M/Y');
+                $monthName = Carbon::parse($gigsInMonth->first()->gig_date)->format('M/Y');
                 $totalContractMonth = $gigsInMonth->sum('cache_value_brl');
                 $totalGrossCashMonth = $gigsInMonth->sum(fn ($gig) => $this->calculatorService->calculateGrossCashBrl($gig));
 
@@ -325,7 +326,7 @@ class FinancialProjectionController extends Controller
 
                         return [
                             'gig_id' => $gig->id,
-                            'sale_date' => \Carbon\Carbon::parse($gig->sale_date)->format('d/m/Y'),
+                            'sale_date' => Carbon::parse($gig->sale_date)->format('d/m/Y'),
                             'gig_date' => $gig->gig_date->format('d/m/Y'),
                             'artist_name' => $gig->artist->name ?? 'N/A',
                             'location_event_details' => $gig->location_event_details,
@@ -374,9 +375,9 @@ class FinancialProjectionController extends Controller
 
             // Agrupar gigs por mês para melhor visualização
             $gigsByMonth = $group->groupBy(function ($gig) {
-                return \Carbon\Carbon::parse($gig->gig_date)->format('m/Y');
+                return Carbon::parse($gig->gig_date)->format('m/Y');
             })->map(function ($gigsInMonth) {
-                $monthName = \Carbon\Carbon::parse($gigsInMonth->first()->gig_date)->format('M/Y');
+                $monthName = Carbon::parse($gigsInMonth->first()->gig_date)->format('M/Y');
                 $totalContractMonth = $gigsInMonth->sum('cache_value_brl');
                 $totalGrossCashMonth = $gigsInMonth->sum(fn ($gig) => $this->calculatorService->calculateGrossCashBrl($gig));
                 $totalBookerCommissionMonth = $gigsInMonth->sum(fn ($gig) => $this->calculatorService->calculateBookerCommissionBrl($gig));
@@ -393,7 +394,7 @@ class FinancialProjectionController extends Controller
 
                         return [
                             'gig_id' => $gig->id,
-                            'sale_date' => \Carbon\Carbon::parse($gig->sale_date)->format('d/m/Y'),
+                            'sale_date' => Carbon::parse($gig->sale_date)->format('d/m/Y'),
                             'gig_date' => $gig->gig_date->format('d/m/Y'),
                             'artist_name' => $gig->artist->name ?? 'N/A',
                             'location_event_details' => $gig->location_event_details,
