@@ -333,7 +333,7 @@ class FinancialProjectionService
      */
     public function getGlobalMetrics(): array
     {
-        return Cache::tags(['projections', 'global'])->remember('global_metrics', 300, function () {
+        return Cache::remember('projections:global_metrics', 300, function () {
             // Define período global
             $this->setPeriod('', Carbon::create(2000, 1, 1)->format('Y-m-d'), Carbon::create(2100, 12, 31)->format('Y-m-d'));
 
@@ -371,7 +371,7 @@ class FinancialProjectionService
      */
     public function clearCache(): void
     {
-        Cache::tags(['projections'])->flush();
+        Cache::forget('projections:global_metrics');
         // //Log::info('[FinancialProjectionService] Cache de projeções invalidado.');
     }
 

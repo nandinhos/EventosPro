@@ -131,39 +131,81 @@
                                 </svg>
                                 Eventos Realizados ({{ $realizedEvents->count() }})
                             </h4>
-                            
+
                             @if($realizedEvents->isNotEmpty())
-                                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-                                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                        <thead class="bg-green-50 dark:bg-green-900 text-xs uppercase text-gray-500 dark:text-gray-400">
-                                            <tr>
-                                                <th class="px-4 py-2 text-left">Data</th>
-                                                <th class="px-4 py-2 text-left">Artista</th>
-                                                <th class="px-4 py-2 text-left">Local</th>
-                                                <th class="px-4 py-2 text-right">Valor</th>
-                                                <th class="px-4 py-2 text-right">Comissão</th>
-                                                <th class="px-4 py-2 text-center">Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="text-sm">
-                                            @foreach($realizedEvents as $event)
-                                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                                <td class="px-4 py-2 whitespace-nowrap">{{ $event['gig_date'] }}</td>
-                                                <td class="px-4 py-2 whitespace-nowrap font-medium text-gray-800 dark:text-white">{{ $event['artist_name'] }}</td>
-                                                <td class="px-4 py-2">{{ Str::limit($event['location'], 50) }}</td>
-                                                <td class="px-4 py-2 text-right">R$ {{ number_format($event['cache_value_brl'], 2, ',', '.') }}</td>
-                                                <td class="px-4 py-2 text-right">R$ {{ number_format($event['booker_commission_brl'], 2, ',', '.') }}</td>
-                                                <td class="px-4 py-2 text-center">
-                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                        @if($event['booker_payment_status'] === 'pago') bg-green-100 text-green-800 
-                                                        @else bg-yellow-100 text-yellow-800 @endif">
-                                                        {{ ucfirst($event['booker_payment_status']) }}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
+                                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                                    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                                        @foreach($realizedEvents as $event)
+                                            <div x-data="{ open: false }" class="py-3">
+                                                {{-- Linha Resumida Clicável --}}
+                                                <div @click="open = !open" class="flex items-center justify-between cursor-pointer group">
+                                                    {{-- Coluna Esquerda: Gig, Artista, Local --}}
+                                                    <div class="flex items-center space-x-4">
+                                                        {{-- Coluna 1: Link da Gig --}}
+                                                        <a href="{{ route('gigs.show', $event['id']) }}" @click.stop class="text-sm font-semibold text-primary-600 hover:underline" title="Ver detalhes completos da Gig">
+                                                            #{{ $event['id'] }}
+                                                        </a>
+                                                        {{-- Coluna 2: Artista e Local --}}
+                                                        <div>
+                                                            <p class="font-medium text-gray-900 dark:text-white">{{ $event['artist_name'] }}</p>
+                                                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ Str::limit($event['location'], 35) }}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    {{-- Coluna Direita: Status, Data, Valor --}}
+                                                    <div class="flex items-center space-x-4">
+                                                        {{-- Coluna 3: Ícones de Status --}}
+                                                        <div class="flex space-x-2" title="Status do Ciclo Financeiro (Cliente | Despesas | Artista | Booker)">
+                                                            {{-- Status Pagamento Cliente --}}
+                                                            <i class="fas fa-dollar-sign fa-fw {{ $event['payment_status'] === 'pago' ? 'text-green-500' : ($event['payment_status'] === 'vencido' ? 'text-red-500' : 'text-gray-400') }}"></i>
+                                                            {{-- Status Pagamento Despesas --}}
+                                                            <i class="fas fa-receipt fa-fw {{ ($event['total_costs_brl'] ?? 0) > 0 ? 'text-green-500' : 'text-gray-400' }}"></i>
+                                                            {{-- Status Pagamento Artista --}}
+                                                            <i class="fas fa-user-check fa-fw {{ $event['artist_payment_status'] === 'pago' ? 'text-green-500' : 'text-gray-400' }}"></i>
+                                                            {{-- Status Pagamento Booker --}}
+                                                            <i class="fas fa-user-tag fa-fw {{ $event['booker_payment_status'] === 'pago' ? 'text-green-500' : 'text-gray-400' }}"></i>
+                                                        </div>
+                                                        {{-- Coluna 4: Data e Valor --}}
+                                                        <div class="text-sm text-right">
+                                                            <p class="text-gray-700 dark:text-gray-300">{{ $event['gig_date'] }}</p>
+                                                            <p class="text-xs font-semibold text-gray-500">R$ {{ number_format($event['cache_value_brl'], 2, ',', '.') }}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {{-- Área Expandida com Detalhes --}}
+                                                <div x-show="open" x-transition class="mt-4 pl-8 border-l-2 border-gray-200 dark:border-gray-700 ml-2">
+                                                    <div class="space-y-2 text-xs">
+                                                        @php
+                                                            $statuses = [
+                                                                'Pagamento Cliente' => ['status' => $event['payment_status'], 'color' => ($event['payment_status'] === 'pago' ? 'green' : ($event['payment_status'] === 'vencido' ? 'red' : 'gray'))],
+                                                                'Pagamento Despesas' => ['status' => ($event['total_costs_brl'] ?? 0) > 0 ? 'OK' : 'Pendente', 'color' => ($event['total_costs_brl'] ?? 0) > 0 ? 'green' : 'gray'],
+                                                                'Repasse Artista' => ['status' => $event['artist_payment_status'], 'color' => $event['artist_payment_status'] === 'pago' ? 'green' : 'gray'],
+                                                                'Comissão Booker' => ['status' => $event['booker_payment_status'], 'color' => $event['booker_payment_status'] === 'pago' ? 'green' : 'gray'],
+                                                            ];
+                                                        @endphp
+                                                        @foreach($statuses as $label => $info)
+                                                            <div class="flex items-center">
+                                                                <span class="w-3 h-3 rounded-full bg-{{ $info['color'] }}-500 mr-2"></span>
+                                                                <span class="font-medium text-gray-600 dark:text-gray-400 w-32">{{ $label }}:</span>
+                                                                <span class="font-semibold text-gray-800 dark:text-white">{{ ucfirst($info['status']) }}</span>
+                                                            </div>
+                                                        @endforeach
+                                                        <div class="flex items-center mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                                            <span class="font-medium text-gray-600 dark:text-gray-400 w-32">Comissão Booker:</span>
+                                                            <span class="font-semibold text-green-600 dark:text-green-400">R$ {{ number_format($event['booker_commission_brl'], 2, ',', '.') }}</span>
+                                                        </div>
+                                                        @if($event['is_exception'])
+                                                            <div class="flex items-center">
+                                                                <span class="w-3 h-3 rounded-full bg-orange-500 mr-2"></span>
+                                                                <span class="font-medium text-orange-600 dark:text-orange-400">Pagamento com Exceção Autorizada</span>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 </div>
                             @else
                                 <div class="bg-gray-50 dark:bg-gray-700 rounded-lg text-center py-8">
@@ -180,40 +222,81 @@
                                 </svg>
                                 Eventos Futuros ({{ $futureEvents->count() }})
                             </h4>
-                            
+
                             @if($futureEvents->isNotEmpty())
-                                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-                                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                        <thead class="bg-blue-50 dark:bg-blue-900 text-xs uppercase text-gray-500 dark:text-gray-400">
-                                            <tr>
-                                                <th class="px-4 py-2 text-left">Data</th>
-                                                <th class="px-4 py-2 text-left">Artista</th>
-                                                <th class="px-4 py-2 text-left">Local</th>
-                                                <th class="px-4 py-2 text-right">Valor</th>
-                                                <th class="px-4 py-2 text-right">Comissão</th>
-                                                <th class="px-4 py-2 text-center">Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="text-sm">
-                                            @foreach($futureEvents as $event)
-                                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                                <td class="px-4 py-2 whitespace-nowrap">{{ $event['gig_date'] }}</td>
-                                                <td class="px-4 py-2 whitespace-nowrap font-medium text-gray-800 dark:text-white">{{ $event['artist_name'] }}</td>
-                                                <td class="px-4 py-2">{{ Str::limit($event['location'], 50) }}</td>
-                                                <td class="px-4 py-2 text-right">R$ {{ number_format($event['cache_value_brl'], 2, ',', '.') }}</td>
-                                                <td class="px-4 py-2 text-right">R$ {{ number_format($event['booker_commission_brl'], 2, ',', '.') }}</td>
-                                                <td class="px-4 py-2 text-center">
-                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                        @if($event['booker_payment_status'] === 'pago') bg-green-100 text-green-800 
-                                                        @elseif($event['is_exception']) bg-orange-100 text-orange-800
-                                                        @else bg-gray-100 text-gray-800 @endif">
-                                                        @if($event['is_exception']) Exceção @else {{ ucfirst($event['booker_payment_status']) }} @endif
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
+                                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                                    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                                        @foreach($futureEvents as $event)
+                                            <div x-data="{ open: false }" class="py-3">
+                                                {{-- Linha Resumida Clicável --}}
+                                                <div @click="open = !open" class="flex items-center justify-between cursor-pointer group">
+                                                    {{-- Coluna Esquerda: Gig, Artista, Local --}}
+                                                    <div class="flex items-center space-x-4">
+                                                        {{-- Coluna 1: Link da Gig --}}
+                                                        <a href="{{ route('gigs.show', $event['id']) }}" @click.stop class="text-sm font-semibold text-primary-600 hover:underline" title="Ver detalhes completos da Gig">
+                                                            #{{ $event['id'] }}
+                                                        </a>
+                                                        {{-- Coluna 2: Artista e Local --}}
+                                                        <div>
+                                                            <p class="font-medium text-gray-900 dark:text-white">{{ $event['artist_name'] }}</p>
+                                                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ Str::limit($event['location'], 35) }}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    {{-- Coluna Direita: Status, Data, Valor --}}
+                                                    <div class="flex items-center space-x-4">
+                                                        {{-- Coluna 3: Ícones de Status --}}
+                                                        <div class="flex space-x-2" title="Status do Ciclo Financeiro (Cliente | Despesas | Artista | Booker)">
+                                                            {{-- Status Pagamento Cliente --}}
+                                                            <i class="fas fa-dollar-sign fa-fw {{ $event['payment_status'] === 'pago' ? 'text-green-500' : ($event['payment_status'] === 'vencido' ? 'text-red-500' : 'text-gray-400') }}"></i>
+                                                            {{-- Status Pagamento Despesas --}}
+                                                            <i class="fas fa-receipt fa-fw {{ ($event['total_costs_brl'] ?? 0) > 0 ? 'text-green-500' : 'text-gray-400' }}"></i>
+                                                            {{-- Status Pagamento Artista --}}
+                                                            <i class="fas fa-user-check fa-fw {{ $event['artist_payment_status'] === 'pago' ? 'text-green-500' : 'text-gray-400' }}"></i>
+                                                            {{-- Status Pagamento Booker --}}
+                                                            <i class="fas fa-user-tag fa-fw {{ $event['booker_payment_status'] === 'pago' ? 'text-green-500' : ($event['is_exception'] ? 'text-orange-500' : 'text-gray-400') }}"></i>
+                                                        </div>
+                                                        {{-- Coluna 4: Data e Valor --}}
+                                                        <div class="text-sm text-right">
+                                                            <p class="text-gray-700 dark:text-gray-300">{{ $event['gig_date'] }}</p>
+                                                            <p class="text-xs font-semibold text-gray-500">R$ {{ number_format($event['cache_value_brl'], 2, ',', '.') }}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {{-- Área Expandida com Detalhes --}}
+                                                <div x-show="open" x-transition class="mt-4 pl-8 border-l-2 border-gray-200 dark:border-gray-700 ml-2">
+                                                    <div class="space-y-2 text-xs">
+                                                        @php
+                                                            $statuses = [
+                                                                'Pagamento Cliente' => ['status' => $event['payment_status'], 'color' => ($event['payment_status'] === 'pago' ? 'green' : ($event['payment_status'] === 'vencido' ? 'red' : 'gray'))],
+                                                                'Pagamento Despesas' => ['status' => ($event['total_costs_brl'] ?? 0) > 0 ? 'OK' : 'Pendente', 'color' => ($event['total_costs_brl'] ?? 0) > 0 ? 'green' : 'gray'],
+                                                                'Repasse Artista' => ['status' => $event['artist_payment_status'], 'color' => $event['artist_payment_status'] === 'pago' ? 'green' : 'gray'],
+                                                                'Comissão Booker' => ['status' => $event['booker_payment_status'], 'color' => $event['booker_payment_status'] === 'pago' ? 'green' : ($event['is_exception'] ? 'orange' : 'gray')],
+                                                            ];
+                                                        @endphp
+                                                        @foreach($statuses as $label => $info)
+                                                            <div class="flex items-center">
+                                                                <span class="w-3 h-3 rounded-full bg-{{ $info['color'] }}-500 mr-2"></span>
+                                                                <span class="font-medium text-gray-600 dark:text-gray-400 w-32">{{ $label }}:</span>
+                                                                <span class="font-semibold text-gray-800 dark:text-white">{{ ucfirst($info['status']) }}</span>
+                                                            </div>
+                                                        @endforeach
+                                                        <div class="flex items-center mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                                            <span class="font-medium text-gray-600 dark:text-gray-400 w-32">Comissão Booker:</span>
+                                                            <span class="font-semibold text-blue-600 dark:text-blue-400">R$ {{ number_format($event['booker_commission_brl'], 2, ',', '.') }}</span>
+                                                        </div>
+                                                        @if($event['is_exception'])
+                                                            <div class="flex items-center">
+                                                                <span class="w-3 h-3 rounded-full bg-orange-500 mr-2"></span>
+                                                                <span class="font-medium text-orange-600 dark:text-orange-400">Pagamento Antecipado com Exceção Autorizada</span>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 </div>
                             @else
                                 <div class="bg-gray-50 dark:bg-gray-700 rounded-lg text-center py-8">
