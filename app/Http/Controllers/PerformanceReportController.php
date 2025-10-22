@@ -112,14 +112,17 @@ class PerformanceReportController extends Controller
                     $monthName = Carbon::parse($gigsInMonth->first()->gig_date)->format('M/Y');
                     $totalContractMonth = $gigsInMonth->sum('cache_value_brl');
                     $totalGrossCashMonth = $gigsInMonth->sum(fn ($gig) => $this->gigCalculator->calculateGrossCashBrl($gig));
+                    $totalBookerCommissionMonth = $gigsInMonth->sum(fn ($gig) => $this->gigCalculator->calculateBookerCommissionBrl($gig));
 
                     return [
                         'month_name' => $monthName,
                         'month_total_contract' => $totalContractMonth,
                         'month_total_gross_cash' => $totalGrossCashMonth,
+                        'month_total_booker_commission' => $totalBookerCommissionMonth,
                         'month_gigs_count' => $gigsInMonth->count(),
                         'gigs' => $gigsInMonth->map(function ($gig) {
                             $gross_cash_brl = $this->gigCalculator->calculateGrossCashBrl($gig);
+                            $booker_commission_brl = $this->gigCalculator->calculateBookerCommissionBrl($gig);
 
                             return [
                                 'gig_id' => $gig->id,
@@ -130,6 +133,7 @@ class PerformanceReportController extends Controller
                                 'location_event_details' => $gig->location_event_details,
                                 'contract_value' => $gig->cache_value_brl,
                                 'gross_cash_brl' => $gross_cash_brl,
+                                'booker_commission_brl' => $booker_commission_brl,
                             ];
                         }),
                     ];

@@ -124,12 +124,13 @@
                                 <table class="min-w-full text-xs table-fixed border border-gray-200 dark:border-gray-600 rounded-b-lg overflow-hidden">
                                     <thead class="bg-gray-100 dark:bg-gray-700">
                                     <tr>
-                                        {{-- ***** SUB-CABEÇALHO ATUALIZADO ***** --}}
-                                    <th class="py-2 px-2 text-left w-[15%]">Data Venda</th>
-                                    <th class="py-2 px-2 text-left w-[15%]">Data Evento</th>
-                                    <th class="py-2 px-2 text-left w-[40%]">Artista - Local</th>
-                                <th class="py-2 px-2 text-left w-[15%]">Valor Contrato</th>
-                                <th class="py-2 px-2 text-right w-[15%]">Cachê Bruto</th>
+                                    {{-- ***** SUB-CABEÇALHO ATUALIZADO ***** --}}
+                                    <th class="py-2 px-2 text-left w-[12%]">Data Venda</th>
+                                    <th class="py-2 px-2 text-left w-[12%]">Data Evento</th>
+                                    <th class="py-2 px-2 text-left w-[30%]">Artista - Local</th>
+                                    <th class="py-2 px-2 text-left w-[12%]">Valor Contrato</th>
+                                    <th class="py-2 px-2 text-right w-[12%]">Cachê Bruto</th>
+                                    <th class="py-2 px-2 text-right w-[12%]">Comissão Booker</th>
                                 </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
@@ -150,16 +151,20 @@
                                                              <td class="py-2 px-2">R$ {{ number_format($gig['contract_value'], 2, ',', '.') }}</td>
                                                         {{-- ***** VARIÁVEL CORRETA USADA AQUI ***** --}}
                                                             <td class="py-2 px-2 text-right font-semibold text-teal-700 dark:text-teal-400">
-                                                                 R$ {{ number_format($gig['gross_cash_brl'], 2, ',', '.') }}
-                                                             </td>
-                                                         </tr>
+                                                            R$ {{ number_format($gig['gross_cash_brl'], 2, ',', '.') }}
+                                                            </td>
+                                                               <td class="py-2 px-2 text-right font-semibold text-purple-700 dark:text-purple-400">
+                                                                  R$ {{ number_format($gig['booker_commission_brl'], 2, ',', '.') }}
+                                                              </td>
+                                                          </tr>
                                                          @endforeach
                                                      </tbody>
                                                      <tfoot class="bg-gray-100 dark:bg-gray-700 border-t border-gray-300 dark:border-gray-600">
-                                                         <tr class="font-semibold text-xs">
-                                                             <td colspan="3" class="py-2 px-2 text-right">Subtotal {{ $monthData['month_name'] }}:</td>
-                                                             <td class="py-2 px-2 text-left text-blue-700 dark:text-blue-300">R$ {{ number_format($monthData['month_total_contract'], 2, ',', '.') }}</td>
-                                                             <td class="py-2 px-2 text-right text-teal-700 dark:text-teal-300">R$ {{ number_format($monthData['month_total_gross_cash'], 2, ',', '.') }}</td>
+                                                     <tr class="font-semibold text-xs">
+                                                     <td colspan="3" class="py-2 px-2 text-right">Subtotal {{ $monthData['month_name'] }}:</td>
+                                                     <td class="py-2 px-2 text-left text-blue-700 dark:text-blue-300">R$ {{ number_format($monthData['month_total_contract'], 2, ',', '.') }}</td>
+                                                     <td class="py-2 px-2 text-right text-teal-700 dark:text-teal-300">R$ {{ number_format($monthData['month_total_gross_cash'], 2, ',', '.') }}</td>
+                                                         <td class="py-2 px-2 text-right text-purple-700 dark:text-purple-300">R$ {{ number_format($monthData['month_total_booker_commission'], 2, ',', '.') }}</td>
                                                          </tr>
                                                      </tfoot>
                                                  </table>
