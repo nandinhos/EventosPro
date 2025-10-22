@@ -28,7 +28,10 @@
         </div>
     </x-slot>
 
-    <div class="py-6" x-data="{ activeTab: {{ $period_metrics ? ''period'' : ''global'' }} }">
+    @php
+        $activeTab = $period_metrics ? 'period' : 'global';
+    @endphp
+    <div class="py-6" x-data="{ activeTab: '{{ $activeTab }}' }">
         <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             {{-- TABS NAVIGATION --}}
