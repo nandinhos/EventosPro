@@ -276,8 +276,8 @@ class GigController extends Controller
         $bookersData = $bookers->keyBy('id')->toArray();
         $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type');
         $selectedTags = $gig->tags()->pluck('id')->toArray();
-        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id')->map(function ($name, $id) {
-            return __('cost_centers.'.$name);
+        $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center) {
+            return [$center->id => __('cost_centers.'.$center->name)];
         });
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
 
