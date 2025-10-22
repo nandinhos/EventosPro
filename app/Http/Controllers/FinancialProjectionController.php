@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\FinancialProjectionService;
 use App\Services\GigFinancialCalculatorService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class FinancialProjectionController extends Controller
