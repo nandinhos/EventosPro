@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\FinancialProjectionService;
-use Carbon\Carbon;
+use App\Services\GigFinancialCalculatorService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -11,12 +11,20 @@ class FinancialProjectionController extends Controller
 {
     protected $projectionService;
 
-    public function __construct(FinancialProjectionService $projectionService)
-    {
+    protected $calculatorService;
+
+    public function __construct(
+        FinancialProjectionService $projectionService,
+        GigFinancialCalculatorService $calculatorService
+    ) {
         $this->projectionService = $projectionService;
+        $this->calculatorService = $calculatorService;
     }
 
-    public function index(Request $request)
+    /**
+     * Exibe o dashboard de projeções financeiras.
+     */
+    public function index(Request $request): View
     {
         // Valida os inputs
         $validated = $request->validate([
@@ -29,37 +37,8 @@ class FinancialProjectionController extends Controller
         $endDate = $request->input('end_date');
         $showGlobal = $request->boolean('show_global', false);
 
-        // MÉTRICAS GERAIS (sempre carregadas - panorama completo sem filtro de período)
-        // Configurar período global (tudo: passado + futuro)
-        $this->projectionService->setPeriod('', Carbon::create(2000, 1, 1)->format('Y-m-d'), Carbon::create(2100, 12, 31)->format('Y-m-d'));
-
-        $globalMetrics = [
-            'total_receivable' => $this->projectionService->getAccountsReceivable(),
-            'total_payable_artists' => $this->projectionService->getAccountsPayableArtists(),
-            'total_payable_bookers' => $this->projectionService->getAccountsPayableBookers(),
-            'total_payable_expenses' => $this->projectionService->getAccountsPayableExpenses(),
-            'total_cash_flow' => $this->projectionService->getProjectedCashFlow(),
-            'overdue_analysis' => $this->projectionService->getOverdueAnalysis(),
-        ];
-
-        // Calcular métricas gerenciais globais
-        $totalPayable = $globalMetrics['total_payable_artists'] + $globalMetrics['total_payable_bookers'] + $globalMetrics['total_payable_expenses'];
-        $liquidityIndex = $totalPayable > 0 ? ($globalMetrics['total_receivable'] / $totalPayable) : 0;
-        $operationalMargin = $globalMetrics['total_receivable'] > 0 ? (($globalMetrics['total_cash_flow'] / $globalMetrics['total_receivable']) * 100) : 0;
-        $commitmentRate = $globalMetrics['total_receivable'] > 0 ? (($totalPayable / $globalMetrics['total_receivable']) * 100) : 0;
-
-        // Análise de risco global
-        $riskLevel = 'low';
-        if ($liquidityIndex < 1.0 || ($globalMetrics['total_cash_flow'] < 0 && abs($globalMetrics['total_cash_flow']) > ($globalMetrics['total_receivable'] * 0.2))) {
-            $riskLevel = 'high';
-        } elseif ($liquidityIndex < 1.2 || ($globalMetrics['total_cash_flow'] < 0 && abs($globalMetrics['total_cash_flow']) <= ($globalMetrics['total_receivable'] * 0.2))) {
-            $riskLevel = 'medium';
-        }
-
-        $globalMetrics['liquidity_index'] = $liquidityIndex;
-        $globalMetrics['operational_margin'] = $operationalMargin;
-        $globalMetrics['commitment_rate'] = $commitmentRate;
-        $globalMetrics['risk_level'] = $riskLevel;
+        // MÉTRICAS GERAIS (sempre carregadas - panorama completo)
+        $globalMetrics = $this->projectionService->getGlobalMetrics();
 
         // MÉTRICAS POR PERÍODO (apenas se datas foram fornecidas ou se global foi solicitado)
         $periodMetrics = null;
@@ -68,7 +47,7 @@ class FinancialProjectionController extends Controller
         if (($startDate && $endDate) || $showGlobal) {
             // Define período customizado ou global
             if ($showGlobal) {
-                $this->projectionService->setPeriod('', Carbon::create(2000, 1, 1)->format('Y-m-d'), Carbon::create(2100, 12, 31)->format('Y-m-d'));
+                $this->projectionService->setPeriod('', '2000-01-01', '2100-12-31');
             } else {
                 $this->projectionService->setPeriod('', $startDate, $endDate);
             }
@@ -84,30 +63,8 @@ class FinancialProjectionController extends Controller
                 'comparative_analysis' => $comparativeAnalysis,
             ];
 
-            // Carrega listagens detalhadas
-            $artistGigs = $this->projectionService->getUpcomingInternalPayments('artists');
-            $bookerGigs = $this->projectionService->getUpcomingInternalPayments('bookers');
-
-            $periodListings = [
-                'upcoming_client_payments' => $this->projectionService->getUpcomingClientPayments(),
-                'upcoming_artist_payments' => $artistGigs->map(function ($gig) {
-                    return [
-                        'artist_name' => $gig->artist->name ?? 'N/A',
-                        'event_name' => $gig->event_name ?? 'Evento #'.$gig->id,
-                        'gig_date' => $gig->gig_date,
-                        'amount' => app(\App\Services\GigFinancialCalculatorService::class)->calculateArtistInvoiceValueBrl($gig),
-                    ];
-                }),
-                'upcoming_booker_payments' => $bookerGigs->map(function ($gig) {
-                    return [
-                        'booker_name' => $gig->booker->name ?? 'N/A',
-                        'event_name' => $gig->event_name ?? 'Evento #'.$gig->id,
-                        'gig_date' => $gig->gig_date,
-                        'amount' => app(\App\Services\GigFinancialCalculatorService::class)->calculateBookerCommissionBrl($gig),
-                    ];
-                }),
-                'projected_expenses_by_cost_center' => $this->projectionService->getProjectedExpensesByCostCenter(),
-            ];
+            // Carrega listagens detalhadas com agrupamentos e subtotais
+            $periodListings = $this->getPeriodSummary();
         }
 
         return view('projections.dashboard', [
@@ -132,7 +89,6 @@ class FinancialProjectionController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
 
-        // Pega o período do request ou usa o default
         $period = $request->input('period', '30_days');
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
@@ -143,15 +99,15 @@ class FinancialProjectionController extends Controller
         $debugData = [
             'Contas a Receber (Clientes)' => [
                 'value' => $this->projectionService->getAccountsReceivable(),
-                'items' => $this->projectionService->getUpcomingPayments('clients'),
+                'items' => $this->projectionService->getUpcomingClientPayments(),
             ],
             'Contas a Pagar (Artistas)' => [
                 'value' => $this->projectionService->getAccountsPayableArtists(),
-                'items' => $this->projectionService->getUpcomingPayments('artists'),
+                'items' => $this->projectionService->getUpcomingInternalPayments('artists'),
             ],
             'Contas a Pagar (Bookers)' => [
                 'value' => $this->projectionService->getAccountsPayableBookers(),
-                'items' => $this->projectionService->getUpcomingPayments('bookers'),
+                'items' => $this->projectionService->getUpcomingInternalPayments('bookers'),
             ],
             'Contas a Pagar (Despesas Previstas)' => [
                 'value' => $this->projectionService->getAccountsPayableExpenses(),
@@ -159,7 +115,7 @@ class FinancialProjectionController extends Controller
             ],
             'Fluxo de Caixa Projetado' => [
                 'value' => $this->projectionService->getProjectedCashFlow(),
-                'items' => null, // Não há itens detalhados para o total
+                'items' => null,
             ],
         ];
 
@@ -167,5 +123,179 @@ class FinancialProjectionController extends Controller
             'debugData' => $debugData,
             'period' => $period,
         ]);
+    }
+
+    /**
+     * Obtém sumário consolidado do período com agrupamentos e subtotais.
+     */
+    private function getPeriodSummary(): array
+    {
+        // 1. CONTAS A RECEBER (Pagamentos de Clientes)
+        $clientPayments = $this->projectionService->getUpcomingClientPayments();
+        $receivableTotal = (float) $clientPayments->sum('due_value_brl');
+
+        // Agrupar por status de vencimento
+        $today = now()->startOfDay();
+        $receivableGrouped = $clientPayments->groupBy(function ($payment) use ($today) {
+            $dueDate = \Carbon\Carbon::parse($payment->due_date);
+            if ($dueDate->lt($today)) {
+                return 'vencido';
+            } elseif ($dueDate->lte($today->copy()->addDays(7))) {
+                return 'vence_7_dias';
+            } elseif ($dueDate->lte($today->copy()->addDays(30))) {
+                return 'vence_30_dias';
+            } else {
+                return 'a_vencer';
+            }
+        })->map(function ($group, $status) {
+            $statusLabels = [
+                'vencido' => 'Vencidos',
+                'vence_7_dias' => 'Vencem em 7 dias',
+                'vence_30_dias' => 'Vencem em 30 dias',
+                'a_vencer' => 'A vencer (30+ dias)',
+            ];
+
+            return [
+                'status' => $status,
+                'label' => $statusLabels[$status] ?? $status,
+                'items' => $group,
+                'subtotal' => (float) $group->sum('due_value_brl'),
+                'count' => $group->count(),
+            ];
+        });
+
+        // 2. PAGAMENTOS A ARTISTAS
+        $artistGigs = $this->projectionService->getUpcomingInternalPayments('artists');
+        $artistsTotal = 0;
+
+        // Agrupar por artista
+        $artistsGrouped = $artistGigs->groupBy(function ($gig) {
+            return $gig->artist_id ?? 'sem_artista';
+        })->map(function ($group, $artistId) use (&$artistsTotal) {
+            $artistName = $group->first()->artist->name ?? 'Sem Artista';
+            $subtotal = 0;
+
+            $items = $group->map(function ($gig) use (&$subtotal) {
+                $amount = $this->calculatorService->calculateArtistInvoiceValueBrl($gig);
+                $subtotal += $amount;
+
+                return [
+                    'gig_id' => $gig->id,
+                    'artist_name' => $gig->artist->name ?? 'N/A',
+                    'event_name' => $gig->location_event_details ?? 'Evento #'.$gig->id,
+                    'gig_date' => $gig->gig_date,
+                    'amount' => $amount,
+                ];
+            });
+
+            $artistsTotal += $subtotal;
+
+            return [
+                'artist_id' => $artistId,
+                'artist_name' => $artistName,
+                'items' => $items,
+                'subtotal' => $subtotal,
+                'count' => $group->count(),
+            ];
+        })->sortByDesc('subtotal');
+
+        // 3. COMISSÕES DE BOOKERS
+        $bookerGigs = $this->projectionService->getUpcomingInternalPayments('bookers');
+        $bookersTotal = 0;
+
+        // Agrupar por booker
+        $bookersGrouped = $bookerGigs->groupBy(function ($gig) {
+            return $gig->booker_id ?? 'sem_booker';
+        })->map(function ($group, $bookerId) use (&$bookersTotal) {
+            $bookerName = $group->first()->booker->name ?? 'Sem Booker';
+            $subtotal = 0;
+
+            $items = $group->map(function ($gig) use (&$subtotal) {
+                $amount = $this->calculatorService->calculateBookerCommissionBrl($gig);
+                $subtotal += $amount;
+
+                return [
+                    'gig_id' => $gig->id,
+                    'booker_name' => $gig->booker->name ?? 'N/A',
+                    'event_name' => $gig->location_event_details ?? 'Evento #'.$gig->id,
+                    'gig_date' => $gig->gig_date,
+                    'amount' => $amount,
+                ];
+            });
+
+            $bookersTotal += $subtotal;
+
+            return [
+                'booker_id' => $bookerId,
+                'booker_name' => $bookerName,
+                'items' => $items,
+                'subtotal' => $subtotal,
+                'count' => $group->count(),
+            ];
+        })->sortByDesc('subtotal');
+
+        // 4. DESPESAS POR CENTRO DE CUSTO (já vem agrupado do service)
+        $expensesByCostCenter = $this->projectionService->getProjectedExpensesByCostCenter();
+        $expensesTotal = (float) $expensesByCostCenter->sum('total_brl');
+
+        // Retornar estrutura consolidada
+        return [
+            'receivable' => [
+                'total' => $receivableTotal,
+                'count' => $clientPayments->count(),
+                'grouped' => $receivableGrouped,
+                'items' => $clientPayments,
+            ],
+            'artists' => [
+                'total' => $artistsTotal,
+                'count' => $artistGigs->count(),
+                'grouped' => $artistsGrouped,
+                'items' => $artistGigs,
+            ],
+            'bookers' => [
+                'total' => $bookersTotal,
+                'count' => $bookerGigs->count(),
+                'grouped' => $bookersGrouped,
+                'items' => $bookerGigs,
+            ],
+            'expenses' => [
+                'total' => $expensesTotal,
+                'count' => $expensesByCostCenter->sum(function ($group) {
+                    return $group['expenses']->count();
+                }),
+                'grouped' => $expensesByCostCenter,
+                'items' => $expensesByCostCenter,
+            ],
+        ];
+    }
+
+    /**
+     * Formata pagamentos de artistas para exibição.
+     */
+    private function formatArtistPayments($gigs): array
+    {
+        return $gigs->map(function ($gig) {
+            return [
+                'artist_name' => $gig->artist->name ?? 'N/A',
+                'event_name' => $gig->location_event_details ?? 'Evento #'.$gig->id,
+                'gig_date' => $gig->gig_date,
+                'amount' => $this->calculatorService->calculateArtistInvoiceValueBrl($gig),
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Formata pagamentos de bookers para exibição.
+     */
+    private function formatBookerPayments($gigs): array
+    {
+        return $gigs->map(function ($gig) {
+            return [
+                'booker_name' => $gig->booker->name ?? 'N/A',
+                'event_name' => $gig->location_event_details ?? 'Evento #'.$gig->id,
+                'gig_date' => $gig->gig_date,
+                'amount' => $this->calculatorService->calculateBookerCommissionBrl($gig),
+            ];
+        })->toArray();
     }
 }
