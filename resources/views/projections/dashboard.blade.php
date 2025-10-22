@@ -348,42 +348,166 @@
                 </div>
 
                 {{-- CONTEÚDO POR PERÍODO --}}
-                @if($period_metrics && $period_listings)
-                    {{-- Badge de Período Ativo --}}
-                    <div class="mb-6 flex items-center justify-center">
-                        <div class="inline-flex items-center px-6 py-4 rounded-lg bg-gradient-to-r from-primary-500 to-primary-600 shadow-lg border-2 border-primary-400 dark:border-primary-700">
-                            <svg class="w-7 h-7 mr-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <div class="flex flex-col">
-                                <span class="text-xs font-medium text-primary-100 uppercase tracking-wide">Período Analisado</span>
-                                <span class="text-xl font-bold text-white">
-                                    @if($show_global)
-                                        Global (Todos os Registros)
-                                    @else
-                                        {{ \Carbon\Carbon::parse($start_date)->format('d/m/Y') }} até {{ \Carbon\Carbon::parse($end_date)->format('d/m/Y') }}
-                                    @endif
-                                </span>
+                @if($period_metrics)
+                {{-- Badge de Período Ativo --}}
+                <div class="mb-6 flex items-center justify-center">
+                <div class="inline-flex items-center px-6 py-4 rounded-lg bg-gradient-to-r from-primary-500 to-primary-600 shadow-lg border-2 border-primary-400 dark:border-primary-700">
+                <svg class="w-7 h-7 mr-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div class="flex flex-col">
+                <span class="text-xs font-medium text-primary-100 uppercase tracking-wide">Período Analisado</span>
+                <span class="text-xl font-bold text-white">
+                @if($show_global)
+                Global (Todos os Registros)
+                @else
+                {{ \Carbon\Carbon::parse($start_date)->format('d/m/Y') }} até {{ \Carbon\Carbon::parse($end_date)->format('d/m/Y') }}
+                    <span class="text-sm font-normal block">{{ $period_metrics['executive_summary']['period_days'] }} dias</span>
+                    @endif
+                    </span>
+                    </div>
+                    </div>
+                    </div>
+
+                {{-- DASHBOARD EXECUTIVO SIMPLIFICADO --}}
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    {{-- CARD: FLUXO DE CAIXA --}}
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 border-l-4 {{ $period_metrics['executive_summary']['net_cash_flow'] >= 0 ? 'border-l-green-500' : 'border-l-red-500' }}">
+                        <div class="flex items-center justify-between">
+                            <div>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Fluxo de Caixa Líquido</p>
+                            <p class="text-3xl font-bold {{ $period_metrics['executive_summary']['net_cash_flow'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                                R$ {{ number_format($period_metrics['executive_summary']['net_cash_flow'], 2, ',', '.') }}
+                                </p>
+                                </div>
+                            <div class="{{ $period_metrics['executive_summary']['net_cash_flow'] >= 0 ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30' }} rounded-full p-3">
+                                <svg class="w-8 h-8 {{ $period_metrics['executive_summary']['net_cash_flow'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $period_metrics['executive_summary']['net_cash_flow'] >= 0 ? 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' : 'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6' }}" />
+                                </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- CARD: SAÚDE FINANCEIRA --}}
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Saúde Financeira</p>
+                                    <p class="text-3xl font-bold text-primary-600 dark:text-primary-400">
+                                        {{ $period_metrics['executive_summary']['health_score'] }}/100
+                                    </p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        @if($period_metrics['executive_summary']['health_score'] >= 80)
+                                            Excelente
+                                        @elseif($period_metrics['executive_summary']['health_score'] >= 60)
+                                            Boa
+                                        @elseif($period_metrics['executive_summary']['health_score'] >= 40)
+                                            Regular
+                                        @else
+                                            Atenção
+                                        @endif
+                                    </p>
+                                </div>
+                                <div class="bg-primary-100 dark:bg-primary-900/30 rounded-full p-3">
+                                    <svg class="w-8 h-8 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- CARD: RECEBÍVEIS vs PAGAMENTOS --}}
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Recebíveis / Pagamentos</p>
+                                    <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                                        {{ $period_metrics['executive_summary']['total_payable'] > 0 ? number_format(($period_metrics['executive_summary']['receivable'] / $period_metrics['executive_summary']['total_payable']) * 100, 1) : 0 }}%
+                                    </p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        R$ {{ number_format($period_metrics['executive_summary']['receivable'], 0, ',', '.') }} / R$ {{ number_format($period_metrics['executive_summary']['total_payable'], 0, ',', '.') }}
+                                    </p>
+                                </div>
+                                <div class="bg-blue-100 dark:bg-blue-900/30 rounded-full p-3">
+                                    <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                                    </svg>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {{-- Cards de Resumo --}}
-                    @include('projections.partials.period-summary-cards', [
-                        'summary' => $period_listings,
-                    ])
+                    {{-- INSIGHTS E RECOMENDAÇÕES --}}
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        {{-- INSIGHTS CHAVE --}}
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Insights Chave
+                            </h3>
+                            <ul class="space-y-2">
+                                @foreach($period_metrics['key_insights'] as $insight)
+                                    <li class="flex items-start">
+                                        <svg class="w-4 h-4 mt-0.5 mr-2 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ $insight }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
 
-                    {{-- Métricas Gerenciais (KPIs) --}}
-                    @include('projections.partials.period-metrics', [
-                        'executive_summary' => $period_metrics['executive_summary'],
-                        'future_events_analysis' => $period_metrics['future_events_analysis'],
-                        'comparative_analysis' => $period_metrics['comparative_analysis'],
-                    ])
+                        {{-- RECOMENDAÇÕES --}}
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Recomendações
+                            </h3>
+                            <ul class="space-y-2">
+                                @foreach($period_metrics['recommendations'] as $recommendation)
+                                    <li class="flex items-start">
+                                        <svg class="w-4 h-4 mt-0.5 mr-2 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                        </svg>
+                                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ $recommendation }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
 
-                    {{-- Tabelas Agrupadas com Subtotais --}}
-                    @include('projections.partials.period-tables-grouped', [
-                        'summary' => $period_listings,
-                    ])
+                    {{-- BREAKDOWN DETALHADO (Opcional) --}}
+                    @if($period_listings)
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Detalhamento por Categoria</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div class="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $period_listings['receivable']['count'] }}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Contas a Receber</p>
+                                    <p class="text-lg font-semibold text-blue-700 dark:text-blue-300">R$ {{ number_format($period_listings['receivable']['total'], 2, ',', '.') }}</p>
+                                </div>
+                                <div class="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                                    <p class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ $period_listings['artists']['count'] }}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Pagamentos Artistas</p>
+                                    <p class="text-lg font-semibold text-purple-700 dark:text-purple-300">R$ {{ number_format($period_listings['artists']['total'], 2, ',', '.') }}</p>
+                                </div>
+                                <div class="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                    <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $period_listings['bookers']['count'] }}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Comissões Bookers</p>
+                                    <p class="text-lg font-semibold text-green-700 dark:text-green-300">R$ {{ number_format($period_listings['bookers']['total'], 2, ',', '.') }}</p>
+                                </div>
+                                <div class="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                                    <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ $period_listings['expenses']['count'] }}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Despesas Previstas</p>
+                                    <p class="text-lg font-semibold text-red-700 dark:text-red-300">R$ {{ number_format($period_listings['expenses']['total'], 2, ',', '.') }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 @else
                     {{-- Mensagem: Selecione um Período --}}
                     <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 p-12 text-center">

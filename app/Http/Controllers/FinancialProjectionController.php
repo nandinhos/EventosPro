@@ -52,15 +52,8 @@ class FinancialProjectionController extends Controller
                 $this->projectionService->setPeriod('', $startDate, $endDate);
             }
 
-            // Obtém métricas do período apenas se necessário
-            // Otimizado: carrega apenas métricas essenciais para reduzir carga
-            $executiveSummary = $this->projectionService->getExecutiveSummary();
-
-            $periodMetrics = [
-                'executive_summary' => $executiveSummary,
-                'future_events_analysis' => null, // Carregado apenas se necessário
-                'comparative_analysis' => null,   // Carregado apenas se necessário
-            ];
+            // Obtém métricas otimizadas do período usando MCP
+            $periodMetrics = $this->getOptimizedPeriodMetrics($startDate, $endDate, $showGlobal);
 
             // Carrega listagens detalhadas apenas se solicitado período específico
             if ($startDate && $endDate && ! $showGlobal) {
@@ -124,6 +117,134 @@ class FinancialProjectionController extends Controller
             'debugData' => $debugData,
             'period' => $period,
         ]);
+    }
+
+    /**
+     * Obtém métricas otimizadas do período focadas em tomada de decisão.
+     */
+    private function getOptimizedPeriodMetrics(?string $startDate, ?string $endDate, bool $showGlobal): array
+    {
+        // Cache key baseado nos parâmetros
+        $cacheKey = 'period_metrics_'.md5($startDate.$endDate.$showGlobal);
+
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($startDate, $endDate, $showGlobal) {
+            // Métricas essenciais para tomada de decisão
+            $receivable = $this->projectionService->getAccountsReceivable();
+            $payableArtists = $this->projectionService->getAccountsPayableArtists();
+            $payableBookers = $this->projectionService->getAccountsPayableBookers();
+            $payableExpenses = $this->projectionService->getAccountsPayableExpenses();
+
+            $totalPayable = $payableArtists + $payableBookers + $payableExpenses;
+            $netCashFlow = $receivable - $totalPayable;
+
+            // Análise de saúde financeira simplificada
+            $healthScore = $this->calculateFinancialHealthScore($receivable, $totalPayable);
+
+            return [
+                'executive_summary' => [
+                    'receivable' => $receivable,
+                    'payable_artists' => $payableArtists,
+                    'payable_bookers' => $payableBookers,
+                    'payable_expenses' => $payableExpenses,
+                    'total_payable' => $totalPayable,
+                    'net_cash_flow' => $netCashFlow,
+                    'health_score' => $healthScore,
+                    'period_days' => $showGlobal ? 'Global' : $this->calculatePeriodDays($startDate, $endDate),
+                ],
+                'key_insights' => $this->generateKeyInsights($receivable, $totalPayable, $healthScore),
+                'recommendations' => $this->generateRecommendations($netCashFlow, $healthScore),
+            ];
+        });
+    }
+
+    /**
+     * Calcula pontuação de saúde financeira (0-100).
+     */
+    private function calculateFinancialHealthScore(float $receivable, float $payable): int
+    {
+        if ($payable <= 0) {
+            return 100;
+        }
+
+        $ratio = $receivable / $payable;
+
+        if ($ratio >= 1.5) {
+            return 100;
+        }     // Excelente
+        if ($ratio >= 1.2) {
+            return 85;
+        }      // Muito bom
+        if ($ratio >= 1.0) {
+            return 70;
+        }      // Bom
+        if ($ratio >= 0.8) {
+            return 50;
+        }      // Regular
+        if ($ratio >= 0.5) {
+            return 30;
+        }      // Ruim
+
+        return 10;                         // Crítico
+    }
+
+    /**
+     * Calcula dias do período.
+     */
+    private function calculatePeriodDays(?string $startDate, ?string $endDate): int
+    {
+        if (! $startDate || ! $endDate) {
+            return 0;
+        }
+
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+
+        return $start->diffInDays($end) + 1;
+    }
+
+    /**
+     * Gera insights chave baseados nos dados.
+     */
+    private function generateKeyInsights(float $receivable, float $payable, int $healthScore): array
+    {
+        $insights = [];
+
+        if ($healthScore >= 80) {
+            $insights[] = 'Situação financeira saudável com bom fluxo de caixa.';
+        } elseif ($healthScore >= 60) {
+            $insights[] = 'Situação financeira estável, mas monitore os recebimentos.';
+        } else {
+            $insights[] = 'Atenção necessária: fluxo de caixa negativo detectado.';
+        }
+
+        $receivablePercentage = $payable > 0 ? ($receivable / $payable) * 100 : 0;
+        $insights[] = "Recebimentos representam {$receivablePercentage}% dos pagamentos projetados.";
+
+        return $insights;
+    }
+
+    /**
+     * Gera recomendações baseadas na análise.
+     */
+    private function generateRecommendations(float $netCashFlow, int $healthScore): array
+    {
+        $recommendations = [];
+
+        if ($netCashFlow < 0) {
+            $recommendations[] = 'Priorize cobrança de recebimentos pendentes.';
+            $recommendations[] = 'Reveja cronograma de pagamentos para otimizar fluxo.';
+        }
+
+        if ($healthScore < 50) {
+            $recommendations[] = 'Considere renegociar prazos com fornecedores.';
+            $recommendations[] = 'Avalie necessidade de capital de giro adicional.';
+        }
+
+        if ($healthScore > 80) {
+            $recommendations[] = 'Mantenha estratégia atual - situação sólida.';
+        }
+
+        return array_slice($recommendations, 0, 3); // Máximo 3 recomendações
     }
 
     /**
