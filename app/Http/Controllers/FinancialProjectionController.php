@@ -56,10 +56,8 @@ class FinancialProjectionController extends Controller
             // Obtém métricas otimizadas do período usando MCP
             $periodMetrics = $this->getOptimizedPeriodMetrics($startDate, $endDate, $showGlobal);
 
-            // Carrega listagens detalhadas apenas se solicitado período específico
-            if ($startDate && $endDate && ! $showGlobal) {
-                $periodListings = $this->getPeriodSummary();
-            }
+            // Carrega listagens detalhadas sempre que houver período selecionado
+            $periodListings = $this->getPeriodSummary();
         }
 
         return view('projections.dashboard', [
@@ -309,6 +307,35 @@ class FinancialProjectionController extends Controller
             $artistName = $group->first()->artist->name ?? 'Sem Artista';
             $subtotal = 0;
 
+            // Agrupar gigs por mês para melhor visualização
+            $gigsByMonth = $group->groupBy(function ($gig) {
+                return \Carbon\Carbon::parse($gig->gig_date)->format('m/Y');
+            })->map(function ($gigsInMonth) {
+                $monthName = \Carbon\Carbon::parse($gigsInMonth->first()->gig_date)->format('M/Y');
+                $totalContractMonth = $gigsInMonth->sum('cache_value_brl');
+                $totalGrossCashMonth = $gigsInMonth->sum(fn ($gig) => $this->calculatorService->calculateGrossCashBrl($gig));
+
+                return [
+                    'month_name' => $monthName,
+                    'month_total_contract' => $totalContractMonth,
+                    'month_total_gross_cash' => $totalGrossCashMonth,
+                    'month_gigs_count' => $gigsInMonth->count(),
+                    'gigs' => $gigsInMonth->map(function ($gig) {
+                        $gross_cash_brl = $this->calculatorService->calculateGrossCashBrl($gig);
+
+                        return [
+                            'gig_id' => $gig->id,
+                            'sale_date' => \Carbon\Carbon::parse($gig->sale_date)->format('d/m/Y'),
+                            'gig_date' => $gig->gig_date->format('d/m/Y'),
+                            'artist_name' => $gig->artist->name ?? 'N/A',
+                            'location_event_details' => $gig->location_event_details,
+                            'contract_value' => $gig->cache_value_brl,
+                            'gross_cash_brl' => $gross_cash_brl,
+                        ];
+                    }),
+                ];
+            })->sortKeys();
+
             $items = $group->map(function ($gig) use (&$subtotal) {
                 $amount = $this->calculatorService->calculateArtistInvoiceValueBrl($gig);
                 $subtotal += $amount;
@@ -328,6 +355,7 @@ class FinancialProjectionController extends Controller
                 'artist_id' => $artistId,
                 'artist_name' => $artistName,
                 'items' => $items,
+                'gigs_by_month' => $gigsByMonth,
                 'subtotal' => $subtotal,
                 'count' => $group->count(),
             ];
@@ -343,6 +371,39 @@ class FinancialProjectionController extends Controller
         })->map(function ($group, $bookerId) use (&$bookersTotal) {
             $bookerName = $group->first()->booker->name ?? 'Sem Booker';
             $subtotal = 0;
+
+            // Agrupar gigs por mês para melhor visualização
+            $gigsByMonth = $group->groupBy(function ($gig) {
+                return \Carbon\Carbon::parse($gig->gig_date)->format('m/Y');
+            })->map(function ($gigsInMonth) {
+                $monthName = \Carbon\Carbon::parse($gigsInMonth->first()->gig_date)->format('M/Y');
+                $totalContractMonth = $gigsInMonth->sum('cache_value_brl');
+                $totalGrossCashMonth = $gigsInMonth->sum(fn ($gig) => $this->calculatorService->calculateGrossCashBrl($gig));
+                $totalBookerCommissionMonth = $gigsInMonth->sum(fn ($gig) => $this->calculatorService->calculateBookerCommissionBrl($gig));
+
+                return [
+                    'month_name' => $monthName,
+                    'month_total_contract' => $totalContractMonth,
+                    'month_total_gross_cash' => $totalGrossCashMonth,
+                    'month_total_booker_commission' => $totalBookerCommissionMonth,
+                    'month_gigs_count' => $gigsInMonth->count(),
+                    'gigs' => $gigsInMonth->map(function ($gig) {
+                        $gross_cash_brl = $this->calculatorService->calculateGrossCashBrl($gig);
+                        $booker_commission_brl = $this->calculatorService->calculateBookerCommissionBrl($gig);
+
+                        return [
+                            'gig_id' => $gig->id,
+                            'sale_date' => \Carbon\Carbon::parse($gig->sale_date)->format('d/m/Y'),
+                            'gig_date' => $gig->gig_date->format('d/m/Y'),
+                            'artist_name' => $gig->artist->name ?? 'N/A',
+                            'location_event_details' => $gig->location_event_details,
+                            'contract_value' => $gig->cache_value_brl,
+                            'gross_cash_brl' => $gross_cash_brl,
+                            'booker_commission_brl' => $booker_commission_brl,
+                        ];
+                    }),
+                ];
+            })->sortKeys();
 
             $items = $group->map(function ($gig) use (&$subtotal) {
                 $amount = $this->calculatorService->calculateBookerCommissionBrl($gig);
@@ -363,6 +424,7 @@ class FinancialProjectionController extends Controller
                 'booker_id' => $bookerId,
                 'booker_name' => $bookerName,
                 'items' => $items,
+                'gigs_by_month' => $gigsByMonth,
                 'subtotal' => $subtotal,
                 'count' => $group->count(),
             ];
