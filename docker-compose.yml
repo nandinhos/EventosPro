@@ -6,6 +6,7 @@ services:
             args:
                 WWWGROUP: '${WWWGROUP}'
         image: sail-8.4/app
+        restart: unless-stopped
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         ports:
@@ -23,18 +24,31 @@ services:
         networks:
             - sail
         depends_on:
-            - mysql
-            - redis
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        deploy:
+            resources:
+                limits:
+                    memory: 512M
+                    cpus: '0.5'
+                reservations:
+                    memory: 256M
+                    cpus: '0.2'
         healthcheck:
             test:
                 - CMD
                 - curl
                 - '-f'
                 - 'http://localhost'
-            retries: 3
-            timeout: 5s
+            interval: 10s
+            timeout: 10s
+            retries: 5
+            start_period: 60s
     mysql:
         image: 'mysql/mysql-server:8.0'
+        restart: unless-stopped
         ports:
             - '${FORWARD_DB_PORT:-3306}:3306'
         environment:
@@ -49,6 +63,14 @@ services:
             - './docker/mysql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql'
         networks:
             - sail
+        deploy:
+            resources:
+                limits:
+                    memory: 768M
+                    cpus: '0.8'
+                reservations:
+                    memory: 512M
+                    cpus: '0.3'
         healthcheck:
             test:
                 - CMD
@@ -59,6 +81,7 @@ services:
             timeout: 5s
     phpmyadmin:
         image: phpmyadmin/phpmyadmin
+        restart: unless-stopped
         ports:
             - '${FORWARD_PHPMYADMIN_PORT:-8088}:80'
         environment:
@@ -73,12 +96,21 @@ services:
             - mysql
     redis:
         image: 'redis:alpine'
+        restart: unless-stopped
         ports:
             - '${FORWARD_REDIS_PORT:-6379}:6379'
         volumes:
             - 'sail-redis:/data'
         networks:
             - sail
+        deploy:
+            resources:
+                limits:
+                    memory: 128M
+                    cpus: '0.2'
+                reservations:
+                    memory: 64M
+                    cpus: '0.1'
         healthcheck:
             test:
                 - CMD
