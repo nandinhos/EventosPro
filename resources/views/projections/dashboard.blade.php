@@ -368,12 +368,21 @@
                         </div>
                     </div>
 
-                    {{-- Métricas do Período --}}
+                    {{-- Cards de Resumo --}}
+                    @include('projections.partials.period-summary-cards', [
+                        'summary' => $period_listings,
+                    ])
+
+                    {{-- Métricas Gerenciais (KPIs) --}}
                     @include('projections.partials.period-metrics', [
                         'executive_summary' => $period_metrics['executive_summary'],
                         'future_events_analysis' => $period_metrics['future_events_analysis'],
                         'comparative_analysis' => $period_metrics['comparative_analysis'],
-                        'period_listings' => $period_listings,
+                    ])
+
+                    {{-- Tabelas Agrupadas com Subtotais --}}
+                    @include('projections.partials.period-tables-grouped', [
+                        'summary' => $period_listings,
                     ])
                 @else
                     {{-- Mensagem: Selecione um Período --}}
