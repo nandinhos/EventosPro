@@ -39,7 +39,7 @@
             </div>
 
             {{-- Cards de Resumo (Ocultos na impressão) --}}
-           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 print:hidden w-full">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:hidden w-full">
             {{-- Card Azul Claro: Gigs Vendidas --}}
             <div class="bg-blue-100 dark:bg-blue-900/20 p-6 rounded-lg">
                 <h3 class="text-sm text-gray-500 dark:text-gray-400">Gigs Vendidas</h3>
@@ -58,9 +58,17 @@
 
             {{-- Card Vermelho Claro: Total Cachês Brutos --}}
             <div class="bg-red-100 dark:bg-red-900/20 p-6 rounded-lg">
-                <h3 class="text-sm text-gray-500 dark:text-gray-400">Total Cachês Brutos (Base de Cálculo)</h3>
-                <p class="text-3xl font-semibold text-red-800 dark:text-red-300 mt-1">
-                    R$ {{ number_format($performanceData['summaryCards']['total_gross_cash'], 2, ',', '.') }}
+            <h3 class="text-sm text-gray-500 dark:text-gray-400">Total Cachês Brutos (Base de Cálculo)</h3>
+            <p class="text-3xl font-semibold text-red-800 dark:text-red-300 mt-1">
+            R$ {{ number_format($performanceData['summaryCards']['total_gross_cash'], 2, ',', '.') }}
+            </p>
+            </div>
+
+            {{-- Card Roxo Claro: Total Comissão --}}
+            <div class="bg-purple-100 dark:bg-purple-900/20 p-6 rounded-lg">
+                <h3 class="text-sm text-gray-500 dark:text-gray-400">Total Comissão</h3>
+                <p class="text-3xl font-semibold text-purple-800 dark:text-purple-300 mt-1">
+                    R$ {{ number_format($performanceData['summaryCards']['total_commission'], 2, ',', '.') }}
                 </p>
             </div>
         </div>
