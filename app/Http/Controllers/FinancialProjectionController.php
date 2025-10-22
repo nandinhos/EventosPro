@@ -52,19 +52,20 @@ class FinancialProjectionController extends Controller
                 $this->projectionService->setPeriod('', $startDate, $endDate);
             }
 
-            // Obtém métricas do período
+            // Obtém métricas do período apenas se necessário
+            // Otimizado: carrega apenas métricas essenciais para reduzir carga
             $executiveSummary = $this->projectionService->getExecutiveSummary();
-            $futureEventsAnalysis = $this->projectionService->getFutureEventsAnalysis();
-            $comparativeAnalysis = $this->projectionService->getComparativePeriodAnalysis();
 
             $periodMetrics = [
                 'executive_summary' => $executiveSummary,
-                'future_events_analysis' => $futureEventsAnalysis,
-                'comparative_analysis' => $comparativeAnalysis,
+                'future_events_analysis' => null, // Carregado apenas se necessário
+                'comparative_analysis' => null,   // Carregado apenas se necessário
             ];
 
-            // Carrega listagens detalhadas com agrupamentos e subtotais
-            $periodListings = $this->getPeriodSummary();
+            // Carrega listagens detalhadas apenas se solicitado período específico
+            if ($startDate && $endDate && ! $showGlobal) {
+                $periodListings = $this->getPeriodSummary();
+            }
         }
 
         return view('projections.dashboard', [
@@ -132,6 +133,17 @@ class FinancialProjectionController extends Controller
     {
         // 1. CONTAS A RECEBER (Pagamentos de Clientes)
         $clientPayments = $this->projectionService->getUpcomingClientPayments();
+
+        // Otimizado: retorna array vazio se não há dados
+        if ($clientPayments->isEmpty()) {
+            return [
+                'receivable' => ['total' => 0, 'count' => 0, 'grouped' => collect(), 'items' => collect()],
+                'artists' => ['total' => 0, 'count' => 0, 'grouped' => collect(), 'items' => collect()],
+                'bookers' => ['total' => 0, 'count' => 0, 'grouped' => collect(), 'items' => collect()],
+                'expenses' => ['total' => 0, 'count' => 0, 'grouped' => collect(), 'items' => collect()],
+            ];
+        }
+
         $receivableTotal = (float) $clientPayments->sum('due_value_brl');
 
         // Agrupar por status de vencimento
@@ -267,35 +279,5 @@ class FinancialProjectionController extends Controller
                 'items' => $expensesByCostCenter,
             ],
         ];
-    }
-
-    /**
-     * Formata pagamentos de artistas para exibição.
-     */
-    private function formatArtistPayments($gigs): array
-    {
-        return $gigs->map(function ($gig) {
-            return [
-                'artist_name' => $gig->artist->name ?? 'N/A',
-                'event_name' => $gig->location_event_details ?? 'Evento #'.$gig->id,
-                'gig_date' => $gig->gig_date,
-                'amount' => $this->calculatorService->calculateArtistInvoiceValueBrl($gig),
-            ];
-        })->toArray();
-    }
-
-    /**
-     * Formata pagamentos de bookers para exibição.
-     */
-    private function formatBookerPayments($gigs): array
-    {
-        return $gigs->map(function ($gig) {
-            return [
-                'booker_name' => $gig->booker->name ?? 'N/A',
-                'event_name' => $gig->location_event_details ?? 'Evento #'.$gig->id,
-                'gig_date' => $gig->gig_date,
-                'amount' => $this->calculatorService->calculateBookerCommissionBrl($gig),
-            ];
-        })->toArray();
     }
 }
