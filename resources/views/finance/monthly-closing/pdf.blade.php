@@ -327,43 +327,43 @@
 
     {{-- TABELA COMPARATIVA DE DESEMPENHO - BOOKERS (HORIZONTAL) --}}
     @if(count($reportData['booker_comparison_sales'] ?? []) > 0)
-    <div class=\"section-title\">COMPARATIVO DE DESEMPENHO - BOOKERS</div>
-    <table style=\"margin-bottom: 20px;\">
-        <thead>
-            <tr>
-                <th style=\"width: 20%; background: #d1d5db;\">INDICADOR</th>
-                @foreach($reportData['booker_comparison_sales'] as $booker)
-                <th class=\"text-right\" style=\"width: {{ 80 / count($reportData['booker_comparison_sales']) }}%;\">
-                {{ strtoupper($booker['name']) }}
-                </th>
-                @endforeach
-            </tr>
-        </thead>
-        <tbody>
-            {{-- Linha: Contratos Celebrados --}}
-            <tr>
-                <td class=\"font-bold\" style=\"background: #f3f4f6;\">Contratos Celebrados</td>
-                @foreach($reportData['booker_comparison_sales'] as $booker)
-                <td class=\"text-right text-blue font-bold\">{{ $booker['contratos'] }}</td>
-                @endforeach
-            </tr>
+    <div class="section-title">COMPARATIVO DE DESEMPENHO - BOOKERS</div>
+    <table style="margin-bottom: 20px;">
+    <thead>
+    <tr>
+    <th style="width: 20%; background: #d1d5db;">INDICADOR</th>
+    @foreach($reportData['booker_comparison_sales'] as $booker)
+    <th class="text-right" style="width: {{ 80 / count($reportData['booker_comparison_sales']) }}%;">
+        {{ strtoupper($booker['name']) }}
+    </th>
+    @endforeach
+    </tr>
+    </thead>
+    <tbody>
+    {{-- Linha: Contratos Celebrados --}}
+    <tr>
+    <td class="font-bold" style="background: #f3f4f6;">Contratos Celebrados</td>
+    @foreach($reportData['booker_comparison_sales'] as $booker)
+    <td class="text-right text-blue font-bold">{{ $booker['contratos'] }}</td>
+    @endforeach
+    </tr>
 
-            {{-- Linha: Cachê Bruto --}}
-            <tr>
-                <td class=\"font-bold\" style=\"background: #f3f4f6;\">Cachê Bruto</td>
-                @foreach($reportData['booker_comparison_sales'] as $booker)
-                <td class=\"text-right text-indigo font-bold\">R$ {{ number_format($booker['cache_bruto'], 2, ',', '.') }}</td>
-                @endforeach
-            </tr>
+    {{-- Linha: Cachê Bruto --}}
+    <tr>
+    <td class="font-bold" style="background: #f3f4f6;">Cachê Bruto</td>
+    @foreach($reportData['booker_comparison_sales'] as $booker)
+    <td class="text-right text-indigo font-bold">R$ {{ number_format($booker['cache_bruto'], 2, ',', '.') }}</td>
+    @endforeach
+    </tr>
 
-            {{-- Linha: Comissão Booker --}}
-            <tr>
-                <td class=\"font-bold\" style=\"background: #f3f4f6;\">Comissão Booker</td>
-                @foreach($reportData['booker_comparison_sales'] as $booker)
-                <td class=\"text-right text-purple font-bold\">R$ {{ number_format($booker['cache_booker'], 2, ',', '.') }}</td>
-                @endforeach
-            </tr>
-        </tbody>
+    {{-- Linha: Comissão Booker --}}
+    <tr>
+    <td class="font-bold" style="background: #f3f4f6;">Comissão Booker</td>
+    @foreach($reportData['booker_comparison_sales'] as $booker)
+    <td class="text-right text-purple font-bold">R$ {{ number_format($booker['cache_booker'], 2, ',', '.') }}</td>
+    @endforeach
+    </tr>
+    </tbody>
     </table>
     @endif
 
