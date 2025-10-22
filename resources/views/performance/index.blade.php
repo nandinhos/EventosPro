@@ -80,11 +80,12 @@
                 <table class="min-w-full">
                     <thead class="bg-gray-50 dark:bg-gray-700/50">
                         <tr>
-                            {{-- ***** CABEÇALHO REORDENADO E COM NOVAS COLUNAS ***** --}}
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-2/6">Booker</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/6">Qtd</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/6">Total Contrato</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-2/6">Total Cachê (Bruto)</th>
+                        {{-- ***** CABEÇALHO REORDENADO E COM NOVAS COLUNAS ***** --}}
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-2/6">Booker</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/6">Qtd</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/6">Total Contrato</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/6">Total Cachê (Bruto)</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/6">Total Comissão Booker</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -105,11 +106,14 @@
                                         <div class="text-sm text-blue-800 dark:text-blue-300 font-semibold">R$ {{ number_format($bookerData['total_contract'], 2, ',', '.') }}</div>
                                     </td>
                                     <td class="px-6 py-3 whitespace-nowrap text-right">
-                                        <div class="text-sm text-teal-800 dark:text-teal-300 font-semibold">R$ {{ number_format($bookerData['total_gross_cash'], 2, ',', '.') }}</div>
+                                    <div class="text-sm text-teal-800 dark:text-teal-300 font-semibold">R$ {{ number_format($bookerData['total_gross_cash'], 2, ',', '.') }}</div>
+                                    </td>
+                                        <td class="px-6 py-3 whitespace-nowrap text-right">
+                                        <div class="text-sm text-purple-800 dark:text-purple-300 font-semibold">R$ {{ number_format($bookerData['total_booker_commission'], 2, ',', '.') }}</div>
                                     </td>
                                 </tr>
                                 <tr x-show="open" x-transition style="display: none;">
-                                <td colspan="4" class="p-0">
+                                <td colspan="5" class="p-0">
                                 <div class="bg-gray-50 dark:bg-gray-800/60 p-4 overflow-x-auto">
                                 @foreach($bookerData['gigs_by_month'] as $monthData)
                                 <div class="mb-6 last:mb-0">

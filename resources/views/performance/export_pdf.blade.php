@@ -160,28 +160,31 @@
     <table class="summary-table">
         <thead>
             <tr>
-                <th>Booker</th>
-                <th class="text-right">Qtd. Gigs</th>
-                <th class="text-right">Total Contrato (BRL)</th>
-                <th class="text-right">Total Cachê Bruto (BRL)</th>
+            <th>Booker</th>
+            <th class="text-right">Qtd. Gigs</th>
+            <th class="text-right">Total Contrato (BRL)</th>
+            <th class="text-right">Total Cachê Bruto (BRL)</th>
+                <th class="text-right">Total Comissão Booker (BRL)</th>
             </tr>
         </thead>
         <tbody>
             @foreach($performanceData['tableData'] as $bookerData)
                 <tr>
-                    <td>{{ $bookerData['booker_name'] }}</td>
-                    <td class="text-right">{{ $bookerData['gigs_count'] }}</td>
-                    <td class="text-right">R$ {{ number_format($bookerData['total_contract'], 2, ',', '.') }}</td>
-                    <td class="text-right">R$ {{ number_format($bookerData['total_gross_cash'], 2, ',', '.') }}</td>
+                <td>{{ $bookerData['booker_name'] }}</td>
+                <td class="text-right">{{ $bookerData['gigs_count'] }}</td>
+                <td class="text-right">R$ {{ number_format($bookerData['total_contract'], 2, ',', '.') }}</td>
+                <td class="text-right">R$ {{ number_format($bookerData['total_gross_cash'], 2, ',', '.') }}</td>
+                    <td class="text-right">R$ {{ number_format($bookerData['total_booker_commission'], 2, ',', '.') }}</td>
                 </tr>
             @endforeach
         </tbody>
         <tfoot>
             <tr>
-                <td>TOTAL GERAL</td>
-                <td class="text-right">{{ $performanceData['summaryCards']['total_gigs'] }}</td>
-                <td class="text-right total-value">R$ {{ number_format($performanceData['summaryCards']['total_value'], 2, ',', '.') }}</td>
-                <td class="text-right total-gross-cash">R$ {{ number_format($performanceData['summaryCards']['total_gross_cash'], 2, ',', '.') }}</td>
+            <td>TOTAL GERAL</td>
+            <td class="text-right">{{ $performanceData['summaryCards']['total_gigs'] }}</td>
+            <td class="text-right total-value">R$ {{ number_format($performanceData['summaryCards']['total_value'], 2, ',', '.') }}</td>
+            <td class="text-right total-gross-cash">R$ {{ number_format($performanceData['summaryCards']['total_gross_cash'], 2, ',', '.') }}</td>
+                <td class="text-right total-commission">R$ {{ number_format($performanceData['summaryCards']['total_commission'], 2, ',', '.') }}</td>
             </tr>
         </tfoot>
     </table>

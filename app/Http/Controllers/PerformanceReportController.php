@@ -104,6 +104,7 @@ class PerformanceReportController extends Controller
             ->map(function ($gigsForBooker) {
 
                 $totalGrossCash = $gigsForBooker->sum(fn ($gig) => $this->gigCalculator->calculateGrossCashBrl($gig));
+                $totalBookerCommission = $gigsForBooker->sum(fn ($gig) => $this->gigCalculator->calculateBookerCommissionBrl($gig));
 
                 // Agrupar gigs por mês para melhor visualização
                 $gigsByMonth = $gigsForBooker->groupBy(function ($gig) {
@@ -143,6 +144,7 @@ class PerformanceReportController extends Controller
                     'booker_name' => $gigsForBooker->first()->booker->name ?? 'Agência Direta',
                     'total_contract' => $gigsForBooker->sum('cache_value_brl'),
                     'total_gross_cash' => $totalGrossCash, // Nova variável para o subtotal
+                    'total_booker_commission' => $totalBookerCommission,
                     'gigs_count' => $gigsForBooker->count(),
                     'gigs_by_month' => $gigsByMonth,
                     'gigs' => $gigsForBooker->map(function ($gig) {
