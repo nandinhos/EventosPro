@@ -97,6 +97,7 @@ class PerformanceReportController extends Controller
         $totalContractValue = $gigs->sum('cache_value_brl'); // Usando o acessor BRL
 
         $grandTotalGrossCash = $gigs->sum(fn ($gig) => $this->gigCalculator->calculateGrossCashBrl($gig));
+        $grandTotalBookerCommission = $gigs->sum(fn ($gig) => $this->gigCalculator->calculateBookerCommissionBrl($gig));
 
         // 6. Agrupar por Booker e preparar a estrutura de dados final
         $dataByBooker = $gigs->groupBy(fn ($gig) => $gig->booker->name ?? 'Agência Direta')
@@ -164,6 +165,7 @@ class PerformanceReportController extends Controller
                 'total_gigs' => $gigs->count(),
                 'total_value' => $gigs->sum('cache_value_brl'),
                 'total_gross_cash' => $grandTotalGrossCash, // Nova variável para o card de resumo
+                'total_commission' => $grandTotalBookerCommission,
             ],
             'tableData' => $dataByBooker,
         ];

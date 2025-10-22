@@ -50,9 +50,9 @@
 
             {{-- Cards de Resumo (Ocultos na impressão) --}}
            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 print:hidden w-full">
-            {{-- Card Azul Claro: Gigs Realizadas --}}
+            {{-- Card Azul Claro: Gigs Vendidas --}}
             <div class="bg-blue-100 dark:bg-blue-900/20 p-6 rounded-lg">
-                <h3 class="text-sm text-gray-500 dark:text-gray-400">Gigs Realizadas</h3>
+                <h3 class="text-sm text-gray-500 dark:text-gray-400">Gigs Vendidas</h3>
                 <p class="text-3xl font-semibold text-blue-800 dark:text-blue-300 mt-1">
                     {{ $performanceData['summaryCards']['total_gigs'] }}
                 </p>
