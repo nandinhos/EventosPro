@@ -246,14 +246,14 @@
             @endif
 
             {{-- TABELA COMPARATIVA DE BOOKERS (HORIZONTAL) --}}
-            @if(count($reportData['booker_comparison'] ?? []) > 0)
+            @if(count($reportData['booker_comparison_events'] ?? []) > 0)
             <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    Vendas no Período - Bookers
+                    Eventos realizados no período - Bookers
                     </h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400">
-                    Vendas realizadas por booker no período selecionado
+                    Eventos realizados por booker no período selecionado
                     </p>
                 </div>
                 <div class="overflow-x-auto">
@@ -271,16 +271,16 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            {{-- Linha: Vendas --}}
+                            {{-- Linha: Gigs --}}
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50">
-                                    Vendas
-                                </td>
-                                @foreach($reportData['booker_comparison'] as $booker)
-                                    <td class="px-6 py-4 text-right text-sm font-bold text-blue-600 dark:text-blue-400">
-                                        {{ $booker['vendas'] }}
-                                    </td>
-                                @endforeach
+                            <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50">
+                            Gigs
+                            </td>
+                            @foreach($reportData['booker_comparison_events'] as $booker)
+                            <td class="px-6 py-4 text-right text-sm font-bold text-blue-600 dark:text-blue-400">
+                            {{ $booker['gigs'] }}
+                            </td>
+                            @endforeach
                             </tr>
 
                             {{-- Linha: Cachê Bruto --}}
@@ -313,7 +313,7 @@
             @endif
 
             {{-- TABELA COMPARATIVA DE DESEMPENHO - BOOKERS (HORIZONTAL) --}}
-             @if(count($reportData['booker_comparison'] ?? []) > 0)
+             @if(count($reportData['booker_comparison_sales'] ?? []) > 0)
              <div class=\"bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden\">
                  <div class=\"px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50\">
                      <h3 class=\"text-lg font-semibold text-gray-900 dark:text-white\">
@@ -330,10 +330,10 @@
                                  <th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-100 dark:bg-gray-600\">
                                      Indicador
                                  </th>
-                                 @foreach($reportData['booker_comparison'] as $booker)
-                                     <th class=\"px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider\">
-                                         {{ $booker['name'] }}
-                                     </th>
+                                 @foreach($reportData['booker_comparison_sales'] as $booker)
+                                 <th class=\"px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider\">
+                                 {{ $booker['name'] }}
+                                 </th>
                                  @endforeach
                              </tr>
                          </thead>
@@ -343,10 +343,10 @@
                                  <td class=\"px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50\">
                                      Contratos Celebrados
                                  </td>
-                                 @foreach($reportData['booker_comparison'] as $booker)
-                                     <td class=\"px-6 py-4 text-right text-sm font-bold text-blue-600 dark:text-blue-400\">
-                                         {{ $booker['vendas'] }}
-                                     </td>
+                                 @foreach($reportData['booker_comparison_sales'] as $booker)
+                                 <td class=\"px-6 py-4 text-right text-sm font-bold text-blue-600 dark:text-blue-400\">
+                                 {{ $booker['contratos'] }}
+                                 </td>
                                  @endforeach
                              </tr>
 
@@ -355,10 +355,10 @@
                                  <td class=\"px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50\">
                                      Cachê Bruto
                                  </td>
-                                 @foreach($reportData['booker_comparison'] as $booker)
-                                     <td class=\"px-6 py-4 text-right text-sm font-bold text-indigo-600 dark:text-indigo-400\">
-                                         R$ {{ number_format($booker['cache_bruto'], 2, ',', '.') }}
-                                     </td>
+                                 @foreach($reportData['booker_comparison_sales'] as $booker)
+                                 <td class=\"px-6 py-4 text-right text-sm font-bold text-indigo-600 dark:text-indigo-400\">
+                                 R$ {{ number_format($booker['cache_bruto'], 2, ',', '.') }}
+                                 </td>
                                  @endforeach
                              </tr>
 
@@ -367,10 +367,10 @@
                                  <td class=\"px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50\">
                                      Cachê Booker
                                  </td>
-                                 @foreach($reportData['booker_comparison'] as $booker)
-                                     <td class=\"px-6 py-4 text-right text-sm font-bold text-purple-600 dark:text-purple-400\">
-                                         R$ {{ number_format($booker['cache_booker'], 2, ',', '.') }}
-                                     </td>
+                                 @foreach($reportData['booker_comparison_sales'] as $booker)
+                                 <td class=\"px-6 py-4 text-right text-sm font-bold text-purple-600 dark:text-purple-400\">
+                                 R$ {{ number_format($booker['cache_booker'], 2, ',', '.') }}
+                                 </td>
                                  @endforeach
                              </tr>
                          </tbody>
