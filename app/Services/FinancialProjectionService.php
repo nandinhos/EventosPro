@@ -54,7 +54,6 @@ class FinancialProjectionService
         if ($period === 'custom' && $startDate && $endDate) {
             $this->startDate = Carbon::parse($startDate)->startOfDay();
             $this->endDate = Carbon::parse($endDate)->endOfDay();
-            Log::info("[FinancialProjectionService] Período customizado definido: De {$this->startDate->toDateString()} até {$this->endDate->toDateString()}");
 
             return;
         }
@@ -63,7 +62,6 @@ class FinancialProjectionService
         if (! $period && ($startDate || $endDate)) {
             $this->startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : $today;
             $this->endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : $today->copy()->addYear()->endOfDay();
-            Log::info("[FinancialProjectionService] Período parcial definido: De {$this->startDate->toDateString()} até {$this->endDate->toDateString()}");
 
             return;
         }
@@ -90,7 +88,7 @@ class FinancialProjectionService
                 $this->endDate = $today->copy()->addDays(29)->endOfDay();
                 break;
         }
-        Log::info("[FinancialProjectionService] Período de projeção '{$period}' definido: De {$this->startDate->toDateString()} até {$this->endDate->toDateString()}");
+
     }
 
     /**
@@ -103,8 +101,6 @@ class FinancialProjectionService
     {
         $payments = $this->queryBuilder->pendingPaymentsQuery($this->startDate, $this->endDate, true);
         $total = (float) $payments->sum('due_value_brl');
-
-        Log::info('[FinancialProjectionService] Total Contas a Receber: '.$total.' | Quantidade: '.$payments->count());
 
         return $total;
     }
@@ -125,14 +121,10 @@ class FinancialProjectionService
     {
         $gigs = $this->queryBuilder->pendingGigsQuery($this->startDate, $this->endDate, 'artists', true);
 
-        $total = 0;
-        foreach ($gigs as $gig) {
-            $artistPaymentValue = $this->calculatorService->calculateArtistInvoiceValueBrl($gig);
-            Log::debug("[FinancialProjectionService] Pagar Artista: Gig ID: {$gig->id}, Data Gig: {$gig->gig_date->toDateString()}, Valor NF: {$artistPaymentValue}");
-            $total += $artistPaymentValue;
-        }
-
-        Log::info("[FinancialProjectionService] Total Contas a Pagar Artistas: {$total}");
+        // Otimizado: calcular total sem logs individuais para evitar overhead
+        $total = $gigs->sum(function ($gig) {
+            return $this->calculatorService->calculateArtistInvoiceValueBrl($gig);
+        });
 
         return (float) max(0, $total);
     }
@@ -145,16 +137,12 @@ class FinancialProjectionService
     {
         $gigs = $this->queryBuilder->pendingGigsQuery($this->startDate, $this->endDate, 'bookers', true);
 
-        $total = 0;
-        foreach ($gigs as $gig) {
-            $bookerCommission = $this->calculatorService->calculateBookerCommissionBrl($gig);
-            Log::debug("[FinancialProjectionService] Pagar Booker: Gig ID: {$gig->id}, Data Gig: {$gig->gig_date->toDateString()}, Comissão: {$bookerCommission}");
-            if ($bookerCommission > 0) {
-                $total += $bookerCommission;
-            }
-        }
+        // Otimizado: calcular total sem logs individuais para evitar overhead
+        $total = $gigs->sum(function ($gig) {
+            $commission = $this->calculatorService->calculateBookerCommissionBrl($gig);
 
-        Log::info("[FinancialProjectionService] Total Contas a Pagar Bookers: {$total}");
+            return $commission > 0 ? $commission : 0;
+        });
 
         return (float) max(0, $total);
     }
@@ -179,8 +167,6 @@ class FinancialProjectionService
     public function getProjectedExpensesByCostCenter(): Collection
     {
         $costs = $this->queryBuilder->pendingExpensesQuery($this->endDate, true);
-
-        Log::info('[FinancialProjectionService] Quantidade de custos para getProjectedExpensesByCostCenter: '.$costs->count());
 
         return $costs->groupBy('cost_center_id')
             ->map(function ($group, $costCenterId) {
