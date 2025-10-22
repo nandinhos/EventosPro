@@ -263,10 +263,10 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider bg-gray-100 dark:bg-gray-600">
                                     Indicador
                                 </th>
-                                @foreach($reportData['booker_comparison'] as $booker)
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                        {{ $booker['name'] }}
-                                    </th>
+                                @foreach($reportData['booker_comparison_events'] as $booker)
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                {{ $booker['name'] }}
+                                </th>
                                 @endforeach
                             </tr>
                         </thead>
@@ -288,10 +288,10 @@
                                 <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50">
                                     Cachê Bruto
                                 </td>
-                                @foreach($reportData['booker_comparison'] as $booker)
-                                    <td class="px-6 py-4 text-right text-sm font-bold text-indigo-600 dark:text-indigo-400">
-                                        R$ {{ number_format($booker['cache_bruto'], 2, ',', '.') }}
-                                    </td>
+                                @foreach($reportData['booker_comparison_events'] as $booker)
+                                <td class="px-6 py-4 text-right text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                                R$ {{ number_format($booker['cache_bruto'], 2, ',', '.') }}
+                                </td>
                                 @endforeach
                             </tr>
 
@@ -300,10 +300,10 @@
                                 <td class="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50">
                                     Cachê Booker
                                 </td>
-                                @foreach($reportData['booker_comparison'] as $booker)
-                                    <td class="px-6 py-4 text-right text-sm font-bold text-purple-600 dark:text-purple-400">
-                                        R$ {{ number_format($booker['cache_booker'], 2, ',', '.') }}
-                                    </td>
+                                @foreach($reportData['booker_comparison_events'] as $booker)
+                                <td class="px-6 py-4 text-right text-sm font-bold text-purple-600 dark:text-purple-400">
+                                R$ {{ number_format($booker['cache_booker'], 2, ',', '.') }}
+                                </td>
                                 @endforeach
                             </tr>
                         </tbody>

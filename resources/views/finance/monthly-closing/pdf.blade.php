@@ -290,10 +290,10 @@
         <thead>
             <tr>
                 <th style="width: 20%; background: #d1d5db;">INDICADOR</th>
-                @foreach($reportData['booker_comparison'] as $booker)
-                    <th class="text-right" style="width: {{ 80 / count($reportData['booker_comparison']) }}%;">
-                        {{ strtoupper($booker['name']) }}
-                    </th>
+                @foreach($reportData['booker_comparison_events'] as $booker)
+                <th class="text-right" style="width: {{ 80 / count($reportData['booker_comparison_events']) }}%;">
+                {{ strtoupper($booker['name']) }}
+                </th>
                 @endforeach
             </tr>
         </thead>
@@ -309,16 +309,16 @@
             {{-- Linha: Cachê Bruto --}}
             <tr>
                 <td class="font-bold" style="background: #f3f4f6;">Cachê Bruto</td>
-                @foreach($reportData['booker_comparison'] as $booker)
-                    <td class="text-right text-indigo font-bold">R$ {{ number_format($booker['cache_bruto'], 2, ',', '.') }}</td>
+                @foreach($reportData['booker_comparison_events'] as $booker)
+                <td class="text-right text-indigo font-bold">R$ {{ number_format($booker['cache_bruto'], 2, ',', '.') }}</td>
                 @endforeach
             </tr>
 
             {{-- Linha: Comissão Booker --}}
             <tr>
                 <td class="font-bold" style="background: #f3f4f6;">Comissão Booker</td>
-                @foreach($reportData['booker_comparison'] as $booker)
-                    <td class="text-right text-purple font-bold">R$ {{ number_format($booker['cache_booker'], 2, ',', '.') }}</td>
+                @foreach($reportData['booker_comparison_events'] as $booker)
+                <td class="text-right text-purple font-bold">R$ {{ number_format($booker['cache_booker'], 2, ',', '.') }}</td>
                 @endforeach
             </tr>
         </tbody>
