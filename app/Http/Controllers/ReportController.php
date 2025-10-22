@@ -55,7 +55,7 @@ class ReportController extends Controller
             'values' => $bookerRevenue->pluck('total')->toArray(),
         ];
 
-        Log::info('Dados do gráfico de faturamento por booker:', $bookerRevenueData);
+        // Log::info('Dados do gráfico de faturamento por booker:', $bookerRevenueData);
 
         // Dados para o gráfico de comissões
         $commissions = Gig::whereBetween('gig_date', [$startDate, $endDate])
@@ -74,7 +74,7 @@ class ReportController extends Controller
             'agency' => $commissions->pluck('agency_commission')->toArray(),
         ];
 
-        Log::info('Dados do gráfico de comissões:', $commissionsData);
+        // Log::info('Dados do gráfico de comissões:', $commissionsData);
 
         return view('reports.financial', compact('events', 'bookerRevenueData', 'commissionsData'));
     }

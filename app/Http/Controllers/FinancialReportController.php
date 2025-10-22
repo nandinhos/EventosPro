@@ -442,7 +442,7 @@ class FinancialReportController extends Controller
     public function dueDatesReport(Request $request)
     {
         // Log dos parâmetros recebidos
-        Log::info('Parâmetros da requisição:', $request->all());
+        // Log::info('Parâmetros da requisição:', $request->all());
 
         $filters = $request->validate([
             'start_date' => 'nullable|date',
@@ -463,17 +463,17 @@ class FinancialReportController extends Controller
         // 2. Aplicar filtros de data e moeda
         if ($startDate = $filters['start_date'] ?? null) {
             $query->where('due_date', '>=', $startDate);
-            Log::info('Filtrando por data inicial: '.$startDate);
+            // Log::info('Filtrando por data inicial: '.$startDate);
         }
 
         if ($endDate = $filters['end_date'] ?? null) {
             $query->where('due_date', '<=', $endDate);
-            Log::info('Filtrando por data final: '.$endDate);
+            // Log::info('Filtrando por data final: '.$endDate);
         }
 
         if ($currency = $filters['currency'] ?? null) {
             $query->where('currency', $currency);
-            Log::info('Filtrando por moeda: '.$currency);
+            // Log::info('Filtrando por moeda: '.$currency);
         }
 
         // 3. Aplicar filtro de status do contrato se fornecido
@@ -481,12 +481,12 @@ class FinancialReportController extends Controller
             $query->whereHas('gig', function ($q) use ($contractStatus) {
                 $q->where('contract_status', $contractStatus);
             });
-            Log::info('Filtrando por status do contrato: '.$contractStatus);
+            // Log::info('Filtrando por status do contrato: '.$contractStatus);
         }
 
         // 4. Obter pagamentos pendentes
         $pendingPayments = $query->orderBy('due_date')->get();
-        Log::info('Total de pagamentos encontrados: '.$pendingPayments->count());
+        // Log::info('Total de pagamentos encontrados: '.$pendingPayments->count());
 
         // 5. Calcular totais APENAS para vencidos e a vencer
         $totals = [
@@ -510,7 +510,7 @@ class FinancialReportController extends Controller
             $paymentsForTable = $pendingPayments->filter(function ($payment) use ($statusFilter) {
                 return $payment->inferred_status === $statusFilter;
             });
-            Log::info('Filtrando por status de vencimento: '.$statusFilter.'. Total: '.$paymentsForTable->count());
+            // Log::info('Filtrando por status de vencimento: '.$statusFilter.'. Total: '.$paymentsForTable->count());
         }
 
         // 7. Aplicar agrupamento personalizado por prioridades
@@ -651,11 +651,11 @@ class FinancialReportController extends Controller
             ini_set('memory_limit', '512M'); // Aumenta para 512MB
             set_time_limit(300);             // Aumenta para 5 minutos
         } catch (Exception $e) {
-            Log::warning('Não foi possível aumentar os limites de execução para PDF: '.$e->getMessage());
+            // Log::warning('Não foi possível aumentar os limites de execução para PDF: '.$e->getMessage());
         }
 
         // Log dos parâmetros recebidos
-        Log::info('Parâmetros da requisição (PDF):', $request->all());
+        // Log::info('Parâmetros da requisição (PDF):', $request->all());
 
         $filters = $request->validate([
             'start_date' => 'nullable|date',
@@ -681,17 +681,17 @@ class FinancialReportController extends Controller
         // Aplicar filtros
         if ($startDate = $filters['start_date'] ?? null) {
             $query->where('due_date', '>=', $startDate);
-            Log::info('PDF - Filtrando por data inicial: '.$startDate);
+            // Log::info('PDF - Filtrando por data inicial: '.$startDate);
         }
 
         if ($endDate = $filters['end_date'] ?? null) {
             $query->where('due_date', '<=', $endDate);
-            Log::info('PDF - Filtrando por data final: '.$endDate);
+            // Log::info('PDF - Filtrando por data final: '.$endDate);
         }
 
         if ($currency = $filters['currency'] ?? null) {
             $query->where('currency', $currency);
-            Log::info('PDF - Filtrando por moeda: '.$currency);
+            // Log::info('PDF - Filtrando por moeda: '.$currency);
         }
 
         // Aplicar filtro de status do contrato se fornecido
@@ -699,11 +699,11 @@ class FinancialReportController extends Controller
             $query->whereHas('gig', function ($q) use ($contractStatus) {
                 $q->where('contract_status', $contractStatus);
             });
-            Log::info('PDF - Filtrando por status do contrato: '.$contractStatus);
+            // Log::info('PDF - Filtrando por status do contrato: '.$contractStatus);
         }
 
         $pendingPayments = $query->orderBy('due_date')->get();
-        Log::info('PDF - Total de pagamentos encontrados: '.$pendingPayments->count());
+        // Log::info('PDF - Total de pagamentos encontrados: '.$pendingPayments->count());
 
         // Calcular totais
         $totals = [
@@ -727,7 +727,7 @@ class FinancialReportController extends Controller
             $paymentsForReport = $pendingPayments->filter(function ($payment) use ($statusFilter) {
                 return $payment->inferred_status === $statusFilter;
             });
-            Log::info('PDF - Filtrando por status de vencimento: '.$statusFilter.'. Total: '.$paymentsForReport->count());
+            // Log::info('PDF - Filtrando por status de vencimento: '.$statusFilter.'. Total: '.$paymentsForReport->count());
         }
 
         // Aplicar agrupamento personalizado por prioridades para o PDF

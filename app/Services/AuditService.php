@@ -62,7 +62,7 @@ class AuditService
             // Status e classificação da divergência
             $statusDivergencia = $this->classifyDivergence($divergencia);
 
-            Log::debug("[AuditService] Gig ID {$gig->id}: Contrato={$valorContrato}, Pago={$totalPago}, Pendente={$totalPendente}, Divergência={$divergencia}");
+            // Log::debug("[AuditService] Gig ID {$gig->id}: Contrato={$valorContrato}, Pago={$totalPago}, Pendente={$totalPendente}, Divergência={$divergencia}");
 
             return [
                 'valor_contrato' => $valorContrato,

@@ -43,31 +43,24 @@ class TestReportController extends Controller
 
     public function runTests(Request $request)
     {
-        Log::info('[DEBUG] Método runTests chamado', ['request_data' => $request->all()]);
+        // Log::info('[DEBUG] Método runTests chamado', ['request_data' => $request->all()]);
 
         $withCoverage = $request->boolean('coverage', false);
-        Log::info('[DEBUG] Configuração de cobertura', ['withCoverage' => $withCoverage]);
+        // Log::info('[DEBUG] Configuração de cobertura', ['withCoverage' => $withCoverage]);
 
         try {
             $command = $withCoverage ?
                 base_path('vendor/bin/phpunit').' --coverage-text' :
                 base_path('vendor/bin/phpunit');
 
-            Log::info('[DEBUG] Comando a ser executado', ['command' => $command]);
-            Log::info('[DEBUG] Diretório base', ['base_path' => base_path()]);
-            Log::info('[DEBUG] Caminho do phpunit', ['phpunit_path' => base_path('vendor/bin/phpunit')]);
+            // Log::info('[DEBUG] Comando a ser executado', ['command' => $command]);
+            // Log::info('[DEBUG] Diretório base', ['base_path' => base_path()]);
+            // Log::info('[DEBUG] Caminho do phpunit', ['phpunit_path' => base_path('vendor/bin/phpunit')]);
 
             $result = Process::path(base_path())->run($command);
 
-            Log::info('[DEBUG] Resultado da execução', [
-                'successful' => $result->successful(),
-                'exit_code' => $result->exitCode(),
-                'output_length' => strlen($result->output()),
-                'error_length' => strlen($result->errorOutput()),
-            ]);
-
-            Log::info('[DEBUG] Saída do comando', ['output' => $result->output()]);
-            Log::info('[DEBUG] Erro do comando', ['error' => $result->errorOutput()]);
+            // Log::info('[DEBUG] Saída do comando', ['output' => $result->output()]);
+            // Log::info('[DEBUG] Erro do comando', ['error' => $result->errorOutput()]);
 
             $response = [
                 'success' => $result->successful(),
@@ -76,7 +69,7 @@ class TestReportController extends Controller
                 'exit_code' => $result->exitCode(),
             ];
 
-            Log::info('[DEBUG] Resposta a ser retornada', $response);
+            // Log::info('[DEBUG] Resposta a ser retornada', $response);
 
             return response()->json($response);
         } catch (Exception $e) {
@@ -134,7 +127,7 @@ class TestReportController extends Controller
                 ];
             }
         } catch (Exception $e) {
-            Log::warning('Não foi possível obter resultados reais dos testes', ['error' => $e->getMessage()]);
+            // Log::warning('Não foi possível obter resultados reais dos testes', ['error' => $e->getMessage()]);
         }
 
         // Dados simulados baseados nos testes existentes
@@ -168,7 +161,7 @@ class TestReportController extends Controller
                 $overallPercentage = 0;
             }
         } catch (Exception $e) {
-            Log::warning('Não foi possível obter dados reais de cobertura', ['error' => $e->getMessage()]);
+            // Log::warning('Não foi possível obter dados reais de cobertura', ['error' => $e->getMessage()]);
             $overallPercentage = 0;
         }
 

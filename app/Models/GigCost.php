@@ -75,7 +75,7 @@ class GigCost extends Model
         );
 
         if ($exchangeRate === null) {
-            Log::warning("Taxa de câmbio não encontrada para moeda {$this->currency} na data {$this->expense_date} para GigCost ID {$this->id}.");
+            // Log::warning("Taxa de câmbio não encontrada para moeda {$this->currency} na data {$this->expense_date} para GigCost ID {$this->id}.");
 
             return (float) $this->value;
         }

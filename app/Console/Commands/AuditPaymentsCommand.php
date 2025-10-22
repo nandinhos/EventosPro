@@ -435,10 +435,6 @@ class AuditPaymentsCommand extends Command
                     break;
 
                 default:
-                    Log::warning('Payment issue requer atenção manual', [
-                        'gig_id' => $gig->id,
-                        'issue' => $issue,
-                    ]);
                     DB::rollBack();
 
                     return;

@@ -25,7 +25,7 @@ class UpdateGigRequest extends FormRequest
      */
     public function rules(): array
     {
-        Log::debug('[UpdateGigRequest] Dados recebidos para validação (rules): ', $this->all());
+        // Log::debug('[UpdateGigRequest] Dados recebidos para validação (rules): ', $this->all());
         $gigId = $this->route('gig')?->id;
 
         return [
@@ -127,6 +127,6 @@ class UpdateGigRequest extends FormRequest
         if (! empty($toMerge)) {
             $this->merge($toMerge);
         }
-        Log::debug('[UpdateGigRequest] Dados após prepareForValidation: ', $this->all());
+        // Log::debug('[UpdateGigRequest] Dados após prepareForValidation: ', $this->all());
     }
 }
