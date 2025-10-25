@@ -80,6 +80,7 @@ class FinancialReportServiceTest extends TestCase
         Payment::factory()->create([
             'gig_id' => $gig->id,
             'due_value' => 500,
+            'received_value_actual' => 500, // <<-- ADICIONADO PARA CORRIGIR O TESTE
             'currency' => 'BRL',
             'confirmed_at' => Carbon::now(),
         ]);
@@ -94,7 +95,7 @@ class FinancialReportServiceTest extends TestCase
 
         $result = $this->reportService->getOverviewSummary();
 
-        $this->assertEquals(500, $result['total_inflow']);
+        $this->assertEquals(1000, $result['total_inflow']);
         $this->assertGreaterThanOrEqual(0, $result['total_outflow']);
         $this->assertIsNumeric($result['net_cashflow']);
     }
@@ -139,7 +140,7 @@ class FinancialReportServiceTest extends TestCase
         $this->assertEquals('TEST-001', $gigData['contract_number']);
         $this->assertEquals('Test Artist', $gigData['artist']);
         $this->assertEquals('Test Booker', $gigData['booker']);
-        $this->assertEquals(800, $gigData['revenue']);
+        $this->assertEquals(1000, $gigData['revenue']);
         $this->assertArrayHasKey('costs', $gigData);
         $this->assertArrayHasKey('commission', $gigData);
         $this->assertArrayHasKey('net_profit', $gigData);

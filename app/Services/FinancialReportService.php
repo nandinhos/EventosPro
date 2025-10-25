@@ -66,9 +66,7 @@ class FinancialReportService
             ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
             ->get();
 
-        $totalInflow = $gigs->sum(function ($gig) {
-            return $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
-        });
+        $totalInflow = $gigs->sum('cache_value_brl');
         $totalOutflow = $gigs->sum(function ($gig) {
             return $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
         });
@@ -91,7 +89,7 @@ class FinancialReportService
 
         return $gigs->map(function ($gig) {
             try {
-                $revenue = $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
+                $revenue = $gig->cache_value_brl ?? 0;
                 $costs = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
                 $commission = $this->calculator->calculateBookerCommissionBrl($gig);
 
@@ -136,7 +134,7 @@ class FinancialReportService
 
         foreach ($gigs as $gig) {
             try {
-                $revenue = $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
+                $revenue = $gig->cache_value_brl ?? 0;
                 $costs = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
                 $commission = $this->calculator->calculateBookerCommissionBrl($gig);
                 $profit = $revenue - ($costs + $commission);
@@ -169,9 +167,9 @@ class FinancialReportService
             ->get()
             ->map(function ($gig) {
                 try {
-                    $revenue = $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
+                    $revenue = $gig->cache_value_brl ?? 0;
                     $costs = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
-                    $commission = $gig->agency_commission_value ?? 0;
+                    $commission = $this->calculator->calculateAgencyGrossCommissionBrl($gig);
                     $profit = $revenue - $costs - $commission;
                     $margin = $revenue > 0 ? ($profit / $revenue) * 100 : 0;
 
@@ -356,7 +354,7 @@ class FinancialReportService
         return $gigs->map(function ($gig) {
             try {
                 $bookerCommission = $this->calculator->calculateBookerCommissionBrl($gig);
-                $revenue = $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
+                $revenue = $gig->cache_value_brl ?? 0;
                 $percentage = $revenue > 0 ? ($bookerCommission / $revenue) * 100 : 0;
 
                 return [
@@ -442,34 +440,25 @@ class FinancialReportService
 
         foreach ($gigs as $gig) {
             try {
-                // Valor do contrato
-                $contractValue = $gig->payments->whereNotNull('confirmed_at')->sum('due_value_brl');
-                $totalRevenue += $contractValue;
-
-                // Soma das despesas
+                // Usa o calculator para todos os valores, garantindo consistência.
+                $revenue = $gig->cache_value_brl ?? 0; // A receita bruta é o valor do contrato em BRL.
+                $agencyCommission = $this->calculator->calculateAgencyGrossCommissionBrl($gig);
+                $bookerCommission = $this->calculator->calculateBookerCommissionBrl($gig);
+                $artistNetCache = $this->calculator->calculateArtistNetPayoutBrl($gig);
                 $expenses = $this->calculator->calculateTotalConfirmedExpensesBrl($gig);
+
+                // Acumula os totais
+                $totalRevenue += $revenue;
                 $totalExpenses += $expenses;
-
-                // Cachê bruto do artista
-                $artistGrossCache = $contractValue - $expenses;
-
-                // Comissão da agência (ex.: 20% do cachê bruto)
-                $agencyCommission = $artistGrossCache * 0.2;
                 $totalAgencyCommissions += $agencyCommission;
-
-                // Comissão do booker (ex.: 5% do cachê bruto)
-                $bookerCommission = $artistGrossCache * 0.05;
                 $totalBookerCommissions += $bookerCommission;
-
-                // Cachê líquido do artista
-                $artistNetCache = $artistGrossCache - $agencyCommission;
 
                 // Agrupar eventos por artista
                 $artistName = $gig->artist->name ?? 'N/A';
                 $eventsByArtist[$artistName][] = [
                     'date' => $gig->gig_date->format('d/m/Y'),
                     'location' => $gig->venue ?? 'N/A',
-                    'contract_value' => $contractValue,
+                    'contract_value' => $revenue,
                     'agency_commission' => $agencyCommission,
                     'booker_commission' => $bookerCommission,
                     'net_cache' => $artistNetCache,
@@ -478,7 +467,11 @@ class FinancialReportService
 
                 // Agrupar faturamento por booker
                 $bookerName = $gig->booker->name ?? 'N/A';
-                $revenueByBooker[$bookerName][] = $contractValue;
+                if (! isset($revenueByBooker[$bookerName])) {
+                    $revenueByBooker[$bookerName] = [];
+                }
+                $revenueByBooker[$bookerName][] = $revenue;
+
             } catch (Exception $e) {
                 Log::error("Erro ao processar Gig ID {$gig->id}: ".$e->getMessage());
             }

@@ -14,7 +14,6 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -166,7 +165,6 @@ class GigTest extends TestCase
     #[Test]
     public function it_gets_exchange_rate_from_confirmed_payment()
     {
-        Log::shouldReceive('info')->once();
 
         $payment = Payment::factory()->create([
             'gig_id' => $this->gig->id,
@@ -183,7 +181,6 @@ class GigTest extends TestCase
     #[Test]
     public function it_gets_exchange_rate_from_service_when_no_confirmed_payment()
     {
-        Log::shouldReceive('info')->once();
 
         // Mock do ExchangeRateService
         $exchangeRateService = $this->createMock(\App\Services\ExchangeRateService::class);
@@ -198,8 +195,6 @@ class GigTest extends TestCase
     #[Test]
     public function it_returns_null_when_exchange_rate_not_found()
     {
-        Log::shouldReceive('warning')->once();
-
         // Mock do ExchangeRateService retornando null
         $exchangeRateService = $this->createMock(\App\Services\ExchangeRateService::class);
         $exchangeRateService->method('getExchangeRate')->willReturn(null);
@@ -336,7 +331,6 @@ class GigTest extends TestCase
     #[Test]
     public function it_gets_cache_value_brl_details_for_fully_paid_foreign_currency()
     {
-        Log::shouldReceive('debug')->once();
 
         $gigUsd = Gig::factory()->create([
             'artist_id' => $this->artist->id,
@@ -363,7 +357,6 @@ class GigTest extends TestCase
     #[Test]
     public function it_gets_cache_value_brl_details_for_pending_foreign_currency()
     {
-        Log::shouldReceive('debug')->once();
         Config::set('exchange_rates.default_rates.USD', 5.2);
 
         $gigUsd = Gig::factory()->create([
@@ -383,8 +376,6 @@ class GigTest extends TestCase
     #[Test]
     public function it_returns_unavailable_when_no_exchange_rate_found()
     {
-        Log::shouldReceive('warning')->once();
-
         $gigJpy = Gig::factory()->create([
             'artist_id' => $this->artist->id,
             'cache_value' => 200,

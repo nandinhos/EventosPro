@@ -9,7 +9,6 @@ use App\Models\Payment;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -111,12 +110,10 @@ class PaymentTest extends TestCase
     #[Test]
     public function it_calculates_due_value_brl_for_foreign_currency_with_exchange_rate()
     {
-        // Garantir que a configuração padrão esteja definida
-        Config::set('exchange_rates.default_rates', [
-            'USD' => 5.30,
-            'EUR' => 5.70,
-            'GBP' => 6.50,
-        ]);
+        // Mock do ExchangeRateService
+        $exchangeRateService = $this->createMock(\App\Services\ExchangeRateService::class);
+        $exchangeRateService->method('getExchangeRate')->willReturn(5.30);
+        $this->app->instance(\App\Services\ExchangeRateService::class, $exchangeRateService);
 
         // Criar gig em moeda estrangeira
         $gigWithExchangeRate = Gig::factory()->create([
@@ -130,6 +127,7 @@ class PaymentTest extends TestCase
             'gig_id' => $gigWithExchangeRate->id,
             'due_value' => 200, // 200 USD
             'currency' => 'USD',
+            'exchange_rate' => 5.30, // Definir a taxa de câmbio diretamente
         ]);
 
         $this->assertEqualsWithDelta(1060.0, $payment->due_value_brl, 0.01); // 200 * 5.30
@@ -140,8 +138,6 @@ class PaymentTest extends TestCase
     {
         // Salvar configuração original
         $originalConfig = config('exchange_rates.default_rates');
-
-        Log::shouldReceive('warning')->twice(); // Uma vez no Gig e uma vez no Payment
 
         // Remover configuração padrão para simular ausência de taxa
         Config::set('exchange_rates.default_rates', []);

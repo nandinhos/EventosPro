@@ -116,6 +116,11 @@ class Gig extends Model
         return $this->hasOne(Settlement::class);
     }
 
+    public function settlements(): HasMany
+    {
+        return $this->hasMany(Settlement::class);
+    }
+
     public function tags(): MorphToMany
     {
         return $this->morphToMany(Tag::class, 'taggable');

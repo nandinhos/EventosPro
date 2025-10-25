@@ -123,9 +123,9 @@ class ArtistPerformanceController extends Controller
 
                 // Agrupar gigs por mês para melhor visualização
                 $gigsByMonth = $gigsForArtist->groupBy(function ($gig) {
-                    return Carbon::parse($gig->gig_date)->format('m/Y');
+                    return Carbon::parse($gig->contract_date ?? $gig->gig_date)->format('m/Y');
                 })->map(function ($gigsInMonth) {
-                    $monthName = Carbon::parse($gigsInMonth->first()->gig_date)->format('M/Y');
+                    $monthName = Carbon::parse($gigsInMonth->first()->contract_date ?? $gigsInMonth->first()->gig_date)->format('M/Y');
                     $totalContractMonth = $gigsInMonth->sum('cache_value_brl');
                     $totalGrossCashMonth = $gigsInMonth->sum(fn ($gig) => $this->gigCalculator->calculateGrossCashBrl($gig));
                     $totalNetPayoutMonth = $gigsInMonth->sum(fn ($gig) => $this->gigCalculator->calculateArtistNetPayoutBrl($gig));

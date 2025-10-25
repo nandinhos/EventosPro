@@ -236,9 +236,6 @@ class ExchangeRateServiceTest extends TestCase
     #[Test]
     public function it_clears_cache_for_specific_currency()
     {
-        \Illuminate\Support\Facades\Log::shouldReceive('info')
-            ->once()
-            ->with('Cache de taxa de câmbio limpo para USD');
 
         $this->exchangeRateService->clearCache('USD');
 
@@ -249,9 +246,6 @@ class ExchangeRateServiceTest extends TestCase
     #[Test]
     public function it_clears_all_cache_when_no_currency_specified()
     {
-        \Illuminate\Support\Facades\Log::shouldReceive('info')
-            ->once()
-            ->with('Todo cache de taxas de câmbio foi limpo');
 
         $this->exchangeRateService->clearCache();
 

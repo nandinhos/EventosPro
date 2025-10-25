@@ -127,6 +127,32 @@ class Payment extends Model
     }
 
     /**
+     * Accessor para obter o valor recebido em BRL.
+     */
+    public function getReceivedValueActualBrlAttribute(): float
+    {
+        if (strtoupper($this->currency ?? 'BRL') === 'BRL') {
+            return (float) $this->received_value_actual;
+        }
+
+        // If received_date_actual is null, use today's date for exchange rate lookup
+        $dateForExchangeRate = Carbon::parse($this->received_date_actual ?: today());
+
+        $exchangeRate = $this->exchange_rate ?? $this->gig->getExchangeRateForCurrency(
+            $this->currency,
+            $dateForExchangeRate
+        );
+
+        if ($exchangeRate === null) {
+            // Log::warning("Taxa de câmbio não encontrada para moeda {$this->currency} na data {$dateForExchangeRate} para Payment ID {$this->id}.");
+            // If exchange rate is not found, return the actual received value without conversion
+            return (float) $this->received_value_actual;
+        }
+
+        return (float) $this->received_value_actual * $exchangeRate;
+    }
+
+    /**
      * Verifica se o pagamento foi confirmado/recebido
      */
     public function getIsPaidAttribute(): bool

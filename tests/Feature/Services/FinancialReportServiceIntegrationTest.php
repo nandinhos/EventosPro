@@ -59,12 +59,14 @@ class FinancialReportServiceIntegrationTest extends TestCase
             'gig_date' => Carbon::now()->subDays(5),
             'artist_id' => $this->artist->id,
             'booker_id' => $this->booker->id,
+            'cache_value' => 50000,
         ]);
 
         $gig2 = $this->createCompleteGig([
             'gig_date' => Carbon::now()->subDays(10),
             'artist_id' => $this->artist->id,
             'booker_id' => $this->booker->id,
+            'cache_value' => 82500,
         ]);
 
         // Adicionar pagamentos confirmados
@@ -119,14 +121,17 @@ class FinancialReportServiceIntegrationTest extends TestCase
         // Arrange: Gigs em diferentes moedas
         $usdGig = $this->createCompleteGig([
             'gig_date' => Carbon::now()->subDays(3),
+            'cache_value' => 25000,
         ]);
 
         $eurGig = $this->createCompleteGig([
             'gig_date' => Carbon::now()->subDays(7),
+            'cache_value' => 22000,
         ]);
 
         $brlGig = $this->createCompleteGig([
             'gig_date' => Carbon::now()->subDays(1),
+            'cache_value' => 20000,
         ]);
 
         // Pagamentos em diferentes moedas
@@ -160,6 +165,7 @@ class FinancialReportServiceIntegrationTest extends TestCase
         // Arrange: Gig com estrutura complexa de custos
         $gig = $this->createCompleteGig([
             'gig_date' => Carbon::now()->subDays(2),
+            'cache_value' => 100000,
         ]);
 
         $this->createConfirmedPayment($gig, 100000);
@@ -217,18 +223,21 @@ class FinancialReportServiceIntegrationTest extends TestCase
             'artist_id' => $this->artist->id,
             'booker_id' => $this->booker->id,
             'gig_date' => Carbon::now()->subDays(5),
+            'cache_value' => 30000,
         ]);
 
         $gig2 = $this->createCompleteGig([
             'artist_id' => $artist2->id,
             'booker_id' => $this->booker->id,
             'gig_date' => Carbon::now()->subDays(3),
+            'cache_value' => 40000,
         ]);
 
         $gig3 = $this->createCompleteGig([
             'artist_id' => $this->artist->id,
             'booker_id' => $booker2->id,
             'gig_date' => Carbon::now()->subDays(1),
+            'cache_value' => 50000,
         ]);
 
         // Pagamentos para todos
@@ -319,6 +328,7 @@ class FinancialReportServiceIntegrationTest extends TestCase
             'gig_date' => Carbon::now()->subDays(1),
             'artist_id' => $this->artist->id,
             'booker_id' => $this->booker->id,
+            'cache_value' => $attributes['cache_value'] ?? 1000, // Adicionado para aceitar cache_value
         ], $attributes));
     }
 
