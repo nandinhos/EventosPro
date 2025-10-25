@@ -57,3 +57,9 @@ A modernização da UI/UX do dashboard de projeções (`projections.dashboard.bl
 - **Consistência de Design via Componentes:** A aplicação de padrões de design (cores, espaçamento, tipografia) diretamente nos componentes garante uma aparência consistente. Uma mudança no design de um card, por exemplo, pode ser feita em um único arquivo.
 
 - **Estados Vazios (Empty States) Informativos:** Projetar e implementar "estados vazios" claros para tabelas é muito superior a simplesmente mostrar uma tabela vazia. Melhora a UX ao fornecer contexto e confirmar que a ausência de dados é o estado esperado.
+
+## 6. Ambiente de Desenvolvimento e Ferramentas
+
+- **Hooks de Pré-Commit e Laravel Sail:** O projeto utiliza hooks de pré-commit para garantir a qualidade e a consistência do código. Uma regra importante é que todos os commits **DEVEM** ser executados de dentro do ambiente Laravel Sail.
+    - **Comando Correto:** `./vendor/bin/sail bash -c "git commit -m 'Sua mensagem'"`
+    - **Justificativa:** Isso garante que as ferramentas de análise de código (linters, formatadores) rodem no mesmo ambiente configurado para o projeto, evitando inconsistências entre as máquinas dos desenvolvedores. Tentar commitar fora do Sail resultará em um erro e o commit será bloqueado.
