@@ -1,15 +1,21 @@
 {{-- resources/views/projections/dashboard.blade.php --}}
+{{-- Versão refatorada com componentes reutilizáveis e layout minimalista --}}
 
 <x-app-layout>
-    {{-- Cabeçalho --}}
+    {{-- Header --}}
     <x-slot name="header">
-    <div class="flex justify-between items-center">
-    <div>
-    <h2 class="font-semibold text-xl text-gray-800 dark:text-white leading-tight">
-    {{ __('Projeções Financeiras') }}
-    </h2>
-    <p class="text-sm text-gray-500 dark:text-gray-400">Contas a receber: <span class="font-semibold text-red-600">R$ {{ number_format($accounts_receivable['total_overdue'] ?? 0, 2, ',', '.') }}</span> vencidas, <span class="font-semibold text-green-600">R$ {{ number_format($accounts_receivable['total_future'] ?? 0, 2, ',', '.') }}</span> futuras</p>
-    </div>
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h2 class="font-semibold text-2xl text-gray-800 dark:text-white leading-tight">
+                    {{ __('Projeções Financeiras') }}
+                </h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Contas a receber:
+                    <span class="font-semibold text-red-600">R$ {{ number_format($accounts_receivable['total_overdue'] ?? 0, 2, ',', '.') }}</span> vencidas,
+                    <span class="font-semibold text-green-600">R$ {{ number_format($accounts_receivable['total_future'] ?? 0, 2, ',', '.') }}</span> futuras
+                </p>
+            </div>
+
             @php
                 $riskColors = [
                     'low' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
@@ -28,33 +34,26 @@
         </div>
     </x-slot>
 
-    @php
-        $activeTab = $period_metrics ? 'period' : 'global';
-    @endphp
     <div class="py-6">
-        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
             {{-- TABS NAVIGATION --}}
             <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
                 <div class="border-b border-gray-200 dark:border-gray-700">
                     <nav class="flex -mb-px" aria-label="Tabs">
-                        <a
-                        href="{{ route('projections.index') }}"
-                        class="{{ !$period_metrics ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }} w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm transition-colors inline-block"
-                        >
+                        <a href="{{ route('projections.index') }}"
+                           class="{{ !$period_metrics ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }} w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm transition-colors">
                             <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        Métricas Gerais
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            Métricas Gerais
                         </a>
-                        <a
-                            href="{{ route('projections.index', ['start_date' => request('start_date', now()->startOfMonth()->format('Y-m-d')), 'end_date' => request('end_date', now()->endOfMonth()->format('Y-m-d'))]) }}"
-                        class="{{ $period_metrics ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }} w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm transition-colors inline-block"
-                        >
-                        <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <a href="{{ route('projections.index', ['start_date' => request('start_date', now()->startOfMonth()->format('Y-m-d')), 'end_date' => request('end_date', now()->endOfMonth()->format('Y-m-d'))]) }}"
+                           class="{{ $period_metrics ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }} w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm transition-colors">
+                            <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Por Período
+                            </svg>
+                            Por Período
                         </a>
                     </nav>
                 </div>
@@ -62,852 +61,169 @@
 
             {{-- ABA: MÉTRICAS GERAIS --}}
             @if(!$period_metrics)
-            <div>
+            <div class="space-y-8">
 
-                {{-- MÉTRICAS GERENCIAIS GLOBAIS --}}
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {{-- Índice de Liquidez --}}
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 border-l-4 {{ $global_metrics['liquidity_index'] >= 1.2 ? 'border-green-500' : ($global_metrics['liquidity_index'] >= 1 ? 'border-yellow-500' : 'border-red-500') }}">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Índice de Liquidez Global</p>
-                                <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">
-                                    {{ number_format($global_metrics['liquidity_index'], 2, ',', '.') }}
-                                </p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Recebível / Total a Pagar
-                                </p>
-                            </div>
-                            <div class="ml-4">
-                                <div class="w-16 h-16 rounded-full flex items-center justify-center {{ $global_metrics['liquidity_index'] >= 1.2 ? 'bg-green-100 dark:bg-green-900' : ($global_metrics['liquidity_index'] >= 1 ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-red-100 dark:bg-red-900') }}">
-                                    <svg class="w-8 h-8 {{ $global_metrics['liquidity_index'] >= 1.2 ? 'text-green-600 dark:text-green-400' : ($global_metrics['liquidity_index'] >= 1 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400') }}" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Margem Operacional --}}
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 border-l-4 {{ $global_metrics['operational_margin'] >= 20 ? 'border-green-500' : ($global_metrics['operational_margin'] >= 10 ? 'border-yellow-500' : 'border-red-500') }}">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Margem Operacional Global</p>
-                                <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">
-                                    {{ number_format($global_metrics['operational_margin'], 1, ',', '.') }}%
-                                </p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Fluxo / Recebível
-                                </p>
-                            </div>
-                            <div class="ml-4">
-                                <div class="w-16 h-16 rounded-full flex items-center justify-center {{ $global_metrics['operational_margin'] >= 20 ? 'bg-green-100 dark:bg-green-900' : ($global_metrics['operational_margin'] >= 10 ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-red-100 dark:bg-red-900') }}">
-                                    <svg class="w-8 h-8 {{ $global_metrics['operational_margin'] >= 20 ? 'text-green-600 dark:text-green-400' : ($global_metrics['operational_margin'] >= 10 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400') }}" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Grau de Comprometimento --}}
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 border-l-4 {{ $global_metrics['commitment_rate'] <= 70 ? 'border-green-500' : ($global_metrics['commitment_rate'] <= 85 ? 'border-yellow-500' : 'border-red-500') }}">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Comprometimento Global</p>
-                                <p class="text-3xl font-bold mt-2 text-gray-900 dark:text-white">
-                                    {{ number_format($global_metrics['commitment_rate'], 1, ',', '.') }}%
-                                </p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Total a Pagar / Recebível
-                                </p>
-                            </div>
-                            <div class="ml-4">
-                                <div class="w-16 h-16 rounded-full flex items-center justify-center {{ $global_metrics['commitment_rate'] <= 70 ? 'bg-green-100 dark:bg-green-900' : ($global_metrics['commitment_rate'] <= 85 ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-red-100 dark:bg-red-900') }}">
-                                    <svg class="w-8 h-8 {{ $global_metrics['commitment_rate'] <= 70 ? 'text-green-600 dark:text-green-400' : ($global_metrics['commitment_rate'] <= 85 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400') }}" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- CARDS PRINCIPAIS DE VALORES GLOBAIS --}}
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-                {{-- Card 1: Contas a Receber Vencidas --}}
-                <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-6 text-white transform transition hover:scale-105 cursor-pointer"  title="Clique para ver detalhes das contas vencidas">
-                <div class="flex items-center justify-between">
-                <div>
-                <p class="text-sm font-medium text-red-100 uppercase tracking-wide">Contas Vencidas</p>
-                <p class="text-3xl font-bold mt-2">
-                R$ {{ number_format($accounts_receivable['total_overdue'] ?? 0, 2, ',', '.') }}
-                </p>
-                <p class="text-sm text-red-100 mt-1">
-                {{ $accounts_receivable['overdue_count'] ?? 0 }} pagamentos
-                </p>
-                @if(($accounts_receivable['overdue_count'] ?? 0) > 0)
-                <div class="mt-2 bg-white/20 rounded px-2 py-1 text-xs">
-                <span class="font-semibold">Ação necessária</span>
-                </div>
-                @endif
-                </div>
-                <div class="bg-white/20 rounded-full p-3">
-                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                </svg>
-                </div>
-                </div>
-                </div>
-
-                    {{-- Card 2: Contas a Receber Futuras --}}
-                    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white transform transition hover:scale-105 cursor-pointer"  title="Clique para ver detalhes das contas futuras">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-green-100 uppercase tracking-wide">Contas Futuras</p>
-                                <p class="text-3xl font-bold mt-2">
-                                    R$ {{ number_format($accounts_receivable['total_future'] ?? 0, 2, ',', '.') }}
-                                </p>
-                                <p class="text-sm text-green-100 mt-1">
-                                    {{ $accounts_receivable['future_count'] ?? 0 }} pagamentos
-                                </p>
-                                @if(($accounts_receivable['future_count'] ?? 0) > 0)
-                                    <div class="mt-2 bg-blue-500/30 rounded px-2 py-1 text-xs">
-                                        <span class="font-semibold">Próximos vencimentos</span>
-                                    </div>
-                                @endif
-                            </div>
-                            <div class="bg-white/20 rounded-full p-3">
-                                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Card 2: Contas a Pagar Artistas --}}
-                    <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-6 text-white transform transition hover:scale-105 cursor-pointer"  title="Clique para ver detalhes dos pagamentos pendentes aos artistas">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-red-100 uppercase tracking-wide">Total Pagar Artistas</p>
-                                <p class="text-3xl font-bold mt-2">
-                                    R$ {{ number_format($global_metrics['total_payable_artists'], 2, ',', '.') }}
-                                </p>
-                                <p class="text-sm text-red-100 mt-1">
-                                    Cachês pendentes
-                                </p>
-                            </div>
-                            <div class="bg-white/20 rounded-full p-3">
-                                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Card 3: Contas a Pagar Bookers --}}
-                    <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg shadow-lg p-6 text-white transform transition hover:scale-105 cursor-pointer"  title="Clique para ver detalhes das comissões pendentes aos bookers">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-yellow-100 uppercase tracking-wide">Total Pagar Bookers</p>
-                                <p class="text-3xl font-bold mt-2">
-                                    R$ {{ number_format($global_metrics['total_payable_bookers'], 2, ',', '.') }}
-                                </p>
-                                <p class="text-sm text-yellow-100 mt-1">
-                                    Comissões pendentes
-                                </p>
-                            </div>
-                            <div class="bg-white/20 rounded-full p-3">
-                                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Card 4: Despesas Previstas --}}
-                    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-6 text-white transform transition hover:scale-105 cursor-pointer"  title="Clique para ver detalhes das despesas previstas">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-orange-100 uppercase tracking-wide">Total Despesas</p>
-                                <p class="text-3xl font-bold mt-2">
-                                    R$ {{ number_format($global_metrics['total_payable_expenses'], 2, ',', '.') }}
-                                </p>
-                                <p class="text-sm text-orange-100 mt-1">
-                                    Custos operacionais
-                                </p>
-                            </div>
-                            <div class="bg-white/20 rounded-full p-3">
-                                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- TABELAS DETALHADAS DOS CARDS (Expansíveis) --}}
-                {{-- Tabela: Contas a Receber Vencidas --}}
-                <div   >
-                    <div class="bg-red-50 dark:bg-red-900/20 px-6 py-4 border-b border-red-200 dark:border-red-800">
-                    <h3 class="text-lg font-semibold text-red-800 dark:text-red-200 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                {{-- SEÇÃO 1: MÉTRICAS ESTRATÉGICAS --}}
+                <section>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                         </svg>
-                        Contas Vencidas - Ação Necessária
-                        <span class="ml-4 text-sm font-normal bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 px-2 py-1 rounded">{{ $accounts_receivable['overdue_count'] ?? 0 }} pagamentos</span>
-                        </h3>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-red-50 dark:bg-red-900/20">
-                            <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">Data Vencimento</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">Dias Vencido</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">Gig</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">Artista</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">Valor</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">Prioridade</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            @php
-                                $overduePayments = collect($accounts_receivable['payments'] ?? [])->where('is_overdue', true)->sortBy('days_until_due');
-                            @endphp
-                            @forelse($overduePayments as $payment)
-                                <tr class="hover:bg-red-25 dark:hover:bg-red-900/10">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">{{ $payment['due_date'] ?? 'N/A' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600 dark:text-red-400 font-semibold">{{ abs($payment['days_until_due'] ?? 0) }} dias</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                    @if(isset($payment['gig_id']))
-                                    <a href="{{ route('gigs.show', $payment['gig_id']) }}" class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300" title="Ver detalhes da Gig">
-                                            Gig #{{ $payment['gig_id'] }}
-                                            </a>
-                                        @else
-                                            {{ $payment['gig_contract'] ?? 'N/A' }}
-                                        @endif
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ $payment['artist_name'] ?? 'N/A' }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-red-700 dark:text-red-300">R$ {{ number_format($payment['due_value_brl'] ?? 0, 2, ',', '.') }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    @php $daysOverdue = abs($payment['days_until_due'] ?? 0); @endphp
-                                    @if($daysOverdue > 30)
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-600 text-white">🔴 Crítica</span>
-                                    @elseif($daysOverdue > 15)
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-500 text-white">🟠 Alta</span>
-                                    @else
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500 text-white">🟡 Média</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Nenhuma conta a receber pendente</td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                            <tfoot class="bg-red-50 dark:bg-red-900/20">
-                            <tr>
-                            <td colspan="5" class="px-6 py-3 text-right text-sm font-semibold text-red-700 dark:text-red-300">Total Vencido:</td>
-                            <td class="px-6 py-3 text-right text-lg font-bold text-red-800 dark:text-red-200">R$ {{ number_format($accounts_receivable['total_overdue'] ?? 0, 2, ',', '.') }}</td>
-                            </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
+                        Métricas Estratégicas
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <x-metrics.strategic-metric
+                            title="Caixa Gerado (Eventos Passados)"
+                            :value="'R$ ' . number_format($strategic_balance['generated_cash'], 2, ',', '.')"
+                            subtitle="Balanço de operações concluídas"
+                            color="blue"
+                            tooltip="Total de receitas menos despesas de eventos já realizados. Representa o caixa efetivamente gerado."
+                            :icon="'<svg class=\'w-6 h-6 text-blue-600\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z\' clip-rule=\'evenodd\' /></svg>'" />
 
-                {{-- Tabela: Contas a Receber Futuras --}}
-                <div   >
-                    <div class="bg-green-50 dark:bg-green-900/20 px-6 py-4 border-b border-green-200 dark:border-green-800">
-                        <h3 class="text-lg font-semibold text-green-800 dark:text-green-200 flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
-                            </svg>
-                            Contas a Receber Futuras
-                            <span class="ml-4 text-sm font-normal bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 px-2 py-1 rounded">{{ $accounts_receivable['future_count'] ?? 0 }} pagamentos</span>
-                        </h3>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-green-50 dark:bg-green-900/20">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-green-700 dark:text-green-300 uppercase tracking-wider">Data Vencimento</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-green-700 dark:text-green-300 uppercase tracking-wider">Dias Restantes</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-green-700 dark:text-green-300 uppercase tracking-wider">Gig</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-green-700 dark:text-green-300 uppercase tracking-wider">Artista</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-green-700 dark:text-green-300 uppercase tracking-wider">Valor</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-green-700 dark:text-green-300 uppercase tracking-wider">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @php
-                                    $futurePayments = collect($accounts_receivable['payments'] ?? [])->where('is_overdue', false)->sortBy('days_until_due');
-                                @endphp
-                                @forelse($futurePayments as $payment)
-                                <tr class="hover:bg-green-25 dark:hover:bg-green-900/10">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">{{ $payment['due_date'] ?? 'N/A' }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600 dark:text-blue-400 font-semibold">{{ $payment['days_until_due'] ?? 0 }} dias</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                        @if(isset($payment['gig_id']))
-                                            <a href="{{ route('gigs.show', $payment['gig_id']) }}" class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300" title="Ver detalhes da Gig">
-                                                Gig #{{ $payment['gig_id'] }}
-                                            </a>
-                                        @else
-                                            {{ $payment['gig_contract'] ?? 'N/A' }}
-                                        @endif
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ $payment['artist_name'] ?? 'N/A' }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-green-700 dark:text-green-300">R$ {{ number_format($payment['due_value_brl'] ?? 0, 2, ',', '.') }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-center">
-                                        @php $daysUntilDue = $payment['days_until_due'] ?? 0; @endphp
-                                        @if($daysUntilDue <= 3)
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">Próximo</span>
-                                        @elseif($daysUntilDue <= 7)
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Esta semana</span>
-                                        @else
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Em dia</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Nenhuma conta a receber futura</td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                            <tfoot class="bg-green-50 dark:bg-green-900/20">
-                                <tr>
-                                    <td colspan="4" class="px-6 py-3 text-right text-sm font-semibold text-green-700 dark:text-green-300">Total Futuro:</td>
-                                    <td class="px-6 py-3 text-right text-lg font-bold text-green-800 dark:text-green-200">R$ {{ number_format($accounts_receivable['total_future'] ?? 0, 2, ',', '.') }}</td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
+                        <x-metrics.strategic-metric
+                            title="Caixa Comprometido (Eventos Futuros)"
+                            :value="'R$ ' . number_format($strategic_balance['committed_cash'], 2, ',', '.')"
+                            subtitle="Saldo líquido de contratos futuros"
+                            color="purple"
+                            tooltip="Receitas esperadas menos despesas comprometidas para eventos futuros. Indica o caixa que será gerado."
+                            :icon="'<svg class=\'w-6 h-6 text-purple-600\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z\' clip-rule=\'evenodd\' /></svg>'" />
 
-                {{-- Tabela: Pagamentos a Artistas --}}
-                <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg mt-6">
-                    <div class="bg-red-50 dark:bg-red-900/20 px-6 py-4 border-b border-red-200 dark:border-red-800">
-                        <h3 class="text-lg font-semibold text-red-800 dark:text-red-200 flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                            </svg>
-                            Detalhes dos Pagamentos Pendentes aos Artistas
-                            <span class="ml-4 text-sm font-normal bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 px-2 py-1 rounded">{{ $artist_payment_details['gig_count'] ?? 0 }} eventos</span>
-                        </h3>
+                        <x-metrics.strategic-metric
+                            :title="'Balanço Financeiro'"
+                            :value="'R$ ' . number_format($strategic_balance['financial_balance'], 2, ',', '.')"
+                            subtitle="Uso de caixa futuro no presente"
+                            :color="$strategic_balance['financial_balance'] >= 0 ? 'green' : 'red'"
+                            tooltip="Diferença entre o caixa gerado e o comprometido. Negativo indica que está usando caixa futuro para cobrir operações presentes."
+                            :icon="'<svg class=\'w-6 h-6\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z\' clip-rule=\'evenodd\' /></svg>'" />
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-red-50 dark:bg-red-900/20">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">Data Evento</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">Gig</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">Artista</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">Cachê Líquido</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">A Pagar (80%)</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">Pago</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">Pendente</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-red-700 dark:text-red-300 uppercase tracking-wider">Dias</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @forelse($artist_payment_details['payments'] ?? [] as $payment)
-                                    <tr class="hover:bg-red-25 dark:hover:bg-red-900/10">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">{{ $payment['gig_date'] }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                            <a href="{{ route('gigs.show', $payment['gig_id']) }}" class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300" title="Ver detalhes da Gig">
-                                                {{ $payment['gig_contract'] }}
-                                            </a>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ $payment['artist_name'] }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-700 dark:text-gray-300">R$ {{ number_format($payment['cachee_liquido'], 2, ',', '.') }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-700 dark:text-gray-300">R$ {{ number_format($payment['artist_payout_total'], 2, ',', '.') }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-green-600 dark:text-green-400">R$ {{ number_format($payment['amount_paid'], 2, ',', '.') }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-red-700 dark:text-red-300">R$ {{ number_format($payment['amount_pending'], 2, ',', '.') }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                                            @php $days = $payment['days_since_event']; @endphp
-                                            @if($days > 60)
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-600 text-white">{{ $days }}d</span>
-                                            @elseif($days > 30)
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-500 text-white">{{ $days }}d</span>
-                                            @elseif($days > 15)
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500 text-white">{{ $days }}d</span>
-                                            @else
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">{{ $days }}d</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Nenhum pagamento pendente aos artistas</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                            <tfoot class="bg-red-50 dark:bg-red-900/20">
-                                <tr>
-                                    <td colspan="6" class="px-6 py-3 text-right text-sm font-semibold text-red-700 dark:text-red-300">Total Pendente:</td>
-                                    <td class="px-6 py-3 text-right text-lg font-bold text-red-800 dark:text-red-200">R$ {{ number_format($artist_payment_details['total_pending'] ?? 0, 2, ',', '.') }}</td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
+                </section>
+
+                {{-- SEÇÃO 2: INDICADORES GERENCIAIS --}}
+                <section>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        Indicadores Gerenciais
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <x-metrics.kpi-card
+                            title="Índice de Liquidez Global"
+                            :value="number_format($global_metrics['liquidity_index'], 2, ',', '.')"
+                            subtitle="Recebível / Total a Pagar"
+                            :threshold="['good' => 1.2, 'warning' => 1.0]"
+                            thresholdType="min"
+                            tooltip="Indica a capacidade de pagar todas as obrigações com os recebíveis. Ideal: > 1.2" />
+
+                        <x-metrics.kpi-card
+                            title="Margem Operacional Global"
+                            :value="number_format($global_metrics['operational_margin'], 1, ',', '.') . '%'"
+                            subtitle="Fluxo / Recebível"
+                            :threshold="['good' => 20, 'warning' => 10]"
+                            thresholdType="min"
+                            tooltip="Percentual do recebível que resta após pagar todas as obrigações. Ideal: > 20%"
+                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z\' clip-rule=\'evenodd\' /></svg>'" />
+
+                        <x-metrics.kpi-card
+                            title="Comprometimento Global"
+                            :value="number_format($global_metrics['commitment_rate'], 1, ',', '.') . '%'"
+                            subtitle="Total a Pagar / Recebível"
+                            :threshold="['good' => 70, 'warning' => 85]"
+                            thresholdType="max"
+                            tooltip="Percentual do recebível que está comprometido com pagamentos. Ideal: < 70%"
+                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z\' clip-rule=\'evenodd\' /></svg>'" />
                     </div>
-                </div>
+                </section>
 
-                {{-- Tabela: Comissões a Bookers --}}
-                <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg mt-6">
-                    <div class="bg-yellow-50 dark:bg-yellow-900/20 px-6 py-4 border-b border-yellow-200 dark:border-yellow-800">
-                        <h3 class="text-lg font-semibold text-yellow-800 dark:text-yellow-200 flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                            </svg>
-                            Detalhes das Comissões Pendentes aos Bookers
-                            <span class="ml-4 text-sm font-normal bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded">{{ $booker_commission_details['gig_count'] ?? 0 }} eventos</span>
-                        </h3>
+                {{-- SEÇÃO 3: VALORES TOTAIS --}}
+                <section>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Valores Globais
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {{-- Contas a Receber - Eventos Passados --}}
+                        <x-metrics.value-card
+                            title="Recebíveis de Eventos Passados"
+                            :value="'R$ ' . number_format($accounts_receivable['total_overdue'] ?? 0, 2, ',', '.')"
+                            :count="$accounts_receivable['overdue_count'] ?? 0"
+                            subtitle="pagamentos"
+                            color="red"
+                            :badge="($accounts_receivable['overdue_count'] ?? 0) > 0 ? 'Ação necessária' : null"
+                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z\' clip-rule=\'evenodd\' /></svg>'" />
+
+                        {{-- Contas a Receber - Eventos Futuros --}}
+                        <x-metrics.value-card
+                            title="Recebíveis de Eventos Futuros"
+                            :value="'R$ ' . number_format($accounts_receivable['total_future'] ?? 0, 2, ',', '.')"
+                            :count="$accounts_receivable['future_count'] ?? 0"
+                            subtitle="pagamentos"
+                            color="green"
+                            :badge="($accounts_receivable['future_count'] ?? 0) > 0 ? 'Próximos vencimentos' : null"
+                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z\' clip-rule=\'evenodd\' /></svg>'" />
+
+                        {{-- Contas a Pagar Artistas --}}
+                        <x-metrics.value-card
+                            title="Total Pagar Artistas"
+                            :value="'R$ ' . number_format($global_metrics['total_payable_artists'], 2, ',', '.')"
+                            subtitle="Cachês pendentes"
+                            color="red"
+                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path d=\'M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z\' /></svg>'" />
+
+                        {{-- Contas a Pagar Bookers --}}
+                        <x-metrics.value-card
+                            title="Total Pagar Bookers"
+                            :value="'R$ ' . number_format($global_metrics['total_payable_bookers'], 2, ',', '.')"
+                            subtitle="Comissões pendentes"
+                            color="yellow"
+                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z\' clip-rule=\'evenodd\' /></svg>'" />
+
+                        {{-- Despesas de Eventos (GigCost) --}}
+                        <x-metrics.value-card
+                            title="Total Despesas de Eventos"
+                            :value="'R$ ' . number_format($global_metrics['total_payable_expenses'], 2, ',', '.')"
+                            subtitle="Despesas relacionadas aos eventos"
+                            color="orange"
+                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z\' clip-rule=\'evenodd\' /></svg>'" />
+
+                        {{-- Custo Operacional Mensal (Fixo) --}}
+                        <x-metrics.value-card
+                            title="Custo Operacional Mensal"
+                            :value="'R$ ' . number_format($global_metrics['operational_cost_monthly'] ?? 0, 2, ',', '.')"
+                            :count="$global_metrics['operational_cost_count'] ?? 0"
+                            subtitle="itens de custo fixo"
+                            color="gray"
+                            :link="route('agency-costs.index')"
+                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path d=\'M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 1a1 1 0 000 2h8a1 1 0 100-2H5z\' /></svg>'" />
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-yellow-50 dark:bg-yellow-900/20">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Data Evento</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Gig</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Artista</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Booker</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">% Comissão</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Comissão Total</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Pago</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Pendente</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Dias</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @forelse($booker_commission_details['commissions'] ?? [] as $commission)
-                                    <tr class="hover:bg-yellow-25 dark:hover:bg-yellow-900/10">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">{{ $commission['gig_date'] }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                            <a href="{{ route('gigs.show', $commission['gig_id']) }}" class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300" title="Ver detalhes da Gig">
-                                                {{ $commission['gig_contract'] }}
-                                            </a>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ $commission['artist_name'] }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ $commission['booker_name'] }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-300">{{ number_format($commission['commission_rate'], 1) }}%</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-700 dark:text-gray-300">R$ {{ number_format($commission['commission_total'], 2, ',', '.') }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-green-600 dark:text-green-400">R$ {{ number_format($commission['amount_paid'], 2, ',', '.') }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-yellow-700 dark:text-yellow-300">R$ {{ number_format($commission['amount_pending'], 2, ',', '.') }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                                            @php $days = $commission['days_since_event']; @endphp
-                                            @if($days > 60)
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-600 text-white">{{ $days }}d</span>
-                                            @elseif($days > 30)
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-500 text-white">{{ $days }}d</span>
-                                            @elseif($days > 15)
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500 text-white">{{ $days }}d</span>
-                                            @else
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">{{ $days }}d</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Nenhuma comissão pendente aos bookers</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                            <tfoot class="bg-yellow-50 dark:bg-yellow-900/20">
-                                <tr>
-                                    <td colspan="7" class="px-6 py-3 text-right text-sm font-semibold text-yellow-700 dark:text-yellow-300">Total Pendente:</td>
-                                    <td class="px-6 py-3 text-right text-lg font-bold text-yellow-800 dark:text-yellow-200">R$ {{ number_format($booker_commission_details['total_pending'] ?? 0, 2, ',', '.') }}</td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
+                </section>
 
-                {{-- Tabela: Despesas Previstas --}}
-                <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg mt-6">
-                    <div class="bg-orange-50 dark:bg-orange-900/20 px-6 py-4 border-b border-orange-200 dark:border-orange-800">
-                        <h3 class="text-lg font-semibold text-orange-800 dark:text-orange-200 flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                            </svg>
-                            Detalhes das Despesas Previstas
-                            <span class="ml-4 text-sm font-normal bg-orange-100 dark:bg-orange-800 text-orange-800 dark:text-orange-200 px-2 py-1 rounded">Custos fixos mensais</span>
-                        </h3>
-                    </div>
+                {{-- SEÇÃO 4: DETALHAMENTO (TABELAS EXPANSÍVEIS) --}}
+                <section>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Detalhamento
+                    </h3>
 
-                    @if(($projected_expenses['expense_count'] ?? 0) > 0)
-                        <div class="p-6">
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                                <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">Total Mensal</p>
-                                    <p class="text-2xl font-bold text-orange-600 dark:text-orange-400">R$ {{ number_format($projected_expenses['total_monthly'] ?? 0, 2, ',', '.') }}</p>
-                                </div>
-                                <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">Total Projetado ({{ $projected_expenses['period_months'] ?? 0 }} meses)</p>
-                                    <p class="text-2xl font-bold text-orange-600 dark:text-orange-400">R$ {{ number_format($projected_expenses['total_projected'] ?? 0, 2, ',', '.') }}</p>
-                                </div>
-                                <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">Total de Itens</p>
-                                    <p class="text-2xl font-bold text-orange-600 dark:text-orange-400">{{ $projected_expenses['expense_count'] ?? 0 }}</p>
-                                </div>
-                            </div>
+                    @include('projections.partials.receivables-tables', [
+                        'accounts_receivable' => $accounts_receivable,
+                        'artist_payment_details' => $artist_payment_details,
+                        'booker_payment_details' => $booker_payment_details ?? [],
+                    ])
+                </section>
 
-                            @foreach($projected_expenses['by_category'] ?? [] as $category)
-                                <div class="mb-6">
-                                    <h4 class="text-md font-semibold text-gray-800 dark:text-white mb-3 flex items-center">
-                                        <span class="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-full text-sm mr-2">
-                                            {{ $category['category'] }}
-                                        </span>
-                                        <span class="text-sm text-gray-600 dark:text-gray-400">
-                                            R$ {{ number_format($category['total'], 2, ',', '.') }}/mês
-                                        </span>
-                                    </h4>
-
-                                    <div class="overflow-x-auto">
-                                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                                <tr>
-                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Descrição</th>
-                                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Valor Mensal</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                                @foreach($category['items'] as $item)
-                                                    <tr class="hover:bg-orange-25 dark:hover:bg-orange-900/10">
-                                                        <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">{{ $item['description'] }}</td>
-                                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-orange-700 dark:text-orange-300">R$ {{ number_format($item['amount_monthly'], 2, ',', '.') }}</td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @else
-                        <div class="p-6 text-center text-gray-500 dark:text-gray-400">
-                            <p>Nenhum custo fixo cadastrado no sistema.</p>
-                            <p class="text-sm mt-2">Para gerenciar custos fixos, consulte a administração do sistema (Filament Admin).</p>
-                        </div>
-                    @endif
-                </div>
-
-                {{-- Card de Fluxo de Caixa Global (Destaque) --}}
-                <div class="bg-gradient-to-br {{ $global_metrics['total_cash_flow'] >= 0 ? 'from-blue-500 to-blue-600' : 'from-red-500 to-red-600' }} rounded-lg shadow-lg p-6 text-white mt-6">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium {{ $global_metrics['total_cash_flow'] >= 0 ? 'text-blue-100' : 'text-red-100' }} uppercase tracking-wide">
-                                Fluxo de Caixa Global
-                            </p>
-                            <p class="text-4xl font-bold mt-2">
-                                R$ {{ number_format($global_metrics['total_cash_flow'], 2, ',', '.') }}
-                            </p>
-                            <p class="text-sm {{ $global_metrics['total_cash_flow'] >= 0 ? 'text-blue-100' : 'text-red-100' }} mt-1">
-                                @if($global_metrics['total_cash_flow'] >= 0)
-                                    Saldo positivo
-                                @else
-                                    Atenção: Saldo negativo
-                                @endif
-                            </p>
-                        </div>
-                        <div class="ml-4">
-                            <div class="bg-white/20 rounded-full p-4">
-                                <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 20 20">
-                                    @if($global_metrics['total_cash_flow'] >= 0)
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                    @else
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                    @endif
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- ANÁLISE DE INADIMPLÊNCIA GLOBAL --}}
-                @if($global_metrics['overdue_analysis']['overdue_count'] > 0)
-                    <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg shadow-lg p-6 mt-6">
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0">
-                                <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-4 flex-1">
-                                <h3 class="text-lg font-semibold text-red-800 dark:text-red-200">
-                                    Alerta de Inadimplência
-                                </h3>
-                                <p class="mt-2 text-sm text-red-700 dark:text-red-300">
-                                    Existem <strong>{{ $global_metrics['overdue_analysis']['overdue_count'] }} parcelas vencidas</strong> totalizando
-                                    <strong>R$ {{ number_format($global_metrics['overdue_analysis']['total_overdue'], 2, ',', '.') }}</strong>
-                                </p>
-                                <div class="mt-4 grid grid-cols-4 gap-3">
-                                    @foreach($global_metrics['overdue_analysis']['overdue_by_period'] as $period => $value)
-                                        @if($value > 0)
-                                            <div class="bg-white dark:bg-gray-800 rounded px-3 py-2">
-                                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ $period }} dias</p>
-                                                <p class="text-sm font-semibold text-gray-900 dark:text-white">
-                                                    R$ {{ number_format($value, 0, ',', '.') }}
-                                                </p>
-                                            </div>
-                                        @endif
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
             </div>
             @endif
 
             {{-- ABA: POR PERÍODO --}}
             @if($period_metrics)
-            <div>
-
-                {{-- FILTROS --}}
-                <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-6">
-                    <form action="{{ route('projections.index') }}" method="GET" class="space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            {{-- Data Inicial --}}
-                            <div>
-                                <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Data Inicial
-                                </label>
-                                <input type="date" name="start_date" id="start_date"
-                                       value="{{ $start_date }}"
-                                       class="block w-full rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                            </div>
-
-                            {{-- Data Final --}}
-                            <div>
-                                <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Data Final
-                                </label>
-                                <input type="date" name="end_date" id="end_date"
-                                       value="{{ $end_date }}"
-                                       class="block w-full rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                            </div>
-
-                            {{-- Botão Filtrar --}}
-                            <div class="flex items-end">
-                                <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md shadow-sm transition">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                                    </svg>
-                                    Filtrar Período
-                                </button>
-                            </div>
-
-                            {{-- Botão Ver Tudo (Global) --}}
-                            <div class="flex items-end">
-                                <button type="submit" name="show_global" value="1" class="w-full inline-flex justify-center items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md shadow-sm transition">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    Ver Tudo
-                                </button>
-                            </div>
-                        </div>
-
-                        {{-- Botão Limpar --}}
-                        <div class="flex justify-end">
-                            <a href="{{ route('projections.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                                Limpar Filtros
-                            </a>
-                        </div>
-                    </form>
-                </div>
-
-                {{-- CONTEÚDO POR PERÍODO --}}
-                @if($period_metrics)
-                {{-- Badge de Período Ativo --}}
-                <div class="mb-6 flex items-center justify-center">
-                <div class="inline-flex items-center px-6 py-4 rounded-lg bg-gradient-to-r from-primary-500 to-primary-600 shadow-lg border-2 border-primary-400 dark:border-primary-700">
-                <svg class="w-7 h-7 mr-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div class="flex flex-col">
-                <span class="text-xs font-medium text-primary-100 uppercase tracking-wide">Período Analisado</span>
-                <span class="text-xl font-bold text-white">
-                @if($show_global)
-                Global (Todos os Registros)
-                @else
-                {{ \Carbon\Carbon::parse($start_date)->format('d/m/Y') }} até {{ \Carbon\Carbon::parse($end_date)->format('d/m/Y') }}
-                    <span class="text-sm font-normal block">{{ $period_metrics['executive_summary']['period_days'] }} dias</span>
-                    @endif
-                    </span>
-                    </div>
-                    </div>
-                    </div>
-
-                {{-- DASHBOARD EXECUTIVO SIMPLIFICADO --}}
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                    {{-- CARD: FLUXO DE CAIXA --}}
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 border-l-4 {{ $period_metrics['executive_summary']['net_cash_flow'] >= 0 ? 'border-l-green-500' : 'border-l-red-500' }}">
-                        <div class="flex items-center justify-between">
-                            <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Fluxo de Caixa Líquido</p>
-                            <p class="text-3xl font-bold {{ $period_metrics['executive_summary']['net_cash_flow'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
-                                R$ {{ number_format($period_metrics['executive_summary']['net_cash_flow'], 2, ',', '.') }}
-                                </p>
-                                </div>
-                            <div class="{{ $period_metrics['executive_summary']['net_cash_flow'] >= 0 ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30' }} rounded-full p-3">
-                                <svg class="w-8 h-8 {{ $period_metrics['executive_summary']['net_cash_flow'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $period_metrics['executive_summary']['net_cash_flow'] >= 0 ? 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' : 'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6' }}" />
-                                </svg>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- CARD: SAÚDE FINANCEIRA --}}
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Saúde Financeira</p>
-                                    <p class="text-3xl font-bold text-primary-600 dark:text-primary-400">
-                                        {{ $period_metrics['executive_summary']['health_score'] }}/100
-                                    </p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        @if($period_metrics['executive_summary']['health_score'] >= 80)
-                                            Excelente
-                                        @elseif($period_metrics['executive_summary']['health_score'] >= 60)
-                                            Boa
-                                        @elseif($period_metrics['executive_summary']['health_score'] >= 40)
-                                            Regular
-                                        @else
-                                            Atenção
-                                        @endif
-                                    </p>
-                                </div>
-                                <div class="bg-primary-100 dark:bg-primary-900/30 rounded-full p-3">
-                                    <svg class="w-8 h-8 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- CARD: RECEBÍVEIS vs PAGAMENTOS --}}
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Recebíveis / Pagamentos</p>
-                                    <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                                        {{ $period_metrics['executive_summary']['total_payable'] > 0 ? number_format(($period_metrics['executive_summary']['receivable'] / $period_metrics['executive_summary']['total_payable']) * 100, 1) : 0 }}%
-                                    </p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        R$ {{ number_format($period_metrics['executive_summary']['receivable'], 0, ',', '.') }} / R$ {{ number_format($period_metrics['executive_summary']['total_payable'], 0, ',', '.') }}
-                                    </p>
-                                </div>
-                                <div class="bg-blue-100 dark:bg-blue-900/30 rounded-full p-3">
-                                    <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- INSIGHTS E RECOMENDAÇÕES --}}
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                        {{-- INSIGHTS CHAVE --}}
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                                <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Insights Chave
-                            </h3>
-                            <ul class="space-y-2">
-                                @foreach($period_metrics['key_insights'] as $insight)
-                                    <li class="flex items-start">
-                                        <svg class="w-4 h-4 mt-0.5 mr-2 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ $insight }}</span>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
-
-                        {{-- RECOMENDAÇÕES --}}
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                                <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Recomendações
-                            </h3>
-                            <ul class="space-y-2">
-                                @foreach($period_metrics['recommendations'] as $recommendation)
-                                    <li class="flex items-start">
-                                        <svg class="w-4 h-4 mt-0.5 mr-2 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                        </svg>
-                                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ $recommendation }}</span>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    </div>
-
-                    {{-- BREAKDOWN DETALHADO (Opcional) --}}
-                    @if($period_listings)
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Detalhamento por Categoria</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div class="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $period_listings['receivable']['count'] }}</p>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">Contas a Receber</p>
-                                    <p class="text-lg font-semibold text-blue-700 dark:text-blue-300">R$ {{ number_format($period_listings['receivable']['total'], 2, ',', '.') }}</p>
-                                </div>
-                                <div class="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                                    <p class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ $period_listings['artists']['count'] }}</p>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">Pagamentos Artistas</p>
-                                    <p class="text-lg font-semibold text-purple-700 dark:text-purple-300">R$ {{ number_format($period_listings['artists']['total'], 2, ',', '.') }}</p>
-                                </div>
-                                <div class="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                                    <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ $period_listings['bookers']['count'] }}</p>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">Comissões Bookers</p>
-                                    <p class="text-lg font-semibold text-green-700 dark:text-green-300">R$ {{ number_format($period_listings['bookers']['total'], 2, ',', '.') }}</p>
-                                </div>
-                                <div class="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                                    <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ $period_listings['expenses']['count'] }}</p>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400">Despesas Previstas</p>
-                                    <p class="text-lg font-semibold text-red-700 dark:text-red-300">R$ {{ number_format($period_listings['expenses']['total'], 2, ',', '.') }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-                @else
-                    {{-- Mensagem: Selecione um Período --}}
-                    <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 p-12 text-center">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-white">Selecione um Período</h3>
-                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                            Escolha as datas inicial e final para visualizar as projeções financeiras do período,<br>
-                            ou clique em "Ver Tudo" para listar todos os registros.
-                        </p>
-                    </div>
-                @endif
-            </div>
+                @include('projections.partials.period-metrics', ['executive_summary' => $period_metrics['executive_summary'], 'period_metrics' => $period_metrics])
             @endif
 
         </div>
     </div>
-
-    @push('styles')
-    <style>
-        [] { display: none !important; }
-    </style>
-    @endpush
-
 </x-app-layout>

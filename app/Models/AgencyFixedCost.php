@@ -18,7 +18,7 @@ class AgencyFixedCost extends Model
         'description',
         'monthly_value',
         'reference_month',
-        'category',
+        'cost_center_id',
         'notes',
         'is_active',
     ];
@@ -28,6 +28,14 @@ class AgencyFixedCost extends Model
         'reference_month' => 'date',
         'is_active' => 'boolean',
     ];
+
+    /**
+     * Get the cost center that owns the agency fixed cost.
+     */
+    public function costCenter()
+    {
+        return $this->belongsTo(CostCenter::class);
+    }
 
     /**
      * Scopes

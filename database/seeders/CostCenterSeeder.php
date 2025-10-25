@@ -12,6 +12,12 @@ class CostCenterSeeder extends Seeder
         $this->command->info('Criando centros de custo específicos para eventos de música eletrônica...');
 
         $costCenters = [
+            // Centros de Custo Administrativos da Agência
+            ['name' => 'Administrativo', 'description' => 'Despesas gerais de administração da agência.'],
+            ['name' => 'Operacional', 'description' => 'Custos operacionais da agência não ligados a um evento específico.'],
+            ['name' => 'Pessoal', 'description' => 'Salários, benefícios e encargos da equipe interna.'],
+            ['name' => 'Outros', 'description' => 'Custos diversos não categorizados.'],
+
             // Centros de Custo Básicos
             ['name' => 'Catering', 'description' => 'Alimentação e bebidas para artistas e equipe'],
             ['name' => 'Hospedagem', 'description' => 'Hotel e acomodação para artistas'],

@@ -34,3 +34,9 @@ Este documento centraliza os aprendizados e define as boas práticas para garant
 4.  **Documentação Contínua:**
     - **REGRA:** Ao final de cada tarefa significativa, atualize os arquivos `ACOMPANHAMENTO_TAREFAS.md` e `LICOES_APRENDIDAS.md`.
     - **JUSTIFICATIVA:** Mantém a consciência situacional do time (humano e IA) e enriquece a base de conhecimento do projeto.
+
+## 4. Lições do Desenvolvimento do Módulo de Custos
+
+- **Cache de Rotas:** Ao adicionar novas rotas no Laravel, especialmente usando `Route::resource`, é crucial limpar o cache de rotas (`php artisan route:clear`). Um erro `Route [...] not defined` é um sintoma clássico de cache de rotas desatualizado.
+
+- **Migrações com Dados:** Ao refatorar uma coluna que contém dados (como `category` -> `cost_center_id`), é fundamental criar um script de migração de dados dentro da própria migração para evitar a perda de informações. O uso de um Seeder para garantir a existência dos dados de destino (os `CostCenters`) antes da migração é uma prática robusta que previne falhas.

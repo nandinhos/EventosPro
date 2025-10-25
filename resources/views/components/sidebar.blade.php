@@ -91,6 +91,18 @@
     </div>
 </li>
 
+                <!-- Agência -->
+                <li class="px-4 pt-4 pb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase" x-show="sidebarOpen">Agência</li>
+
+                <li>
+                    <a href="{{ route('agency-costs.index') }}"
+                       class="flex items-center py-2.5 px-4 rounded-md transition-colors duration-200 group
+                       {{ request()->is('agency-costs*') ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                        <i class="fas fa-building fa-fw w-6 text-center text-lg"></i>
+                        <span x-show="sidebarOpen" class="ml-3">Custos Operacionais</span>
+                    </a>
+                </li>
+
                 <!-- Análise -->
                 <li class="px-4 pt-4 pb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase" x-show="sidebarOpen">Análise</li>
 

@@ -39,6 +39,11 @@ class CashFlowProjectionService
         $this->endDate = Carbon::today()->addDays(29)->endOfDay();
     }
 
+    public function getGigCalculator(): GigFinancialCalculatorService
+    {
+        return $this->gigCalculator;
+    }
+
     /**
      * Define o período de projeção.
      */
@@ -486,34 +491,34 @@ class CashFlowProjectionService
      */
     public function calculateProjectedExpenses(): array
     {
-        // Busca custos fixos da agência
+        // Busca custos fixos da agência com o centro de custo relacionado
         $fixedCosts = \App\Models\AgencyFixedCost::query()
             ->where('is_active', true)
-            ->orderBy('category')
+            ->with('costCenter') // Eager load the relationship
             ->get();
 
         $expensesByCategory = [];
         $totalMonthly = 0;
 
         foreach ($fixedCosts as $cost) {
-            $category = $cost->category ?? 'Outros';
+            $categoryName = $cost->costCenter->name ?? 'Outros';
 
-            if (! isset($expensesByCategory[$category])) {
-                $expensesByCategory[$category] = [
-                    'category' => $category,
+            if (! isset($expensesByCategory[$categoryName])) {
+                $expensesByCategory[$categoryName] = [
+                    'category' => $categoryName,
                     'items' => [],
                     'total' => 0,
                 ];
             }
 
-            $expensesByCategory[$category]['items'][] = [
+            $expensesByCategory[$categoryName]['items'][] = [
                 'id' => $cost->id,
                 'description' => $cost->description,
                 'amount_monthly' => $cost->monthly_value,
                 'payment_day' => $cost->payment_day ?? null,
             ];
 
-            $expensesByCategory[$category]['total'] += $cost->monthly_value;
+            $expensesByCategory[$categoryName]['total'] += $cost->monthly_value;
             $totalMonthly += $cost->monthly_value;
         }
 
