@@ -65,9 +65,9 @@ Este documento serve como um "watcher" para a implementação de novas métricas
   - [x] Acessar o novo módulo e testar o CRUD de custos operacionais.
   - [x] Acessar a página de projeções e verificar se todos os novos cards (estratégicos e de custo operacional) aparecem corretamente.
   - [x] Validar se os números nos cards fazem sentido com base nos dados inseridos.
-- [ ] **Testes Automatizados:**
-  - [ ] Criar testes para o novo `AgencyCostController`.
-  - [ ] Atualizar testes existentes que possam ser afetados pela mudança na estrutura de custos.
+- [x] **Testes Automatizados:**
+  - [x] Criar testes para o novo `AgencyCostController`.
+  - [x] Atualizar testes existentes que possam ser afetados pela mudança na estrutura de custos.
 
 ## Fase 8: Conclusão (Concluída)
 

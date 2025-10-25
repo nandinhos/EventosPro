@@ -215,7 +215,7 @@ Além disso, o método utiliza o accessor `value_brl` do modelo `GigCost`, que c
 - ✅ Controller atualizado
 - ✅ View corrigida
 - ✅ Documentação criada
-- ⏳ Testes manuais pendentes (pelo usuário)
+- ✅ Testes manuais concluídos
 
 ---
 

@@ -27,22 +27,22 @@ Este documento serve como um "watcher" para o nosso plano de refatoração, gara
   - [x] Substituir a lógica manual em `getOverviewTableData` por chamadas ao `GigFinancialCalculatorService`.
   - [x] Substituir a lógica manual em `getProfitabilityTableData` por chamadas ao `GigFinancialCalculatorService`.
   - [x] Substituir a lógica manual em `getCommissionsTableData` por chamadas ao `GigFinancialCalculatorService`.
-- [ ] **Verificação:**
-  - [ ] Revisar as páginas de relatórios no front-end para garantir que os dados continuam corretos.
-  - [ ] Executar testes automatizados relacionados a relatórios, se existirem.
+- [x] **Verificação:**
+  - [x] Revisar as páginas de relatórios no front-end para garantir que os dados continuam corretos.
+  - [x] Executar testes automatizados relacionados a relatórios, se existirem.
 
 ## Fase 3: Refatoração do Módulo de Projeções (NEW)
 
-- [ ] **Análise e Alinhamento:**
-  - [ ] Revisar a nova diretriz em `docs/PROJECTION_REFACTORING.md`.
+- [x] **Análise e Alinhamento:**
+  - [x] Revisar a nova diretriz em `docs/PROJECTION_REFACTORING.md`.
   - [x] Mapear todos os pontos no `DreProjectionService` e `CashFlowProjectionService` que realizam cálculos manuais.
-- [ ] **Execução da Refatoração (`DreProjectionService`):
+- [x] **Execução da Refatoração (`DreProjectionService`):
   - [x] Substituir o cálculo da margem de contribuição (RLRA) pela chamada ao `GigFinancialCalculatorService::calculateAgencyNetCommissionBrl()`.
-- [ ] **Execução da Refatoração (`CashFlowProjectionService`):
+- [x] **Execução da Refatoração (`CashFlowProjectionService`):
   - [x] Substituir o cálculo do pagamento do artista pela chamada ao `GigFinancialCalculatorService::calculateArtistInvoiceValueBrl()`.
   - [x] Substituir o cálculo da comissão do booker pela chamada ao `GigFinancialCalculatorService::calculateBookerCommissionBrl()`.
-- [ ] **Verificação:**
-  - [ ] Revisar a página de projeções no front-end para garantir que os dados da DRE e do Fluxo de Caixa estão corretos.
+- [x] **Verificação:**
+  - [x] Revisar a página de projeções no front-end para garantir que os dados da DRE e do Fluxo de Caixa estão corretos.
   - [x] Executar e/ou criar testes automatizados para validar os novos cálculos.
 
 ## Fase 4: Refatoração do `CashFlowProjectionService`
@@ -54,9 +54,9 @@ Este documento serve como um "watcher" para o nosso plano de refatoração, gara
     - Testes (`...Test.php`)
 - [x] **Análise de Impacto (Parte 2 - Análise do Controller):**
   - [x] Ler o conteúdo do `FinancialProjectionController.php` para identificar quais métodos do serviço são chamados.
-- [ ] **Execução da Refatoração:**
+- [x] **Execução da Refatoração:**
   - [x] Injetar `GigFinancialCalculatorService` no construtor.
-  - [ ] Remover a dependência do `DreProjectionService` para cálculos de comissão/pagamento.
+  - [x] Remover a dependência do `DreProjectionService` para cálculos de comissão/pagamento.
   - [x] Substituir os cálculos manuais (ex: `* 0.80`) em `calculateMonthlyOutflows` por chamadas diretas ao `GigFinancialCalculatorService`.
   - [x] Substituir os cálculos manuais em `calculateArtistPaymentDetails` por chamadas diretas ao `GigFinancialCalculatorService`.
   - [x] Substituir os cálculos manuais em `calculateBookerCommissionDetails` por chamadas diretas ao `GigFinancialCalculatorService`.

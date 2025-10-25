@@ -155,30 +155,10 @@ Todos os cards de métricas agora têm tooltips explicativos que aparecem ao pas
 2. `/resources/views/components/metrics/kpi-card.blade.php`
 3. `/resources/views/components/metrics/value-card.blade.php`
 4. `/resources/views/components/expandable-section.blade.php`
-5. `/resources/views/projections/dashboard-refactored.blade.php`
-6. `/resources/views/projections/partials/receivables-tables.blade.php`
+5. `/resources/views/projections/partials/receivables-tables.blade.php`
 
-### Backup
-- `/resources/views/projections/dashboard.blade.php.backup` (arquivo original preservado)
-
-## 🔄 Como Aplicar as Melhorias
-
-### Opção 1: Testar a Nova Versão (Recomendado)
-```bash
-# Renomear o arquivo atual
-mv resources/views/projections/dashboard.blade.php resources/views/projections/dashboard-old.blade.php
-
-# Ativar a versão refatorada
-mv resources/views/projections/dashboard-refactored.blade.php resources/views/projections/dashboard.blade.php
-
-# Verificar no navegador
-```
-
-### Opção 2: Reverter para a Versão Anterior
-```bash
-# Restaurar backup original
-mv resources/views/projections/dashboard.blade.php.backup resources/views/projections/dashboard.blade.php
-```
+### Modificados
+1. `/resources/views/projections/dashboard.blade.php` (Layout principal refatorado)
 
 ## 📊 Benefícios
 
