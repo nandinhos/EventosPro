@@ -7,7 +7,22 @@
       "Bash(./vendor/bin/sail:*)",
       "Bash(docker system prune:*)",
       "Bash(php artisan view:cache:*)",
-      "Bash(php artisan:*)"
+      "Bash(php artisan:*)",
+      "Bash(mkdir:*)",
+      "Bash(git push:*)",
+      "Bash(docker stats:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker system df:*)",
+      "Bash(docker volume:*)",
+      "Bash(docker network:*)",
+      "Bash(systemctl is-enabled:*)",
+      "Bash(docker inspect:*)",
+      "Bash(chmod:*)",
+      "Bash(sail down:*)",
+      "Bash(sudo chown:*)",
+      "Bash(/home/devuser/projects/EventosPro/scripts/check-health.sh:*)"
     ],
     "deny": [],
     "ask": []

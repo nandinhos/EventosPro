@@ -255,7 +255,9 @@ class GigCostController extends Controller
      */
     public function create(Gig $gig): View
     {
-        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
+        $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center) {
+            return [$center->id => __('cost_centers.'.$center->name)];
+        });
         $cost = new GigCost(['gig_id' => $gig->id, 'currency' => 'BRL', 'payer_type' => 'agencia', 'expense_date' => today()]);
 
         // A view _form_modal.blade.php espera $costCenters e $cost (e $gig implicitamente pela rota)

@@ -2,15 +2,14 @@
 
 namespace App\Services;
 
-use App\Models\Gig;
-use App\Models\GigCost;
-use App\Models\Payment;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Service para calcular e agregar as projeções financeiras da agência.
+ * Refatorado para usar ProjectionQueryBuilder e ProjectionMetricsService.
  */
 class FinancialProjectionService
 {
@@ -23,9 +22,20 @@ class FinancialProjectionService
     /** @var GigFinancialCalculatorService Instância do service de cálculo financeiro. */
     protected $calculatorService;
 
-    public function __construct(GigFinancialCalculatorService $calculatorService)
-    {
+    /** @var ProjectionQueryBuilder Query builder otimizado. */
+    protected $queryBuilder;
+
+    /** @var ProjectionMetricsService Service de métricas. */
+    protected $metricsService;
+
+    public function __construct(
+        GigFinancialCalculatorService $calculatorService,
+        ProjectionQueryBuilder $queryBuilder,
+        ProjectionMetricsService $metricsService
+    ) {
         $this->calculatorService = $calculatorService;
+        $this->queryBuilder = $queryBuilder;
+        $this->metricsService = $metricsService;
         $this->setPeriod('30_days');
     }
 
@@ -38,13 +48,12 @@ class FinancialProjectionService
      */
     public function setPeriod(string $period, ?string $startDate = null, ?string $endDate = null): void
     {
-        $today = Carbon::today()->startOfDay(); // Usar startOfDay para consistência
+        $today = Carbon::today()->startOfDay();
 
         // Se datas customizadas foram fornecidas, usa elas
         if ($period === 'custom' && $startDate && $endDate) {
             $this->startDate = Carbon::parse($startDate)->startOfDay();
             $this->endDate = Carbon::parse($endDate)->endOfDay();
-            Log::info("[FinancialProjectionService] Período customizado definido: De {$this->startDate->toDateString()} até {$this->endDate->toDateString()}");
 
             return;
         }
@@ -53,219 +62,116 @@ class FinancialProjectionService
         if (! $period && ($startDate || $endDate)) {
             $this->startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : $today;
             $this->endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : $today->copy()->addYear()->endOfDay();
-            Log::info("[FinancialProjectionService] Período parcial definido: De {$this->startDate->toDateString()} até {$this->endDate->toDateString()}");
 
             return;
         }
 
         // Períodos predefinidos
-        $this->startDate = $today; // Projeção sempre começa de hoje
+        $this->startDate = $today;
 
         switch ($period) {
             case '60_days':
-                $this->endDate = $today->copy()->addDays(59)->endOfDay(); // 60 dias a partir de hoje
+                $this->endDate = $today->copy()->addDays(59)->endOfDay();
                 break;
             case '90_days':
-                $this->endDate = $today->copy()->addDays(89)->endOfDay(); // 90 dias a partir de hoje
+                $this->endDate = $today->copy()->addDays(89)->endOfDay();
                 break;
             case 'next_semester':
-                // Semestre corrente:
-                // Se hoje está entre Jan-Jun, o semestre termina em 30 de Junho.
-                // Se hoje está entre Jul-Dez, o semestre termina em 31 de Dezembro.
-                // Próximo semestre: 6 meses a partir do final do semestre corrente.
                 $endOfCurrentSemester = $today->month <= 6 ? $today->copy()->month(6)->endOfMonth() : $today->copy()->month(12)->endOfMonth();
-                // Para a projeção, queremos *até o final* do próximo semestre
                 $this->endDate = $endOfCurrentSemester->copy()->addMonths(6)->endOfMonth()->endOfDay();
                 break;
             case 'next_year':
-                // Projeção até o final do próximo ano civil
                 $this->endDate = $today->copy()->addYear()->endOfYear()->endOfDay();
                 break;
             case '30_days':
             default:
-                $this->endDate = $today->copy()->addDays(29)->endOfDay(); // 30 dias a partir de hoje (hoje + 29 dias)
+                $this->endDate = $today->copy()->addDays(29)->endOfDay();
                 break;
         }
-        Log::info("[FinancialProjectionService] Período de projeção '{$period}' definido: De {$this->startDate->toDateString()} até {$this->endDate->toDateString()}");
+
     }
 
     /**
      * Calcula o total de contas a receber de clientes NO PERÍODO DE PROJEÇÃO.
-     * Inclui parcelas vencidas não confirmadas + parcelas a vencer no período.
+     * Otimizado com query builder.
      *
      * @return float O valor total a receber em BRL.
      */
     public function getAccountsReceivable(): float
     {
-        // Contas a receber NO PERÍODO:
-        // 1. Parcelas vencidas (antes de startDate) não confirmadas
-        // 2. Parcelas com vencimento no período de projeção (startDate até endDate)
-        $payments = Payment::whereNull('confirmed_at')
-            ->whereHas('gig') // Garante que a gig não foi deletada
-            ->where(function ($query) {
-                $query->where('due_date', '<', $this->startDate) // Vencidas
-                    ->orWhereBetween('due_date', [$this->startDate, $this->endDate]); // A vencer no período
-            })
-            ->get();
+        $payments = $this->queryBuilder->pendingPaymentsQuery($this->startDate, $this->endDate, true);
+        $total = (float) $payments->sum('due_value_brl');
 
-        Log::info('[FinancialProjectionService] Total Contas a Receber (Vencidas + Período): '.$payments->sum('due_value_brl').' | Quantidade: '.$payments->count());
-
-        return (float) $payments->sum('due_value_brl'); // Accessor já converte para BRL
+        return $total;
     }
 
     /**
      * Retorna a lista detalhada de pagamentos pendentes de clientes.
-     * Inclui tanto os vencidos quanto os que estão no período de projeção.
      */
     public function getUpcomingClientPayments(): Collection
     {
-        // Listagem de contas a receber: Vencidas + A vencer no período de projeção.
-        // $this->startDate é hoje.
-        return Payment::whereNull('confirmed_at')
-            ->whereHas('gig')
-            ->where(function ($query) {
-                $query->where('due_date', '<', $this->startDate) // Vencidos até ontem
-                    ->orWhereBetween('due_date', [$this->startDate, $this->endDate]); // A vencer no período
-            })
-            ->with(['gig' => function ($query) {
-                $query->with('artist');
-            }])
-            ->orderBy('due_date')
-            ->get();
+        return $this->queryBuilder->pendingPaymentsQuery($this->startDate, $this->endDate, true);
     }
 
     /**
      * Calcula as contas a pagar para Artistas no período de projeção.
-     * **USA O VALOR FINAL DA NOTA FISCAL DO ARTISTA (CACHÊ LÍQUIDO + REEMBOLSOS)**
+     * Otimizado com query builder.
      */
     public function getAccountsPayableArtists(): float
     {
-        // Contas a pagar artistas:
-        // 1. Gigs passadas com status de pagamento pendente.
-        // 2. Gigs futuras (até $this->endDate) com status de pagamento pendente.
-        $gigs = Gig::where('artist_payment_status', 'pendente')
-            ->where(function ($query) {
-                $query->where('gig_date', '<', $this->startDate) // Gigs passadas
-                    ->orWhereBetween('gig_date', [$this->startDate, $this->endDate]); // Gigs no período de projeção
-            })
-            ->with(['artist', 'gigCosts']) // Eager load para evitar N+1
-            ->get();
+        $gigs = $this->queryBuilder->pendingGigsQuery($this->startDate, $this->endDate, 'artists', true);
 
-        $total = 0;
-        foreach ($gigs as $gig) {
-            $artistPaymentValue = $this->calculatorService->calculateArtistInvoiceValueBrl($gig);
-            Log::debug("[FinancialProjectionService] Pagar Artista: Gig ID: {$gig->id}, Data Gig: {$gig->gig_date->toDateString()}, Valor NF: {$artistPaymentValue}");
-            $total += $artistPaymentValue;
-        }
-        Log::info("[FinancialProjectionService] Total Contas a Pagar Artistas (Passado Pendente + Projetado): {$total}");
+        // Otimizado: calcular total sem logs individuais para evitar overhead
+        $total = $gigs->sum(function ($gig) {
+            return $this->calculatorService->calculateArtistInvoiceValueBrl($gig);
+        });
 
         return (float) max(0, $total);
     }
 
     /**
      * Calcula as contas a pagar para Bookers (comissões) no período.
+     * Otimizado com query builder.
      */
     public function getAccountsPayableBookers(): float
     {
-        // Contas a pagar bookers:
-        // 1. Gigs passadas com status de pagamento pendente.
-        // 2. Gigs futuras (até $this->endDate) com status de pagamento pendente.
-        $gigs = Gig::where('booker_payment_status', 'pendente')
-            ->whereNotNull('booker_id')
-            ->where(function ($query) {
-                $query->where('gig_date', '<', $this->startDate) // Gigs passadas
-                    ->orWhereBetween('gig_date', [$this->startDate, $this->endDate]); // Gigs no período de projeção
-            })
-            ->with(['booker']) // Eager load para evitar N+1
-            ->get();
+        $gigs = $this->queryBuilder->pendingGigsQuery($this->startDate, $this->endDate, 'bookers', true);
 
-        $total = 0;
-        foreach ($gigs as $gig) {
-            $bookerCommission = $this->calculatorService->calculateBookerCommissionBrl($gig);
-            Log::debug("[FinancialProjectionService] Pagar Booker: Gig ID: {$gig->id}, Data Gig: {$gig->gig_date->toDateString()}, Comissão: {$bookerCommission}");
-            if ($bookerCommission > 0) {
-                $total += $bookerCommission;
-            }
-        }
-        Log::info("[FinancialProjectionService] Total Contas a Pagar Bookers (Passado Pendente + Projetado): {$total}");
+        // Otimizado: calcular total sem logs individuais para evitar overhead
+        $total = $gigs->sum(function ($gig) {
+            $commission = $this->calculatorService->calculateBookerCommissionBrl($gig);
+
+            return $commission > 0 ? $commission : 0;
+        });
 
         return (float) max(0, $total);
     }
 
     /**
      * Calcula as contas a pagar (Despesas Previstas).
-     * Considera despesas não confirmadas de Gigs ATIVAS (não deletadas) que tenham data passada ou no período da projeção,
-     * OU que não tenham data mas pertençam a uma Gig ATIVA passada ou no período da projeção.
+     * Otimizado com query builder.
      */
     public function getAccountsPayableExpenses(): float
     {
-        $costs = GigCost::where('is_confirmed', false)
-            // Garante que a Gig associada não foi deletada (soft delete)
-            ->whereHas('gig', function ($gigQuery) { // Adiciona a verificação da Gig aqui
-                $gigQuery->whereNull('deleted_at'); // <-- SÓ GIGS ATIVAS
-            })
-            ->where(function ($query) { // Lógica de data para as despesas
-                // Condição 1: Despesa tem data E (essa data é passada OU está dentro do período de projeção futuro)
-                $query->where(function ($q1) {
-                    $q1->whereNotNull('expense_date')
-                        ->where('expense_date', '<=', $this->endDate);
-                })
-                // Condição 2: Despesa NÃO tem data, MAS sua Gig associada tem data (passada OU dentro do período de projeção futuro)
-                    ->orWhere(function ($q2) {
-                        $q2->whereNull('expense_date')
-                            ->whereHas('gig', function ($gigSubQuery) { // whereHas já está aqui, apenas adicionamos a condição de data da gig
-                                $gigSubQuery->where('gig_date', '<=', $this->endDate);
-                            });
-                    });
-            })
-            ->with('gig')
-            ->get();
+        $costs = $this->queryBuilder->pendingExpensesQuery($this->endDate, true);
+        $totalExpenses = (float) $costs->sum('value_brl');
 
-        $totalExpenses = 0;
-        foreach ($costs as $cost) {
-            $totalExpenses += $cost->value_brl;
-        }
+        // //Log::info("[FinancialProjectionService] Total Contas a Pagar Despesas: {$totalExpenses}. Quantidade de custos: ".$costs->count());
 
-        Log::info("[FinancialProjectionService] Total Contas a Pagar Despesas (getAccountsPayableExpenses) no período: {$totalExpenses}. Quantidade de custos: ".$costs->count());
-
-        return (float) $totalExpenses;
+        return $totalExpenses;
     }
 
     /**
      * Obtém as despesas previstas agrupadas por centro de custo para o período.
-     * A lógica de busca de custos deve ser IDÊNTICA à de getAccountsPayableExpenses.
      */
     public function getProjectedExpensesByCostCenter(): Collection
     {
-        $costs = GigCost::where('is_confirmed', false)
-            // Garante que a Gig associada não foi deletada (soft delete)
-            ->whereHas('gig', function ($gigQuery) { // Adiciona a verificação da Gig aqui
-                $gigQuery->whereNull('deleted_at'); // <-- SÓ GIGS ATIVAS
-            })
-            ->where(function ($query) { // Lógica de data para as despesas
-                // Condição 1
-                $query->where(function ($q1) {
-                    $q1->whereNotNull('expense_date')
-                        ->where('expense_date', '<=', $this->endDate);
-                })
-                // Condição 2
-                    ->orWhere(function ($q2) {
-                        $q2->whereNull('expense_date')
-                            ->whereHas('gig', function ($gigSubQuery) { // whereHas já está aqui
-                                $gigSubQuery->where('gig_date', '<=', $this->endDate);
-                            });
-                    });
-            })
-            ->with(['costCenter', 'gig.artist']) // Eager load
-            ->get();
+        $costs = $this->queryBuilder->pendingExpensesQuery($this->endDate, true);
 
-        Log::info('[FinancialProjectionService] Quantidade de custos para getProjectedExpensesByCostCenter: '.$costs->count());
-
-        return $costs->groupBy('cost_center_id') // 1. Agrupa pelo ID
+        return $costs->groupBy('cost_center_id')
             ->map(function ($group, $costCenterId) {
                 $firstCost = $group->first();
 
-                // 2. Determina o nome traduzido do grupo
                 $groupName = 'Sem Centro de Custo';
                 if ($firstCost && $firstCost->costCenter) {
                     $groupName = __('cost_centers.'.$firstCost->costCenter->name);
@@ -305,42 +211,22 @@ class FinancialProjectionService
             })->sortBy('cost_center_name')->values();
     }
 
-    // Fluxo de Caixa Projetado
+    /**
+     * Fluxo de Caixa Projetado.
+     */
     public function getProjectedCashFlow(): float
     {
         $receivable = $this->getAccountsReceivable();
         $payableArtists = $this->getAccountsPayableArtists();
         $payableBookers = $this->getAccountsPayableBookers();
-        $payableExpenses = $this->getAccountsPayableExpenses(); // Este usará a lógica corrigida
+        $payableExpenses = $this->getAccountsPayableExpenses();
 
         $totalPayable = $payableArtists + $payableBookers + $payableExpenses;
         $cashFlow = $receivable - $totalPayable;
 
-        Log::info("[FinancialProjectionService] Fluxo de Caixa Projetado: Recebível {$receivable} - Total a Pagar {$totalPayable} (Artistas {$payableArtists} + Bookers {$payableBookers} + Despesas {$payableExpenses}) = {$cashFlow}");
+        // //Log::info("[FinancialProjectionService] Fluxo de Caixa Projetado: Recebível {$receivable} - Total a Pagar {$totalPayable} = {$cashFlow}");
 
         return (float) $cashFlow;
-    }
-
-    // Listagem de Próximos Pagamentos
-    public function getUpcomingPayments($type = 'clients')
-    {
-        switch ($type) {
-            case 'clients':
-                return Payment::whereNull('confirmed_at')
-                    ->whereBetween('due_date', [$this->startDate, $this->endDate])
-                    ->orderBy('due_date')
-                    ->get();
-            case 'artists':
-                return Gig::where('artist_payment_status', 'pendente')
-                    ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-                    ->orderBy('gig_date')
-                    ->get();
-            case 'bookers':
-                return Gig::where('booker_payment_status', 'pendente')
-                    ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-                    ->orderBy('gig_date')
-                    ->get();
-        }
     }
 
     /**
@@ -350,24 +236,12 @@ class FinancialProjectionService
      */
     public function getUpcomingInternalPayments(string $type): Collection
     {
-        $statusColumn = ($type === 'artists') ? 'artist_payment_status' : 'booker_payment_status';
-
-        return Gig::where($statusColumn, 'pendente')
-            ->when($type === 'bookers', function ($query) {
-                $query->whereNotNull('booker_id');
-            })
-            ->where(function ($query) {
-                $query->where('gig_date', '<', $this->startDate)
-                    ->orWhereBetween('gig_date', [$this->startDate, $this->endDate]);
-            })
-            ->with(['artist', 'booker'])
-            ->orderBy('gig_date')
-            ->get();
+        return $this->queryBuilder->pendingGigsQuery($this->startDate, $this->endDate, $type, true);
     }
 
     /**
      * Calcula métricas consolidadas para a diretoria.
-     * Métricas gerenciais incluem liquidez, margem operacional e indicadores de risco.
+     * DELEGADO para ProjectionMetricsService.
      */
     public function getExecutiveSummary(): array
     {
@@ -375,188 +249,148 @@ class FinancialProjectionService
         $payableArtists = $this->getAccountsPayableArtists();
         $payableBookers = $this->getAccountsPayableBookers();
         $payableExpenses = $this->getAccountsPayableExpenses();
-        $totalPayable = $payableArtists + $payableBookers + $payableExpenses;
         $cashFlow = $this->getProjectedCashFlow();
 
-        // Índice de Liquidez Projetada (Contas a Receber / Total a Pagar)
-        $liquidityIndex = $totalPayable > 0 ? ($receivable / $totalPayable) : 0;
-
-        // Margem Operacional Projetada (%)
-        $operationalMargin = $receivable > 0 ? (($cashFlow / $receivable) * 100) : 0;
-
-        // Grau de Comprometimento (Total a Pagar / Contas a Receber * 100)
-        $commitmentRate = $receivable > 0 ? (($totalPayable / $receivable) * 100) : 0;
-
-        // Análise de Risco
-        $riskLevel = $this->calculateRiskLevel($liquidityIndex, $cashFlow, $receivable);
-
-        return [
-            'receivable' => $receivable,
-            'total_payable' => $totalPayable,
-            'cash_flow' => $cashFlow,
-            'liquidity_index' => $liquidityIndex,
-            'operational_margin' => $operationalMargin,
-            'commitment_rate' => $commitmentRate,
-            'risk_level' => $riskLevel,
-            'breakdown' => [
-                'payable_artists' => $payableArtists,
-                'payable_bookers' => $payableBookers,
-                'payable_expenses' => $payableExpenses,
-            ],
-        ];
-    }
-
-    /**
-     * Calcula o nível de risco financeiro baseado em métricas.
-     */
-    private function calculateRiskLevel(float $liquidityIndex, float $cashFlow, float $receivable): string
-    {
-        // Risco Alto: Liquidez < 1 OU Fluxo Negativo > 20% do Recebível
-        if ($liquidityIndex < 1.0 || ($cashFlow < 0 && abs($cashFlow) > ($receivable * 0.2))) {
-            return 'high';
-        }
-
-        // Risco Médio: Liquidez entre 1 e 1.2 OU Fluxo Negativo < 20% do Recebível
-        if ($liquidityIndex < 1.2 || ($cashFlow < 0 && abs($cashFlow) <= ($receivable * 0.2))) {
-            return 'medium';
-        }
-
-        // Risco Baixo: Liquidez >= 1.2 E Fluxo Positivo
-        return 'low';
+        return $this->metricsService->buildExecutiveSummary(
+            $receivable,
+            $payableArtists,
+            $payableBookers,
+            $payableExpenses,
+            $cashFlow
+        );
     }
 
     /**
      * Retorna análise detalhada de pagamentos vencidos.
+     * DELEGADO para ProjectionMetricsService.
      */
     public function getOverdueAnalysis(): array
     {
-        $today = Carbon::today();
+        $overduePayments = $this->queryBuilder->overduePaymentsQuery(true);
 
-        // Parcelas vencidas de clientes
-        $overduePayments = Payment::whereNull('confirmed_at')
-            ->whereHas('gig')
-            ->where('due_date', '<', $today)
-            ->with(['gig.artist'])
-            ->orderBy('due_date')
-            ->get();
-
-        $totalOverdue = $overduePayments->sum('due_value_brl');
-        $overdueCount = $overduePayments->count();
-
-        // Agrupar por tempo de atraso
-        $overdueByPeriod = [
-            '0-30' => 0,
-            '31-60' => 0,
-            '61-90' => 0,
-            '90+' => 0,
-        ];
-
-        foreach ($overduePayments as $payment) {
-            $daysOverdue = $today->diffInDays($payment->due_date);
-
-            if ($daysOverdue <= 30) {
-                $overdueByPeriod['0-30'] += (float) $payment->due_value_brl;
-            } elseif ($daysOverdue <= 60) {
-                $overdueByPeriod['31-60'] += (float) $payment->due_value_brl;
-            } elseif ($daysOverdue <= 90) {
-                $overdueByPeriod['61-90'] += (float) $payment->due_value_brl;
-            } else {
-                $overdueByPeriod['90+'] += (float) $payment->due_value_brl;
-            }
-        }
-
-        return [
-            'total_overdue' => $totalOverdue,
-            'overdue_count' => $overdueCount,
-            'overdue_by_period' => $overdueByPeriod,
-            'overdue_payments' => $overduePayments,
-        ];
+        return $this->metricsService->calculateOverdueAnalysis($overduePayments);
     }
 
     /**
      * Retorna análise de eventos futuros no período.
+     * DELEGADO para ProjectionMetricsService.
      */
     public function getFutureEventsAnalysis(): array
     {
-        $futureGigs = Gig::whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->with(['artist', 'booker', 'gigCosts'])
-            ->orderBy('gig_date')
-            ->get();
+        $futureGigs = $this->queryBuilder->futureEventsQuery($this->startDate, $this->endDate, true);
 
-        $totalEvents = $futureGigs->count();
-        $totalProjectedRevenue = 0;
-        $totalProjectedCosts = 0;
-
-        foreach ($futureGigs as $gig) {
-            $totalProjectedRevenue += $this->calculatorService->calculateGrossCashBrl($gig);
-            $totalProjectedCosts += $gig->gigCosts->sum('value_brl');
-        }
-
-        $projectedNetRevenue = $totalProjectedRevenue - $totalProjectedCosts;
-        $averageRevenuePerEvent = $totalEvents > 0 ? ($totalProjectedRevenue / $totalEvents) : 0;
-
-        return [
-            'total_events' => $totalEvents,
-            'total_projected_revenue' => $totalProjectedRevenue,
-            'total_projected_costs' => $totalProjectedCosts,
-            'projected_net_revenue' => $projectedNetRevenue,
-            'average_revenue_per_event' => $averageRevenuePerEvent,
-            'events' => $futureGigs,
-        ];
+        return $this->metricsService->calculateFutureEventsAnalysis($futureGigs, $this->calculatorService);
     }
 
     /**
      * Retorna comparação com período anterior (mesmo tamanho).
+     * DELEGADO para ProjectionMetricsService.
      */
     public function getComparativePeriodAnalysis(): array
     {
-        $periodDays = $this->startDate->diffInDays($this->endDate);
-
-        // Período anterior tem o mesmo tamanho
-        $previousStart = $this->startDate->copy()->subDays($periodDays + 1);
-        $previousEnd = $this->startDate->copy()->subDay();
-
-        // Temporariamente salva as datas atuais
-        $currentStart = $this->startDate;
-        $currentEnd = $this->endDate;
-
-        // Define período anterior
-        $this->startDate = $previousStart;
-        $this->endDate = $previousEnd;
-
-        $previousReceivable = $this->getAccountsReceivable();
-        $previousPayable = $this->getAccountsPayableArtists() + $this->getAccountsPayableBookers() + $this->getAccountsPayableExpenses();
-        $previousCashFlow = $this->getProjectedCashFlow();
-
-        // Restaura período atual
-        $this->startDate = $currentStart;
-        $this->endDate = $currentEnd;
-
         $currentReceivable = $this->getAccountsReceivable();
         $currentPayable = $this->getAccountsPayableArtists() + $this->getAccountsPayableBookers() + $this->getAccountsPayableExpenses();
         $currentCashFlow = $this->getProjectedCashFlow();
 
-        // Calcula variações percentuais
-        $receivableVariation = $previousReceivable > 0 ? ((($currentReceivable - $previousReceivable) / $previousReceivable) * 100) : 0;
-        $payableVariation = $previousPayable > 0 ? ((($currentPayable - $previousPayable) / $previousPayable) * 100) : 0;
-        $cashFlowVariation = $previousCashFlow != 0 ? ((($currentCashFlow - $previousCashFlow) / abs($previousCashFlow)) * 100) : 0;
+        // Callback para buscar métricas do período anterior
+        $fetchPreviousMetrics = function (Carbon $previousStart, Carbon $previousEnd) {
+            // Temporariamente salva as datas atuais
+            $currentStart = $this->startDate;
+            $currentEnd = $this->endDate;
 
-        return [
-            'current' => [
-                'receivable' => $currentReceivable,
-                'payable' => $currentPayable,
-                'cash_flow' => $currentCashFlow,
-            ],
-            'previous' => [
+            // Define período anterior
+            $this->startDate = $previousStart;
+            $this->endDate = $previousEnd;
+
+            $previousReceivable = $this->getAccountsReceivable();
+            $previousPayable = $this->getAccountsPayableArtists() + $this->getAccountsPayableBookers() + $this->getAccountsPayableExpenses();
+            $previousCashFlow = $this->getProjectedCashFlow();
+
+            // Restaura período atual
+            $this->startDate = $currentStart;
+            $this->endDate = $currentEnd;
+
+            return [
                 'receivable' => $previousReceivable,
                 'payable' => $previousPayable,
                 'cash_flow' => $previousCashFlow,
-            ],
-            'variations' => [
-                'receivable' => $receivableVariation,
-                'payable' => $payableVariation,
-                'cash_flow' => $cashFlowVariation,
-            ],
-        ];
+            ];
+        };
+
+        return $this->metricsService->calculateComparativeAnalysis(
+            $this->startDate,
+            $this->endDate,
+            $currentReceivable,
+            $currentPayable,
+            $currentCashFlow,
+            $fetchPreviousMetrics
+        );
+    }
+
+    /**
+     * Obtém métricas globais com cache.
+     * Cache de 5 minutos para performance.
+     */
+    public function getGlobalMetrics(): array
+    {
+        return Cache::remember('projections:global_metrics', 300, function () {
+            // Define período global
+            $this->setPeriod('', Carbon::create(2000, 1, 1)->format('Y-m-d'), Carbon::create(2100, 12, 31)->format('Y-m-d'));
+
+            $receivable = $this->getAccountsReceivable();
+            $payableArtists = $this->getAccountsPayableArtists();
+            $payableBookers = $this->getAccountsPayableBookers();
+            $payableExpenses = $this->getAccountsPayableExpenses();
+            $cashFlow = $this->getProjectedCashFlow();
+            $overdueAnalysis = $this->getOverdueAnalysis();
+
+            $totalPayable = $payableArtists + $payableBookers + $payableExpenses;
+            $liquidityIndex = $this->metricsService->calculateLiquidityIndex($receivable, $totalPayable);
+            $operationalMargin = $this->metricsService->calculateOperationalMargin($cashFlow, $receivable);
+            $commitmentRate = $this->metricsService->calculateCommitmentRate($totalPayable, $receivable);
+            $riskLevel = $this->metricsService->assessRiskLevel($liquidityIndex, $cashFlow, $receivable);
+
+            return [
+                'total_receivable' => $receivable,
+                'total_payable_artists' => $payableArtists,
+                'total_payable_bookers' => $payableBookers,
+                'total_payable_expenses' => $payableExpenses,
+                'total_cash_flow' => $cashFlow,
+                'overdue_analysis' => $overdueAnalysis,
+                'liquidity_index' => $liquidityIndex,
+                'operational_margin' => $operationalMargin,
+                'commitment_rate' => $commitmentRate,
+                'risk_level' => $riskLevel,
+            ];
+        });
+    }
+
+    /**
+     * Invalida o cache de projeções.
+     * Deve ser chamado ao confirmar pagamentos/despesas.
+     */
+    public function clearCache(): void
+    {
+        Cache::forget('projections:global_metrics');
+        // //Log::info('[FinancialProjectionService] Cache de projeções invalidado.');
+    }
+
+    /**
+     * Método de compatibilidade backwards - DEPRECATED.
+     * Use getUpcomingClientPayments() ou getUpcomingInternalPayments() diretamente.
+     *
+     * @deprecated Use getUpcomingClientPayments() para clientes ou getUpcomingInternalPayments($type) para artistas/bookers
+     */
+    public function getUpcomingPayments(string $type)
+    {
+        switch ($type) {
+            case 'clients':
+                return $this->getUpcomingClientPayments();
+            case 'artists':
+            case 'bookers':
+                return $this->getUpcomingInternalPayments($type);
+            default:
+                return collect([]);
+        }
     }
 }

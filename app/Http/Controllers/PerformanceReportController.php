@@ -97,18 +97,56 @@ class PerformanceReportController extends Controller
         $totalContractValue = $gigs->sum('cache_value_brl'); // Usando o acessor BRL
 
         $grandTotalGrossCash = $gigs->sum(fn ($gig) => $this->gigCalculator->calculateGrossCashBrl($gig));
+        $grandTotalBookerCommission = $gigs->sum(fn ($gig) => $this->gigCalculator->calculateBookerCommissionBrl($gig));
 
         // 6. Agrupar por Booker e preparar a estrutura de dados final
         $dataByBooker = $gigs->groupBy(fn ($gig) => $gig->booker->name ?? 'Agência Direta')
             ->map(function ($gigsForBooker) {
 
                 $totalGrossCash = $gigsForBooker->sum(fn ($gig) => $this->gigCalculator->calculateGrossCashBrl($gig));
+                $totalBookerCommission = $gigsForBooker->sum(fn ($gig) => $this->gigCalculator->calculateBookerCommissionBrl($gig));
+
+                // Agrupar gigs por mês para melhor visualização
+                $gigsByMonth = $gigsForBooker->groupBy(function ($gig) {
+                    return Carbon::parse($gig->gig_date)->format('m/Y');
+                })->map(function ($gigsInMonth) {
+                    $monthName = Carbon::parse($gigsInMonth->first()->gig_date)->format('M/Y');
+                    $totalContractMonth = $gigsInMonth->sum('cache_value_brl');
+                    $totalGrossCashMonth = $gigsInMonth->sum(fn ($gig) => $this->gigCalculator->calculateGrossCashBrl($gig));
+                    $totalBookerCommissionMonth = $gigsInMonth->sum(fn ($gig) => $this->gigCalculator->calculateBookerCommissionBrl($gig));
+
+                    return [
+                        'month_name' => $monthName,
+                        'month_total_contract' => $totalContractMonth,
+                        'month_total_gross_cash' => $totalGrossCashMonth,
+                        'month_total_booker_commission' => $totalBookerCommissionMonth,
+                        'month_gigs_count' => $gigsInMonth->count(),
+                        'gigs' => $gigsInMonth->map(function ($gig) {
+                            $gross_cash_brl = $this->gigCalculator->calculateGrossCashBrl($gig);
+                            $booker_commission_brl = $this->gigCalculator->calculateBookerCommissionBrl($gig);
+
+                            return [
+                                'gig_id' => $gig->id,
+                                'sale_date' => Carbon::parse($gig->sale_date)->format('d/m/Y'),
+                                'gig_date' => $gig->gig_date->format('d/m/Y'),
+                                'artist_name' => $gig->artist->name,
+                                'artist_local' => $gig->artist->name.' @ '.Str::limit($gig->location_event_details, 90),
+                                'location_event_details' => $gig->location_event_details,
+                                'contract_value' => $gig->cache_value_brl,
+                                'gross_cash_brl' => $gross_cash_brl,
+                                'booker_commission_brl' => $booker_commission_brl,
+                            ];
+                        }),
+                    ];
+                })->sortKeys();
 
                 return [
                     'booker_name' => $gigsForBooker->first()->booker->name ?? 'Agência Direta',
                     'total_contract' => $gigsForBooker->sum('cache_value_brl'),
                     'total_gross_cash' => $totalGrossCash, // Nova variável para o subtotal
+                    'total_booker_commission' => $totalBookerCommission,
                     'gigs_count' => $gigsForBooker->count(),
+                    'gigs_by_month' => $gigsByMonth,
                     'gigs' => $gigsForBooker->map(function ($gig) {
 
                         $gross_cash_brl = $this->gigCalculator->calculateGrossCashBrl($gig);
@@ -133,6 +171,7 @@ class PerformanceReportController extends Controller
                 'total_gigs' => $gigs->count(),
                 'total_value' => $gigs->sum('cache_value_brl'),
                 'total_gross_cash' => $grandTotalGrossCash, // Nova variável para o card de resumo
+                'total_commission' => $grandTotalBookerCommission,
             ],
             'tableData' => $dataByBooker,
         ];

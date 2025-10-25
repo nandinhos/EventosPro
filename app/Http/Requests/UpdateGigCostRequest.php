@@ -26,7 +26,7 @@ class UpdateGigCostRequest extends FormRequest
     public function rules(): array
     {
         // Usar 'sometimes' para permitir atualizações parciais
-        Log::debug('[UpdateGigCostRequest] Dados recebidos para validação: ', $this->all());
+        // Log::debug('[UpdateGigCostRequest] Dados recebidos para validação: ', $this->all());
 
         return [
             'cost_center_id' => ['sometimes', 'required', 'integer', 'exists:cost_centers,id'],
@@ -68,6 +68,6 @@ class UpdateGigCostRequest extends FormRequest
         //     'is_confirmed' => $this->boolean('is_confirmed'),
         //     'is_invoice' => $this->boolean('is_invoice'),
         // ]);
-        Log::debug('[UpdateGigCostRequest] Dados após prepareForValidation: ', $this->all());
+        // Log::debug('[UpdateGigCostRequest] Dados após prepareForValidation: ', $this->all());
     }
 }

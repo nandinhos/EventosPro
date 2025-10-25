@@ -50,9 +50,9 @@
 
             {{-- Cards de Resumo (Ocultos na impressão) --}}
            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 print:hidden w-full">
-            {{-- Card Azul Claro: Gigs Realizadas --}}
+            {{-- Card Azul Claro: Gigs Vendidas --}}
             <div class="bg-blue-100 dark:bg-blue-900/20 p-6 rounded-lg">
-                <h3 class="text-sm text-gray-500 dark:text-gray-400">Gigs Realizadas</h3>
+                <h3 class="text-sm text-gray-500 dark:text-gray-400">Gigs Vendidas</h3>
                 <p class="text-3xl font-semibold text-blue-800 dark:text-blue-300 mt-1">
                     {{ $performanceData['summaryCards']['total_gigs'] }}
                 </p>
@@ -121,49 +121,86 @@
                                     </td>
                                 </tr>
                                 <tr x-show="open" x-transition style="display: none;">
-                                    <td colspan="5" class="p-0">
-                                        <div class="bg-gray-50 dark:bg-gray-800/60 p-4 overflow-x-auto">
-                                            <table class="min-w-full mt-2 text-xs table-fixed">
-                                                <thead class="text-gray-500 dark:text-gray-400">
-                                                    <tr>
-                                                        <th class="py-2 px-2 text-left w-[12%]">Data Venda</th>
-                                                        <th class="py-2 px-2 text-left w-[12%]">Data Evento</th>
-                                                        <th class="py-2 px-2 text-left w-[15%]">Booker</th>
-                                                        <th class="py-2 px-2 text-left w-[28%]">Local</th>
-                                                        <th class="py-2 px-2 text-right w-[11%]">Contrato</th>
-                                                        <th class="py-2 px-2 text-right w-[11%]">Cachê Bruto</th>
-                                                        <th class="py-2 px-2 text-right w-[11%]">Líquido</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                                                    @foreach($artistData['gigs'] as $gig)
-                                                    <tr class="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                        <td class="py-2 px-2">{{ $gig['sale_date'] }}</td>
-                                                        <td class="py-2 px-2">{{ $gig['gig_date'] }}</td>
-                                                        <td class="py-2 px-2">{{ $gig['booker_name'] }}</td>
-                                                        <td class="py-2 px-2">
-                                                            <a href="{{ route('gigs.show', $gig['gig_id']) }}" class="text-primary-600 hover:underline" title="Ver detalhes da Gig">
-                                                                Gig #{{ $gig['gig_id'] }}
-                                                            </a>
-                                                            @if(!empty($gig['location_event_details']))
-                                                                <div class="text-gray-500 dark:text-gray-400 italic text-xxs whitespace-normal break-words -mt-1">
-                                                                    {{ $gig['location_event_details'] }}
-                                                                </div>
-                                                            @endif
-                                                        </td>
-                                                        <td class="py-2 px-2 text-right">R$ {{ number_format($gig['contract_value'], 2, ',', '.') }}</td>
-                                                        <td class="py-2 px-2 text-right font-semibold text-teal-700 dark:text-teal-400">
-                                                            R$ {{ number_format($gig['gross_cash_brl'], 2, ',', '.') }}
-                                                        </td>
-                                                        <td class="py-2 px-2 text-right font-semibold text-purple-700 dark:text-purple-400">
-                                                            R$ {{ number_format($gig['net_payout_brl'], 2, ',', '.') }}
-                                                        </td>
-                                                    </tr>
-                                                    @endforeach
-                                                </tbody>
-                                            </table>
-                                        </div>
-
+                                <td colspan="5" class="p-0">
+                                <div class="bg-gray-50 dark:bg-gray-800/60 overflow-x-auto" x-data="{
+                                monthStates: @json(array_fill(0, count($artistData['gigs_by_month']), false))
+                                }">
+                                <!-- Tabela Consolidada por Mês -->
+                                <div class="p-4">
+                                <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Resumo por Mês</h5>
+                                <table class="min-w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden mb-4">
+                                <thead class="bg-gray-100 dark:bg-gray-700">
+                                <tr>
+                                <th class="py-3 px-4 text-left">Mês</th>
+                                <th class="py-3 px-4 text-center">Qtd. Eventos</th>
+                                <th class="py-3 px-4 text-right">Valor Contrato</th>
+                                    <th class="py-3 px-4 text-right">Cachê Bruto</th>
+                                        <th class="py-3 px-4 text-right">Líquido Artista</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                                @foreach($artistData['gigs_by_month'] as $index => $monthData)
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+                                @click="monthStates[{{ $index }}] = !monthStates[{{ $index }}]"
+                                :class="monthStates[{{ $index }}] ? 'bg-blue-50 dark:bg-blue-900/20' : ''">
+                                <td class="py-3 px-4 font-medium">
+                                <div class="flex items-center">
+                                <i class="fas fa-chevron-right text-gray-400 dark:text-gray-500 transition-transform w-4 mr-2" :class="monthStates[{{ $index }}] ? 'rotate-90' : ''"></i>
+                                    {{ $monthData['month_name'] }}
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 text-center">{{ $monthData['month_gigs_count'] }}</td>
+                                <td class="py-3 px-4 text-right text-blue-700 dark:text-blue-300 font-semibold">R$ {{ number_format($monthData['month_total_contract'], 2, ',', '.') }}</td>
+                                <td class="py-3 px-4 text-right text-teal-700 dark:text-teal-300 font-semibold">R$ {{ number_format($monthData['month_total_gross_cash'], 2, ',', '.') }}</td>
+                                    <td class="py-3 px-4 text-right text-purple-700 dark:text-purple-300 font-semibold">R$ {{ number_format($monthData['month_total_net_payout'], 2, ',', '.') }}</td>
+                                </tr>
+                                <!-- Detalhes do Mês (Segundo nível de expansão) -->
+                                <tr x-show="monthStates[{{ $index }}]" x-transition style="display: none;">
+                                <td colspan="5" class="p-0">
+                                <div class="bg-gray-100 dark:bg-gray-700/50 p-4 border-t border-gray-200 dark:border-gray-600">
+                                <table class="min-w-full text-xs table-fixed border border-gray-300 dark:border-gray-500 rounded-lg overflow-hidden">
+                                <thead class="bg-gray-200 dark:bg-gray-600">
+                                <tr>
+                                <th class="py-2 px-2 text-left w-[12%]">Data Venda</th>
+                                <th class="py-2 px-2 text-left w-[12%]">Data Evento</th>
+                                <th class="py-2 px-2 text-left w-[15%]">Booker</th>
+                                <th class="py-2 px-2 text-left w-[28%]">Local</th>
+                                <th class="py-2 px-2 text-right w-[11%]">Contrato</th>
+                                <th class="py-2 px-2 text-right w-[11%]">Cachê Bruto</th>
+                                    <th class="py-2 px-2 text-right w-[11%]">Líquido</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                                @foreach($monthData['gigs'] as $gig)
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                <td class="py-2 px-2">{{ $gig['sale_date'] }}</td>
+                                <td class="py-2 px-2">{{ $gig['gig_date'] }}</td>
+                                <td class="py-2 px-2">{{ $gig['booker_name'] }}</td>
+                                <td class="py-2 px-2">
+                                <a href="{{ route('gigs.show', $gig['gig_id']) }}" class="text-primary-600 hover:underline" title="Ver detalhes da Gig">
+                                    Gig #{{ $gig['gig_id'] }}
+                                </a>
+                                @if(!empty($gig['location_event_details']))
+                                <div class="text-gray-500 dark:text-gray-400 italic text-xxs whitespace-normal break-words -mt-1">
+                                    {{ $gig['location_event_details'] }}
+                                    </div>
+                                    @endif
+                                </td>
+                                <td class="py-2 px-2 text-right">R$ {{ number_format($gig['contract_value'], 2, ',', '.') }}</td>
+                                <td class="py-2 px-2 text-right font-semibold text-teal-700 dark:text-teal-400">R$ {{ number_format($gig['gross_cash_brl'], 2, ',', '.') }}</td>
+                                    <td class="py-2 px-2 text-right font-semibold text-purple-700 dark:text-purple-400">R$ {{ number_format($gig['net_payout_brl'], 2, ',', '.') }}</td>
+                                </tr>
+                                    @endforeach
+                                    </tbody>
+                                    </table>
+                                    </div>
+                                    </td>
+                                </tr>
+                                    @endforeach
+                                    </tbody>
+                                    </table>
+                                    </div>
+                                    </div>
                                     </td>
                                 </tr>
                             </tbody>
