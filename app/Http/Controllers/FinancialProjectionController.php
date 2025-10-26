@@ -185,6 +185,8 @@ class FinancialProjectionController extends Controller
             'booker_commission_details' => $bookerCommissionDetails, // Detalhes das comissões aos bookers
             'projected_expenses' => $projectedExpenses, // Detalhes das despesas previstas
             'strategic_balance' => $strategicBalance, // Novas métricas estratégicas
+            'gig_expenses_details' => $gigExpenses, // Detalhes das despesas de eventos
+            'operational_expenses_details' => $projectedExpenses, // Detalhes dos custos operacionais
         ]);
     }
 
