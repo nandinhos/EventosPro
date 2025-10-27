@@ -115,9 +115,12 @@ class FinancialProjectionController extends Controller
 
         $globalMetrics = [
             'total_receivable' => $accountsReceivable['total_receivable'], // Contas pendentes reais
+            'total_receivable_past_events' => $accountsReceivable['total_overdue'], // Recebíveis de eventos passados
+            'total_receivable_future_events' => $accountsReceivable['total_future'], // Recebíveis de eventos futuros
             'total_payable_artists' => $artistPaymentDetails['total_pending'], // Dados reais dos settlements
             'total_payable_bookers' => $bookerCommissionDetails['total_pending'], // Dados reais dos settlements
             'total_payable_expenses' => $gigExpenses['total_expenses'], // Despesas de eventos (GigCost)
+            'total_expenses' => $gigExpenses, // Detalhes completos das despesas
             'operational_cost_count' => $projectedExpenses['expense_count'], // Contagem de custos operacionais
             'operational_cost_monthly' => $projectedExpenses['total_monthly'], // Total mensal de custos fixos
             'total_cash_flow' => $cashFlowSummary['kpis']['fluxo_caixa_liquido'],
@@ -135,6 +138,10 @@ class FinancialProjectionController extends Controller
             'operational_margin' => $dreSummary['kpis']['margem_percentual'],
             'commitment_rate' => 100 - $dreSummary['kpis']['margem_percentual'],
             'risk_level' => $cashFlowSummary['kpis']['nivel_risco'],
+            // Strategic balance metrics
+            'generated_cash' => $strategicBalance['generated_cash'],
+            'committed_cash' => $strategicBalance['committed_cash'],
+            'financial_balance' => $strategicBalance['financial_balance'],
         ];
 
         $periodMetrics = null;
@@ -312,12 +319,21 @@ class FinancialProjectionController extends Controller
         $pastGigs = Gig::where('gig_date', '<', today())->get();
         $futureGigs = Gig::where('gig_date', '>=', today())->get();
 
+        // Obter valor mensal de custos operacionais
+        $monthlyFixedCost = AgencyFixedCost::where('is_active', true)->sum('monthly_value');
+
         // 2. Calcular "Caixa Gerado (Eventos Passados)"
         $pastInflows = Payment::whereIn('gig_id', $pastGigs->pluck('id'))->whereNotNull('confirmed_at')->get()->sum('received_value_actual_brl');
         $pastArtistOutflows = Settlement::whereIn('gig_id', $pastGigs->pluck('id'))->sum('artist_payment_value');
         $pastBookerOutflows = Settlement::whereIn('gig_id', $pastGigs->pluck('id'))->sum('booker_commission_value_paid');
-        // Simplificação: considera 1 mês de custos operacionais como "passado"
-        $pastOperationalExpenses = AgencyFixedCost::where('is_active', true)->sum('monthly_value');
+
+        // Calcular custos operacionais proporcionalmente ao período dos eventos passados
+        $pastOperationalExpenses = 0;
+        if ($pastGigs->isNotEmpty()) {
+            $oldestGigDate = \Carbon\Carbon::parse($pastGigs->min('gig_date'));
+            $monthsSpan = max(1, $oldestGigDate->diffInMonths(\Carbon\Carbon::today()) + 1);
+            $pastOperationalExpenses = $monthlyFixedCost * $monthsSpan;
+        }
 
         $generatedCash = $pastInflows - $pastArtistOutflows - $pastBookerOutflows - $pastOperationalExpenses;
 
@@ -329,8 +345,14 @@ class FinancialProjectionController extends Controller
             $futureArtistOutflows += $this->cashFlowService->getGigCalculator()->calculateArtistInvoiceValueBrl($gig);
             $futureBookerOutflows += $this->cashFlowService->getGigCalculator()->calculateBookerCommissionBrl($gig);
         }
-        // Simplificação: considera 3 meses de custos operacionais como "futuro"
-        $futureOperationalExpenses = $pastOperationalExpenses * 3;
+
+        // Calcular custos operacionais proporcionalmente ao período dos eventos futuros
+        $futureOperationalExpenses = 0;
+        if ($futureGigs->isNotEmpty()) {
+            $furthestGigDate = \Carbon\Carbon::parse($futureGigs->max('gig_date'));
+            $monthsSpan = max(1, \Carbon\Carbon::today()->diffInMonths($furthestGigDate) + 1);
+            $futureOperationalExpenses = $monthlyFixedCost * $monthsSpan;
+        }
 
         $committedCash = $futureInflows - $futureArtistOutflows - $futureBookerOutflows - $futureOperationalExpenses;
 
