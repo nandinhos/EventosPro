@@ -11,6 +11,7 @@ use App\Models\Settlement;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ArtistBatchPaymentTest extends TestCase
@@ -32,7 +33,7 @@ class ArtistBatchPaymentTest extends TestCase
         $this->booker = Booker::factory()->create();
     }
 
-    /** @test */
+    #[Test]
     public function it_can_settle_batch_artist_payments_for_realized_gigs_with_confirmed_costs()
     {
         // Create 3 realized gigs with all costs confirmed
@@ -84,7 +85,7 @@ class ArtistBatchPaymentTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_cannot_settle_batch_payments_for_future_gigs()
     {
         // Create future gig
@@ -111,7 +112,7 @@ class ArtistBatchPaymentTest extends TestCase
         $this->assertEquals('pendente', $gig->artist_payment_status);
     }
 
-    /** @test */
+    #[Test]
     public function it_cannot_settle_batch_payments_with_unconfirmed_costs()
     {
         // Create realized gig with unconfirmed cost
@@ -147,7 +148,7 @@ class ArtistBatchPaymentTest extends TestCase
         $this->assertEquals('pendente', $gig->artist_payment_status);
     }
 
-    /** @test */
+    #[Test]
     public function it_cannot_settle_already_paid_gigs()
     {
         // Create already paid gig
@@ -170,7 +171,7 @@ class ArtistBatchPaymentTest extends TestCase
         $response->assertSessionHas('error');
     }
 
-    /** @test */
+    #[Test]
     public function it_can_unsettle_batch_artist_payments()
     {
         // Create paid gigs
@@ -215,7 +216,7 @@ class ArtistBatchPaymentTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_cannot_unsettle_gigs_that_are_not_paid()
     {
         // Create pending gig
@@ -237,7 +238,7 @@ class ArtistBatchPaymentTest extends TestCase
         $response->assertSessionHas('error');
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_payment_date_is_required()
     {
         $gig = Gig::factory()
@@ -258,7 +259,7 @@ class ArtistBatchPaymentTest extends TestCase
         $response->assertSessionHasErrors('payment_date');
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_payment_date_cannot_be_future()
     {
         $gig = Gig::factory()
@@ -279,7 +280,7 @@ class ArtistBatchPaymentTest extends TestCase
         $response->assertSessionHasErrors('payment_date');
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_gig_ids_are_required()
     {
         $response = $this->actingAs($this->user)->post(route('artists.payments.settleBatch'), [
@@ -290,7 +291,7 @@ class ArtistBatchPaymentTest extends TestCase
         $response->assertSessionHasErrors('gig_ids');
     }
 
-    /** @test */
+    #[Test]
     public function it_calculates_artist_net_payout_correctly_for_batch_payment()
     {
         // Create realized gig with specific values

@@ -223,6 +223,75 @@ $this->assertEqualsWithDelta(1000.00, $result, 0.01);
 - Always use factories for model creation in tests
 - Follow existing test patterns in `tests/Unit/Services/` and `tests/Feature/`
 
+## Testing Standards
+
+### PHPUnit Test Method Declaration
+
+**ALWAYS use PHP 8 Attributes (REQUIRED)**:
+
+```php
+use PHPUnit\Framework\Attributes\Test;
+
+#[Test]
+public function it_calculates_commission_correctly()
+{
+    // Arrange
+    $gig = Gig::factory()->create(['cache_value' => 10000]);
+
+    // Act
+    $result = $this->calculator->calculateCommission($gig);
+
+    // Assert
+    $this->assertEquals(2000, $result);
+}
+```
+
+**NEVER use deprecated doc-comment annotations**:
+
+```php
+/** @test */  // ❌ DEPRECATED - Will be removed in PHPUnit 12
+public function it_does_something()
+{
+    // test code
+}
+```
+
+**Why**:
+- ❌ Deprecated since PHPUnit 10
+- ❌ Generates warnings in PHPUnit 11
+- ❌ Will be **completely removed** in PHPUnit 12
+- ❌ Not type-safe, relies on string parsing
+
+**Alternative: Traditional naming** (also acceptable):
+
+```php
+public function test_it_calculates_commission()  // ✅ Valid
+{
+    // test code
+}
+```
+
+### Test Naming Conventions
+
+- Use descriptive names: `it_[does_what]_[when_condition]`
+- Follow AAA pattern: Arrange, Act, Assert
+- Include comments for complex setup
+
+### Before Committing Tests
+
+```bash
+# 1. Format code
+sail bash -c "vendor/bin/pint --dirty"
+
+# 2. Run tests (verify NO warnings)
+sail artisan test
+
+# 3. Check coverage if modified critical services
+sail artisan test --coverage --min=80
+```
+
+**See**: `docs/TESTING_BEST_PRACTICES.md` for complete testing guidelines
+
 ## Database Seeding
 
 ```bash
