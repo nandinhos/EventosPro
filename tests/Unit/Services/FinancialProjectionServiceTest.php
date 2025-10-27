@@ -79,6 +79,52 @@ class FinancialProjectionServiceTest extends TestCase
     }
 
     #[Test]
+    public function it_calculates_total_accounts_payable_consolidated()
+    {
+        $this->projectionService->setPeriod('30_days');
+
+        $artist = Artist::factory()->create();
+        $booker = Booker::factory()->create();
+        $costCenter = CostCenter::factory()->create();
+
+        // Create a gig with pending date in projection period
+        $gig = Gig::factory()->create([
+            'artist_id' => $artist->id,
+            'booker_id' => $booker->id,
+            'gig_date' => Carbon::now()->addDays(10),
+            'cache_value' => 1000,
+            'currency' => 'BRL',
+            'agency_commission_type' => 'percentage',
+            'agency_commission_value' => 20,
+            'booker_commission_type' => 'percentage',
+            'booker_commission_value' => 10,
+            'payment_status' => 'pending',
+        ]);
+
+        // Add a pending cost
+        GigCost::factory()->create([
+            'gig_id' => $gig->id,
+            'cost_center_id' => $costCenter->id,
+            'value' => 200,
+            'currency' => 'BRL',
+            'confirmed' => false,
+            'expense_date' => Carbon::now()->addDays(8),
+        ]);
+
+        // Calculate expected values
+        $expectedArtistsPayable = $this->gigCalculator->calculateArtistInvoiceValueBrl($gig);
+        $expectedBookersPayable = $this->gigCalculator->calculateBookerCommissionBrl($gig);
+        $expectedExpensesPayable = $this->projectionService->getAccountsPayableExpenses();
+        $expectedTotal = $expectedArtistsPayable + $expectedBookersPayable + $expectedExpensesPayable;
+
+        // Test the consolidated metric
+        $totalPayable = $this->projectionService->getTotalAccountsPayable();
+
+        $this->assertEquals($expectedTotal, $totalPayable);
+        $this->assertGreaterThan(0, $totalPayable);
+    }
+
+    #[Test]
     public function it_calculates_accounts_receivable_with_pending_payments()
     {
         $artist = Artist::factory()->create();

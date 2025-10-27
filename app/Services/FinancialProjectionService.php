@@ -212,16 +212,29 @@ class FinancialProjectionService
     }
 
     /**
-     * Fluxo de Caixa Projetado.
+     * Calcula o Total a Pagar Consolidado (Artistas + Bookers + Despesas).
+     * Esta métrica representa todas as obrigações financeiras da agência no período.
+     *
+     * @return float O valor total consolidado a pagar em BRL.
      */
-    public function getProjectedCashFlow(): float
+    public function getTotalAccountsPayable(): float
     {
-        $receivable = $this->getAccountsReceivable();
         $payableArtists = $this->getAccountsPayableArtists();
         $payableBookers = $this->getAccountsPayableBookers();
         $payableExpenses = $this->getAccountsPayableExpenses();
 
         $totalPayable = $payableArtists + $payableBookers + $payableExpenses;
+
+        return (float) $totalPayable;
+    }
+
+    /**
+     * Fluxo de Caixa Projetado.
+     */
+    public function getProjectedCashFlow(): float
+    {
+        $receivable = $this->getAccountsReceivable();
+        $totalPayable = $this->getTotalAccountsPayable();
         $cashFlow = $receivable - $totalPayable;
 
         // //Log::info("[FinancialProjectionService] Fluxo de Caixa Projetado: Recebível {$receivable} - Total a Pagar {$totalPayable} = {$cashFlow}");
@@ -289,7 +302,7 @@ class FinancialProjectionService
     public function getComparativePeriodAnalysis(): array
     {
         $currentReceivable = $this->getAccountsReceivable();
-        $currentPayable = $this->getAccountsPayableArtists() + $this->getAccountsPayableBookers() + $this->getAccountsPayableExpenses();
+        $currentPayable = $this->getTotalAccountsPayable();
         $currentCashFlow = $this->getProjectedCashFlow();
 
         // Callback para buscar métricas do período anterior
@@ -303,7 +316,7 @@ class FinancialProjectionService
             $this->endDate = $previousEnd;
 
             $previousReceivable = $this->getAccountsReceivable();
-            $previousPayable = $this->getAccountsPayableArtists() + $this->getAccountsPayableBookers() + $this->getAccountsPayableExpenses();
+            $previousPayable = $this->getTotalAccountsPayable();
             $previousCashFlow = $this->getProjectedCashFlow();
 
             // Restaura período atual
@@ -341,10 +354,9 @@ class FinancialProjectionService
             $payableArtists = $this->getAccountsPayableArtists();
             $payableBookers = $this->getAccountsPayableBookers();
             $payableExpenses = $this->getAccountsPayableExpenses();
+            $totalPayable = $this->getTotalAccountsPayable();
             $cashFlow = $this->getProjectedCashFlow();
             $overdueAnalysis = $this->getOverdueAnalysis();
-
-            $totalPayable = $payableArtists + $payableBookers + $payableExpenses;
             $liquidityIndex = $this->metricsService->calculateLiquidityIndex($receivable, $totalPayable);
             $operationalMargin = $this->metricsService->calculateOperationalMargin($cashFlow, $receivable);
             $commitmentRate = $this->metricsService->calculateCommitmentRate($totalPayable, $receivable);
