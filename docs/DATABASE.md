@@ -1,7 +1,7 @@
 # Estrutura do Banco de Dados - EventosPro
 
-**Última Atualização:** 2025-10-07
-**Versão:** 1.0.0
+**Última Atualização:** 2025-10-26
+**Versão:** 1.1.0
 **DBMS:** MySQL 8.0.32
 
 ---
@@ -25,6 +25,7 @@ O sistema EventosPro gerencia eventos artísticos (Gigs), com controle financeir
 - Pagamentos parcelados
 - Despesas de eventos
 - Acertos financeiros (Settlements)
+- Custos fixos operacionais da agência
 
 ### Entidades Principais
 - **Gig** - Evento artístico (entidade central)
@@ -80,6 +81,19 @@ O sistema EventosPro gerencia eventos artísticos (Gigs), com controle financeir
 └──────┬──────┘
        │ 1:1 (opcional)
        └─────────► Booker
+
+┌─────────────┐
+│ CostCenter  │
+│  (centro    │
+│   custo)    │──┐
+└─────────────┘  │
+                 │ 1:N
+                 ▼
+        ┌────────────────────┐
+        │ AgencyFixedCost    │
+        │ (custos fixos      │
+        │  operacionais)     │
+        └────────────────────┘
 ```
 
 ---
@@ -128,6 +142,7 @@ O sistema EventosPro gerencia eventos artísticos (Gigs), com controle financeir
 - INDEX (`payment_status`)
 - INDEX (`artist_payment_status`)
 - INDEX (`booker_payment_status`)
+- INDEX `idx_gigs_date_payment_status` (`gig_date`, `artist_payment_status`) - Otimiza relatórios financeiros
 
 **Foreign Keys**:
 - `artist_id` → `artists.id` (ON DELETE CASCADE)
@@ -183,6 +198,7 @@ public function tags(): MorphToMany           // tags (polimórfico)
 - INDEX (`due_date`)
 - INDEX (`confirmed_at`)
 - INDEX (`confirmed_by`)
+- INDEX `idx_payments_due_date_confirmed` (`due_date`, `confirmed_at`) - Otimiza relatório de vencimentos
 
 **Foreign Keys**:
 - `gig_id` → `gigs.id` (ON DELETE CASCADE)
@@ -233,6 +249,7 @@ public function confirmer(): BelongsTo        // users
 - INDEX (`is_confirmed`)
 - INDEX (`is_invoice`)
 - INDEX (`confirmed_by`)
+- INDEX `idx_gig_costs_gig_confirmed` (`gig_id`, `is_confirmed`) - Otimiza cálculos financeiros
 
 **Foreign Keys**:
 - `gig_id` → `gigs.id` (ON DELETE CASCADE)
@@ -362,9 +379,10 @@ public function user(): HasOne                // users
 **Relacionamentos**:
 ```php
 public function gigCosts(): HasMany           // gig_costs
+public function agencyFixedCosts(): HasMany   // agency_fixed_costs
 ```
 
-**Exemplos**: Transporte, Hospedagem, Alimentação, Equipamentos, etc.
+**Exemplos**: Transporte, Hospedagem, Alimentação, Equipamentos, Administrativo, Operacional, Marketing, etc.
 
 ---
 
@@ -425,6 +443,61 @@ public function gigCosts(): HasMany           // gig_costs
 **Foreign Keys**: `tag_id` → `tags.id` (ON DELETE CASCADE)
 
 **Uso**: Permite adicionar tags a qualquer modelo (Gig, Artist, etc.)
+
+---
+
+### 11. **agency_fixed_costs** (Custos Fixos Operacionais da Agência)
+
+**Descrição**: Custos fixos mensais da agência, utilizados em projeções financeiras para calcular despesas operacionais proporcionais ao período dos eventos.
+
+**Estrutura** (10 colunas):
+
+| Coluna | Tipo | Nullable | Default | Descrição |
+|--------|------|----------|---------|-----------|
+| `id` | bigint unsigned | NOT NULL | AUTO | ID único |
+| `cost_center_id` | bigint unsigned | NULL | - | FK para cost_centers |
+| `description` | varchar(255) | NOT NULL | - | Descrição do custo fixo |
+| `monthly_value` | decimal(15,2) | NOT NULL | - | Valor mensal em BRL |
+| `reference_month` | date | NOT NULL | - | Mês de referência (YYYY-MM-01) |
+| `notes` | text | NULL | - | Observações adicionais |
+| `is_active` | tinyint(1) | NOT NULL | 1 | Se o custo está ativo |
+| `created_at` | timestamp | NULL | - | Data criação |
+| `updated_at` | timestamp | NULL | - | Data atualização |
+| `deleted_at` | timestamp | NULL | - | Soft delete |
+
+**Índices**:
+- PRIMARY KEY (`id`)
+- INDEX (`reference_month`)
+- INDEX (`is_active`)
+- INDEX (`reference_month`, `is_active`) - Índice composto para otimização de queries
+
+**Foreign Keys**:
+- `cost_center_id` → `cost_centers.id` (ON DELETE SET NULL)
+
+**Relacionamentos Eloquent**:
+```php
+public function costCenter(): BelongsTo       // cost_centers
+```
+
+**Regras de Negócio**:
+- Valores são sempre em BRL (moeda padrão)
+- `reference_month` deve ser o primeiro dia do mês (formato: YYYY-MM-01)
+- Apenas custos com `is_active=true` são considerados em projeções financeiras
+- Custos são proporcionais ao período de tempo dos eventos analisados
+- **Histórico**: Até 2025-10-25, utilizava enum `category`. Refatorado para usar FK `cost_center_id`
+
+**Uso em Projeções Financeiras**:
+- **Eventos Passados**: Custos proporcionais ao período desde o evento mais antigo até hoje
+- **Eventos Futuros**: Custos proporcionais ao período de hoje até o evento mais distante
+- Cálculo: `monthly_value × número_de_meses_no_período`
+
+**Exemplos de Custos Fixos**:
+- Aluguel de escritório
+- Salários fixos
+- Despesas com software/licenças
+- Internet e telefonia
+- Contabilidade
+- Segurança
 
 ---
 
@@ -522,7 +595,26 @@ public function gigCosts(): HasMany           // gig_costs
 8. settlements (depende: gigs)
 9. tags
 10. taggables (depende: tags)
+11. agency_fixed_costs (depende: cost_centers)
 ```
+
+### Migrações Recentes (2025)
+
+**2025-10-16**: `add_performance_indexes_to_tables.php`
+- Adiciona índices compostos para otimização de queries:
+  - `gigs`: `idx_gigs_date_payment_status` em `(gig_date, artist_payment_status)`
+  - `payments`: `idx_payments_due_date_confirmed` em `(due_date, confirmed_at)`
+  - `gig_costs`: `idx_gig_costs_gig_confirmed` em `(gig_id, is_confirmed)`
+
+**2025-10-22**: `create_agency_fixed_costs_table.php`
+- Cria tabela `agency_fixed_costs` para custos fixos operacionais da agência
+- Estrutura inicial com enum `category` (6 opções)
+- Índices em `reference_month`, `is_active`, e índice composto
+
+**2025-10-25**: `refactor_agency_fixed_costs_table.php`
+- Refatora `agency_fixed_costs` substituindo enum `category` por FK `cost_center_id`
+- Migração de dados: mapeamento de categorias antigas para cost_centers
+- Remove coluna `category` após migração de dados
 
 ### Alterações Importantes
 
