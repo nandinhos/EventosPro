@@ -30,6 +30,9 @@ class FinancialProjectionServiceTest extends TestCase
         parent::setUp();
         $this->gigCalculator = $this->app->make(GigFinancialCalculatorService::class);
         $this->projectionService = $this->app->make(FinancialProjectionService::class);
+
+        // Limpar cache antes de cada teste para evitar interferência
+        Cache::flush();
     }
 
     #[Test]

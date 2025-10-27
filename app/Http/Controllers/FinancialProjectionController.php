@@ -283,46 +283,49 @@ class FinancialProjectionController extends Controller
      */
     private function calculateTotalGigExpenses(): array
     {
-        // Despesas pendentes (não confirmadas)
-        $pendingExpenses = \App\Models\GigCost::query()
-            ->where('is_confirmed', false)
-            ->whereHas('gig') // Garante que apenas custos de gigs não-deletados sejam incluídos
-            ->with('gig:id,gig_date')
-            ->get();
+        // Cache por 30 minutos (1800 segundos) - despesas mudam com frequência moderada
+        return Cache::remember('projections:gig_expenses', 1800, function () {
+            // Despesas pendentes (não confirmadas)
+            $pendingExpenses = \App\Models\GigCost::query()
+                ->where('is_confirmed', false)
+                ->whereHas('gig') // Garante que apenas custos de gigs não-deletados sejam incluídos
+                ->with('gig:id,gig_date', 'costCenter:id,name')
+                ->get();
 
-        // Despesas confirmadas
-        $confirmedExpenses = \App\Models\GigCost::query()
-            ->where('is_confirmed', true)
-            ->whereHas('gig')
-            ->with('gig:id,gig_date')
-            ->get();
+            // Despesas confirmadas
+            $confirmedExpenses = \App\Models\GigCost::query()
+                ->where('is_confirmed', true)
+                ->whereHas('gig')
+                ->with('gig:id,gig_date', 'costCenter:id,name')
+                ->get();
 
-        $totalPending = $pendingExpenses->sum('value_brl');
-        $totalConfirmed = $confirmedExpenses->sum('value_brl');
+            $totalPending = $pendingExpenses->sum('value_brl');
+            $totalConfirmed = $confirmedExpenses->sum('value_brl');
 
-        $mapExpenses = function ($cost) {
+            $mapExpenses = function ($cost) {
+                return [
+                    'gig_id' => $cost->gig_id,
+                    'gig_date_raw' => $cost->gig ? $cost->gig->gig_date : null,
+                    'gig_date' => $cost->gig ? $cost->gig->gig_date->isoFormat('L') : 'N/A',
+                    'description' => $cost->description,
+                    'value_brl' => $cost->value_brl,
+                    'is_confirmed' => $cost->is_confirmed,
+                ];
+            };
+
+            $pending = $pendingExpenses->map($mapExpenses);
+            $confirmed = $confirmedExpenses->map($mapExpenses);
+
             return [
-                'gig_id' => $cost->gig_id,
-                'gig_date_raw' => $cost->gig ? $cost->gig->gig_date : null,
-                'gig_date' => $cost->gig ? $cost->gig->gig_date->isoFormat('L') : 'N/A',
-                'description' => $cost->description,
-                'value_brl' => $cost->value_brl,
-                'is_confirmed' => $cost->is_confirmed,
+                'total_expenses' => $totalPending + $totalConfirmed,
+                'total_pending' => $totalPending,
+                'total_confirmed' => $totalConfirmed,
+                'pending_count' => $pendingExpenses->count(),
+                'confirmed_count' => $confirmedExpenses->count(),
+                'pending' => $pending,
+                'confirmed' => $confirmed,
             ];
-        };
-
-        $pending = $pendingExpenses->map($mapExpenses);
-        $confirmed = $confirmedExpenses->map($mapExpenses);
-
-        return [
-            'total_expenses' => $totalPending + $totalConfirmed,
-            'total_pending' => $totalPending,
-            'total_confirmed' => $totalConfirmed,
-            'pending_count' => $pendingExpenses->count(),
-            'confirmed_count' => $confirmedExpenses->count(),
-            'pending' => $pending,
-            'confirmed' => $confirmed,
-        ];
+        });
     }
 
     /**
@@ -332,9 +335,13 @@ class FinancialProjectionController extends Controller
     {
         // Cache por 1 hora (3600 segundos) para evitar cálculos pesados repetidos
         return Cache::remember('projections:strategic_balance', 3600, function () {
-            // 1. Obter Gigs passadas e futuras
-            $pastGigs = Gig::where('gig_date', '<', today())->get();
-            $futureGigs = Gig::where('gig_date', '>=', today())->get();
+            // 1. Obter Gigs passadas e futuras com eager loading para evitar N+1
+            $pastGigs = Gig::where('gig_date', '<', today())
+                ->with(['payments', 'settlement', 'gigCosts', 'artist:id,name', 'booker:id,name'])
+                ->get();
+            $futureGigs = Gig::where('gig_date', '>=', today())
+                ->with(['payments', 'settlement', 'gigCosts', 'artist:id,name', 'booker:id,name'])
+                ->get();
 
             // Obter valor mensal de custos operacionais
             $monthlyFixedCost = AgencyFixedCost::where('is_active', true)->sum('monthly_value');
@@ -392,6 +399,7 @@ class FinancialProjectionController extends Controller
     {
         Cache::forget('projections:strategic_balance');
         Cache::forget('projections:global_accounts_receivable');
+        Cache::forget('projections:gig_expenses');
     }
 
     /**
