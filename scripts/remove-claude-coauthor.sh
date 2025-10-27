@@ -51,8 +51,8 @@ echo ""
 
 # Usar filter-branch para reescrever mensagens de commit
 git filter-branch --msg-filter '
-    sed -e "/🤖 Generated with \[Claude Code\]/d" \
-        -e "/Co-Authored-By: Claude <noreply@anthropic.com>/d" \
+    sed -e "/🤖 Generated with \\[Claude Code\\]/d" \
+        -e "/Co-Authored-By: Claude/d" \
         -e "/^$/N;/^\n$/D"
 ' --tag-name-filter cat -- --all
 
