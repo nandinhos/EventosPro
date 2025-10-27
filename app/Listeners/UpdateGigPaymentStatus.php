@@ -17,12 +17,12 @@ class UpdateGigPaymentStatus // implements ShouldQueue
             $gig = Gig::lockForUpdate()->find($gigId); // Busca e trava a gig
 
             if (! $gig) {
-                // Log::warning("Listener UpdateGigPaymentStatus: Gig ID {$gigId} não encontrada.");
+                Log::warning("Listener UpdateGigPaymentStatus: Gig ID {$gigId} não encontrada.");
 
                 return;
             }
 
-            // Log::info("Listener UpdateGigPaymentStatus processando para Gig ID: {$gigId} após salvar/confirmar/deletar pagamento.");
+            Log::info("Listener UpdateGigPaymentStatus processando para Gig ID: {$gigId} após salvar/confirmar/deletar pagamento.");
 
             // 1. Buscar o valor total devido NA MOEDA ORIGINAL da Gig
             $totalDueOriginal = $gig->cache_value ?? 0;
@@ -67,10 +67,10 @@ class UpdateGigPaymentStatus // implements ShouldQueue
                 $gig->payment_status = $newPaymentStatus;
                 $gig->saveQuietly();
                 // Usa $gigCurrency no Log
-                // Log::info("Status de pagamento da Gig ID: {$gigId} atualizado de '{$originalStatus}' para '{$newPaymentStatus}'. Total Confirmado ({$gigCurrency}): {$totalReceivedOriginal}, Total Devido ({$gigCurrency}): {$totalDueOriginal}");
+                Log::info("Status de pagamento da Gig ID: {$gigId} atualizado de '{$originalStatus}' para '{$newPaymentStatus}'. Total Confirmado ({$gigCurrency}): {$totalReceivedOriginal}, Total Devido ({$gigCurrency}): {$totalDueOriginal}");
             } else {
                 // Usa $gigCurrency no Log
-                // Log::info("Status de pagamento da Gig ID: {$gigId} permaneceu '{$newPaymentStatus}'. Total Confirmado ({$gigCurrency}): {$totalReceivedOriginal}, Total Devido ({$gigCurrency}): {$totalDueOriginal}");
+                Log::info("Status de pagamento da Gig ID: {$gigId} permaneceu '{$newPaymentStatus}'. Total Confirmado ({$gigCurrency}): {$totalReceivedOriginal}, Total Devido ({$gigCurrency}): {$totalDueOriginal}");
             }
         });
     }

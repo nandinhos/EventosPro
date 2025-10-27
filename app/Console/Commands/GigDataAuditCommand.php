@@ -61,6 +61,15 @@ class GigDataAuditCommand extends Command
         }
 
         // Log temporário para debug
+        Log::info('GigDataAudit Debug - Parâmetros recebidos:', [
+            'scanOnly' => $scanOnly,
+            'scanOnly_type' => gettype($scanOnly),
+            'autoFix' => $autoFix,
+            'autoFix_type' => gettype($autoFix),
+            'batchSize' => $batchSize,
+            'fullDatabase' => $fullDatabase,
+            'environment' => $this->isRunningInConsole() ? 'console' : 'web',
+        ]);
 
         // Validar parâmetros
         if ($autoFix && $scanOnly) {
@@ -162,6 +171,14 @@ class GigDataAuditCommand extends Command
     protected function performAudit($batchSize, $dateFrom, $dateTo, $scanOnly, $autoFix)
     {
         // Log início da auditoria
+        Log::info('GigDataAudit: Iniciando auditoria completa', [
+            'batch_size' => $batchSize,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+            'scan_only' => $scanOnly,
+            'auto_fix' => $autoFix,
+            'memory_usage_start' => memory_get_usage(true),
+        ]);
 
         // Construir query base
         $query = Gig::with(['artist', 'booker', 'payments']);
@@ -233,6 +250,16 @@ class GigDataAuditCommand extends Command
             $batchTime = microtime(true) - $batchStartTime;
 
             // Log detalhado do lote
+            Log::info("GigDataAudit: Lote {$batchNumber} processado", [
+                'batch_number' => $batchNumber,
+                'batch_size' => count($gigs),
+                'batch_time_seconds' => round($batchTime, 3),
+                'batch_issues_found' => $batchIssuesFound,
+                'total_processed' => $processedCount,
+                'total_issues_so_far' => $this->stats['issues_found'],
+                'memory_usage' => memory_get_usage(true),
+                'memory_peak' => memory_get_peak_usage(true),
+            ]);
 
             // Liberar memória a cada lote
             unset($gigs);
@@ -248,6 +275,16 @@ class GigDataAuditCommand extends Command
         $totalTime = microtime(true) - $startTime;
 
         // Log final detalhado
+        Log::info('GigDataAudit: Processamento completo finalizado', [
+            'total_gigs_processed' => $processedCount,
+            'total_time_seconds' => round($totalTime, 3),
+            'average_rate_per_second' => round($processedCount / $totalTime, 2),
+            'total_issues_found' => $this->stats['issues_found'],
+            'total_corrections_applied' => $this->stats['corrections_applied'],
+            'total_errors' => $this->stats['errors'],
+            'memory_peak_usage' => memory_get_peak_usage(true),
+            'batch_count' => $batchNumber,
+        ]);
 
         $this->info('⚡ Processamento concluído em '.round($totalTime, 2).' segundos');
         $this->info('📈 Taxa média: '.round($processedCount / $totalTime, 1).' gigs/segundo');
@@ -289,6 +326,14 @@ class GigDataAuditCommand extends Command
                 'artist_id_null' => $distributionQuery->whereNull('artist_id')->count(),
             ];
 
+            Log::info('GigDataAudit: Distribuição de dados no banco', [
+                'payment_status_distribution' => $paymentStatusStats,
+                'contract_status_distribution' => $contractStatusStats,
+                'year_distribution' => $yearStats,
+                'potential_issues_count' => $potentialIssues,
+                'total_gigs_in_scope' => $this->stats['total_gigs'],
+            ]);
+
             // Mostrar resumo no console
             $this->info('📊 Distribuição dos dados:');
             $this->line('   Status de pagamento: '.json_encode($paymentStatusStats));
@@ -296,6 +341,9 @@ class GigDataAuditCommand extends Command
             $this->line('   Problemas potenciais detectados: '.array_sum($potentialIssues));
 
         } catch (Exception $e) {
+            Log::warning('GigDataAudit: Erro ao gerar estatísticas de distribuição', [
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 
@@ -527,6 +575,15 @@ class GigDataAuditCommand extends Command
                     $this->applyFix($gig, $issue);
                 } elseif (! $this->isRunningInConsole()) {
                     // Em ambiente web, logar a issue crítica que precisa de atenção manual
+                    Log::warning('GigDataAudit: Issue crítica detectada em ambiente web', [
+                        'gig_id' => $gig->id,
+                        'issue_type' => $issue['type'],
+                        'description' => $issue['description'],
+                        'field' => $issue['field'],
+                        'current_value' => $issue['current_value'] ?? null,
+                        'suggested_value' => $issue['suggested_value'] ?? null,
+                        'action_required' => 'Correção manual necessária',
+                    ]);
                 }
             }
         }
@@ -569,6 +626,15 @@ class GigDataAuditCommand extends Command
 
             $message = "✅ Correção aplicada: Gig {$gig->id} - {$field} = {$newValue}";
             $this->info($message);
+
+            Log::info('GigDataAudit: Correção aplicada', [
+                'gig_id' => $gig->id,
+                'field' => $field,
+                'old_value' => $oldValue,
+                'new_value' => $newValue,
+                'issue_type' => $issue['type'],
+                'environment' => $this->isRunningInConsole() ? 'console' : 'web',
+            ]);
 
         } catch (Exception $e) {
             DB::rollBack();
@@ -653,6 +719,11 @@ class GigDataAuditCommand extends Command
         $this->info('✅ Auditoria concluída!');
 
         // Log final do resumo
+        Log::info('GigDataAudit: Auditoria concluída', [
+            'stats' => $this->stats,
+            'environment' => $this->isRunningInConsole() ? 'console' : 'web',
+            'total_issues_types' => count($issuesByType ?? []),
+        ]);
     }
 
     protected function getSeverityEmoji($severity): string

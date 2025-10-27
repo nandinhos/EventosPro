@@ -26,7 +26,7 @@ class GigFinancialCalculatorService
 
         if ($contractBrlDetails['value'] === null) {
             // Se não foi possível converter, não podemos calcular com segurança. Retorna 0.
-            // Log::warning("[GigFinancialCalculatorService] Não foi possível calcular o Cachê Bruto para Gig ID {$gig->id} por falta de taxa de câmbio.");
+            Log::warning("[GigFinancialCalculatorService] Não foi possível calcular o Cachê Bruto para Gig ID {$gig->id} por falta de taxa de câmbio.");
 
             return 0.0;
         }
@@ -37,7 +37,7 @@ class GigFinancialCalculatorService
 
         $grossCashBrl = $contractValueBrl - $totalConfirmedExpensesBrl;
 
-        // Log::debug("[GigFinancialCalculatorService] Calculando Cachê Bruto para Gig ID {$gig->id}: Contrato BRL {$contractValueBrl} - Total Desp. BRL {$totalConfirmedExpensesBrl} = {$grossCashBrl}");
+        Log::debug("[GigFinancialCalculatorService] Calculando Cachê Bruto para Gig ID {$gig->id}: Contrato BRL {$contractValueBrl} - Total Desp. BRL {$totalConfirmedExpensesBrl} = {$grossCashBrl}");
 
         return (float) max(0, $grossCashBrl);
     }
@@ -57,14 +57,14 @@ class GigFinancialCalculatorService
         if (strtoupper($gig->agency_commission_type ?? '') === 'PERCENT') {
             $rate = (float) ($gig->agency_commission_rate ?? 20.0);
             $commission = ($grossCashBrl * $rate) / 100;
-            // Log::debug("[GigFinancialCalculatorService] Comissão Agência (Percentual) para Gig ID {$gig->id}: {$rate}% de Cachê Bruto BRL {$grossCashBrl} = {$commission}");
+            Log::debug("[GigFinancialCalculatorService] Comissão Agência (Percentual) para Gig ID {$gig->id}: {$rate}% de Cachê Bruto BRL {$grossCashBrl} = {$commission}");
         } elseif (strtoupper($gig->agency_commission_type ?? '') === 'FIXED') {
             $commission = (float) ($gig->agency_commission_value ?? 0.0);
-            // Log::debug("[GigFinancialCalculatorService] Comissão Agência (Fixa) para Gig ID {$gig->id}: {$commission}");
+            Log::debug("[GigFinancialCalculatorService] Comissão Agência (Fixa) para Gig ID {$gig->id}: {$commission}");
         } else {
             $rate = (float) ($gig->agency_commission_rate ?? 20.0);
             $commission = ($grossCashBrl * $rate) / 100;
-            // Log::debug("[GigFinancialCalculatorService] Comissão Agência (Fallback Percentual) para Gig ID {$gig->id}: {$rate}% de Cachê Bruto BRL {$grossCashBrl} = {$commission}");
+            Log::debug("[GigFinancialCalculatorService] Comissão Agência (Fallback Percentual) para Gig ID {$gig->id}: {$rate}% de Cachê Bruto BRL {$grossCashBrl} = {$commission}");
         }
 
         return (float) max(0, $commission);
@@ -83,7 +83,7 @@ class GigFinancialCalculatorService
         $agencyGrossCommissionBrl = $this->calculateAgencyGrossCommissionBrl($gig);
         $artistNetPayoutBrl = $grossCashBrl - $agencyGrossCommissionBrl;
 
-        // Log::debug("[GigFinancialCalculatorService] Cachê Líquido Artista (antes reembolso) para Gig ID {$gig->id}: Cachê Bruto BRL {$grossCashBrl} - Com. Agência BRL {$agencyGrossCommissionBrl} = {$artistNetPayoutBrl}");
+        Log::debug("[GigFinancialCalculatorService] Cachê Líquido Artista (antes reembolso) para Gig ID {$gig->id}: Cachê Bruto BRL {$grossCashBrl} - Com. Agência BRL {$agencyGrossCommissionBrl} = {$artistNetPayoutBrl}");
 
         return (float) max(0, $artistNetPayoutBrl);
     }
@@ -106,17 +106,17 @@ class GigFinancialCalculatorService
         if (strtoupper($gig->booker_commission_type ?? '') === 'PERCENT') {
             $rate = (float) ($gig->booker_commission_rate ?? 5.0);
             $commission = ($grossCashBrl * $rate) / 100;
-            // Log::debug("[GigFinancialCalculatorService] Comissão Booker (Percentual) para Gig ID {$gig->id}: {$rate}% de Cachê Bruto BRL {$grossCashBrl} = {$commission}");
+            Log::debug("[GigFinancialCalculatorService] Comissão Booker (Percentual) para Gig ID {$gig->id}: {$rate}% de Cachê Bruto BRL {$grossCashBrl} = {$commission}");
         } elseif (strtoupper($gig->booker_commission_type ?? '') === 'FIXED') {
             $commission = (float) ($gig->booker_commission_value ?? 0.0);
-            // Log::debug("[GigFinancialCalculatorService] Comissão Booker (Fixa) para Gig ID {$gig->id}: {$commission}");
+            Log::debug("[GigFinancialCalculatorService] Comissão Booker (Fixa) para Gig ID {$gig->id}: {$commission}");
         } else {
             if (isset($gig->booker_commission_rate) && is_numeric($gig->booker_commission_rate)) {
                 $rate = (float) $gig->booker_commission_rate;
                 $commission = ($grossCashBrl * $rate) / 100;
-                // Log::debug("[GigFinancialCalculatorService] Comissão Booker (Fallback Percentual) para Gig ID {$gig->id}: {$rate}% de Cachê Bruto BRL {$grossCashBrl} = {$commission}");
+                Log::debug("[GigFinancialCalculatorService] Comissão Booker (Fallback Percentual) para Gig ID {$gig->id}: {$rate}% de Cachê Bruto BRL {$grossCashBrl} = {$commission}");
             } else {
-                // Log::warning("[GigFinancialCalculatorService] Tipo de comissão do Booker inválido para Gig ID {$gig->id}, resultando em comissão zero.");
+                Log::warning("[GigFinancialCalculatorService] Tipo de comissão do Booker inválido para Gig ID {$gig->id}, resultando em comissão zero.");
             }
         }
 
@@ -136,7 +136,7 @@ class GigFinancialCalculatorService
         $bookerCommissionBrl = $this->calculateBookerCommissionBrl($gig);
         $agencyNetCommissionBrl = $agencyGrossCommissionBrl - $bookerCommissionBrl;
 
-        // Log::debug("[GigFinancialCalculatorService] Comissão Líquida Agência para Gig ID {$gig->id}: Com. Ag. Bruta BRL {$agencyGrossCommissionBrl} - Com. Booker BRL {$bookerCommissionBrl} = {$agencyNetCommissionBrl}");
+        Log::debug("[GigFinancialCalculatorService] Comissão Líquida Agência para Gig ID {$gig->id}: Com. Ag. Bruta BRL {$agencyGrossCommissionBrl} - Com. Booker BRL {$bookerCommissionBrl} = {$agencyNetCommissionBrl}");
 
         return (float) $agencyNetCommissionBrl;
     }
@@ -148,7 +148,7 @@ class GigFinancialCalculatorService
     {
         $gig->loadMissing('gigCosts');
         $total = $gig->gigCosts->where('is_confirmed', true)->sum('value_brl');
-        // Log::debug("[GigFinancialCalculatorService] Total TODAS Despesas Confirmadas BRL para Gig ID {$gig->id}: {$total}");
+        Log::debug("[GigFinancialCalculatorService] Total TODAS Despesas Confirmadas BRL para Gig ID {$gig->id}: {$total}");
 
         return (float) $total;
     }
@@ -163,7 +163,7 @@ class GigFinancialCalculatorService
             ->where('is_confirmed', true)
             ->where('is_invoice', true)
             ->sum('value_brl');
-        // Log::debug("[GigFinancialCalculatorService] Total Despesas Reembolsáveis (NF Artista) BRL para Gig ID {$gig->id}: {$total}");
+        Log::debug("[GigFinancialCalculatorService] Total Despesas Reembolsáveis (NF Artista) BRL para Gig ID {$gig->id}: {$total}");
 
         return (float) $total;
     }
@@ -178,7 +178,7 @@ class GigFinancialCalculatorService
         $reimbursableExpenses = $this->calculateTotalReimbursableExpensesBrl($gig);
 
         $invoiceValue = $artistNetPayoutBeforeReimbursement + $reimbursableExpenses;
-        // Log::debug("[GigFinancialCalculatorService] Valor NF Artista para Gig ID {$gig->id}: Payout Artista (antes reembolso) BRL {$artistNetPayoutBeforeReimbursement} + Desp. Reembolsáveis BRL {$reimbursableExpenses} = {$invoiceValue}");
+        Log::debug("[GigFinancialCalculatorService] Valor NF Artista para Gig ID {$gig->id}: Payout Artista (antes reembolso) BRL {$artistNetPayoutBeforeReimbursement} + Desp. Reembolsáveis BRL {$reimbursableExpenses} = {$invoiceValue}");
 
         return (float) $invoiceValue;
     }
@@ -197,7 +197,7 @@ class GigFinancialCalculatorService
             ->where('currency', $gig->currency) // Considera apenas pagamentos na moeda principal do contrato
             ->sum('received_value_actual'); // Soma o valor real recebido
 
-        // Log::debug("[GigFinancialCalculatorService] Calculando Total Recebido para Gig ID {$gig->id} (Moeda: {$gig->currency}): {$totalReceived}");
+        Log::debug("[GigFinancialCalculatorService] Calculando Total Recebido para Gig ID {$gig->id} (Moeda: {$gig->currency}): {$totalReceived}");
 
         return (float) $totalReceived;
     }
@@ -214,7 +214,7 @@ class GigFinancialCalculatorService
             ->whereNull('confirmed_at')
             ->sum('due_value');
 
-        // Log::debug("[GigFinancialCalculatorService] Calculando Total A RECEBER (parcelas pendentes) para Gig ID {$gig->id}: {$totalReceivable}");
+        Log::debug("[GigFinancialCalculatorService] Calculando Total A RECEBER (parcelas pendentes) para Gig ID {$gig->id}: {$totalReceivable}");
 
         return (float) $totalReceivable;
     }
@@ -230,7 +230,7 @@ class GigFinancialCalculatorService
 
         $pendingBalance = $contractValue - $totalReceived;
 
-        // Log::debug("[GigFinancialCalculatorService] Calculando Saldo Pendente para Gig ID {$gig->id} (Moeda: {$gig->currency}): Contrato {$contractValue} - Recebido {$totalReceived} = {$pendingBalance}");
+        Log::debug("[GigFinancialCalculatorService] Calculando Saldo Pendente para Gig ID {$gig->id} (Moeda: {$gig->currency}): Contrato {$contractValue} - Recebido {$totalReceived} = {$pendingBalance}");
 
         return (float) max(0, $pendingBalance); // O saldo pendente não deve ser negativo
     }

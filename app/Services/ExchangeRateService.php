@@ -39,7 +39,7 @@ class ExchangeRateService
 
         // Verifica se a moeda é suportada
         if (! in_array($currencyCode, self::SUPPORTED_CURRENCIES)) {
-            // Log::warning("Moeda não suportada: {$currencyCode}");
+            Log::warning("Moeda não suportada: {$currencyCode}");
 
             return null;
         }
@@ -50,7 +50,7 @@ class ExchangeRateService
             $cachedRate = Cache::get($cacheKey);
 
             if ($cachedRate !== null) {
-                // Log::debug("Taxa de câmbio obtida do cache para {$currencyCode}: {$cachedRate}");
+                Log::debug("Taxa de câmbio obtida do cache para {$currencyCode}: {$cachedRate}");
 
                 return (float) $cachedRate;
             }
@@ -65,7 +65,7 @@ class ExchangeRateService
                 Cache::put($cacheKey, $apiRate, self::CACHE_TTL);
             }
 
-            // Log::info("Taxa de câmbio obtida da API para {$currencyCode}: {$apiRate}");
+            Log::info("Taxa de câmbio obtida da API para {$currencyCode}: {$apiRate}");
 
             return $apiRate;
         }
@@ -73,12 +73,12 @@ class ExchangeRateService
         // Fallback para taxas padrão de configuração
         $defaultRate = $this->getDefaultRate($currencyCode);
         if ($defaultRate !== null) {
-            // Log::info("Usando taxa de câmbio padrão para {$currencyCode}: {$defaultRate}");
+            Log::info("Usando taxa de câmbio padrão para {$currencyCode}: {$defaultRate}");
 
             return $defaultRate;
         }
 
-        // Log::warning("Não foi possível obter taxa de câmbio para {$currencyCode} na data {$date->format('Y-m-d')}");
+        Log::warning("Não foi possível obter taxa de câmbio para {$currencyCode} na data {$date->format('Y-m-d')}");
 
         return null;
     }
@@ -116,7 +116,7 @@ class ExchangeRateService
                 }
             }
 
-            // Log::warning("Falha ao obter taxa do BCB para {$currencyCode}: ".$response->status());
+            Log::warning("Falha ao obter taxa do BCB para {$currencyCode}: ".$response->status());
 
         } catch (Exception $e) {
             Log::error("Erro ao consultar API do BCB para {$currencyCode}: ".$e->getMessage());
@@ -184,10 +184,10 @@ class ExchangeRateService
             $pattern = "exchange_rate_{$currencyCode}_*";
             // Laravel não tem flush por pattern, então precisamos implementar manualmente
             // Por simplicidade, vamos apenas logar
-            // Log::info("Cache de taxa de câmbio limpo para {$currencyCode}");
+            Log::info("Cache de taxa de câmbio limpo para {$currencyCode}");
         } else {
             Cache::flush();
-            // Log::info('Todo cache de taxas de câmbio foi limpo');
+            Log::info('Todo cache de taxas de câmbio foi limpo');
         }
     }
 

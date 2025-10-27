@@ -131,7 +131,11 @@ class LargeDatasetSeeder extends Seeder
 
             // Log do progresso
             if (($batch + 1) % 5 === 0) {
-                // Log temporariamente removido para evitar erro de sintaxe
+                Log::info('LargeDatasetSeeder: Lote '.($batch + 1)." de {$batches} criado", [
+                    'records_in_batch' => count($gigsData),
+                    'total_created' => $createdCount,
+                    'memory_usage' => memory_get_usage(true),
+                ]);
             }
 
             // Liberar memória
@@ -152,7 +156,10 @@ class LargeDatasetSeeder extends Seeder
         $this->command->info('🔍 Execute a auditoria para testar:');
         $this->command->info('   ./vendor/bin/sail artisan gig:audit-data --scan-only --full-database');
 
-        // Log temporariamente removido para evitar erro de sintaxe
+        Log::info('LargeDatasetSeeder: Seeder concluída', [
+            'total_records_created' => $createdCount,
+            'memory_peak' => memory_get_peak_usage(true),
+        ]);
     }
 
     private function cleanupPreviousData(): void

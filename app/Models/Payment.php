@@ -118,7 +118,7 @@ class Payment extends Model
         );
 
         if ($exchangeRate === null) {
-            // Log::warning("Taxa de câmbio não encontrada para moeda {$this->currency} na data {$this->due_date} para Payment ID {$this->id}.");
+            Log::warning("Taxa de câmbio não encontrada para moeda {$this->currency} na data {$this->due_date} para Payment ID {$this->id}.");
 
             return (float) $this->due_value;
         }

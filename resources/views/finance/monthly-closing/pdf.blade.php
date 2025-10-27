@@ -221,149 +221,95 @@
         </div>
     </div>
 
-    {{-- TABELA COMPARATIVA DE ARTISTAS (VERTICAL) --}}
+    {{-- TABELA COMPARATIVA DE ARTISTAS (HORIZONTAL) --}}
     @if(count($reportData['artist_comparison'] ?? []) > 0)
-    <div class="section-title" style="margin-left: 10px; margin-right: 10px;">COMPARATIVO DE PERFORMANCE - ARTISTAS</div>
-    <table style="margin-bottom: 20px; margin-left: 10px; margin-right: 10px; width: calc(100% - 20px);">
+    <div class="section-title">COMPARATIVO DE PERFORMANCE - ARTISTAS</div>
+    <table style="margin-bottom: 20px;">
         <thead>
             <tr>
-                <th style="width: 30%; text-align: left; padding-left: 12px;">ARTISTA</th>
-                <th style="width: 15%; text-align: center;">VENDAS</th>
-                <th style="width: 20%; text-align: right; padding-right: 12px;">CACHÊ LÍQUIDO</th>
-                <th style="width: 20%; text-align: right; padding-right: 12px;">COMISSÃO AGÊNCIA</th>
-                <th style="width: 15%; text-align: right; padding-right: 12px;">COMISSÃO LÍQUIDA</th>
+                <th style="width: 20%; background: #d1d5db;">INDICADOR</th>
+                @foreach($reportData['artist_comparison'] as $artist)
+                    <th class="text-right" style="width: {{ 80 / count($reportData['artist_comparison']) }}%;">
+                        {{ strtoupper($artist['name']) }}
+                    </th>
+                @endforeach
             </tr>
         </thead>
         <tbody>
-            @php
-                $totalVendas = 0;
-                $totalCacheLiquido = 0;
-                $totalComissaoAgencia = 0;
-                $totalComissaoLiquida = 0;
-            @endphp
+            {{-- Linha: Vendas --}}
+            <tr>
+                <td class="font-bold" style="background: #f3f4f6;">Vendas</td>
+                @foreach($reportData['artist_comparison'] as $artist)
+                    <td class="text-right text-blue font-bold">{{ $artist['vendas'] }}</td>
+                @endforeach
+            </tr>
 
-            @foreach($reportData['artist_comparison'] as $artist)
-                @php
-                    $totalVendas += $artist['vendas'];
-                    $totalCacheLiquido += $artist['cache_liquido'];
-                    $totalComissaoAgencia += $artist['comissao_agencia'];
-                    $totalComissaoLiquida += $artist['comissao_liquida'];
-                @endphp
-                <tr>
-                    <td style="padding: 6px 6px 6px 12px;">
-                        <span class="avatar">{{ strtoupper(substr($artist['name'], 0, 2)) }}</span>
-                        <strong>{{ $artist['name'] }}</strong>
-                    </td>
-                    <td class="text-center" style="padding: 6px;">
-                        <span class="badge text-blue" style="background: #dbeafe; color: #1e40af; padding: 3px 8px;">
-                            {{ $artist['vendas'] }}
-                        </span>
-                    </td>
-                    <td class="text-right text-indigo font-bold" style="padding: 6px 12px 6px 6px;">
-                        R$ {{ number_format($artist['cache_liquido'], 2, ',', '.') }}
-                    </td>
-                    <td class="text-right text-purple font-bold" style="padding: 6px 12px 6px 6px;">
-                        R$ {{ number_format($artist['comissao_agencia'], 2, ',', '.') }}
-                    </td>
-                    <td class="text-right text-green font-bold" style="padding: 6px 12px 6px 6px;">
-                        R$ {{ number_format($artist['comissao_liquida'], 2, ',', '.') }}
-                    </td>
-                </tr>
-            @endforeach
+            {{-- Linha: Cachê Líquido --}}
+            <tr>
+                <td class="font-bold" style="background: #f3f4f6;">Cachê Líquido</td>
+                @foreach($reportData['artist_comparison'] as $artist)
+                    <td class="text-right text-indigo font-bold">R$ {{ number_format($artist['cache_liquido'], 2, ',', '.') }}</td>
+                @endforeach
+            </tr>
 
-            {{-- Linha de Total --}}
-            <tr style="background: #3b82f6; color: white; font-weight: bold;">
-                <td style="padding: 8px 6px 8px 12px;">TOTAL GERAL</td>
-                <td class="text-center" style="padding: 8px 6px;">{{ $totalVendas }}</td>
-                <td class="text-right" style="padding: 8px 12px 8px 6px;">R$ {{ number_format($totalCacheLiquido, 2, ',', '.') }}</td>
-                <td class="text-right" style="padding: 8px 12px 8px 6px;">R$ {{ number_format($totalComissaoAgencia, 2, ',', '.') }}</td>
-                <td class="text-right" style="padding: 8px 12px 8px 6px;">R$ {{ number_format($totalComissaoLiquida, 2, ',', '.') }}</td>
+            {{-- Linha: Comissão Agência --}}
+            <tr>
+                <td class="font-bold" style="background: #f3f4f6;">Comissão Agência</td>
+                @foreach($reportData['artist_comparison'] as $artist)
+                    <td class="text-right text-purple font-bold">R$ {{ number_format($artist['comissao_agencia'], 2, ',', '.') }}</td>
+                @endforeach
+            </tr>
+
+            {{-- Linha: Comissão Líquida --}}
+            <tr>
+                <td class="font-bold" style="background: #f3f4f6;">Comissão Líquida</td>
+                @foreach($reportData['artist_comparison'] as $artist)
+                    <td class="text-right text-green font-bold">R$ {{ number_format($artist['comissao_liquida'], 2, ',', '.') }}</td>
+                @endforeach
             </tr>
         </tbody>
     </table>
     @endif
 
     {{-- TABELA COMPARATIVA DE BOOKERS (HORIZONTAL) --}}
-    @if(count($reportData['booker_comparison_events'] ?? []) > 0)
-    <div class="section-title">EVENTOS REALIZADOS NO PERÍODO - BOOKERS</div>
+    @if(count($reportData['booker_comparison'] ?? []) > 0)
+    <div class="section-title">COMPARATIVO DE PERFORMANCE - BOOKERS</div>
     <table style="margin-bottom: 20px;">
         <thead>
             <tr>
                 <th style="width: 20%; background: #d1d5db;">INDICADOR</th>
-                @foreach($reportData['booker_comparison_events'] as $booker)
-                <th class="text-right" style="width: {{ 80 / count($reportData['booker_comparison_events']) }}%;">
-                {{ strtoupper($booker['name']) }}
-                </th>
+                @foreach($reportData['booker_comparison'] as $booker)
+                    <th class="text-right" style="width: {{ 80 / count($reportData['booker_comparison']) }}%;">
+                        {{ strtoupper($booker['name']) }}
+                    </th>
                 @endforeach
             </tr>
         </thead>
         <tbody>
-            {{-- Linha: Gigs --}}
+            {{-- Linha: Vendas --}}
             <tr>
-            <td class="font-bold" style="background: #f3f4f6;">Gigs</td>
-            @foreach($reportData['booker_comparison_events'] as $booker)
-            <td class="text-right text-blue font-bold">{{ $booker['gigs'] }}</td>
-            @endforeach
+                <td class="font-bold" style="background: #f3f4f6;">Vendas</td>
+                @foreach($reportData['booker_comparison'] as $booker)
+                    <td class="text-right text-blue font-bold">{{ $booker['vendas'] }}</td>
+                @endforeach
             </tr>
 
             {{-- Linha: Cachê Bruto --}}
             <tr>
                 <td class="font-bold" style="background: #f3f4f6;">Cachê Bruto</td>
-                @foreach($reportData['booker_comparison_events'] as $booker)
-                <td class="text-right text-indigo font-bold">R$ {{ number_format($booker['cache_bruto'], 2, ',', '.') }}</td>
+                @foreach($reportData['booker_comparison'] as $booker)
+                    <td class="text-right text-indigo font-bold">R$ {{ number_format($booker['cache_bruto'], 2, ',', '.') }}</td>
                 @endforeach
             </tr>
 
-            {{-- Linha: Comissão Booker --}}
+            {{-- Linha: Cachê Booker --}}
             <tr>
-                <td class="font-bold" style="background: #f3f4f6;">Comissão Booker</td>
-                @foreach($reportData['booker_comparison_events'] as $booker)
-                <td class="text-right text-purple font-bold">R$ {{ number_format($booker['cache_booker'], 2, ',', '.') }}</td>
+                <td class="font-bold" style="background: #f3f4f6;">Cachê Booker</td>
+                @foreach($reportData['booker_comparison'] as $booker)
+                    <td class="text-right text-purple font-bold">R$ {{ number_format($booker['cache_booker'], 2, ',', '.') }}</td>
                 @endforeach
             </tr>
         </tbody>
-    </table>
-    @endif
-
-    {{-- TABELA COMPARATIVA DE DESEMPENHO - BOOKERS (HORIZONTAL) --}}
-    @if(count($reportData['booker_comparison_sales'] ?? []) > 0)
-    <div class="section-title">COMPARATIVO DE DESEMPENHO - BOOKERS</div>
-    <table style="margin-bottom: 20px;">
-    <thead>
-    <tr>
-    <th style="width: 20%; background: #d1d5db;">INDICADOR</th>
-    @foreach($reportData['booker_comparison_sales'] as $booker)
-    <th class="text-right" style="width: {{ 80 / count($reportData['booker_comparison_sales']) }}%;">
-        {{ strtoupper($booker['name']) }}
-    </th>
-    @endforeach
-    </tr>
-    </thead>
-    <tbody>
-    {{-- Linha: Contratos Celebrados --}}
-    <tr>
-    <td class="font-bold" style="background: #f3f4f6;">Contratos Celebrados</td>
-    @foreach($reportData['booker_comparison_sales'] as $booker)
-    <td class="text-right text-blue font-bold">{{ $booker['contratos'] }}</td>
-    @endforeach
-    </tr>
-
-    {{-- Linha: Cachê Bruto --}}
-    <tr>
-    <td class="font-bold" style="background: #f3f4f6;">Cachê Bruto</td>
-    @foreach($reportData['booker_comparison_sales'] as $booker)
-    <td class="text-right text-indigo font-bold">R$ {{ number_format($booker['cache_bruto'], 2, ',', '.') }}</td>
-    @endforeach
-    </tr>
-
-    {{-- Linha: Comissão Booker --}}
-    <tr>
-    <td class="font-bold" style="background: #f3f4f6;">Comissão Booker</td>
-    @foreach($reportData['booker_comparison_sales'] as $booker)
-    <td class="text-right text-purple font-bold">R$ {{ number_format($booker['cache_booker'], 2, ',', '.') }}</td>
-    @endforeach
-    </tr>
-    </tbody>
     </table>
     @endif
 

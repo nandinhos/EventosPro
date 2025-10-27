@@ -1,229 +1,252 @@
 {{-- resources/views/projections/dashboard.blade.php --}}
-{{-- Versão refatorada com componentes reutilizáveis e layout minimalista --}}
 
 <x-app-layout>
-    {{-- Header --}}
+    {{-- Cabeçalho --}}
     <x-slot name="header">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-                <h2 class="font-semibold text-2xl text-gray-800 dark:text-white leading-tight">
-                    {{ __('Projeções Financeiras') }}
-                </h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Contas a receber:
-                    <span class="font-semibold text-red-600">R$ {{ number_format($accounts_receivable['total_overdue'] ?? 0, 2, ',', '.') }}</span> vencidas,
-                    <span class="font-semibold text-green-600">R$ {{ number_format($accounts_receivable['total_future'] ?? 0, 2, ',', '.') }}</span> futuras
-                </p>
-            </div>
-
-            @php
-                $riskColors = [
-                    'low' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                    'medium' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                    'high' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-                ];
-                $riskLabels = [
-                    'low' => 'Baixo Risco',
-                    'medium' => 'Risco Moderado',
-                    'high' => 'Alto Risco',
-                ];
-            @endphp
-            <span class="px-4 py-2 rounded-full text-sm font-semibold {{ $riskColors[$global_metrics['risk_level']] }}">
-                {{ $riskLabels[$global_metrics['risk_level']] }}
-            </span>
-        </div>
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-white leading-tight">
+            {{ __('Projeções Financeiras') }}
+        </h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Visualize as previsões de receitas e despesas para os próximos períodos</p>
     </x-slot>
 
-    <div class="py-6">
-        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-
-            {{-- TABS NAVIGATION --}}
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
-                <div class="border-b border-gray-200 dark:border-gray-700">
-                    <nav class="flex -mb-px" aria-label="Tabs">
-                        <a href="{{ route('projections.index') }}"
-                           class="{{ !$period_metrics ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }} w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm transition-colors">
-                            <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                            Métricas Gerais
-                        </a>
-                        <a href="{{ route('projections.index', ['start_date' => request('start_date', now()->startOfMonth()->format('Y-m-d')), 'end_date' => request('end_date', now()->endOfMonth()->format('Y-m-d'))]) }}"
-                           class="{{ $period_metrics ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }} w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm transition-colors">
-                            <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            Por Período
-                        </a>
-                    </nav>
+    {{-- Seção de Filtros --}}
+    <div class="mb-4 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md">
+        <form action="{{ route('projections.index') }}" method="GET">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                {{-- Filtro de Período --}}
+                <x-form.select
+                    id="period"
+                    label="Período"
+                    :selected="$period"
+                    :options="[
+                        '30_days' => 'Próximos 30 dias',
+                        '60_days' => 'Próximos 60 dias',
+                        '90_days' => 'Próximos 90 dias',
+                        'next_semester' => 'Próximo Semestre',
+                        'next_year' => 'Próximo Ano',
+                    ]"
+                />
+                {{-- Botões --}}
+                <div class="flex items-end justify-end space-x-2">
+                    <a href="{{ route('projections.index') }}" class="bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 px-3 py-2 rounded-md text-sm">
+                        Limpar
+                    </a>
+                    <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-3 py-2 rounded-md text-sm">
+                        <i class="fas fa-filter mr-1"></i> Filtrar
+                    </button>
                 </div>
             </div>
+        </form>
+    </div>
 
-            {{-- ABA: MÉTRICAS GERAIS --}}
-            @if(!$period_metrics)
-            <div class="space-y-8">
-
-                {{-- SEÇÃO 1: MÉTRICAS ESTRATÉGICAS --}}
-                <section>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
-                        Métricas Estratégicas
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <x-metrics.strategic-metric
-                            title="Caixa Gerado (Eventos Passados)"
-                            :value="'R$ ' . number_format($strategic_balance['generated_cash'], 2, ',', '.')"
-                            subtitle="Balanço de operações concluídas"
-                            color="blue"
-                            tooltip="Total de receitas menos despesas de eventos já realizados. Representa o caixa efetivamente gerado."
-                            :icon="'<svg class=\'w-6 h-6 text-blue-600\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z\' clip-rule=\'evenodd\' /></svg>'" />
-
-                        <x-metrics.strategic-metric
-                            title="Caixa Comprometido (Eventos Futuros)"
-                            :value="'R$ ' . number_format($strategic_balance['committed_cash'], 2, ',', '.')"
-                            subtitle="Saldo líquido de contratos futuros"
-                            color="purple"
-                            tooltip="Receitas esperadas menos despesas comprometidas para eventos futuros. Indica o caixa que será gerado."
-                            :icon="'<svg class=\'w-6 h-6 text-purple-600\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z\' clip-rule=\'evenodd\' /></svg>'" />
-
-                        <x-metrics.strategic-metric
-                            :title="'Balanço Financeiro'"
-                            :value="'R$ ' . number_format($strategic_balance['financial_balance'], 2, ',', '.')"
-                            subtitle="Uso de caixa futuro no presente"
-                            :color="$strategic_balance['financial_balance'] >= 0 ? 'green' : 'red'"
-                            tooltip="Diferença entre o caixa gerado e o comprometido. Negativo indica que está usando caixa futuro para cobrir operações presentes."
-                            :icon="'<svg class=\'w-6 h-6\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z\' clip-rule=\'evenodd\' /></svg>'" />
-                    </div>
-                </section>
-
-                {{-- SEÇÃO 2: INDICADORES GERENCIAIS --}}
-                <section>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        Indicadores Gerenciais
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <x-metrics.kpi-card
-                            title="Índice de Liquidez Global"
-                            :value="number_format($global_metrics['liquidity_index'], 2, ',', '.')"
-                            subtitle="Recebível / Total a Pagar"
-                            :threshold="['good' => 1.2, 'warning' => 1.0]"
-                            thresholdType="min"
-                            tooltip="Indica a capacidade de pagar todas as obrigações com os recebíveis. Ideal: > 1.2" />
-
-                        <x-metrics.kpi-card
-                            title="Margem Operacional Global"
-                            :value="number_format($global_metrics['operational_margin'], 1, ',', '.') . '%'"
-                            subtitle="Fluxo / Recebível"
-                            :threshold="['good' => 20, 'warning' => 10]"
-                            thresholdType="min"
-                            tooltip="Percentual do recebível que resta após pagar todas as obrigações. Ideal: > 20%"
-                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z\' clip-rule=\'evenodd\' /></svg>'" />
-
-                        <x-metrics.kpi-card
-                            title="Comprometimento Global"
-                            :value="number_format($global_metrics['commitment_rate'], 1, ',', '.') . '%'"
-                            subtitle="Total a Pagar / Recebível"
-                            :threshold="['good' => 70, 'warning' => 85]"
-                            thresholdType="max"
-                            tooltip="Percentual do recebível que está comprometido com pagamentos. Ideal: < 70%"
-                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z\' clip-rule=\'evenodd\' /></svg>'" />
-                    </div>
-                </section>
-
-                {{-- SEÇÃO 3: VALORES TOTAIS --}}
-                <section>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Valores Globais
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {{-- Contas a Receber - Eventos Passados --}}
-                        <x-metrics.value-card
-                            title="Recebíveis de Eventos Passados"
-                            :value="'R$ ' . number_format($accounts_receivable['total_overdue'] ?? 0, 2, ',', '.')"
-                            :count="$accounts_receivable['overdue_count'] ?? 0"
-                            subtitle="pagamentos"
-                            color="red"
-                            :badge="($accounts_receivable['overdue_count'] ?? 0) > 0 ? 'Ação necessária' : null"
-                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z\' clip-rule=\'evenodd\' /></svg>'" />
-
-                        {{-- Contas a Receber - Eventos Futuros --}}
-                        <x-metrics.value-card
-                            title="Recebíveis de Eventos Futuros"
-                            :value="'R$ ' . number_format($accounts_receivable['total_future'] ?? 0, 2, ',', '.')"
-                            :count="$accounts_receivable['future_count'] ?? 0"
-                            subtitle="pagamentos"
-                            color="green"
-                            :badge="($accounts_receivable['future_count'] ?? 0) > 0 ? 'Próximos vencimentos' : null"
-                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z\' clip-rule=\'evenodd\' /></svg>'" />
-
-                        {{-- Contas a Pagar Artistas --}}
-                        <x-metrics.value-card
-                            title="Total Pagar Artistas"
-                            :value="'R$ ' . number_format($global_metrics['total_payable_artists'], 2, ',', '.')"
-                            subtitle="Cachês pendentes"
-                            color="red"
-                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path d=\'M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z\' /></svg>'" />
-
-                        {{-- Contas a Pagar Bookers --}}
-                        <x-metrics.value-card
-                            title="Total Pagar Bookers"
-                            :value="'R$ ' . number_format($global_metrics['total_payable_bookers'], 2, ',', '.')"
-                            subtitle="Comissões pendentes"
-                            color="yellow"
-                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z\' clip-rule=\'evenodd\' /></svg>'" />
-
-                        {{-- Despesas de Eventos (GigCost) --}}
-                        <x-metrics.value-card
-                            title="Total Despesas de Eventos"
-                            :value="'R$ ' . number_format($global_metrics['total_payable_expenses'], 2, ',', '.')"
-                            subtitle="Despesas relacionadas aos eventos"
-                            color="orange"
-                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z\' clip-rule=\'evenodd\' /></svg>'" />
-
-                        {{-- Custo Operacional Mensal (Fixo) --}}
-                        <x-metrics.value-card
-                            title="Custo Operacional Mensal"
-                            :value="'R$ ' . number_format($global_metrics['operational_cost_monthly'] ?? 0, 2, ',', '.')"
-                            :count="$global_metrics['operational_cost_count'] ?? 0"
-                            subtitle="itens de custo fixo"
-                            color="gray"
-                            :link="route('agency-costs.index')"
-                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path d=\'M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 1a1 1 0 000 2h8a1 1 0 100-2H5z\' /></svg>'" />
-                    </div>
-                </section>
-
-                {{-- SEÇÃO 4: DETALHAMENTO (TABELAS EXPANSÍVEIS) --}}
-                <section>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Detalhamento
-                    </h3>
-
-                    @include('projections.partials.receivables-tables', [
-                        'accounts_receivable' => $accounts_receivable,
-                        'artist_payment_details' => $artist_payment_details,
-                        'booker_payment_details' => $booker_payment_details ?? [],
-                    ])
-                </section>
-
-            </div>
-            @endif
-
-            {{-- ABA: POR PERÍODO --}}
-            @if($period_metrics)
-                @include('projections.partials.period-metrics', ['executive_summary' => $period_metrics['executive_summary'], 'period_metrics' => $period_metrics])
-            @endif
-
+    {{-- Cards de Indicadores com Cores --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-green-100 dark:bg-green-900/20 rounded-xl shadow-md p-4">
+            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Contas a Receber</h3>
+            <p class="text-lg font-semibold text-green-800 dark:text-green-300">R$ {{ number_format($accounts_receivable, 2, ',', '.') }}</p>
+        </div>
+        <div class="bg-red-100 dark:bg-red-900/20 rounded-xl shadow-md p-4">
+            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Contas a Pagar (Artistas)</h3>
+            <p class="text-lg font-semibold text-red-800 dark:text-red-300">R$ {{ number_format($accounts_payable_artists, 2, ',', '.') }}</p>
+        </div>
+        <div class="bg-yellow-100 dark:bg-yellow-900/20 rounded-xl shadow-md p-4">
+            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Contas a Pagar (Bookers)</h3>
+            <p class="text-lg font-semibold text-yellow-800 dark:text-yellow-300">R$ {{ number_format($accounts_payable_bookers, 2, ',', '.') }}</p>
+        </div>
+        <div class="bg-orange-100 dark:bg-orange-900/20 rounded-xl shadow-md p-4">
+            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Despesas Previstas</h3>
+            <p class="text-lg font-semibold text-orange-800 dark:text-orange-300">R$ {{ number_format($accounts_payable_expenses, 2, ',', '.') }}</p>
+        </div>
+        <div class="bg-blue-100 dark:bg-blue-900/20 rounded-xl shadow-md p-4 col-span-full">
+            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Fluxo de Caixa Projetado</h3>
+            <p class="text-xl font-bold {{ $projected_cash_flow >= 0 ? 'text-blue-800 dark:text-blue-300' : 'text-red-600 dark:text-red-400' }}">
+                R$ {{ number_format($projected_cash_flow, 2, ',', '.') }}
+            </p>
         </div>
     </div>
+
+    {{-- Tabela de Contas a Receber (Clientes) --}}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-md font-semibold text-gray-800 dark:text-white">Contas a Receber (Clientes)</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gig</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descrição Parcela</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data de Vencimento</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Valor (BRL)</th>
+                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    @forelse ($upcoming_client_payments as $payment)
+                        <tr class="{{ $payment->inferred_status == 'vencido' ? 'bg-red-50 dark:bg-red-900/20' : '' }}">
+                            <td class="px-3 py-1.5 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">
+                                <a href="{{ route('gigs.show', $payment->gig) }}" class="text-primary-600 hover:underline">
+                                    {{ $payment->gig->contract_number ? 'Contrato #' . $payment->gig->contract_number : 'Gig #'.$payment->gig_id }}
+                                </a>
+                                <span class="block text-xxs text-gray-500">{{ optional($payment->gig->artist)->name }}</span>
+                            </td>
+                            <td class="px-3 py-1.5 whitespace-normal text-gray-600 dark:text-gray-400">{{ $payment->description }}</td>
+                            <td class="px-3 py-1.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $payment->due_date->format('d/m/Y') }}</td>
+                            <td class="px-3 py-1.5 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">R$ {{ number_format($payment->due_value_brl, 2, ',', '.') }}</td>
+                            <td class="px-3 py-1.5 whitespace-nowrap text-center">
+                                <x-status-badge :status="$payment->inferred_status" type="payment" />
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                Nenhuma conta a receber encontrada para o período.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{-- Tabela de Próximos Pagamentos a Artistas --}}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-md font-semibold text-gray-800 dark:text-white">Próximos Pagamentos a Artistas</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gig (Contrato)</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data do Evento</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Artista</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Valor NF (BRL)</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    @forelse ($upcoming_artist_payments as $gig)
+                        <tr class="{{ $gig->currency != 'BRL' ? 'bg-blue-50 dark:bg-blue-900/10' : '' }}">
+                            <td class="px-3 py-1.5 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">
+                                <a href="{{ route('gigs.show', $gig) }}" class="text-primary-600 hover:underline">
+                                    {{ $gig->contract_number ?? 'Gig #'.$gig->id }}
+                                </a>
+                            </td>
+                            <td class="px-3 py-1.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $gig->gig_date->format('d/m/Y') }}</td>
+                            <td class="px-3 py-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">{{ $gig->artist->name ?? 'N/A' }}</td>
+                            <td class="px-3 py-1.5 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">
+                                R$ {{ number_format($gig->calculated_artist_invoice_value_brl, 2, ',', '.') }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                Nenhum pagamento a artistas previsto para o período selecionado.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{-- Tabela de Próximas Comissões (Bookers) --}}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-md font-semibold text-gray-800 dark:text-white">Próximas Comissões a Bookers</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gig (Contrato)</th> {{-- Mudança de Label --}}
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data do Evento</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Booker</th>
+                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Comissão (BRL)</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    @forelse ($upcoming_booker_payments as $gig)
+                        <tr class="{{ $gig->currency != 'BRL' ? 'bg-blue-50 dark:bg-blue-900/10' : '' }}">
+                            <td class="px-3 py-1.5 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">
+                                {{-- ***** ALTERAÇÃO AQUI ***** --}}
+                                <a href="{{ route('gigs.show', $gig) }}" class="text-primary-600 hover:underline">
+                                    {{ $gig->contract_number ?? 'Gig #'.$gig->id }}
+                                </a>
+                            </td>
+                            <td class="px-3 py-1.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $gig->gig_date->format('d/m/Y') }}</td>
+                            <td class="px-3 py-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">{{ $gig->booker->name ?? 'N/A' }}</td>
+                            <td class="px-3 py-1.5 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">
+                                R$ {{ number_format($gig->calculated_booker_commission_brl, 2, ',', '.') }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                Nenhuma comissão a bookers prevista para o período selecionado.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{-- Tabela de Despesas Previstas por Centro de Custo --}}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-md font-semibold text-gray-800 dark:text-white">Despesas Previstas por Centro de Custo</h3>
+        </div>
+        <div class="overflow-x-auto">
+            @forelse ($projected_expenses_by_cost_center as $cost_center_group)
+                <div class="mb-4 last:mb-0">
+                    <div class="px-4 py-2 bg-gray-100 dark:bg-gray-700/50 flex justify-between items-center">
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ $cost_center_group['cost_center_name'] }}</h4>
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+                            Total Previsto: R$ {{ number_format($cost_center_group['total_brl'], 2, ',', '.') }}
+                        </span>
+                    </div>
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                        <thead class="bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 uppercase">
+                            <tr>
+                                <th class="px-3 py-2 text-left">Gig / Artista</th> {{-- Mudança de Label --}}
+                                <th class="px-3 py-2 text-left">Descrição Despesa</th>
+                                <th class="px-3 py-2 text-left">Data Despesa</th>
+                                <th class="px-3 py-2 text-right">Valor (BRL)</th>
+                                <th class="px-3 py-2 text-center">Moeda Orig.</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            @foreach ($cost_center_group['expenses'] as $expense)
+                                <tr class="{{ $expense['currency'] != 'BRL' ? 'bg-blue-50 dark:bg-blue-900/10' : '' }}">
+                                    <td class="px-3 py-1.5 whitespace-nowrap">
+                                        {{-- ***** ALTERAÇÃO AQUI ***** --}}
+                                        <a href="{{ route('gigs.show', $expense['gig_id']) }}" class="font-medium text-primary-600 hover:underline">
+                                            {{ $expense['gig_contract_number'] }}
+                                        </a>
+                                        <span class="block text-xxs text-gray-500">{{ $expense['gig_artist_name'] }}</span>
+                                    </td>
+                                    <td class="px-3 py-1.5 whitespace-normal text-gray-600 dark:text-gray-400">{{ $expense['description'] }}</td>
+                                    <td class="px-3 py-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">
+                                        {{ $expense['expense_date_formatted'] }} {{-- Usar a data já formatada pelo service --}}
+                                    </td>
+                                    <td class="px-3 py-1.5 whitespace-nowrap text-right text-gray-700 dark:text-gray-300">
+                                        R$ {{ number_format($expense['value_brl'], 2, ',', '.') }}
+                                    </td>
+                                    <td class="px-3 py-1.5 whitespace-nowrap text-center text-gray-600 dark:text-gray-400">
+                                        {{ $expense['currency'] }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @empty
+                <div class="p-6 text-center text-gray-500 dark:text-gray-400">
+                    Nenhuma despesa prevista para o período selecionado.
+                </div>
+            @endforelse
+        </div>
+    </div>
+
 </x-app-layout>

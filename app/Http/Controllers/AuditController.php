@@ -439,7 +439,7 @@ class AuditController extends Controller
             // Observações baseadas na análise
             $observacao = $this->generateObservation($gig, $divergencia, $totalPago, $totalPendente, $valorContrato);
 
-            // Log::debug("[AuditController] Gig ID {$gig->id}: Contrato={$valorContrato}, Pago={$totalPago}, Pendente={$totalPendente}, Divergência={$divergencia}");
+            Log::debug("[AuditController] Gig ID {$gig->id}: Contrato={$valorContrato}, Pago={$totalPago}, Pendente={$totalPendente}, Divergência={$divergencia}");
 
             return [
                 'valor_contrato' => $valorContrato,
@@ -757,6 +757,13 @@ class AuditController extends Controller
             DB::commit();
 
             // Log da correção
+            Log::info('Correção aplicada via interface web', [
+                'gig_id' => $gig->id,
+                'field' => $field,
+                'old_value' => $oldValue,
+                'new_value' => $newValue,
+                'issue_type' => $issueType,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -938,6 +945,13 @@ class AuditController extends Controller
                     }
 
                     // Log da correção
+                    Log::info('Bulk fix applied', [
+                        'gig_id' => $gigId,
+                        'field' => $field,
+                        'old_value' => $oldValue,
+                        'new_value' => $newValue,
+                        'issue_type' => $issueType,
+                    ]);
 
                     $results[$index] = [
                         'success' => true,

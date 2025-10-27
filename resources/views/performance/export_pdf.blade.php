@@ -160,78 +160,19 @@
     <table class="summary-table">
         <thead>
             <tr>
-            <th>Booker</th>
-            <th class="text-right">Qtd. Gigs</th>
-            <th class="text-right">Total Contrato (BRL)</th>
-            <th class="text-right">Total Cachê Bruto (BRL)</th>
-                <th class="text-right">Total Comissão Booker (BRL)</th>
+                <th>Booker</th>
+                <th class="text-right">Qtd. Gigs</th>
+                <th class="text-right">Total Contrato (BRL)</th>
+                <th class="text-right">Total Cachê Bruto (BRL)</th>
             </tr>
         </thead>
         <tbody>
             @foreach($performanceData['tableData'] as $bookerData)
                 <tr>
-                <td>{{ $bookerData['booker_name'] }}</td>
-                <td class="text-right">{{ $bookerData['gigs_count'] }}</td>
-                <td class="text-right">R$ {{ number_format($bookerData['total_contract'], 2, ',', '.') }}</td>
-                <td class="text-right">R$ {{ number_format($bookerData['total_gross_cash'], 2, ',', '.') }}</td>
-                    <td class="text-right">R$ {{ number_format($bookerData['total_booker_commission'], 2, ',', '.') }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-        <tfoot>
-            <tr>
-            <td>TOTAL GERAL</td>
-            <td class="text-right">{{ $performanceData['summaryCards']['total_gigs'] }}</td>
-            <td class="text-right total-value">R$ {{ number_format($performanceData['summaryCards']['total_value'], 2, ',', '.') }}</td>
-            <td class="text-right total-gross-cash">R$ {{ number_format($performanceData['summaryCards']['total_gross_cash'], 2, ',', '.') }}</td>
-                <td class="text-right total-commission">R$ {{ number_format($performanceData['summaryCards']['total_commission'], 2, ',', '.') }}</td>
-            </tr>
-        </tfoot>
-    </table>
-
-    <!-- RESUMO SINTÉTICO POR MÊS -->
-    <h2 class="analytical-title">Resumo Sintético por Mês</h2>
-    <table class="summary-table">
-        <thead>
-            <tr>
-                <th>Mês</th>
-                <th class="text-right">Qtd. Vendas</th>
-                <th class="text-right">Valor Contrato (BRL)</th>
-                <th class="text-right">Cachê Bruto (BRL)</th>
-                <th class="text-right">Comissão Booker (BRL)</th>
-            </tr>
-        </thead>
-        <tbody>
-            @php
-                $monthlySummary = [];
-                foreach($performanceData['tableData'] as $bookerData) {
-                    foreach($bookerData['gigs_by_month'] as $monthData) {
-                        $monthKey = $monthData['month_name'];
-                        if (!isset($monthlySummary[$monthKey])) {
-                            $monthlySummary[$monthKey] = [
-                                'month_name' => $monthData['month_name'],
-                                'total_gigs' => 0,
-                                'total_contract' => 0,
-                                'total_gross_cash' => 0,
-                                'total_commission' => 0,
-                            ];
-                        }
-                        $monthlySummary[$monthKey]['total_gigs'] += $monthData['month_gigs_count'];
-                        $monthlySummary[$monthKey]['total_contract'] += $monthData['month_total_contract'];
-                        $monthlySummary[$monthKey]['total_gross_cash'] += $monthData['month_total_gross_cash'];
-                        $monthlySummary[$monthKey]['total_commission'] += $monthData['month_total_booker_commission'];
-                    }
-                }
-                // Ordenar por mês
-                ksort($monthlySummary);
-            @endphp
-            @foreach($monthlySummary as $monthData)
-                <tr>
-                    <td>{{ $monthData['month_name'] }}</td>
-                    <td class="text-right">{{ $monthData['total_gigs'] }}</td>
-                    <td class="text-right">R$ {{ number_format($monthData['total_contract'], 2, ',', '.') }}</td>
-                    <td class="text-right">R$ {{ number_format($monthData['total_gross_cash'], 2, ',', '.') }}</td>
-                    <td class="text-right">R$ {{ number_format($monthData['total_commission'], 2, ',', '.') }}</td>
+                    <td>{{ $bookerData['booker_name'] }}</td>
+                    <td class="text-right">{{ $bookerData['gigs_count'] }}</td>
+                    <td class="text-right">R$ {{ number_format($bookerData['total_contract'], 2, ',', '.') }}</td>
+                    <td class="text-right">R$ {{ number_format($bookerData['total_gross_cash'], 2, ',', '.') }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -241,7 +182,6 @@
                 <td class="text-right">{{ $performanceData['summaryCards']['total_gigs'] }}</td>
                 <td class="text-right total-value">R$ {{ number_format($performanceData['summaryCards']['total_value'], 2, ',', '.') }}</td>
                 <td class="text-right total-gross-cash">R$ {{ number_format($performanceData['summaryCards']['total_gross_cash'], 2, ',', '.') }}</td>
-                <td class="text-right total-commission">R$ {{ number_format($performanceData['summaryCards']['total_commission'], 2, ',', '.') }}</td>
             </tr>
         </tfoot>
     </table>

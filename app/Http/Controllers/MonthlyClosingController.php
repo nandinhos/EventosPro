@@ -243,72 +243,13 @@ class MonthlyClosingController extends Controller
         })->values()->toArray();
 
         // ============================
-        // TABELA COMPARATIVA DE BOOKERS (HORIZONTAL) - EVENTOS REALIZADOS
+        // TABELA COMPARATIVA DE BOOKERS (HORIZONTAL)
         // ============================
-        $bookerComparisonEvents = $bookerData->map(function ($data) {
+        $bookerComparison = $bookerData->map(function ($data) {
             return [
                 'name' => $data['booker']->name,
-                'gigs' => $data['vendas'],
+                'vendas' => $data['vendas'],
                 'cache_bruto' => $data['cache_liquido'], // Usando cache_liquido como cache_bruto
-                'cache_booker' => $data['comissao_booker'],
-            ];
-        })->values()->toArray();
-
-        // ============================
-        // TABELA COMPARATIVA DE BOOKERS (HORIZONTAL) - VENDAS/CONTRATOS
-        // ============================
-        // Query para vendas baseadas na data do contrato
-        $querySales = Gig::with(['artist', 'booker', 'payments', 'gigCosts.costCenter'])
-            ->whereBetween('contract_date', [$startDate, $endDate])
-            ->orderBy('contract_date');
-
-        if ($bookerId) {
-            $querySales->where('booker_id', $bookerId);
-        }
-
-        $gigsSales = $querySales->get();
-
-        $bookerDataSales = $gigsSales->groupBy('booker_id')->map(function ($bookerGigs) {
-            $booker = $bookerGigs->first()->booker;
-
-            if (! $booker) {
-                return null;
-            }
-
-            // Processar cada gig com os cálculos do service
-            $gigsDetailed = $bookerGigs->sortBy('contract_date')->map(function ($gig) {
-                return [
-                    'gig' => $gig,
-                    'gig_id' => $gig->id,
-                    'contract_number' => $gig->contract_number,
-                    'contract_date' => $gig->contract_date,
-                    'gig_date' => $gig->gig_date,
-                    'artist_name' => $gig->artist->name ?? 'N/A',
-                    'location' => $gig->location_event_details,
-                    'cache_liquido' => $this->gigCalculator->calculateGrossCashBrl($gig),
-                    'comissao_booker' => $this->gigCalculator->calculateBookerCommissionBrl($gig),
-                ];
-            });
-
-            // Totais do booker
-            $cacheLiquido = $gigsDetailed->sum('cache_liquido');
-            $comissaoBooker = $gigsDetailed->sum('comissao_booker');
-            $vendas = $gigsDetailed->count();
-
-            return [
-                'booker' => $booker,
-                'cache_liquido' => $cacheLiquido,
-                'comissao_booker' => $comissaoBooker,
-                'vendas' => $vendas,
-                'gigs_detailed' => $gigsDetailed,
-            ];
-        })->filter()->sortByDesc('cache_liquido');
-
-        $bookerComparisonSales = $bookerDataSales->map(function ($data) {
-            return [
-                'name' => $data['booker']->name,
-                'contratos' => $data['vendas'],
-                'cache_bruto' => $data['cache_liquido'],
                 'cache_booker' => $data['comissao_booker'],
             ];
         })->values()->toArray();
@@ -334,8 +275,7 @@ class MonthlyClosingController extends Controller
 
             // Tabelas Comparativas
             'artist_comparison' => $artistComparison,
-            'booker_comparison_events' => $bookerComparisonEvents,
-            'booker_comparison_sales' => $bookerComparisonSales,
+            'booker_comparison' => $bookerComparison,
 
             // Dados brutos
             'gigs' => $gigs,

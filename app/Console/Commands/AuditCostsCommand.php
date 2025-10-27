@@ -364,6 +364,10 @@ class AuditCostsCommand extends Command
             $suggestedValue = $issue['suggested_value'] ?? null;
 
             if (! $costId || ! $field || $suggestedValue === null) {
+                Log::warning('Cost issue sem dados suficientes para correção automática', [
+                    'gig_id' => $gig->id,
+                    'issue' => $issue,
+                ]);
                 DB::rollBack();
 
                 return;
@@ -397,6 +401,14 @@ class AuditCostsCommand extends Command
 
             $this->stats['corrections_applied']++;
             $this->info("✅ Corrigido: GigCost #{$costId} campo '{$fieldName}' de '{$oldValue}' para '{$suggestedValue}'");
+
+            Log::info('Cost correction applied', [
+                'gig_id' => $gig->id,
+                'cost_id' => $costId,
+                'field' => $fieldName,
+                'old_value' => $oldValue,
+                'new_value' => $suggestedValue,
+            ]);
 
         } catch (Exception $e) {
             DB::rollBack();

@@ -26,7 +26,7 @@ class StoreGigCostRequest extends FormRequest
      */
     public function rules(): array
     {
-        // Log::debug('[StoreGigCostRequest] Dados recebidos para validação: ', $this->all());
+        Log::debug('[StoreGigCostRequest] Dados recebidos para validação: ', $this->all());
 
         return [
             'cost_center_id' => ['required', 'integer', 'exists:cost_centers,id'],
@@ -77,6 +77,6 @@ class StoreGigCostRequest extends FormRequest
         //     'is_confirmed' => $this->boolean('is_confirmed'),
         //     'is_invoice' => $this->boolean('is_invoice'),
         // ]);
-        // Log::debug('[StoreGigCostRequest] Dados após prepareForValidation: ', $this->all());
+        Log::debug('[StoreGigCostRequest] Dados após prepareForValidation: ', $this->all());
     }
 }

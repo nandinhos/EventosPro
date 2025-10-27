@@ -428,6 +428,10 @@ class AuditBusinessRulesCommand extends Command
                     break;
 
                 default:
+                    Log::warning('Business rule issue requer atenção manual', [
+                        'gig_id' => $gig->id,
+                        'issue' => $issue,
+                    ]);
                     DB::rollBack();
 
                     return;

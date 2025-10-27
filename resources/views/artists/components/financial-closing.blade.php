@@ -182,7 +182,7 @@
                             <tr x-show="expandedGigs.includes({{ $gig->id }})" x-transition class="bg-gray-50 dark:bg-gray-700/30">
                                 <td colspan="8" class="px-2 py-4">
                                     {{-- Incluindo o componente de gestão de despesas completo --}}
-                                    <div x-data="costsManagers['costsManager{{ $gig->id }}']("
+                                    <div x-data="costsManager{{ $gig->id }}(
                                             {{ $gig->id }},
                                             {{ \Illuminate\Support\Js::from($costCenters->pluck('name', 'id')) }}
                                         )"
@@ -311,7 +311,7 @@
         return {
             selectedGigs: [],
             expandedGigs: [],
-            paymentDate: "{{ now()->format('Y-m-d') }}",
+            paymentDate: '{{ now()->format('Y-m-d') }}',
             allGigIds: @json($realizedGigs->pluck('id')->toArray()),
 
             toggleExpenses(gigId) {
@@ -405,12 +405,9 @@
         };
     }
 
-    // Objeto global para managers de custos
-    const costsManagers = {};
-
     // Função factory para criar um manager de custos único para cada gig
     @foreach ($realizedGigs as $gig)
-    costsManagers['costsManager{{ $gig->id }}'] = function(gigId, costCentersInitial) {
+    function costsManager{{ $gig->id }}(gigId, costCentersInitial) {
         return {
             loading: true,
             costsByCenter: [],
@@ -423,7 +420,7 @@
             costFormData: {},
 
             showConfirmModal: false,
-            confirmCostData: { id: null, description: '', date: "{{ today()->format('Y-m-d') }}" },
+            confirmCostData: { id: null, description: '', date: '{{ today()->format("Y-m-d") }}' },
 
             formatCurrency(value, withSymbol = true) {
                 const num = parseFloat(value);
@@ -540,7 +537,7 @@
                 this.showCostFormModal = false;
             }
         };
-    };
+    }
     @endforeach
 </script>
 @endpush

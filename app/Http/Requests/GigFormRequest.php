@@ -178,6 +178,6 @@ class GigFormRequest extends FormRequest
             $this->merge($toMerge);
         }
 
-        // Log::debug('GigFormRequest - Data after prepareForValidation:', $this->all());
+        Log::debug('GigFormRequest - Data after prepareForValidation:', $this->all());
     }
 }

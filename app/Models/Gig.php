@@ -131,11 +131,6 @@ class Gig extends Model
         return $this->hasMany(GigCost::class);
     }
 
-    public function costs(): HasMany
-    {
-        return $this->gigCosts();
-    }
-
     // --- Instância do Service ---
     // Para evitar múltiplas instanciações do service para o mesmo objeto Gig
     protected ?GigFinancialCalculatorService $financialCalculator = null;
@@ -174,7 +169,7 @@ class Gig extends Model
             ->first();
 
         if ($firstConfirmedPaymentWithRate) {
-            // Log::info("[Gig ID {$this->id}] Usando taxa de câmbio do pagamento confirmado {$firstConfirmedPaymentWithRate->id} para {$currencyCode}: {$firstConfirmedPaymentWithRate->exchange_rate}");
+            Log::info("[Gig ID {$this->id}] Usando taxa de câmbio do pagamento confirmado {$firstConfirmedPaymentWithRate->id} para {$currencyCode}: {$firstConfirmedPaymentWithRate->exchange_rate}");
 
             return (float) $firstConfirmedPaymentWithRate->exchange_rate;
         }
@@ -184,12 +179,12 @@ class Gig extends Model
         $rate = $exchangeRateService->getExchangeRate($currencyCode, $date);
 
         if ($rate !== null) {
-            // Log::info("[Gig ID {$this->id}] Usando taxa de câmbio do ExchangeRateService para {$currencyCode}: {$rate}");
+            Log::info("[Gig ID {$this->id}] Usando taxa de câmbio do ExchangeRateService para {$currencyCode}: {$rate}");
 
             return $rate;
         }
 
-        // Log::warning("[Gig ID {$this->id}] Não foi possível obter taxa de câmbio para {$currencyCode} na data {$date->format('Y-m-d')}");
+        Log::warning("[Gig ID {$this->id}] Não foi possível obter taxa de câmbio para {$currencyCode} na data {$date->format('Y-m-d')}");
 
         return null;
     }
@@ -361,7 +356,7 @@ class Gig extends Model
                     $confirmedBrlValue = $this->total_received_brl; // Usa o accessor que acabamos de criar
                     $effectiveRate = ($originalValue > 0) ? $confirmedBrlValue / $originalValue : null;
 
-                    // Log::debug("[Accessor] Gig #{$this->id} está PAGA. Valor BRL confirmado: {$confirmedBrlValue}");
+                    Log::debug("[Accessor] Gig #{$this->id} está PAGA. Valor BRL confirmado: {$confirmedBrlValue}");
 
                     return [
                         'value' => $confirmedBrlValue,
@@ -375,7 +370,7 @@ class Gig extends Model
 
                     if ($projectionRate) {
                         $projectedValue = $originalValue * $projectionRate;
-                        // Log::debug("[Accessor] Gig #{$this->id} está PENDENTE. Valor BRL projetado: {$projectedValue}");
+                        Log::debug("[Accessor] Gig #{$this->id} está PENDENTE. Valor BRL projetado: {$projectedValue}");
 
                         return [
                             'value' => $projectedValue,
@@ -386,7 +381,7 @@ class Gig extends Model
                 }
 
                 // Fallback: Se não está pago e não há taxa de projeção, não podemos calcular.
-                // Log::warning("[Accessor] Não foi possível calcular valor BRL para Gig #{$this->id}.");
+                Log::warning("[Accessor] Não foi possível calcular valor BRL para Gig #{$this->id}.");
 
                 return [
                     'value' => null,

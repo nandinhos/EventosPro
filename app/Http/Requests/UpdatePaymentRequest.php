@@ -15,7 +15,7 @@ class UpdatePaymentRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // //Log::debug("Autorizando UpdatePaymentRequest..."); // Log para ver se authorize é chamado
+        // Log::debug("Autorizando UpdatePaymentRequest..."); // Log para ver se authorize é chamado
         // TODO: Policy
         return true;
     }
@@ -28,7 +28,7 @@ class UpdatePaymentRequest extends FormRequest
         // Não precisamos do ID da Gig ou Pagamento aqui,
         // pois a validação é sobre os DADOS ENVIADOS.
         // A verificação de pertencimento é feita no controller ou Policy.
-        // //Log::debug("Executando regras de validação para UpdatePaymentRequest..."); // Log
+        // Log::debug("Executando regras de validação para UpdatePaymentRequest..."); // Log
 
         return [
             'due_value' => ['required', 'numeric', 'min:0.01'], // Renomeado de received_value
@@ -50,7 +50,7 @@ class UpdatePaymentRequest extends FormRequest
      */
     public function messages(): array
     {
-        // //Log::debug("Obtendo mensagens de erro personalizadas..."); // Log
+        // Log::debug("Obtendo mensagens de erro personalizadas..."); // Log
         return [
             'due_value.required' => 'O Valor Devido é obrigatório.',
             'due_value.min' => 'O Valor Devido deve ser positivo.',
@@ -66,7 +66,7 @@ class UpdatePaymentRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        // //Log::debug("Preparando dados para validação (Update):", $this->all()); // Log
+        // Log::debug("Preparando dados para validação (Update):", $this->all()); // Log
         $toMerge = [];
         // Não precisamos mais limpar expenses_value_brl aqui, pois não vem do form de pagamento
         // Não precisamos limpar booker_id aqui
@@ -77,7 +77,7 @@ class UpdatePaymentRequest extends FormRequest
         if (! empty($toMerge)) {
             $this->merge($toMerge);
         }
-        // //Log::debug("Dados preparados (Update):", $this->all()); // Log
+        // Log::debug("Dados preparados (Update):", $this->all()); // Log
     }
 
     /**

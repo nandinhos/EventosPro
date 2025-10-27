@@ -405,6 +405,10 @@ class AuditCurrencyCommand extends Command
                     break;
 
                 default:
+                    Log::warning('Currency issue requer atenção manual', [
+                        'gig_id' => $gig->id,
+                        'issue' => $issue,
+                    ]);
                     DB::rollBack();
 
                     return;

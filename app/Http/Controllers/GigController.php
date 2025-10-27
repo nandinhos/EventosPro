@@ -128,12 +128,12 @@ class GigController extends Controller
             // agency_commission_value, booker_commission_value, liquid_commission_value
             // com base nos tipos e taxas/valores informados no $validatedGigData.
             $gig = Gig::create($validatedGigData);
-            // Log::info("[GigController@store] Gig ID: {$gig->id} criada. Processando despesas e tags...");
+            Log::info("[GigController@store] Gig ID: {$gig->id} criada. Processando despesas e tags...");
 
             // Sincronizar Tags
             if (! empty($tagsIds)) {
                 $gig->tags()->sync($tagsIds);
-                // Log::info("[GigController@store] Tags sincronizadas para Gig ID: {$gig->id}.");
+                Log::info("[GigController@store] Tags sincronizadas para Gig ID: {$gig->id}.");
             }
 
             // Criar Despesas (GigCosts)
@@ -153,11 +153,11 @@ class GigController extends Controller
                         'is_invoice' => $expenseItem['is_invoice'] ?? false,   // Default false
                     ]);
                 }
-                // Log::info("[GigController@store] Despesas processadas para Gig ID: {$gig->id}.");
+                Log::info("[GigController@store] Despesas processadas para Gig ID: {$gig->id}.");
             }
 
             DB::commit();
-            // Log::info("[GigController@store] Transação commitada para Gig ID: {$gig->id}.");
+            Log::info("[GigController@store] Transação commitada para Gig ID: {$gig->id}.");
 
             // Se a Gig foi salva e teve despesas, o GigCostObserver pode ter chamado $gig->save() novamente,
             // o que é ok, pois o GigObserver::saving() é idempotente no sentido de recálculo.
@@ -234,9 +234,7 @@ class GigController extends Controller
         $bookersForSelect = $bookers->pluck('name', 'id');
         $bookersData = $bookers->keyBy('id')->toArray();
         $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type');
-        $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center) {
-            return [$center->id => __('cost_centers.'.$center->name)];
-        });
+        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
         $gig = new Gig; // Para o formulário
 
@@ -276,8 +274,8 @@ class GigController extends Controller
         $bookersData = $bookers->keyBy('id')->toArray();
         $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type');
         $selectedTags = $gig->tags()->pluck('id')->toArray();
-        $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center) {
-            return [$center->id => __('cost_centers.'.$center->name)];
+        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id')->map(function ($name, $id) {
+            return __('cost_centers.'.$name);
         });
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
 
@@ -339,7 +337,7 @@ class GigController extends Controller
         ];
         // --- FIM DA CORREÇÃO ---
 
-        // Log::debug("[GigController@edit] InitialCommissionData para Gig ID {$gig->id}:", $initialCommissionData);
+        Log::debug("[GigController@edit] InitialCommissionData para Gig ID {$gig->id}:", $initialCommissionData);
 
         return view('gigs.edit', compact(
             'gig',
@@ -371,11 +369,11 @@ class GigController extends Controller
             // O GigObserver (via método saving) cuidará de recalcular e setar
             // agency_commission_value, booker_commission_value, liquid_commission_value
             $gig->update($validatedGigData);
-            // Log::info("[GigController@update] Dados da Gig ID: {$gig->id} atualizados. Processando despesas e tags...");
+            Log::info("[GigController@update] Dados da Gig ID: {$gig->id} atualizados. Processando despesas e tags...");
 
             // Sincronizar Tags
             $gig->tags()->sync($tagsIds); // sync([]) remove todas as tags se $tagsIds for vazio
-            // Log::info("[GigController@update] Tags sincronizadas para Gig ID: {$gig->id}.");
+            Log::info("[GigController@update] Tags sincronizadas para Gig ID: {$gig->id}.");
 
             // Sincronizar Despesas (GigCosts) - Lógica mais robusta
             $existingCostIds = $gig->gigCosts()->pluck('id')->all();
@@ -391,7 +389,7 @@ class GigController extends Controller
                         $cost = GigCost::find($costId);
                         if ($cost && $cost->gig_id === $gig->id) { // Segurança
                             $cost->delete(); // Soft delete
-                            // Log::info("[GigController@update] Despesa ID: {$costId} marcada como deletada e removida da Gig ID: {$gig->id}.");
+                            Log::info("[GigController@update] Despesa ID: {$costId} marcada como deletada e removida da Gig ID: {$gig->id}.");
                         }
 
                         continue; // Pula para a próxima despesa, não adiciona ao $formCostIds
@@ -423,11 +421,11 @@ class GigController extends Controller
 
             // REMOVIDO: Lógica de soft delete automático de despesas existentes
             // As despesas existentes são preservadas e só são removidas quando explicitamente marcadas como _deleted
-            // Log::info("[GigController@update] Despesas existentes preservadas. Apenas despesas marcadas como _deleted foram removidas para Gig ID: {$gig->id}.");
-            // Log::info("[GigController@update] Despesas sincronizadas para Gig ID: {$gig->id}.");
+            Log::info("[GigController@update] Despesas existentes preservadas. Apenas despesas marcadas como _deleted foram removidas para Gig ID: {$gig->id}.");
+            Log::info("[GigController@update] Despesas sincronizadas para Gig ID: {$gig->id}.");
 
             DB::commit();
-            // Log::info("[GigController@update] Transação commitada para Gig ID: {$gig->id}.");
+            Log::info("[GigController@update] Transação commitada para Gig ID: {$gig->id}.");
 
             return redirect()->route('gigs.show', ['gig' => $gig] + $backParams)->with('success', '🎉 Gig atualizada com sucesso!');
 

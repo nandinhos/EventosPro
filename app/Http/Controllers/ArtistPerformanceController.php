@@ -121,46 +121,12 @@ class ArtistPerformanceController extends Controller
                 $totalGrossCash = $gigsForArtist->sum(fn ($gig) => $this->gigCalculator->calculateGrossCashBrl($gig));
                 $totalNetPayout = $gigsForArtist->sum(fn ($gig) => $this->gigCalculator->calculateArtistNetPayoutBrl($gig));
 
-                // Agrupar gigs por mês para melhor visualização
-                $gigsByMonth = $gigsForArtist->groupBy(function ($gig) {
-                    return Carbon::parse($gig->contract_date ?? $gig->gig_date)->isoFormat('MM/YYYY');
-                })->map(function ($gigsInMonth) {
-                    $monthName = Carbon::parse($gigsInMonth->first()->contract_date ?? $gigsInMonth->first()->gig_date)->isoFormat('MMM/YYYY');
-                    $totalContractMonth = $gigsInMonth->sum('cache_value_brl');
-                    $totalGrossCashMonth = $gigsInMonth->sum(fn ($gig) => $this->gigCalculator->calculateGrossCashBrl($gig));
-                    $totalNetPayoutMonth = $gigsInMonth->sum(fn ($gig) => $this->gigCalculator->calculateArtistNetPayoutBrl($gig));
-
-                    return [
-                        'month_name' => $monthName,
-                        'month_total_contract' => $totalContractMonth,
-                        'month_total_gross_cash' => $totalGrossCashMonth,
-                        'month_total_net_payout' => $totalNetPayoutMonth,
-                        'month_gigs_count' => $gigsInMonth->count(),
-                        'gigs' => $gigsInMonth->map(function ($gig) {
-                            $gross_cash_brl = $this->gigCalculator->calculateGrossCashBrl($gig);
-                            $net_payout_brl = $this->gigCalculator->calculateArtistNetPayoutBrl($gig);
-
-                            return [
-                                'gig_id' => $gig->id,
-                                'sale_date' => Carbon::parse($gig->sale_date)->isoFormat('L'),
-                                'gig_date' => $gig->gig_date->isoFormat('L'),
-                                'booker_name' => $gig->booker->name ?? 'N/A',
-                                'location_event_details' => $gig->location_event_details,
-                                'contract_value' => $gig->cache_value_brl,
-                                'gross_cash_brl' => $gross_cash_brl,
-                                'net_payout_brl' => $net_payout_brl,
-                            ];
-                        }),
-                    ];
-                })->sortKeys();
-
                 return [
                     'artist_name' => $gigsForArtist->first()->artist->name ?? 'Artista Desconhecido',
                     'total_contract' => $gigsForArtist->sum('cache_value_brl'),
                     'total_gross_cash' => $totalGrossCash,
                     'total_net_payout' => $totalNetPayout,
                     'gigs_count' => $gigsForArtist->count(),
-                    'gigs_by_month' => $gigsByMonth,
                     'gigs' => $gigsForArtist->map(function ($gig) {
 
                         $gross_cash_brl = $this->gigCalculator->calculateGrossCashBrl($gig);
@@ -168,8 +134,8 @@ class ArtistPerformanceController extends Controller
 
                         return [
                             'gig_id' => $gig->id,
-                            'sale_date' => Carbon::parse($gig->sale_date)->isoFormat('L'),
-                            'gig_date' => $gig->gig_date->isoFormat('L'),
+                            'sale_date' => Carbon::parse($gig->sale_date)->format('d/m/Y'),
+                            'gig_date' => $gig->gig_date->format('d/m/Y'),
                             'booker_name' => $gig->booker->name ?? 'N/A',
                             'location_event_details' => $gig->location_event_details,
                             'contract_value' => $gig->cache_value_brl,

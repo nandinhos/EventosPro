@@ -159,42 +159,23 @@
         </thead>
         <tbody>
             @forelse ($tableData as $artistData)
-            <!-- Cabeçalho do Artista -->
-            <tr class="group-header">
-            <td colspan="7">
-            {{ $artistData['artist_name'] }} - {{ $artistData['gigs_count'] }} gigs
-            </td>
-            </tr>
+                <!-- Cabeçalho do Artista -->
+                <tr class="group-header">
+                    <td colspan="7">
+                        {{ $artistData['artist_name'] }} - {{ $artistData['gigs_count'] }} gigs
+                    </td>
+                </tr>
 
-            <!-- Agrupamento por mês -->
-            @foreach ($artistData['gigs_by_month'] as $monthData)
-            <!-- Cabeçalho do Mês -->
-            <tr class="month-header">
-            <td colspan="7" style="background-color: #e0e7ff; border-top: 2px solid #6366f1; padding: 8px; font-weight: bold; color: #3730a3;">
-                {{ $monthData['month_name'] }} - {{ $monthData['month_gigs_count'] }} evento{{ $monthData['month_gigs_count'] > 1 ? 's' : '' }}
-                <span style="float: right; font-size: 9px;">Subtotal: R$ {{ number_format($monthData['month_total_net_payout'], 2, ',', '.') }}</span>
-            </td>
-            </tr>
-
-            <!-- Detalhes das Gigs do Mês -->
-                @foreach ($monthData['gigs'] as $gig)
-                        <tr class="detail-row">
+                <!-- Detalhes das Gigs do Artista -->
+                @foreach ($artistData['gigs'] as $gig)
+                    <tr class="detail-row">
                         <td>{{ $gig['sale_date'] }}</td>
                         <td>{{ $gig['gig_date'] }}</td>
-                    <td>{{ $gig['booker_name'] }}</td>
-                    <td>{{ $gig['location_event_details'] }}</td>
-                    <td class="text-right">R$ {{ number_format($gig['contract_value'], 2, ',', '.') }}</td>
-                    <td class="text-right">R$ {{ number_format($gig['gross_cash_brl'], 2, ',', '.') }}</td>
+                        <td>{{ $gig['booker_name'] }}</td>
+                        <td>{{ $gig['location_event_details'] }}</td>
+                        <td class="text-right">R$ {{ number_format($gig['contract_value'], 2, ',', '.') }}</td>
+                        <td class="text-right">R$ {{ number_format($gig['gross_cash_brl'], 2, ',', '.') }}</td>
                         <td class="text-right">R$ {{ number_format($gig['net_payout_brl'], 2, ',', '.') }}</td>
-                        </tr>
-                    @endforeach
-
-                    <!-- Subtotal do Mês -->
-                    <tr class="month-subtotal">
-                        <td colspan="4" class="text-right" style="border-top: 1px solid #d1d5db; font-weight: bold; background-color: #f9fafb;">Subtotal {{ $monthData['month_name'] }}:</td>
-                        <td class="text-right" style="border-top: 1px solid #d1d5db; font-weight: bold; background-color: #f9fafb;">R$ {{ number_format($monthData['month_total_contract'], 2, ',', '.') }}</td>
-                        <td class="text-right" style="border-top: 1px solid #d1d5db; font-weight: bold; background-color: #f9fafb;">R$ {{ number_format($monthData['month_total_gross_cash'], 2, ',', '.') }}</td>
-                        <td class="text-right" style="border-top: 1px solid #d1d5db; font-weight: bold; background-color: #f9fafb;">R$ {{ number_format($monthData['month_total_net_payout'], 2, ',', '.') }}</td>
                     </tr>
                 @endforeach
 
