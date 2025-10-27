@@ -244,6 +244,8 @@ public function it_calculates_commission_correctly()
 
 ### Antes de Commitar
 
+**⚠️ IMPORTANTE**: EventosPro possui um **pre-commit hook** que valida automaticamente o código.
+
 ```bash
 # 1. Formatar código
 ./vendor/bin/sail bash -c "vendor/bin/pint --dirty"
@@ -252,7 +254,29 @@ public function it_calculates_commission_correctly()
 ./vendor/bin/sail artisan test
 
 # 3. Verificar warnings (não deve haver warnings PHPUnit)
+
+# 4. Commit SEMPRE dentro do Sail
+./vendor/bin/sail bash -c "git add . && git commit -m 'sua mensagem'"
 ```
+
+#### Pre-Commit Hook Automático
+
+O projeto possui um hook (`.git/hooks/pre-commit`) que executa automaticamente:
+- ✅ Validação de formatação via Laravel Pint
+- ✅ Execução de testes
+- ✅ Verificação de sintaxe PHP
+
+**Se tentar commitar fora do Sail**:
+```
+⚠️  ATENÇÃO: Commits devem ser feitos dentro do container Laravel Sail!
+📋 Use: ./vendor/bin/sail bash -c "git add . && git commit"
+```
+
+**Benefícios**:
+- Garante que código não formatado não seja commitado
+- Previne commits com testes falhando
+- Mantém qualidade consistente no repositório
+- Executa validações no ambiente correto (container)
 
 ---
 
