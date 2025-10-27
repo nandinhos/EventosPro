@@ -63,3 +63,13 @@ A modernização da UI/UX do dashboard de projeções (`projections.dashboard.bl
 - **Hooks de Pré-Commit e Laravel Sail:** O projeto utiliza hooks de pré-commit para garantir a qualidade e a consistência do código. Uma regra importante é que todos os commits **DEVEM** ser executados de dentro do ambiente Laravel Sail.
     - **Comando Correto:** `./vendor/bin/sail bash -c "git commit -m 'Sua mensagem'"`
     - **Justificativa:** Isso garante que as ferramentas de análise de código (linters, formatadores) rodem no mesmo ambiente configurado para o projeto, evitando inconsistências entre as máquinas dos desenvolvedores. Tentar commitar fora do Sail resultará em um erro e o commit será bloqueado.
+
+## 7. Lições da Auditoria e Correções Recentes
+
+- **Padronização de Testes com Atributos PHP 8**: A diretriz de usar `#[Test]` em vez de `/** @test */` é crucial para a manutenibilidade e compatibilidade futura com o PHPUnit. Todos os novos testes devem seguir este padrão.
+
+- **Tradução de Datas com `isoFormat`**: A localização de datas deve ser feita preferencialmente com o método `isoFormat()` do Carbon, após garantir que o locale da aplicação esteja configurado globalmente no `AppServiceProvider`. O método `format()` não respeita a localidade e deve ser evitado em saídas para o usuário.
+
+- **Commits via Laravel Sail**: Todos os commits devem ser executados de dentro do container do Sail para garantir que os hooks de pré-commit (como o Pint para formatação de código) funcionem corretamente. O comando `git commit` direto no host irá falhar.
+
+- **Tratamento de Erros de Pré-Commit**: Erros de linting, como `trailing whitespace`, podem ser introduzidos por ferramentas de substituição em massa. É importante corrigir esses erros antes de tentar o commit novamente. O fluxo é: 1) Tentar o commit, 2) Ler a saída do erro do hook, 3) Corrigir o problema, 4) Adicionar o arquivo corrigido (`git add .`), 5) Tentar o commit novamente.
