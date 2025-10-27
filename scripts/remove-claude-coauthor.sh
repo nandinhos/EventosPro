@@ -51,9 +51,10 @@ echo ""
 
 # Usar filter-branch com script inline que lê stdin e remove as linhas
 # Ignora emoji, apenas procura pelo texto "Generated with [Claude Code]"
+# Usa || true para evitar erro quando grep não encontra nada
 git filter-branch -f --msg-filter '
     grep -v "Generated with \[Claude Code\]" | \
-    grep -v "Co-Authored-By: Claude"
+    grep -v "Co-Authored-By: Claude" || true
 ' --tag-name-filter cat -- --all
 
 echo ""
