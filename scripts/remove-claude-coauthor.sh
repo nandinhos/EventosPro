@@ -49,11 +49,11 @@ fi
 echo "🚀 Iniciando reescrita do histórico..."
 echo ""
 
-# Usar filter-branch para reescrever mensagens de commit
-git filter-branch --msg-filter '
-    sed -e "/Generated with/d" \
-        -e "/Co-Authored-By: Claude/d" \
-        -e "/^$/N;/^\n$/D"
+# Usar filter-branch com script inline que lê stdin e remove as linhas
+# Ignora emoji, apenas procura pelo texto "Generated with [Claude Code]"
+git filter-branch -f --msg-filter '
+    grep -v "Generated with \[Claude Code\]" | \
+    grep -v "Co-Authored-By: Claude"
 ' --tag-name-filter cat -- --all
 
 echo ""
