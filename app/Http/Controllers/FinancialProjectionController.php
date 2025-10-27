@@ -8,9 +8,9 @@ use App\Models\Payment;
 use App\Models\Settlement;
 use App\Services\CashFlowProjectionService;
 use App\Services\DreProjectionService;
+use App\Services\ProjectionCacheService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 /**
@@ -27,12 +27,16 @@ class FinancialProjectionController extends Controller
 
     protected CashFlowProjectionService $cashFlowService;
 
+    protected ProjectionCacheService $cacheService;
+
     public function __construct(
         DreProjectionService $dreService,
-        CashFlowProjectionService $cashFlowService
+        CashFlowProjectionService $cashFlowService,
+        ProjectionCacheService $cacheService
     ) {
         $this->dreService = $dreService;
         $this->cashFlowService = $cashFlowService;
+        $this->cacheService = $cacheService;
     }
 
     /**
@@ -216,8 +220,7 @@ class FinancialProjectionController extends Controller
      */
     private function calculateGlobalAccountsReceivable(): array
     {
-        // Cache por 30 minutos (1800 segundos) - dados de recebíveis mudam com menos frequência
-        return Cache::remember('projections:global_accounts_receivable', 1800, function () {
+        return $this->cacheService->rememberAccountsReceivable(function () {
             $pendingPayments = \App\Models\Payment::query()
                 ->whereNull('confirmed_at')
                 ->where('due_date', '>=', now()->subMonths(12)) // Últimos 12 meses para evitar dados muito antigos
@@ -283,8 +286,7 @@ class FinancialProjectionController extends Controller
      */
     private function calculateTotalGigExpenses(): array
     {
-        // Cache por 30 minutos (1800 segundos) - despesas mudam com frequência moderada
-        return Cache::remember('projections:gig_expenses', 1800, function () {
+        return $this->cacheService->rememberGigExpenses(function () {
             // Despesas pendentes (não confirmadas)
             $pendingExpenses = \App\Models\GigCost::query()
                 ->where('is_confirmed', false)
@@ -333,8 +335,7 @@ class FinancialProjectionController extends Controller
      */
     private function calculateStrategicBalance(): array
     {
-        // Cache por 1 hora (3600 segundos) para evitar cálculos pesados repetidos
-        return Cache::remember('projections:strategic_balance', 3600, function () {
+        return $this->cacheService->rememberStrategicBalance(function () {
             // 1. Obter Gigs passadas e futuras com eager loading para evitar N+1
             $pastGigs = Gig::where('gig_date', '<', today())
                 ->with(['payments', 'settlement', 'gigCosts', 'artist:id,name', 'booker:id,name'])
@@ -397,9 +398,7 @@ class FinancialProjectionController extends Controller
      */
     public static function clearCache(): void
     {
-        Cache::forget('projections:strategic_balance');
-        Cache::forget('projections:global_accounts_receivable');
-        Cache::forget('projections:gig_expenses');
+        app(ProjectionCacheService::class)->clearAll();
     }
 
     /**
