@@ -12,7 +12,7 @@
             <p class="text-lg font-semibold text-blue-800 dark:text-blue-300">R$ {{ number_format($artistSummary['total_payout_base'] ?? 0, 2, ',', '.') }}</p>
         </div>
         <div class="bg-indigo-100 dark:bg-indigo-900/20 p-4 rounded-lg">
-            <h3 class="text-sm text-gray-500 dark:text-gray-400">Total de Cachês (Artistas)</h3>
+            <h3 class="text-sm text-gray-500 dark:text-gray-400">Total a Pagar (Artistas)</h3>
             <p class="text-lg font-semibold text-indigo-800 dark:text-indigo-300">R$ {{ number_format($artistSummary['total_payouts'] ?? 0, 2, ',', '.') }}</p>
         </div>
         <div class="bg-cyan-100 dark:bg-cyan-900/20 p-4 rounded-lg">
@@ -88,7 +88,7 @@
                                     <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase">Booker</th>
                                     <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400 uppercase">Gig / Local</th>
                                     <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase">Base de Cálculo (R$)</th>
-                                    <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase">Cachê Líquido (R$)</th>
+                                    <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400 uppercase">Valor Total a Pagar (R$)</th>
                                     <th class="px-3 py-2 text-center font-medium text-gray-500 dark:text-gray-400 uppercase">Status Pgto.</th>
                                 </tr>
                             </thead>
@@ -115,7 +115,14 @@
                                             @endif
                                         </td>
                                         <td class="px-3 py-2 whitespace-nowrap text-right text-gray-500">{{ number_format($gig->calculated_gross_cash_brl, 2, ',', '.') }}</td>
-                                        <td class="px-3 py-2 whitespace-nowrap text-right font-bold">{{ number_format($gig->calculated_artist_payout, 2, ',', '.') }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-right">
+                                            <div class="font-bold">{{ number_format($gig->calculated_total_artist_payment, 2, ',', '.') }}</div>
+                                            @if($gig->calculated_reimbursable_expenses > 0)
+                                                <div class="text-xxs text-gray-500 dark:text-gray-400">
+                                                    + R$ {{ number_format($gig->calculated_reimbursable_expenses, 2, ',', '.') }} reemb.
+                                                </div>
+                                            @endif
+                                        </td>
                                         <td class="px-3 py-2 whitespace-nowrap text-center">
                                             <x-status-badge :status="$gig->artist_payment_status" type="payment-internal" />
                                         </td>

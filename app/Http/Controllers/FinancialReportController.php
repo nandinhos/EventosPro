@@ -305,7 +305,8 @@ class FinancialReportController extends Controller
                     continue;
                 }
 
-                $artistPayoutValue = $this->gigCalculatorService->calculateArtistNetPayoutBrl($gig);
+                // Calcula o valor total do pagamento ao artista (cachê líquido + despesas reembolsáveis)
+                $artistPayoutValue = $this->gigCalculatorService->calculateArtistInvoiceValueBrl($gig);
 
                 $settlement = Settlement::firstOrNew(['gig_id' => $gig->id]);
                 $settlement->settlement_date = $settlement->settlement_date ?? $paymentDate;

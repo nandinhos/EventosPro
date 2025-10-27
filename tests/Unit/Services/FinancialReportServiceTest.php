@@ -1405,4 +1405,128 @@ class FinancialReportServiceTest extends TestCase
         $this->assertArrayHasKey('Artist Two', $result['events_by_artist']);
         $this->assertEquals(13000, $result['revenue_by_booker']['Test Booker']);
     }
+
+    #[Test]
+    public function it_includes_reimbursable_expenses_in_grouped_artist_commissions_data()
+    {
+        $artist = Artist::factory()->create(['name' => 'Artist Test']);
+        $booker = Booker::factory()->create();
+
+        // Gig sem despesas reembolsáveis
+        $gigWithoutReimbursable = Gig::factory()->create([
+            'artist_id' => $artist->id,
+            'booker_id' => $booker->id,
+            'gig_date' => Carbon::now(),
+            'cache_value' => 5000,
+            'currency' => 'BRL',
+            'agency_commission_type' => 'PERCENT',
+            'agency_commission_rate' => 20, // 20% de comissão
+        ]);
+
+        // Gig com despesas reembolsáveis
+        $gigWithReimbursable = Gig::factory()->create([
+            'artist_id' => $artist->id,
+            'booker_id' => $booker->id,
+            'gig_date' => Carbon::now()->addDay(),
+            'cache_value' => 10000,
+            'currency' => 'BRL',
+            'agency_commission_type' => 'PERCENT',
+            'agency_commission_rate' => 20,
+        ]);
+
+        // Adiciona despesa reembolsável confirmada
+        $gigWithReimbursable->gigCosts()->create([
+            'cost_center_id' => \App\Models\CostCenter::factory()->create()->id,
+            'value' => 500,
+            'currency' => 'BRL',
+            'is_confirmed' => true,
+            'is_invoice' => true, // Despesa reembolsável
+            'description' => 'Hotel para artista',
+        ]);
+
+        // Adiciona despesa não-reembolsável confirmada
+        $gigWithReimbursable->gigCosts()->create([
+            'cost_center_id' => \App\Models\CostCenter::factory()->create()->id,
+            'value' => 300,
+            'currency' => 'BRL',
+            'is_confirmed' => true,
+            'is_invoice' => false, // Despesa não-reembolsável
+            'description' => 'Produção local',
+        ]);
+
+        $result = $this->reportService->getGroupedArtistCommissionsData();
+
+        // Verifica estrutura do resultado
+        $this->assertArrayHasKey('summary', $result);
+        $this->assertArrayHasKey('groups', $result);
+
+        // Verifica que há dados para o artista
+        $this->assertCount(1, $result['groups']);
+
+        $artistGroup = $result['groups']->first();
+        $this->assertEquals('Artist Test', $artistGroup['artist_name']);
+        $this->assertEquals(2, $artistGroup['gig_count']);
+
+        // Verifica valores calculados
+        $gigs = $artistGroup['gigs'];
+
+        // Gig sem despesas reembolsáveis
+        $gigWithoutReimbursableData = $gigs->firstWhere('id', $gigWithoutReimbursable->id);
+        $this->assertNotNull($gigWithoutReimbursableData);
+        $this->assertEquals(0, $gigWithoutReimbursableData->calculated_reimbursable_expenses);
+        // Cachê bruto = 5000, Comissão agência = 1000, Cachê líquido = 4000
+        $this->assertEquals(4000, $gigWithoutReimbursableData->calculated_artist_payout);
+        $this->assertEquals(4000, $gigWithoutReimbursableData->calculated_total_artist_payment);
+
+        // Gig com despesas reembolsáveis
+        $gigWithReimbursableData = $gigs->firstWhere('id', $gigWithReimbursable->id);
+        $this->assertNotNull($gigWithReimbursableData);
+        $this->assertEquals(500, $gigWithReimbursableData->calculated_reimbursable_expenses);
+
+        // Cachê bruto = 10000 - 500 (reemb) - 300 (não-reemb) = 9200
+        // Comissão agência = 9200 * 0.20 = 1840
+        // Cachê líquido = 9200 - 1840 = 7360
+        // Total a pagar = 7360 + 500 (reembolsável) = 7860
+        $this->assertEquals(7360, $gigWithReimbursableData->calculated_artist_payout);
+        $this->assertEquals(7860, $gigWithReimbursableData->calculated_total_artist_payment);
+
+        // Verifica o total no summary (deve incluir despesas reembolsáveis)
+        // Total = 4000 (sem despesas) + 7860 (com despesas) = 11860
+        $this->assertEquals(11860, $result['summary']['total_payouts']);
+        $this->assertEquals(2, $result['summary']['events_with_payouts']);
+    }
+
+    #[Test]
+    public function it_filters_out_gigs_with_zero_total_payment_in_artist_commissions()
+    {
+        $artist = Artist::factory()->create();
+        $booker = Booker::factory()->create();
+
+        // Gig com cachê zero (não deve aparecer nos resultados)
+        Gig::factory()->create([
+            'artist_id' => $artist->id,
+            'booker_id' => $booker->id,
+            'gig_date' => Carbon::now(),
+            'cache_value' => 1000,
+            'currency' => 'BRL',
+            'agency_commission_type' => 'PERCENT',
+            'agency_commission_rate' => 100, // 100% = artista não recebe nada
+        ]);
+
+        // Gig com cachê válido
+        Gig::factory()->create([
+            'artist_id' => $artist->id,
+            'booker_id' => $booker->id,
+            'gig_date' => Carbon::now(),
+            'cache_value' => 5000,
+            'currency' => 'BRL',
+            'agency_commission_type' => 'PERCENT',
+            'agency_commission_rate' => 20,
+        ]);
+
+        $result = $this->reportService->getGroupedArtistCommissionsData();
+
+        // Deve filtrar apenas gigs com pagamento > 0
+        $this->assertEquals(1, $result['summary']['events_with_payouts']);
+    }
 }

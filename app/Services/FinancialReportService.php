@@ -867,15 +867,17 @@ class FinancialReportService
         $gigsWithPayouts = $gigs->map(function ($gig) {
             // Usa o service central para obter os valores e adicioná-los como propriedades temporárias ao objeto Gig
             $gig->calculated_artist_payout = $this->calculator->calculateArtistNetPayoutBrl($gig);
+            $gig->calculated_reimbursable_expenses = $this->calculator->calculateTotalReimbursableExpensesBrl($gig);
+            $gig->calculated_total_artist_payment = $this->calculator->calculateArtistInvoiceValueBrl($gig); // Cachê + Despesas Reembolsáveis
             $gig->calculated_gross_cash_brl = $this->calculator->calculateGrossCashBrl($gig); // Base de cálculo
 
             return $gig;
         })->filter(function ($gig) {
-            return $gig->calculated_artist_payout > 0;
+            return $gig->calculated_total_artist_payment > 0;
         });
 
-        // 3. Calcula os totais para os cards de resumo
-        $totalPayouts = $gigsWithPayouts->sum('calculated_artist_payout');
+        // 3. Calcula os totais para os cards de resumo (inclui despesas reembolsáveis)
+        $totalPayouts = $gigsWithPayouts->sum('calculated_total_artist_payment');
         $eventsWithPayoutsCount = $gigsWithPayouts->count();
         $totalPayoutBase = $gigsWithPayouts->sum('calculated_gross_cash_brl');
 
@@ -886,7 +888,7 @@ class FinancialReportService
                     'artist_name' => $artistName,
                     'gig_count' => $artistGigs->count(),
                     'total_payout_base' => $artistGigs->sum('calculated_gross_cash_brl'),
-                    'total_payout_value' => $artistGigs->sum('calculated_artist_payout'),
+                    'total_payout_value' => $artistGigs->sum('calculated_total_artist_payment'),
                     'gigs' => $artistGigs, // A coleção de gigs contém as propriedades calculadas
                 ];
             })
