@@ -50,11 +50,11 @@ class GigCostController extends Controller
                             'description' => $cost->description,
                             'value' => $cost->value,
                             'currency' => $cost->currency,
-                            'expense_date_formatted' => $cost->expense_date ? $cost->expense_date->format('d/m/Y') : 'N/A',
+                            'expense_date_formatted' => $cost->expense_date ? $cost->expense_date->isoFormat('L') : 'N/A',
                             'expense_date' => $cost->expense_date?->format('Y-m-d'),
                             'is_confirmed' => $cost->is_confirmed,
                             'is_invoice' => $cost->is_invoice,
-                            'confirmed_at_formatted' => $cost->confirmed_at ? $cost->confirmed_at->format('d/m/y H:i') : null,
+                            'confirmed_at_formatted' => $cost->confirmed_at ? $cost->confirmed_at->isoFormat('l LT') : null,
                             'confirmed_by_name' => $cost->confirmer?->name,
                             'notes' => $cost->notes,
                         ];

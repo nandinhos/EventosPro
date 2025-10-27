@@ -129,7 +129,7 @@
                                         {{-- Célula com Info do Artista e Data --}}
                                         <td class="px-3 py-3 align-middle">
                                             <span class="font-semibold text-gray-900 dark:text-white block">{{ $gig->artist->name ?? 'N/A' }}</span>
-                                            <span class="text-sm text-gray-500 dark:text-gray-400">{{ $gig->gig_date->format('d/m/Y') }}</span>
+                                            <span class="text-sm text-gray-500 dark:text-gray-400">{{ $gig->gig_date->isoFormat('L') }}</span>
                                         </td>
                                         {{-- Célula para as Parcelas e Resumo Financeiro --}}
                                         <td class="px-3 py-3 align-top" colspan="3">
@@ -147,7 +147,7 @@
                                                     @foreach ($gig->payments as $payment)
                                                         <tr class="text-xs">
                                                             <td class="py-1 font-medium {{ $payment->due_date->isPast() ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300' }}">
-                                                                {{ $payment->due_date->format('d/m/Y') }}
+                                                                {{ $payment->due_date->isoFormat('L') }}
                                                             </td>
                                                             <td class="py-1 text-right font-medium">
                                                                 {{ $payment->currency }} {{ number_format($payment->due_value, 2, ',', '.') }}

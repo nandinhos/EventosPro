@@ -60,7 +60,7 @@
                                         @if($title === 'Contas a Pagar (Artistas)')
                                             @foreach($data['items'] as $gig)
                                             <tr>                                                
-                                                <td class="px-2 py-1">{{ $gig->gig_date->format('d/m/Y') }}</td>
+                                                <td class="px-2 py-1">{{ $gig->gig_date->isoFormat('L') }}</td>
                                                 <td class="px-2 py-1">#{{ $gig->id }}</td>
                                                 <td class="px-2 py-1">{{ $gig->artist->name ?? 'N/A' }}</td>
                                                 {{-- USA O VALOR CORRETO, que inclui o reembolso --}}
@@ -70,7 +70,7 @@
                                         @elseif($title === 'Contas a Pagar (Bookers)')
                                             @foreach($data['items'] as $gig)
                                             <tr>
-                                                <td class="px-2 py-1">{{ $gig->gig_date->format('d/m/Y') }}</td>
+                                                <td class="px-2 py-1">{{ $gig->gig_date->isoFormat('L') }}</td>
                                                 <td class="px-2 py-1">#{{ $gig->id }}</td>
                                                 <td class="px-2 py-1">{{ $gig->booker->name ?? 'N/A' }}</td>
                                                 {{-- USA O VALOR CORRETO da comissão do booker --}}
@@ -81,7 +81,7 @@
                                             @foreach($data['items'] as $payment)
                                             <tr>
                                             
-                                            <td class="px-2 py-1">{{ $payment->due_date->format('d/m/Y') }}</td>    
+                                            <td class="px-2 py-1">{{ $payment->due_date->isoFormat('L') }}</td>
                                             <td class="px-2 py-1">#{{ $payment->gig_id }}</td>
                                                 <td class="px-2 py-1">{{ $payment->description ?? 'N/A' }}</td>
                                                 <td class="px-2 py-1 text-right">{{ number_format($payment->due_value_brl, 2, ',', '.') }}</td>

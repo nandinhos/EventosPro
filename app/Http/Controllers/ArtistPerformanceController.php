@@ -123,9 +123,9 @@ class ArtistPerformanceController extends Controller
 
                 // Agrupar gigs por mês para melhor visualização
                 $gigsByMonth = $gigsForArtist->groupBy(function ($gig) {
-                    return Carbon::parse($gig->contract_date ?? $gig->gig_date)->format('m/Y');
+                    return Carbon::parse($gig->contract_date ?? $gig->gig_date)->isoFormat('MM/YYYY');
                 })->map(function ($gigsInMonth) {
-                    $monthName = Carbon::parse($gigsInMonth->first()->contract_date ?? $gigsInMonth->first()->gig_date)->format('M/Y');
+                    $monthName = Carbon::parse($gigsInMonth->first()->contract_date ?? $gigsInMonth->first()->gig_date)->isoFormat('MMM/YYYY');
                     $totalContractMonth = $gigsInMonth->sum('cache_value_brl');
                     $totalGrossCashMonth = $gigsInMonth->sum(fn ($gig) => $this->gigCalculator->calculateGrossCashBrl($gig));
                     $totalNetPayoutMonth = $gigsInMonth->sum(fn ($gig) => $this->gigCalculator->calculateArtistNetPayoutBrl($gig));
@@ -142,8 +142,8 @@ class ArtistPerformanceController extends Controller
 
                             return [
                                 'gig_id' => $gig->id,
-                                'sale_date' => Carbon::parse($gig->sale_date)->format('d/m/Y'),
-                                'gig_date' => $gig->gig_date->format('d/m/Y'),
+                                'sale_date' => Carbon::parse($gig->sale_date)->isoFormat('L'),
+                                'gig_date' => $gig->gig_date->isoFormat('L'),
                                 'booker_name' => $gig->booker->name ?? 'N/A',
                                 'location_event_details' => $gig->location_event_details,
                                 'contract_value' => $gig->cache_value_brl,
@@ -168,8 +168,8 @@ class ArtistPerformanceController extends Controller
 
                         return [
                             'gig_id' => $gig->id,
-                            'sale_date' => Carbon::parse($gig->sale_date)->format('d/m/Y'),
-                            'gig_date' => $gig->gig_date->format('d/m/Y'),
+                            'sale_date' => Carbon::parse($gig->sale_date)->isoFormat('L'),
+                            'gig_date' => $gig->gig_date->isoFormat('L'),
                             'booker_name' => $gig->booker->name ?? 'N/A',
                             'location_event_details' => $gig->location_event_details,
                             'contract_value' => $gig->cache_value_brl,

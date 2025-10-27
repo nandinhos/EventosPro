@@ -38,7 +38,7 @@
                     </div>
                     {{-- Coluna 4: Data e Valor --}}
                     <div class="text-sm text-right">
-                        <p class="text-gray-700 dark:text-gray-300">{{ $gig->gig_date->format('d/m/Y') }}</p>
+                        <p class="text-gray-700 dark:text-gray-300">{{ $gig->gig_date->isoFormat('L') }}</p>
                         <p class="text-xs font-semibold text-gray-500">R$ {{ number_format($gig->calculated_artist_net_payout_brl ?? 0, 2, ',', '.') }}</p>
                     </div>
                 </div>

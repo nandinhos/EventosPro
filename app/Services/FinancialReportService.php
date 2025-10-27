@@ -95,7 +95,7 @@ class FinancialReportService
 
                 return [
                     'contract_number' => $gig->contract_number ?? 'N/A',
-                    'gig_date' => $gig->gig_date->format('d/m/Y'),
+                    'gig_date' => $gig->gig_date->isoFormat('L'),
                     'artist' => $gig->artist->name ?? 'N/A',
                     'booker' => $gig->booker->name ?? 'N/A',
                     'revenue' => $revenue,
@@ -176,7 +176,7 @@ class FinancialReportService
                     return [
                         'contract_number' => $gig->contract_number ?? 'N/A',
                         'artist' => $gig->artist->name ?? 'N/A', // Adiciona o nome do artista
-                        'gig_date' => $gig->gig_date->format('d/m/Y'),
+                        'gig_date' => $gig->gig_date->isoFormat('L'),
                         'revenue' => $revenue,
                         'costs' => $costs,
                         'profit' => $profit,
@@ -359,7 +359,7 @@ class FinancialReportService
 
                 return [
                     'contract_number' => $gig->contract_number ?? 'N/A',
-                    'gig_date' => $gig->gig_date->format('d/m/Y'),
+                    'gig_date' => $gig->gig_date->isoFormat('L'),
                     'booker' => $gig->booker->name ?? 'N/A',
                     'artist' => $gig->artist->name ?? 'N/A',
                     'commission' => $bookerCommission,
@@ -403,7 +403,7 @@ class FinancialReportService
                         return [
                             'gig_contract_number' => $expense->gig->contract_number ?? 'N/A',
                             'description' => $expense->description,
-                            'expense_date' => $expense->expense_date->format('d/m/Y'),
+                            'expense_date' => $expense->expense_date->isoFormat('L'),
                             'value_brl' => $expense->value_brl,
                             'currency' => $expense->currency ?? 'BRL',
                         ];
@@ -456,7 +456,7 @@ class FinancialReportService
                 // Agrupar eventos por artista
                 $artistName = $gig->artist->name ?? 'N/A';
                 $eventsByArtist[$artistName][] = [
-                    'date' => $gig->gig_date->format('d/m/Y'),
+                    'date' => $gig->gig_date->isoFormat('L'),
                     'location' => $gig->venue ?? 'N/A',
                     'contract_value' => $revenue,
                     'agency_commission' => $agencyCommission,
@@ -551,7 +551,7 @@ class FinancialReportService
             $comissaoAgenciaLiquidaBrl = $this->calculator->calculateAgencyNetCommissionBrl($gig);
 
             $tableData->push([
-                'gig_date' => $gig->gig_date->format('d/m/Y'),
+                'gig_date' => $gig->gig_date->isoFormat('L'),
                 'artist_name' => $gig->artist->name ?? 'N/A',
                 'booker_name' => $gig->booker->name ?? 'N/A',
                 'location_event_details' => $gig->location_event_details,
@@ -934,7 +934,7 @@ class FinancialReportService
             $margin = ($revenue > 0) ? ($profitability / $revenue) * 100 : 0;
 
             return [
-                'sale_date' => Carbon::parse($gig->sale_date)->format('d/m/Y'),
+                'sale_date' => Carbon::parse($gig->sale_date)->isoFormat('L'),
                 'gig_id' => $gig->id,
                 'gig_name' => $gig->artist->name.' @ '.Str::limit($gig->location_event_details, 30),
                 'gig_contract_number' => $gig->contract_number,
@@ -991,7 +991,7 @@ class FinancialReportService
 
                     return [
                         'gig_id' => $gig->id,
-                        'gig_date' => $gig->gig_date->format('d/m/Y'),
+                        'gig_date' => $gig->gig_date->isoFormat('L'),
                         'artist_name' => $gig->artist->name ?? 'N/A',
                         'booker_name' => $gig->booker->name ?? 'N/A',
                         'location_event_details' => $gig->location_event_details,

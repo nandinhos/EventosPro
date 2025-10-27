@@ -45,7 +45,7 @@
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 @foreach ($cashflowTable as $row)
                     <tr>
-                        <td class="px-3 py-1.5 whitespace-nowrap">{{ $row['date']->format('d/m/Y') }}</td>
+                        <td class="px-3 py-1.5 whitespace-nowrap">{{ $row['date']->isoFormat('L') }}</td>
                         <td class="px-3 py-1.5 whitespace-nowrap">
                             @if(isset($row['gig_id']))
                                 <a href="{{ route('gigs.show', $row['gig_id']) }}" class="font-semibold text-primary-600 hover:underline">

@@ -74,7 +74,7 @@ class AuditService
                 'tem_divergencia' => abs($divergencia) > 0.01,
                 'status_divergencia' => $statusDivergencia,
                 'analise_detalhada' => $analiseDetalhada,
-                'ultima_atualizacao' => now()->format('d/m/Y H:i:s'),
+                'ultima_atualizacao' => now()->isoFormat('L LTS'),
             ];
 
         } catch (Exception $e) {
@@ -133,8 +133,8 @@ class AuditService
             'pagamentos_confirmados' => $pagamentosConfirmados,
             'pagamentos_pendentes' => $pagamentosPendentes,
             'pagamentos_vencidos' => $pagamentosVencidos,
-            'proximo_vencimento' => $proximoVencimento ? Carbon::parse($proximoVencimento)->format('d/m/Y') : null,
-            'ultimo_pagamento' => $ultimoPagamento ? Carbon::parse($ultimoPagamento)->format('d/m/Y') : null,
+            'proximo_vencimento' => $proximoVencimento ? Carbon::parse($proximoVencimento)->isoFormat('L') : null,
+            'ultimo_pagamento' => $ultimoPagamento ? Carbon::parse($ultimoPagamento)->isoFormat('L') : null,
             'moedas_envolvidas' => $moedasEnvolvidas,
             'tem_multiplas_moedas' => $temMultiplasMoedas,
             'percentual_pago' => round($percentualPago, 2),
@@ -221,7 +221,7 @@ class AuditService
             'tem_divergencia' => false,
             'status_divergencia' => 'erro',
             'analise_detalhada' => [],
-            'ultima_atualizacao' => now()->format('d/m/Y H:i:s'),
+            'ultima_atualizacao' => now()->isoFormat('L LTS'),
         ];
     }
 
@@ -254,7 +254,7 @@ class AuditService
             ],
             'estatisticas_status' => $statusStats,
             'dados_detalhados' => $auditData,
-            'gerado_em' => now()->format('d/m/Y H:i:s'),
+            'gerado_em' => now()->isoFormat('L LTS'),
         ];
     }
 
@@ -293,7 +293,7 @@ class AuditService
         return [
             'is_valid' => empty($issues),
             'issues' => $issues,
-            'validated_at' => now()->format('d/m/Y H:i:s'),
+            'validated_at' => now()->isoFormat('L LTS'),
         ];
     }
 }

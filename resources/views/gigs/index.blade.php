@@ -148,7 +148,7 @@
                     @forelse ($gigs as $gig)
                         {{-- Classe de Destaque para Vencido e para Moeda Estrangeira --}}
                         <tr class="{{ $gig->payment_status == 'vencido' ? 'bg-red-50 dark:bg-red-900/20' : ($gig->currency != 'BRL' ? 'bg-blue-50 dark:bg-blue-900/10' : '') }}">
-                            <td class="px-3 py-1.5 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">{{ $gig->gig_date->format('d/m/Y') }}</td>
+                            <td class="px-3 py-1.5 whitespace-nowrap font-medium text-gray-700 dark:text-gray-300">{{ $gig->gig_date->isoFormat('L') }}</td>
                             {{-- Coluna Combinada Artista/Booker --}}
                             <td class="px-3 py-1.5 whitespace-nowrap">
                                 <span class="font-semibold text-gray-900 dark:text-white block">{{ $gig->artist->name ?? 'N/A' }}</span>

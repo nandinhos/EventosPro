@@ -122,7 +122,7 @@
                                        class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                {{ $gig->gig_date->format('d/m/Y') }}
+                                {{ $gig->gig_date->isoFormat('L') }}
                             </td>
                             <td class="px-6 py-4 text-sm">
                                 <a href="{{ route('gigs.show', $gig->id) }}"

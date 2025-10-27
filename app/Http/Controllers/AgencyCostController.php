@@ -15,7 +15,11 @@ class AgencyCostController extends Controller
     {
         $costs = AgencyFixedCost::with('costCenter')->orderBy('reference_month', 'desc')->get();
 
-        return view('agency-costs.index', compact('costs'));
+        $groupedCosts = $costs->groupBy(function ($cost) {
+            return $cost->reference_month->format('Y-m');
+        });
+
+        return view('agency-costs.index', ['groupedCosts' => $groupedCosts]);
     }
 
     /**
@@ -53,9 +57,9 @@ class AgencyCostController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(AgencyFixedCost $agencyFixedCost)
+    public function show(AgencyFixedCost $agencyCost)
     {
-        //
+        return view('agency-costs.show', ['cost' => $agencyCost]);
     }
 
     /**

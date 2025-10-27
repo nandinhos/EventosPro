@@ -102,7 +102,7 @@
         @if($booker)
             <p>Booker: {{ $booker->name }}</p>
         @endif
-        <p>Gerado em: {{ now()->format('d/m/Y H:i') }}</p>
+        <p>Gerado em: {{ now()->isoFormat('L LT') }}</p>
     </div>
 
     <!-- Resumo -->
@@ -144,7 +144,7 @@
         <tbody>
             @forelse($reportData['gigs'] as $gig)
             <tr>
-                <td>{{ $gig->gig_date->format('d/m/Y') }}</td>
+                <td>{{ $gig->gig_date->isoFormat('L') }}</td>
                 <td>{{ $gig->artist->name }}</td>
                 <td>{{ $gig->location_event_details }} - {{ $gig->location_city }}/{{ $gig->location_state }}</td>
                 <td class="text-right">R$ {{ number_format($gig->cache_value_brl, 2, ',', '.') }}</td>

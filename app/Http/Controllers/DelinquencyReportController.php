@@ -373,7 +373,7 @@ class DelinquencyReportController extends Controller
             'groupedPayments' => $groupedPayments,
             'totals' => $totals,
             'filters' => $request->only(['start_date', 'end_date', 'status', 'currency']),
-            'generated_at' => now()->format('d/m/Y H:i'),
+            'generated_at' => now()->isoFormat('L LT'),
         ]);
 
         $fileName = 'relatorio_vencimentos_'.now()->format('Y-m-d').'.pdf';

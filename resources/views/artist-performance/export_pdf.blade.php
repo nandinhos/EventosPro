@@ -107,12 +107,12 @@
     <div class="header">
         <img src="{{ public_path('img/coral_360_logo.png') }}" alt="Logo" class="logo">
         <h1>Relatório de Desempenho de Artistas</h1>
-        <p>Período: {{ isset($filters['start_date']) ? \Carbon\Carbon::parse($filters['start_date'])->format('d/m/Y') : 'N/A' }} a {{ isset($filters['end_date']) ? \Carbon\Carbon::parse($filters['end_date'])->format('d/m/Y') : 'N/A' }}</p>
+        <p>Período: {{ isset($filters['start_date']) ? \Carbon\Carbon::parse($filters['start_date'])->isoFormat('L') : 'N/A' }} a {{ isset($filters['end_date']) ? \Carbon\Carbon::parse($filters['end_date'])->isoFormat('L') : 'N/A' }}</p>
         @if(isset($filters['artist_id']) && $filters['artist_id'])
             <p>Artista Selecionado: {{ \App\Models\Artist::find($filters['artist_id'])->name ?? 'N/A' }}</p>
         @endif
         <p style="font-size: 8px; color: #9ca3af;">
-            Gerado em: {{ now()->format('d/m/Y H:i') }}
+            Gerado em: {{ now()->isoFormat('L LT') }}
             @if(auth()->check())
                 por: {{ auth()->user()->name }}
             @endif

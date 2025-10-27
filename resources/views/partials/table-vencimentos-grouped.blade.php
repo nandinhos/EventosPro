@@ -86,7 +86,7 @@
                                                 </h4>
                                                 <p class="text-sm text-orange-700 dark:text-orange-300">
                                                     {{ $subGroup['gig']->location_event_details ?? 'Local não informado' }} • 
-                                                    {{ $subGroup['gig']->gig_date?->format('d/m/Y') ?? 'Data não informada' }}
+                                                    {{ $subGroup['gig']->gig_date?->isoFormat('L') ?? 'Data não informada' }}
                                                 </p>
                                                 <p class="text-xs text-orange-600 dark:text-orange-400 mt-1">
                                                     {{ $subGroup['parcelas_vencidas_count'] }} parcelas vencidas • 
@@ -153,7 +153,7 @@
                                                 </td>
                                                 <td class="px-4 py-3 whitespace-nowrap">
                                                     <div class="text-sm font-semibold {{ $status === 'vencido' ? 'text-red-600 dark:text-red-400' : 'text-blue-700 dark:text-blue-400' }}">
-                                                        {{ $payment->due_date?->format('d/m/Y') }}
+                                                        {{ $payment->due_date?->isoFormat('L') }}
                                                         @if($status === 'vencido')
                                                             <div class="text-xs font-medium text-red-500 dark:text-red-400 mt-1">
                                                                 <i class="fas fa-exclamation-circle mr-1"></i> {{ $payment->due_date->diffForHumans() }}
@@ -255,11 +255,11 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                                        {{ $gig?->gig_date?->format('d/m/Y') ?? 'N/A' }}
+                                        {{ $gig?->gig_date?->isoFormat('L') ?? 'N/A' }}
                                     </td>
                                     <td class="px-4 py-3 whitespace-nowrap">
                                         <div class="text-sm font-semibold {{ $status === 'vencido' ? 'text-red-600 dark:text-red-400' : 'text-blue-700 dark:text-blue-400' }}">
-                                            {{ $payment->due_date?->format('d/m/Y') }}
+                                            {{ $payment->due_date?->isoFormat('L') }}
                                             @if($status === 'vencido')
                                                 <div class="text-xs font-medium text-red-500 dark:text-red-400 mt-1">
                                                     <i class="fas fa-exclamation-circle mr-1"></i> {{ $payment->due_date->diffForHumans() }}

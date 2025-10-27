@@ -40,11 +40,11 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                             <div class="min-h-[3rem] flex flex-col justify-center">
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Data da Gig</dt>
-                                <dd class="mt-1 text-sm text-gray-900 dark:text-white font-medium">{{ $gig->gig_date ? $gig->gig_date->format('d/m/Y') : 'N/A' }}</dd>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white font-medium">{{ $gig->gig_date ? $gig->gig_date->isoFormat('L') : 'N/A' }}</dd>
                             </div>
                             <div class="min-h-[3rem] flex flex-col justify-center">
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Data do Contrato</dt>
-                                <dd class="mt-1 text-sm text-gray-900 dark:text-white font-medium">{{ $gig->contract_date ? $gig->contract_date->format('d/m/Y') : 'N/A' }}</dd>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white font-medium">{{ $gig->contract_date ? $gig->contract_date->isoFormat('L') : 'N/A' }}</dd>
                             </div>
                         </div>
                         
@@ -275,7 +275,7 @@
                 <div class="px-6 py-4 text-center">
                     <div class="text-sm text-gray-500 dark:text-gray-400">
                         <i class="fas fa-clock mr-1"></i>
-                        Última atualização: {{ $auditData['ultima_atualizacao'] ?? now()->format('d/m/Y H:i:s') }}
+                        Última atualização: {{ $auditData['ultima_atualizacao'] ?? now()->isoFormat('L LTS') }}
                     </div>
                 </div>
             </div>

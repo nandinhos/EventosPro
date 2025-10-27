@@ -72,13 +72,13 @@
         @if(!empty(array_filter($filters)))
             <p class="filters">
                 Período: 
-                {{ isset($filters['event_start_date']) ? \Carbon\Carbon::parse($filters['event_start_date'])->format('d/m/Y') : 'N/A' }} 
+                {{ isset($filters['event_start_date']) ? \Carbon\Carbon::parse($filters['event_start_date'])->isoFormat('L') : 'N/A' }}
                 a 
-                {{ isset($filters['event_end_date']) ? \Carbon\Carbon::parse($filters['event_end_date'])->format('d/m/Y') : 'N/A' }}
+                {{ isset($filters['event_end_date']) ? \Carbon\Carbon::parse($filters['event_end_date'])->isoFormat('L') : 'N/A' }}
             </p>
         @endif
         <p class="generation-date" style="font-size: 8px; color: #9ca3af;">
-            Gerado em: {{ now()->format('d/m/Y H:i') }}
+            Gerado em: {{ now()->isoFormat('L LT') }}
             @if(auth()->check())
                 por: {{ auth()->user()->name }}
             @endif
@@ -101,7 +101,7 @@
                     <tr>
                         <td class="artist-info-cell">
                             <div class="artist-name">{{ $gig->artist->name ?? 'N/A' }}</div>
-                            <div class="event-date">{{ $gig->gig_date->format('d/m/Y') }}</div>
+                            <div class="event-date">{{ $gig->gig_date->isoFormat('L') }}</div>
                             <div class="financial-summary">
                                 <div>
                                     <span class="label">Recebido:</span>
@@ -153,7 +153,7 @@
                                     @foreach ($gig->payments->sortBy('due_date') as $payment)
                                         <tr>
                                             <td class="{{ $payment->inferred_status === 'vencido' ? 'due-date-past' : '' }}">
-                                                {{ $payment->due_date->format('d/m/Y') }}
+                                                {{ $payment->due_date->isoFormat('L') }}
                                             </td>
                                             <td class="text-right">
                                                 {{ $payment->currency }} {{ number_format($payment->due_value, 2, ',', '.') }}

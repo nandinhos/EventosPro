@@ -32,7 +32,7 @@ class ReportController extends Controller
             ->map(function ($artistGigs) {
                 return $artistGigs->map(function ($gig) {
                     return (object) [
-                        'date' => Carbon::parse($gig->gig_date)->format('d/m/Y'),
+                        'date' => Carbon::parse($gig->gig_date)->isoFormat('L'),
                         'artist' => $gig->artist_name,
                         'location' => $gig->location_event_details,
                         'booker' => $gig->booker->name,

@@ -165,7 +165,7 @@ class FinancialReportController extends Controller
                 $settlement->settlement_date = $settlement->settlement_date ?? $paymentDate;
                 $settlement->booker_commission_value_paid = $bookerCommissionValue;
                 $settlement->booker_commission_paid_at = $paymentDate;
-                $settlement->notes = trim(($settlement->notes ?? '')."\n[Booker Batch ".now()->format('d/m/y H:i').']: Pago via lote.');
+                $settlement->notes = trim(($settlement->notes ?? '')."\n[Booker Batch ".now()->isoFormat('l LT').']: Pago via lote.');
                 $settlement->save();
 
                 $gig->booker_payment_status = 'pago';
@@ -312,7 +312,7 @@ class FinancialReportController extends Controller
                 $settlement->settlement_date = $settlement->settlement_date ?? $paymentDate;
                 $settlement->artist_payment_value = $artistPayoutValue;
                 $settlement->artist_payment_paid_at = $paymentDate;
-                $settlement->notes = trim(($settlement->notes ?? '')."\n[Artist Batch ".now()->format('d/m/y H:i').']: Pago via lote.');
+                $settlement->notes = trim(($settlement->notes ?? '')."\n[Artist Batch ".now()->isoFormat('l LT').']: Pago via lote.');
                 $settlement->save();
 
                 $gig->artist_payment_status = 'pago';
@@ -743,7 +743,7 @@ class FinancialReportController extends Controller
             'customGroupedPayments' => $customGroupedPayments,
             'totals' => $totals,
             'filters' => array_filter($filters), // Remove filtros vazios
-            'generated_at' => now()->format('d/m/Y H:i'),
+            'generated_at' => now()->isoFormat('L LT'),
         ]);
 
         $fileName = 'relatorio_vencimentos_'.now()->format('Ymd_His').'.pdf';

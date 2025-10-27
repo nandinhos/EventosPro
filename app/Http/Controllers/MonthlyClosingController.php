@@ -67,7 +67,7 @@ class MonthlyClosingController extends Controller
         $pdf = PDF::loadView('finance.monthly-closing.pdf', [
             'reportData' => $reportData,
             'booker' => $booker,
-            'period' => $startDate->format('m/Y'),
+            'period' => $startDate->isoFormat('MM/YYYY'),
             'startDate' => $startDate,
             'endDate' => $endDate,
             'generatedBy' => auth()->user()->name ?? 'Sistema',

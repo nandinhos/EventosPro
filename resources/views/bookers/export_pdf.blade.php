@@ -193,9 +193,9 @@
     @if(!empty($filters['start_date']) || !empty($filters['end_date']))
     <div class="period-info">
         <strong>Período:</strong>
-        {{ !empty($filters['start_date']) ? \Carbon\Carbon::parse($filters['start_date'])->format('d/m/Y') : 'Início' }}
+        {{ !empty($filters['start_date']) ? \Carbon\Carbon::parse($filters['start_date'])->isoFormat('L') : 'Início' }}
         a
-        {{ !empty($filters['end_date']) ? \Carbon\Carbon::parse($filters['end_date'])->format('d/m/Y') : 'Hoje' }}
+        {{ !empty($filters['end_date']) ? \Carbon\Carbon::parse($filters['end_date'])->isoFormat('L') : 'Hoje' }}
     </div>
     @else
     <div class="period-info">
@@ -320,7 +320,7 @@
     @endif
 
     <div class="footer">
-        Relatório gerado em {{ now()->format('d/m/Y H:i') }} | EventosPro - Sistema de Gestão de Eventos
+        Relatório gerado em {{ now()->isoFormat('L LT') }} | EventosPro - Sistema de Gestão de Eventos
     </div>
 </body>
 </html>

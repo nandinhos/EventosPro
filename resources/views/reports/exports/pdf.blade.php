@@ -73,7 +73,7 @@
                     @elseif ($type == 'expenses')
                         <td>{{ $row['gig_contract_number'] }}</td>
                         <td>{{ $row['description'] }}</td>
-                        <td>{{ $row['expense_date'] ? \Carbon\Carbon::parse($row['expense_date'])->format('d/m/Y') : 'N/A' }}</td>
+                        <td>{{ $row['expense_date'] ? \Carbon\Carbon::parse($row['expense_date'])->isoFormat('L') : 'N/A' }}</td>
                         <td>R$ {{ number_format($row['value_brl'], 2, ',', '.') }}</td>
                         <td>{{ $row['currency'] }}</td>
                     @endif

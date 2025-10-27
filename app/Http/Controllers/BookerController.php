@@ -140,7 +140,7 @@ class BookerController extends Controller
             // Adicionar observações gerais
             if (! empty($validated['notes'])) {
                 $currentNotes = $gig->notes ?? '';
-                $newNote = '['.now()->format('d/m/Y H:i').'] '.$validated['notes'];
+                $newNote = '['.now()->isoFormat('L LT').'] '.$validated['notes'];
                 $gig->notes = $currentNotes ? $currentNotes."\n".$newNote : $newNote;
             }
 

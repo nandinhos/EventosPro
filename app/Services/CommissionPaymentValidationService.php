@@ -31,7 +31,7 @@ class CommissionPaymentValidationService
         if (! $allowExceptions) {
             return [
                 'valid' => false,
-                'message' => "Não é possível pagar comissão para evento futuro (Data: {$eventDate->format('d/m/Y')})",
+                'message' => "Não é possível pagar comissão para evento futuro (Data: {$eventDate->isoFormat('L')})",
             ];
         }
 
@@ -42,7 +42,7 @@ class CommissionPaymentValidationService
 
         return [
             'valid' => false,
-            'message' => "Evento futuro sem exceção autorizada (Data: {$eventDate->format('d/m/Y')})",
+            'message' => "Evento futuro sem exceção autorizada (Data: {$eventDate->isoFormat('L')})",
         ];
     }
 
@@ -154,7 +154,7 @@ class CommissionPaymentValidationService
                 ]);
             }
 
-            $exceptionNote = "\n[EXCEÇÃO AUTORIZADA ".now()->format('d/m/Y H:i')."]: {$reason} - Autorizado por: {$authorizedBy}";
+            $exceptionNote = "\n[EXCEÇÃO AUTORIZADA ".now()->isoFormat('L LT')."]: {$reason} - Autorizado por: {$authorizedBy}";
             $settlement->notes = ($settlement->notes ?: '').$exceptionNote;
             $settlement->save();
 

@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Relatório de Vencimentos - {{ now()->format('d/m/Y') }}</title>
+    <title>Relatório de Vencimentos - {{ now()->isoFormat('L') }}</title>
     <style>
         /* CONFIGURAÇÕES GERAIS */
         @page { margin: 20px; }
@@ -215,7 +215,7 @@
         <img src="{{ public_path('img/coral_360_logo.png') }}" alt="Logo" class="logo">
         <div class="title">Relatório de Vencimentos</div>
         <p class="generation-date" style="font-size: 8px; color: #9ca3af;">
-            Gerado em: {{ now()->format('d/m/Y H:i') }}
+            Gerado em: {{ now()->isoFormat('L LT') }}
             @if(auth()->check())
                 por: {{ auth()->user()->name }}
             @endif
@@ -223,7 +223,7 @@
 
     @if (!empty($filters))
         @if(isset($filters['start_date']) || isset($filters['end_date']))
-            <p><strong>Período de Vencimento:</strong> {{ isset($filters['start_date']) ? \Carbon\Carbon::parse($filters['start_date'])->format('d/m/Y') : 'Início' }} a {{ isset($filters['end_date']) ? \Carbon\Carbon::parse($filters['end_date'])->format('d/m/Y') : 'Fim' }}</p>
+            <p><strong>Período de Vencimento:</strong> {{ isset($filters['start_date']) ? \Carbon\Carbon::parse($filters['start_date'])->isoFormat('L') : 'Início' }} a {{ isset($filters['end_date']) ? \Carbon\Carbon::parse($filters['end_date'])->isoFormat('L') : 'Fim' }}</p>
         @endif
         @if(isset($filters['status']))
             <p><strong>Status:</strong> {{ ['a_vencer' => 'A Vencer', 'vencido' => 'Vencido'][$filters['status']] ?? 'Todos (Pendentes)' }}</p>
@@ -335,7 +335,7 @@
                                         </div>
                                         <div class="subgroup-details">
                                             {{ $gigData['gig']->location_event_details ?? 'Local não informado' }} • 
-                                            {{ $gigData['gig']->gig_date?->format('d/m/Y') ?? 'Data não informada' }}
+                                            {{ $gigData['gig']->gig_date?->isoFormat('L') ?? 'Data não informada' }}
                                         </div>
                                         <div class="subgroup-stats">
                                             {{ $gigData['parcelas_vencidas_count'] }} vencida(s), {{ $gigData['parcelas_a_vencer_count'] }} a vencer • 
@@ -377,9 +377,9 @@
                                     <td>
                                         <div class="text-xs">{{ $gig?->location_event_details ?? '' }}</div>
                                     </td>
-                                    <td>{{ $gig?->gig_date?->format('d/m/Y') ?? 'N/A' }}</td>
+                                    <td>{{ $gig?->gig_date?->isoFormat('L') ?? 'N/A' }}</td>
                                     <td class="{{ $dueStatus === 'vencido' ? 'text-red' : 'text-yellow' }}">
-                                        <div>{{ $payment->due_date?->format('d/m/Y') }}</div>
+                                        <div>{{ $payment->due_date?->isoFormat('L') }}</div>
                                         <div class="text-xs">{{ $payment->due_date?->diffForHumans() }}</div>
                                     </td>
                                     <td style="word-wrap: break-word;">
@@ -459,9 +459,9 @@
                                 <td>
                                     <div class="text-xs">{{ $gig?->location_event_details ?? '' }}</div>
                                 </td>
-                                <td>{{ $gig?->gig_date?->format('d/m/Y') ?? 'N/A' }}</td>
+                                <td>{{ $gig?->gig_date?->isoFormat('L') ?? 'N/A' }}</td>
                                 <td class="{{ $dueStatus === 'vencido' ? 'text-red' : 'text-yellow' }}">
-                                    <div>{{ $payment->due_date?->format('d/m/Y') }}</div>
+                                    <div>{{ $payment->due_date?->isoFormat('L') }}</div>
                                     <div class="text-xs">{{ $payment->due_date?->diffForHumans() }}</div>
                                 </td>
                                 <td style="word-wrap: break-word;">
@@ -517,9 +517,9 @@
                         <td>
                             <div class="text-xs">{{ $gig?->location_event_details ?? '' }}</div>
                         </td>
-                        <td>{{ $gig?->gig_date?->format('d/m/Y') ?? 'N/A' }}</td>
+                        <td>{{ $gig?->gig_date?->isoFormat('L') ?? 'N/A' }}</td>
                         <td class="{{ $dueStatus === 'vencido' ? 'text-red' : 'text-yellow' }}">
-                            <div>{{ $payment->due_date?->format('d/m/Y') }}</div>
+                            <div>{{ $payment->due_date?->isoFormat('L') }}</div>
                             <div class="text-xs">{{ $payment->due_date?->diffForHumans() }}</div>
                         </td>
                         <td style="word-wrap: break-word;">

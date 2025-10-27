@@ -106,7 +106,7 @@
                                                        class="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
                                            
                                         </td>
-                                        <td class="px-3 py-2 whitespace-nowrap">{{ $gig->gig_date ? $gig->gig_date->format('d/m/Y') : 'N/A' }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap">{{ $gig->gig_date ? $gig->gig_date->isoFormat('L') : 'N/A' }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap font-semibold">{{ $gig->artist->name ?? 'N/A' }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap">
                                             <a href="{{ route('gigs.show', $gig) }}" class="text-primary-600 hover:underline" title="Ver detalhes da Gig">

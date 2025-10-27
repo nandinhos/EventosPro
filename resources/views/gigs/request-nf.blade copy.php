@@ -7,7 +7,7 @@
             </h2>
             <p class="text-sm text-gray-500 dark:text-gray-400">
                 Artista: <span class="font-medium">{{ $gig->artist->name ?? 'N/A' }}</span> |
-                Evento: {{ $gig->gig_date->format('d/m/Y') }} - {{ $gig->location_event_details }}
+                Evento: {{ $gig->gig_date->isoFormat('L') }} - {{ $gig->location_event_details }}
             </p>
         </div>
         <a href="{{ route('gigs.show', $backUrlParams) }}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-md text-sm">

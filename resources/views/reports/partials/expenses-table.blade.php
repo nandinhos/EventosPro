@@ -53,7 +53,7 @@
                             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                 @foreach ($group['costs'] as $cost)
                                     <tr>
-                                        <td class="px-3 py-2 whitespace-nowrap">{{ $cost->expense_date ? $cost->expense_date->format('d/m/Y') : 'N/A' }}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap">{{ $cost->expense_date ? $cost->expense_date->isoFormat('L') : 'N/A' }}</td>
                                         <td class="px-3 py-2 whitespace-nowrap">
                                             <a href="{{ route('gigs.show', $cost->gig) }}" class="font-semibold text-primary-600 hover:underline" title="{{ $cost->gig->location_event_details ?? 'Ver Gig' }}">
                                                 Gig #{{ $cost->gig_id }}

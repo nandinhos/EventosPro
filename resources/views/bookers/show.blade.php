@@ -323,7 +323,7 @@
                                     <tbody class="text-sm">
                                         @foreach($analyticalTableData as $gig)
                                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                            <td class="px-4 py-2 whitespace-nowrap">{{ \Carbon\Carbon::parse($gig->sale_date)->format('d/m/Y') }}</td>
+                                            <td class="px-4 py-2 whitespace-nowrap">{{ \Carbon\Carbon::parse($gig->sale_date)->isoFormat('L') }}</td>
                                             <td class="px-4 py-2 whitespace-nowrap font-medium text-gray-800 dark:text-white">{{ $gig->artist->name }}</td>
                                             <td class="px-4 py-2">{{ Str::limit($gig->location_event_details, 50) }}</td>
                                             <td class="px-4 py-2 text-right">R$ {{ number_format($gig->cache_value_brl, 2, ',', '.') }}</td>
@@ -428,7 +428,7 @@
                         </div>
                         {{-- Coluna 4: Data e Valor --}}
                         <div class="text-sm text-right">
-                            <p class="text-gray-700 dark:text-gray-300">{{ \Carbon\Carbon::parse($gig->contract_date ?? $gig->gig_date)->format('d/m/Y') }}</p>
+                            <p class="text-gray-700 dark:text-gray-300">{{ \Carbon\Carbon::parse($gig->contract_date ?? $gig->gig_date)->isoFormat('L') }}</p>
                             <p class="text-xs font-semibold text-gray-500">R$ {{ number_format($gig->cache_value_brl, 2, ',', '.') }}</p>
                         </div>
                     </div>

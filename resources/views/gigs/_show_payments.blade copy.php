@@ -97,7 +97,7 @@
              {{ $payment->currency }} {{ number_format($payment->due_value ?? 0, 2, ',', '.') }}
          </span>
          <span class="block text-xs text-gray-500 dark:text-gray-400">
-             Vencimento: {{ $payment->due_date ? $payment->due_date->format('d/m/Y') : 'N/A' }}
+             Vencimento: {{ $payment->due_date ? $payment->due_date->isoFormat('L') : 'N/A' }}
          </span>
          <span class="block text-xs">
              Status: <x-status-badge :status="$payment->inferred_status" type="payment-receipt" />
@@ -106,12 +106,12 @@
              <span class="block text-xs mt-1 text-green-700 dark:text-green-300">
                  <i class="fas fa-check-circle fa-fw"></i>
                  Recebido: {{ $payment->currency }} {{ number_format($payment->received_value_actual ?? 0, 2, ',', '.') }}
-                 em {{ $payment->received_date_actual?->format('d/m/Y') ?? 'N/A' }}
+                 em {{ $payment->received_date_actual?->isoFormat('L') ?? 'N/A' }}
                  @if($payment->currency !== 'BRL' && $payment->exchange_rate)
                      (Câmbio: {{ rtrim(rtrim(number_format($payment->exchange_rate, 6, ',', '.'),'0'),',') }})
                  @endif
              </span>
-             <span class="block text-xxs text-gray-400 dark:text-gray-500">Confirmado por {{ $payment->confirmer?->name ?? '?' }} em {{ $payment->confirmed_at->format('d/m/y H:i') }}</span>
+             <span class="block text-xxs text-gray-400 dark:text-gray-500">Confirmado por {{ $payment->confirmer?->name ?? '?' }} em {{ $payment->confirmed_at->isoFormat('l LT') }}</span>
          @endif
          @if($payment->notes)
              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 italic border-t border-gray-100 dark:border-gray-700 pt-1">Nota: {{ $payment->notes }}</p>

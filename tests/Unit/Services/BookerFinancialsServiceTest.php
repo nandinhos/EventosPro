@@ -431,7 +431,7 @@ class BookerFinancialsServiceTest extends TestCase
         $event = $result->first();
         $this->assertEquals($pastGig->id, $event['id']);
         $this->assertEquals('CTR001', $event['contract_number']);
-        $this->assertEquals($pastGig->gig_date->format('d/m/Y'), $event['gig_date']);
+        $this->assertEquals($pastGig->gig_date->isoFormat('L'), $event['gig_date']);
         $this->assertEquals($this->artist->name, $event['artist_name']);
         $this->assertEquals('São Paulo', $event['location']);
         $this->assertEquals(1000.00, $event['cache_value_brl']);
@@ -504,7 +504,7 @@ class BookerFinancialsServiceTest extends TestCase
         $event = $result->first();
         $this->assertEquals($futureGig->id, $event['id']);
         $this->assertEquals('CTR002', $event['contract_number']);
-        $this->assertEquals($futureGig->gig_date->format('d/m/Y'), $event['gig_date']);
+        $this->assertEquals($futureGig->gig_date->isoFormat('L'), $event['gig_date']);
         $this->assertEquals($this->artist->name, $event['artist_name']);
         $this->assertEquals('Rio de Janeiro', $event['location']);
         $this->assertEquals(2000.00, $event['cache_value_brl']);

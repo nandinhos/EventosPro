@@ -95,7 +95,7 @@
                                     <tr>
                                         <td class="px-4 py-2">{{ $payment->description }}</td>
                                         <td class="px-4 py-2 text-right">{{ $payment->currency }} {{ number_format($payment->due_value, 2, ',', '.') }}</td>
-                                        <td class="px-4 py-2 text-center">{{ $payment->due_date->format('d/m/Y') }}</td>
+                                        <td class="px-4 py-2 text-center">{{ $payment->due_date->isoFormat('L') }}</td>
                                         <td class="px-4 py-2 text-center"><x-status-badge :status="$payment->inferred_status" type="payment" /></td>
                                         <td class="px-4 py-2 text-right">
                                             @if($payment->confirmed_at)
@@ -110,7 +110,7 @@
                                                 -
                                             @endif
                                         </td>
-                                        <td class="px-4 py-2 text-center">{{ $payment->received_date_actual?->format('d/m/Y') ?? '-' }}</td>
+                                        <td class="px-4 py-2 text-center">{{ $payment->received_date_actual?->isoFormat('L') ?? '-' }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>

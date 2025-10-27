@@ -327,7 +327,7 @@ class AuditController extends Controller
             $audit = $auditData[$gig->id] ?? null;
             if ($audit) {
                 $csvData[] = [
-                    $gig->gig_date ? $gig->gig_date->format('d/m/Y') : '',
+                    $gig->gig_date ? $gig->gig_date->isoFormat('L') : '',
                     $gig->artist->name ?? '',
                     $gig->booker->name ?? '',
                     $gig->location_event_details ?? '',
@@ -580,7 +580,7 @@ class AuditController extends Controller
                 foreach ($gigIssue['issues'] as $issue) {
                     $tableData[] = [
                         'gig_id' => $gig->id,
-                        'gig_date' => $gig->gig_date->format('d/m/Y'),
+                        'gig_date' => $gig->gig_date->isoFormat('L'),
                         'artist_name' => $gig->artist->name ?? 'N/A',
                         'booker_name' => $gig->booker->name ?? 'N/A',
                         'contract_number' => $gig->contract_number ?? 'N/A',

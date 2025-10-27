@@ -11,7 +11,7 @@
                 Detalhes da Gig #{{ $gig->id }}: {{ $gig->artist->name ?? 'N/A' }}
             </h2>
             <p class="text-sm text-gray-500 dark:text-gray-400">
-                {{ $gig->gig_date->format('d/m/Y') }} - {{ $gig->location_event_details }}
+                {{ $gig->gig_date->isoFormat('L') }} - {{ $gig->location_event_details }}
             </p>
         </div>
         <div class="flex space-x-2 items-center">

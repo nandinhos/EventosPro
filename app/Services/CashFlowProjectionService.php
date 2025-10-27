@@ -89,7 +89,7 @@ class CashFlowProjectionService
                         'gig_id' => $payment->gig_id,
                         'gig_contract' => $payment->gig->contract_number ?? 'N/A',
                         'artist_name' => $payment->gig->artist->name ?? 'N/A',
-                        'received_date' => Carbon::parse($payment->received_date_actual)->format('d/m/Y'),
+                        'received_date' => Carbon::parse($payment->received_date_actual)->isoFormat('L'),
                         'received_value_brl' => $payment->received_value_actual_brl,
                         'currency' => $payment->currency,
                     ];
@@ -128,7 +128,7 @@ class CashFlowProjectionService
 
                 return [
                     'gig_id' => $gig->id,
-                    'gig_date' => $gig->gig_date->format('d/m/Y'),
+                    'gig_date' => $gig->gig_date->isoFormat('L'),
                     'artist_name' => $gig->artist->name ?? 'N/A',
                     'booker_name' => $gig->booker->name ?? 'N/A',
                     'contract_value_brl' => $gig->cache_value_brl,
@@ -298,7 +298,7 @@ class CashFlowProjectionService
                     'gig_id' => $payment->gig_id,
                     'gig_contract' => $payment->gig->contract_number ?? 'N/A',
                     'artist_name' => $payment->gig->artist->name ?? 'N/A',
-                    'due_date' => Carbon::parse($payment->due_date)->format('d/m/Y'),
+                    'due_date' => Carbon::parse($payment->due_date)->isoFormat('L'),
                     'due_value_brl' => $payment->due_value_brl,
                     'days_until_due' => Carbon::today()->diffInDays(Carbon::parse($payment->due_date), false),
                 ];
@@ -363,7 +363,7 @@ class CashFlowProjectionService
             if ($pendingAmount > 0.01) {
                 $pendingArtistPayments[] = [
                     'gig_id' => $gig->id,
-                    'gig_date' => $gig->gig_date->format('d/m/Y'),
+                    'gig_date' => $gig->gig_date->isoFormat('L'),
                     'gig_contract' => $gig->contract_number ?? "Gig #{$gig->id}",
                     'artist_name' => $gig->artist->stage_name ?? $gig->artist->name ?? 'N/A',
                     'booker_name' => $gig->booker->name ?? 'N/A',
@@ -434,7 +434,7 @@ class CashFlowProjectionService
 
                 $pendingBookerCommissions[] = [
                     'gig_id' => $gig->id,
-                    'gig_date' => $gig->gig_date->format('d/m/Y'),
+                    'gig_date' => $gig->gig_date->isoFormat('L'),
                     'gig_contract' => $gig->contract_number ?? "Gig #{$gig->id}",
                     'artist_name' => $gig->artist->stage_name ?? $gig->artist->name ?? 'N/A',
                     'booker_name' => $bookerName,

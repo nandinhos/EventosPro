@@ -165,7 +165,7 @@
                         @if($settlement?->artist_payment_value)
                             <p>Valor Registrado: R$ {{ number_format($settlement->artist_payment_value, 2, ',', '.') }}
                                 @if($settlement->artist_payment_paid_at)
-                                 em {{ $settlement->artist_payment_paid_at?->format('d/m/Y') }}
+                                 em {{ $settlement->artist_payment_paid_at?->isoFormat('L') }}
                                 @endif
                             </p>
                         @endif
@@ -243,7 +243,7 @@
                              @if($settlement?->booker_commission_value_paid)
                                 <p>Valor Registrado Pago: R$ {{ number_format($settlement->booker_commission_value_paid, 2, ',', '.') }}
                                     @if($settlement->booker_commission_paid_at)
-                                     em {{ $settlement->booker_commission_paid_at?->format('d/m/Y') }}
+                                     em {{ $settlement->booker_commission_paid_at?->isoFormat('L') }}
                                     @endif
                                 </p>
                             @endif

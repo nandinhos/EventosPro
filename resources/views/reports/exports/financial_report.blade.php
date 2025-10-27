@@ -17,7 +17,7 @@
     <p>Período: {{ $filters['start_date'] }} a {{ $filters['end_date'] }}</p>
 
     <div class="summary">
-        <h2>Faturamento {{ now()->format('M-Y') }}</h2>
+        <h2>Faturamento {{ now()->isoFormat('MMM-YYYY') }}</h2>
         <p>Faturamento: R$ {{ number_format($data['total_revenue'], 2, ',', '.') }} ({{ $data['total_events'] }} datas)</p>
         <p>Coral 360: R$ {{ number_format($data['net_revenue'], 2, ',', '.') }}</p>
         <p>Bookers: R$ {{ number_format($data['total_booker_commissions'], 2, ',', '.') }}</p>

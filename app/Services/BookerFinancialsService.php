@@ -106,7 +106,7 @@ class BookerFinancialsService
                     'total_value' => $gigsForArtist->sum(fn ($gig) => $gig->cache_value_brl),
                     'gigs' => $sortedGigs->map(function ($gig) { // Usa a coleção já ordenada
                         return (object) [
-                            'sale_date' => Carbon::parse($gig->contract_date ?? $gig->gig_date)->format('d/m/Y'),
+                            'sale_date' => Carbon::parse($gig->contract_date ?? $gig->gig_date)->isoFormat('L'),
                             'location' => $gig->location_event_details,
                             'value' => $gig->cache_value_brl,
                         ];
@@ -160,7 +160,7 @@ class BookerFinancialsService
             return [
                 'id' => $gig->id,
                 'contract_number' => $gig->contract_number,
-                'gig_date' => $gig->gig_date->format('d/m/Y'),
+                'gig_date' => $gig->gig_date->isoFormat('L'),
                 'artist_name' => $gig->artist->name ?? 'N/A',
                 'location' => $gig->location_event_details,
                 'cache_value_brl' => $gig->cache_value_brl,
@@ -196,7 +196,7 @@ class BookerFinancialsService
             return [
                 'id' => $gig->id,
                 'contract_number' => $gig->contract_number,
-                'gig_date' => $gig->gig_date->format('d/m/Y'),
+                'gig_date' => $gig->gig_date->isoFormat('L'),
                 'artist_name' => $gig->artist->name ?? 'N/A',
                 'location' => $gig->location_event_details,
                 'cache_value_brl' => $gig->cache_value_brl,

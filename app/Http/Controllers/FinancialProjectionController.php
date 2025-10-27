@@ -246,7 +246,7 @@ class FinancialProjectionController extends Controller
                     'gig_id' => $payment->gig_id,
                     'gig_contract' => $payment->gig->contract_number ?? 'N/A',
                     'artist_name' => $payment->gig->artist->name ?? 'N/A',
-                    'due_date' => \Carbon\Carbon::parse($payment->due_date)->format('d/m/Y'),
+                    'due_date' => \Carbon\Carbon::parse($payment->due_date)->isoFormat('L'),
                     'due_value_brl' => $payment->due_value_brl,
                     'days_until_due' => \Carbon\Carbon::today()->diffInDays(\Carbon\Carbon::parse($payment->due_date), false),
                     'is_overdue' => $isOverdue,
@@ -282,7 +282,7 @@ class FinancialProjectionController extends Controller
             return [
                 'gig_id' => $cost->gig_id,
                 'gig_date_raw' => $cost->gig ? $cost->gig->gig_date : null,
-                'gig_date' => $cost->gig ? $cost->gig->gig_date->format('d/m/Y') : 'N/A',
+                'gig_date' => $cost->gig ? $cost->gig->gig_date->isoFormat('L') : 'N/A',
                 'description' => $cost->description,
                 'value_brl' => $cost->value_brl,
                 'is_confirmed' => $cost->is_confirmed,

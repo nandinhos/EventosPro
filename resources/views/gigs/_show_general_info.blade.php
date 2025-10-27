@@ -6,10 +6,10 @@
     <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
         <div><strong class="text-gray-500 dark:text-gray-400">Artista:</strong> {{ $gig->artist->name ?? 'N/A' }}</div>
         <div><strong class="text-gray-500 dark:text-gray-400">Booker:</strong> {{ $gig->booker->name ?? 'Agência/Sem Booker' }}</div>
-        <div><strong class="text-gray-500 dark:text-gray-400">Data Evento:</strong> {{ $gig->gig_date->format('d/m/Y') }}</div>
+        <div><strong class="text-gray-500 dark:text-gray-400">Data Evento:</strong> {{ $gig->gig_date->isoFormat('L') }}</div>
         <div class="md:col-span-2"><strong class="text-gray-500 dark:text-gray-400">Local/Evento:</strong> {{ $gig->location_event_details }}</div>
         <div><strong class="text-gray-500 dark:text-gray-400">Contrato Nº:</strong> {{ $gig->contract_number ?? 'N/A' }}</div>
-        <div><strong class="text-gray-500 dark:text-gray-400">Data Contrato:</strong> {{ $gig->contract_date?->format('d/m/Y') ?? 'N/A' }}</div>
+        <div><strong class="text-gray-500 dark:text-gray-400">Data Contrato:</strong> {{ $gig->contract_date?->isoFormat('L') ?? 'N/A' }}</div>
         <div class="md:col-span-2"><strong class="text-gray-500 dark:text-gray-400">Status Contrato:</strong> <x-status-badge :status="$gig->contract_status" type="contract" /></div>
         @if($gig->notes)
             <div class="md:col-span-2"><strong class="text-gray-500 dark:text-gray-400">Notas:</strong><br><span class="whitespace-pre-wrap">{{ $gig->notes }}</span></div>

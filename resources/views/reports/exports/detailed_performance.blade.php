@@ -13,7 +13,7 @@
 </head>
 <body>
     <h1>Relatório de Performance de Gigs</h1>
-    <p>Período: {{ \Carbon\Carbon::parse($filters['start_date'])->format('d/m/Y') }} a {{ \Carbon\Carbon::parse($filters['end_date'])->format('d/m/Y') }}</p>
+    <p>Período: {{ \Carbon\Carbon::parse($filters['start_date'])->isoFormat('L') }} a {{ \Carbon\Carbon::parse($filters['end_date'])->isoFormat('L') }}</p>
     <table>
         <thead>
             <tr>

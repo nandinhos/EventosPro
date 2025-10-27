@@ -11,7 +11,7 @@
         <div class="space-y-4">
             <div class="flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Visão Geral</h2>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Atualizado em {{ now()->format('d/m/Y H:i') }}</span>
+                <span class="text-sm text-gray-500 dark:text-gray-400">Atualizado em {{ now()->isoFormat('L LT') }}</span>
             </div>
         
         {{-- Linha de Cards de KPIs --}}
@@ -116,11 +116,11 @@
                 <div class="mt-3 text-sm text-gray-500 dark:text-gray-400">
                     <i class="fas fa-info-circle mr-1"></i>
                     @if(isset($filters['start_date']) && isset($filters['end_date']))
-                        Exibindo dados de {{ \Carbon\Carbon::parse($filters['start_date'])->format('d/m/Y') }} a {{ \Carbon\Carbon::parse($filters['end_date'])->format('d/m/Y') }}
+                        Exibindo dados de {{ \Carbon\Carbon::parse($filters['start_date'])->isoFormat('L') }} a {{ \Carbon\Carbon::parse($filters['end_date'])->isoFormat('L') }}
                     @elseif(isset($filters['start_date']))
-                        Exibindo dados a partir de {{ \Carbon\Carbon::parse($filters['start_date'])->format('d/m/Y') }}
+                        Exibindo dados a partir de {{ \Carbon\Carbon::parse($filters['start_date'])->isoFormat('L') }}
                     @elseif(isset($filters['end_date']))
-                        Exibindo dados até {{ \Carbon\Carbon::parse($filters['end_date'])->format('d/m/Y') }}
+                        Exibindo dados até {{ \Carbon\Carbon::parse($filters['end_date'])->isoFormat('L') }}
                     @endif
                 </div>
             @endif
@@ -212,7 +212,7 @@
                                     <p class="text-xs text-gray-500 dark:text-gray-400">{{ $gig->location_event_details }}</p>
                                 </div>
                                 <div class="text-sm text-right">
-                                    <p class="text-gray-700 dark:text-gray-300">{{ $gig->gig_date->format('d/m/Y') }}</p>
+                                    <p class="text-gray-700 dark:text-gray-300">{{ $gig->gig_date->isoFormat('L') }}</p>
                                     <x-status-badge :status="$gig->payment_status" type="payment" />
                                 </div>
                             </div>
@@ -230,7 +230,7 @@
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Faturamento Mensal</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ now()->subMonths(11)->format('M/Y') }} - {{ now()->format('M/Y') }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ now()->subMonths(11)->isoFormat('MMM/YYYY') }} - {{ now()->isoFormat('MMM/YYYY') }}</p>
                     </div>
                     <a href="{{ $fullPerformanceReportUrl }}" class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">
                         <i class="fas fa-external-link-alt mr-1"></i> Ver relatório completo

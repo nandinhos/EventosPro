@@ -22,7 +22,8 @@
       "Bash(chmod:*)",
       "Bash(sail down:*)",
       "Bash(sudo chown:*)",
-      "Bash(/home/devuser/projects/EventosPro/scripts/check-health.sh:*)"
+      "Bash(/home/devuser/projects/EventosPro/scripts/check-health.sh:*)",
+      "Bash(git -C /home/gacpac/projects/EventosPro log --format=\"%h %s\" -1)"
     ],
     "deny": [],
     "ask": []

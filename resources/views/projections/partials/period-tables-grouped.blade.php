@@ -72,7 +72,7 @@
                                         {{ $payment->gig->artist->name ?? 'N/A' }}
                                     </td>
                                     <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                        {{ \Carbon\Carbon::parse($payment->due_date)->format('d/m/Y') }}
+                                        {{ \Carbon\Carbon::parse($payment->due_date)->isoFormat('L') }}
                                     </td>
                                     <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-right text-gray-900 dark:text-white">
                                         R$ {{ number_format($payment->due_value_brl, 2, ',', '.') }}
@@ -142,7 +142,7 @@
                                         </a>
                                     </td>
                                     <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                        {{ \Carbon\Carbon::parse($item['gig_date'])->format('d/m/Y') }}
+                                        {{ \Carbon\Carbon::parse($item['gig_date'])->isoFormat('L') }}
                                     </td>
                                     <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-right text-gray-900 dark:text-white">
                                         R$ {{ number_format($item['amount'], 2, ',', '.') }}
@@ -212,7 +212,7 @@
                                         </a>
                                     </td>
                                     <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                        {{ \Carbon\Carbon::parse($item['gig_date'])->format('d/m/Y') }}
+                                        {{ \Carbon\Carbon::parse($item['gig_date'])->isoFormat('L') }}
                                     </td>
                                     <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-right text-gray-900 dark:text-white">
                                         R$ {{ number_format($item['amount'], 2, ',', '.') }}

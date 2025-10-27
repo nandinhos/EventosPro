@@ -194,7 +194,7 @@ class FinancialProjectionService
                         'gig_contract_number' => $cost->gig->contract_number ?? 'Gig #'.$cost->gig_id,
                         'gig_artist_name' => $cost->gig->artist->name ?? 'N/A',
                         'description' => $cost->description,
-                        'expense_date_formatted' => $orderByDate ? $orderByDate->format('d/m/Y').($isGigDateFallback ? ' (Gig)' : '') : 'N/A',
+                        'expense_date_formatted' => $orderByDate ? $orderByDate->isoFormat('L').($isGigDateFallback ? ' (Gig)' : '') : 'N/A',
                         'value_brl' => (float) $cost->value_brl,
                         'currency' => strtoupper($cost->currency ?? 'BRL'),
                         '_order_by_date_object' => $orderByDate,

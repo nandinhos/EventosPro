@@ -28,7 +28,7 @@
 
     {{-- Data --}}
     <td class="px-4 py-2 text-sm text-gray-800">
-        {{ $payment->created_at?->format('d/m/Y') ?? '-' }}
+        {{ $payment->created_at?->isoFormat('L') ?? '-' }}
     </td>
 
     {{-- Status --}}

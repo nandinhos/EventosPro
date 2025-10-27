@@ -22,7 +22,7 @@
                             </div>
                             <div>
                                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Data de Criação</p>
-                                <p class="mt-1 text-md text-gray-900 dark:text-white">{{ $user->created_at->format('d/m/Y H:i') }}</p>
+                                <p class="mt-1 text-md text-gray-900 dark:text-white">{{ $user->created_at->isoFormat('L LT') }}</p>
                             </div>
                             <div>
                                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Tipo de Perfil</p>

@@ -107,7 +107,7 @@ class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
                             <div class="flex flex-col sm:flex-row sm:items-center gap-2 text-xs">
                                 <span class="text-gray-500 dark:text-gray-400">
                                     <i class="fas fa-calendar-alt mr-1"></i>
-                                    Vencimento: {{ $payment->due_date ? $payment->due_date->format('d/m/Y') : 'N/A' }}
+                                    Vencimento: {{ $payment->due_date ? $payment->due_date->isoFormat('L') : 'N/A' }}
                                 </span>
                                 <span class="flex items-center">
                                     <span class="text-gray-500 dark:text-gray-400 mr-2">Status:</span>
@@ -119,13 +119,13 @@ class="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
                                     <div class="text-xs text-green-700 dark:text-green-300">
                                         <i class="fas fa-check-circle mr-1"></i>
                                         <span class="font-medium">Recebido:</span> {{ $payment->currency_received_actual ?? $payment->currency }} {{ number_format($payment->received_value_actual ?? 0, 2, ',', '.') }}
-                                        em {{ $payment->received_date_actual?->format('d/m/Y') ?? 'N/A' }}
+                                        em {{ $payment->received_date_actual?->isoFormat('L') ?? 'N/A' }}
                                         @if(($payment->currency_received_actual ?? $payment->currency) !== 'BRL' && $payment->exchange_rate_received_actual)
                                             <div class="mt-1">Câmbio: {{ rtrim(rtrim(number_format($payment->exchange_rate_received_actual, 6, ',', '.'),'0'),',') }}</div>
                                         @endif
                                     </div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        Confirmado por {{ $payment->confirmer?->name ?? '?' }} em {{ $payment->confirmed_at->format('d/m/y H:i') }}
+                                        Confirmado por {{ $payment->confirmer?->name ?? '?' }} em {{ $payment->confirmed_at->isoFormat('l LT') }}
                                     </div>
                                 </div>
                             @endif

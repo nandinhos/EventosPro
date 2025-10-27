@@ -7,6 +7,7 @@ use App\Models\GigCost;
 use App\Observers\GigCostObserver;
 use App\Observers\GigObserver;
 use App\Policies\GigPolicy;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
@@ -29,6 +30,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Define o locale do Carbon para todo o sistema
+        Carbon::setLocale(config('app.locale'));
+
         // Registra os observers
         Gig::observe(GigObserver::class);
         GigCost::observe(GigCostObserver::class);

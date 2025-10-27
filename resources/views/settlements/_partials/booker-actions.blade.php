@@ -24,7 +24,7 @@
              @if($gig->settlement?->booker_commission_value_paid)
                 <p>Valor Registrado Pago: R$ {{ number_format($gig->settlement->booker_commission_value_paid, 2, ',', '.') }}
                     @if($gig->settlement->booker_commission_paid_at)
-                     em {{ $gig->settlement->booker_commission_paid_at?->format('d/m/Y') }}
+                     em {{ $gig->settlement->booker_commission_paid_at?->isoFormat('L') }}
                     @endif
                 </p>
             @endif

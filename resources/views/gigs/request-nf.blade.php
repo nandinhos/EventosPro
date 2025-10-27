@@ -17,7 +17,7 @@
         <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <h3 class="text-base font-semibold text-gray-800 dark:text-white">FECHAMENTO</h3>
             Artista: <span class="font-medium">{{ $gig->artist->name ?? 'N/A' }}</span> <br>
-                Evento: {{ $gig->gig_date->format('d/m/Y') }} - {{ $gig->location_event_details }}
+                Evento: {{ $gig->gig_date->isoFormat('L') }} - {{ $gig->location_event_details }}
         </div>
 
 

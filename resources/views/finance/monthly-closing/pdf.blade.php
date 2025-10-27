@@ -185,11 +185,11 @@
     {{-- CABEÇALHO --}}
     <div class="header">
         <h1>FECHAMENTO MENSAL</h1>
-        <p>Período: {{ $startDate->format('d/m/Y') }} a {{ $endDate->format('d/m/Y') }}</p>
+        <p>Período: {{ $startDate->isoFormat('L') }} a {{ $endDate->isoFormat('L') }}</p>
         @if($booker)
             <p><strong>Booker:</strong> {{ $booker->name }}</p>
         @endif
-        <p style="font-size: 8px; margin-top: 5px;">Gerado em: {{ now()->format('d/m/Y H:i') }} por {{ $generatedBy }}</p>
+        <p style="font-size: 8px; margin-top: 5px;">Gerado em: {{ now()->isoFormat('L LT') }} por {{ $generatedBy }}</p>
     </div>
 
     {{-- CARDS PRINCIPAIS --}}
@@ -412,7 +412,7 @@
                     <tr>
                         <td style="padding: 5px 6px;">
                             <div style="font-size: 8px; font-weight: bold; margin-bottom: 2px;">
-                                {{ $gigDetail['date']->format('d/m/Y') }} | {{ $gigDetail['location'] }}
+                                {{ $gigDetail['date']->isoFormat('L') }} | {{ $gigDetail['location'] }}
                             </div>
                           
                         </td>
@@ -495,7 +495,7 @@
                     <tr>
                         <td style="padding: 5px 6px;">
                             <div style="font-size: 8px; font-weight: bold; margin-bottom: 2px;">
-                                {{ $gigDetail['date']->format('d/m/Y') }} |
+                                {{ $gigDetail['date']->isoFormat('L') }} |
                                 <span style="color: #4f46e5; font-weight: bold;">{{ $gigDetail['artist_name'] }}</span>
                                 @ {{ $gigDetail['location'] }}
                             </div>

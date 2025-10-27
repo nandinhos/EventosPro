@@ -259,7 +259,7 @@ class AuditReportService
                 $stats = $report['stats'] ?? [];
                 $timestamp = $report['timestamp'] ?? null;
 
-                $summary['last_run'] = $timestamp ? Carbon::parse($timestamp)->format('d/m/Y H:i') : null;
+                $summary['last_run'] = $timestamp ? Carbon::parse($timestamp)->isoFormat('L LT') : null;
                 $summary['issues_found'] = $stats['issues_found'] ?? 0;
 
                 // Contar critical e warnings
@@ -391,7 +391,7 @@ class AuditReportService
                 continue;
             }
 
-            $date = Carbon::parse($timestamp)->format('d/m');
+            $date = Carbon::parse($timestamp)->isoFormat('DD/MM');
             $trends['dates'][] = $date;
 
             $stats = $report['stats'] ?? [];

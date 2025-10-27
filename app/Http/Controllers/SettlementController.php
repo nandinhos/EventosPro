@@ -53,7 +53,7 @@ class SettlementController extends Controller
                 }
                 $settlement->artist_payment_proof = $request->file('artist_payment_proof_file')->store('settlements/artist_proofs', 'public');
             }
-            $settlement->notes = trim(($settlement->notes ?? '')."\n[Artista ".now()->format('d/m/y H:i').']: '.($validated['artist_payment_notes'] ?? 'Pagamento registrado.'));
+            $settlement->notes = trim(($settlement->notes ?? '')."\n[Artista ".now()->isoFormat('l LT').']: '.($validated['artist_payment_notes'] ?? 'Pagamento registrado.'));
             $settlement->save();
 
             // Atualiza o status da Gig
@@ -114,7 +114,7 @@ class SettlementController extends Controller
                 }
                 $settlement->booker_commission_proof = $request->file('booker_commission_proof_file')->store('settlements/booker_proofs', 'public');
             }
-            $settlement->notes = $settlement->notes."\n[Booker ".now()->format('d/m/y H:i').']: '.($validated['booker_commission_notes'] ?? '');
+            $settlement->notes = $settlement->notes."\n[Booker ".now()->isoFormat('l LT').']: '.($validated['booker_commission_notes'] ?? '');
             $settlement->save();
 
             $gig->update(['booker_payment_status' => 'pago']);

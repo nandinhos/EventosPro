@@ -30,7 +30,7 @@
             @if($gig->settlement?->artist_payment_value)
                 <p>Valor Registrado: R$ {{ number_format($gig->settlement->artist_payment_value, 2, ',', '.') }}
                     @if($gig->settlement->artist_payment_paid_at)
-                     em {{ $gig->settlement->artist_payment_paid_at?->format('d/m/Y') }}
+                     em {{ $gig->settlement->artist_payment_paid_at?->isoFormat('L') }}
                     @endif
                 </p>
             @endif

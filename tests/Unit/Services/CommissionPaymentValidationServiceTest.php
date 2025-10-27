@@ -46,7 +46,7 @@ class CommissionPaymentValidationServiceTest extends TestCase
 
         $this->assertFalse($result['valid']);
         $this->assertStringContainsString('Não é possível pagar comissão para evento futuro', $result['message']);
-        $this->assertStringContainsString(Carbon::tomorrow()->format('d/m/Y'), $result['message']);
+        $this->assertStringContainsString(Carbon::tomorrow()->isoFormat('L'), $result['message']);
     }
 
     #[Test]
@@ -70,7 +70,7 @@ class CommissionPaymentValidationServiceTest extends TestCase
 
         $this->assertFalse($result['valid']);
         $this->assertStringContainsString('Evento futuro sem exceção autorizada', $result['message']);
-        $this->assertStringContainsString(Carbon::tomorrow()->format('d/m/Y'), $result['message']);
+        $this->assertStringContainsString(Carbon::tomorrow()->isoFormat('L'), $result['message']);
     }
 
     #[Test]
@@ -205,7 +205,7 @@ class CommissionPaymentValidationServiceTest extends TestCase
         $this->assertStringContainsString('[EXCEÇÃO AUTORIZADA', $settlement->notes);
         $this->assertStringContainsString($reason, $settlement->notes);
         $this->assertStringContainsString($authorizedBy, $settlement->notes);
-        $this->assertStringContainsString(now()->format('d/m/Y'), $settlement->notes);
+        $this->assertStringContainsString(now()->isoFormat('L'), $settlement->notes);
     }
 
     #[Test]

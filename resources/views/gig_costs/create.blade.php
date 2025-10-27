@@ -3,7 +3,7 @@
     <div class="mb-6 flex justify-between items-center">
         <div>
             <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Adicionar Despesa à Gig #{{ $gig->id }}</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $gig->artist->name ?? 'N/A' }} em {{ $gig->gig_date->format('d/m/Y') }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $gig->artist->name ?? 'N/A' }} em {{ $gig->gig_date->isoFormat('L') }}</p>
         </div>
         {{-- Botão Voltar aponta para a GIG --}}
         <a href="{{ route('gigs.show', $gig) }}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-md text-sm">

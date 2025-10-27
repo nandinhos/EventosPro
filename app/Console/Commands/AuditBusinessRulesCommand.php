@@ -296,7 +296,7 @@ class AuditBusinessRulesCommand extends Command
                 'field' => 'settlement',
                 'suggested_action' => 'Criar settlement para este evento',
                 'can_auto_fix' => false,
-                'details' => "Evento realizado em: {$gigDate->format('d/m/Y')}",
+                'details' => "Evento realizado em: {$gigDate->isoFormat('L')}",
             ];
         }
     }

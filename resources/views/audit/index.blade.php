@@ -174,7 +174,7 @@
                                         <tr class="{{ $statusClass }} hover:bg-gray-50 dark:hover:bg-gray-700">
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm font-medium text-gray-900 dark:text-white">
-                                                    {{ $gig->gig_date ? \Carbon\Carbon::parse($gig->gig_date)->format('d/m/Y') : '-' }}
+                                                    {{ $gig->gig_date ? \Carbon\Carbon::parse($gig->gig_date)->isoFormat('L') : '-' }}
                                                 </div>
                                             </td>
                                             <td class="px-6 py-4">
