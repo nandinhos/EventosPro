@@ -197,6 +197,16 @@
                             color="gray"
                             :link="route('agency-costs.index')"
                             :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path d=\'M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3 1a1 1 0 000 2h8a1 1 0 100-2H5z\' /></svg>'" />
+
+                        {{-- NOVA MÉTRICA: Total a Pagar Consolidado --}}
+                        <x-metrics.value-card
+                            title="Total a Pagar Consolidado"
+                            :value="'R$ ' . number_format($global_metrics['total_payable_consolidated'] ?? 0, 2, ',', '.')"
+                            subtitle="Artistas + Bookers + Despesas + {{ $global_metrics['operational_cost_projected_months'] ?? 3 }} meses de custos op."
+                            color="indigo"
+                            :badge="'Projeção ' . ($global_metrics['operational_cost_projected_months'] ?? 3) . ' meses'"
+                            tooltip="Soma de todas as obrigações financeiras: pagamentos aos artistas, comissões aos bookers, despesas de eventos e custos operacionais projetados para {{ $global_metrics['operational_cost_projected_months'] ?? 3 }} meses."
+                            :icon="'<svg class=\'w-8 h-8\' fill=\'currentColor\' viewBox=\'0 0 20 20\'><path fill-rule=\'evenodd\' d=\'M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z\' clip-rule=\'evenodd\' /></svg>'" />
                     </div>
                 </section>
 

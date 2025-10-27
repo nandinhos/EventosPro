@@ -51,17 +51,11 @@
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             @php $daysOverdue = abs($payment['days_until_due'] ?? 0); @endphp
                             @if($daysOverdue > 30)
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-600 text-white">
-                                    Crítica
-                                </span>
+                                <x-metrics.urgency-badge level="critical" />
                             @elseif($daysOverdue > 15)
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-orange-500 text-white">
-                                    Alta
-                                </span>
+                                <x-metrics.urgency-badge level="high" />
                             @else
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-500 text-white">
-                                    Média
-                                </span>
+                                <x-metrics.urgency-badge level="medium" />
                             @endif
                         </td>
                     </tr>
@@ -146,17 +140,11 @@
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             @php $daysUntilDue = $payment['days_until_due'] ?? 0; @endphp
                             @if($daysUntilDue <= 3)
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                                    Próximo
-                                </span>
+                                <x-metrics.urgency-badge level="upcoming" />
                             @elseif($daysUntilDue <= 7)
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                    Esta semana
-                                </span>
+                                <x-metrics.urgency-badge level="week" />
                             @else
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                    Em dia
-                                </span>
+                                <x-metrics.urgency-badge level="ok" />
                             @endif
                         </td>
                     </tr>
@@ -242,21 +230,13 @@
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             @php $days = $payment['days_since_event']; @endphp
                             @if($days > 60)
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-600 text-white">
-                                    {{ $days }}d
-                                </span>
+                                <x-metrics.urgency-badge level="critical" :label="$days . 'd'" />
                             @elseif($days > 30)
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-500 text-white">
-                                    {{ $days }}d
-                                </span>
+                                <x-metrics.urgency-badge level="high" :label="$days . 'd'" />
                             @elseif($days > 15)
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-500 text-white">
-                                    {{ $days }}d
-                                </span>
+                                <x-metrics.urgency-badge level="medium" :label="$days . 'd'" />
                             @else
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-500 text-white">
-                                    {{ $days }}d
-                                </span>
+                                <x-metrics.urgency-badge level="normal" :label="$days . 'd'" />
                             @endif
                         </td>
                     </tr>
@@ -338,21 +318,13 @@
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             @php $days = $payment['days_since_event']; @endphp
                             @if($days > 60)
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-600 text-white">
-                                    {{ $days }}d
-                                </span>
+                                <x-metrics.urgency-badge level="critical" :label="$days . 'd'" />
                             @elseif($days > 30)
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-500 text-white">
-                                    {{ $days }}d
-                                </span>
+                                <x-metrics.urgency-badge level="high" :label="$days . 'd'" />
                             @elseif($days > 15)
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-500 text-white">
-                                    {{ $days }}d
-                                </span>
+                                <x-metrics.urgency-badge level="medium" :label="$days . 'd'" />
                             @else
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-500 text-white">
-                                    {{ $days }}d
-                                </span>
+                                <x-metrics.urgency-badge level="normal" :label="$days . 'd'" />
                             @endif
                         </td>
                     </tr>

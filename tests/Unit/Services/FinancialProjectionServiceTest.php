@@ -107,7 +107,7 @@ class FinancialProjectionServiceTest extends TestCase
             'cost_center_id' => $costCenter->id,
             'value' => 200,
             'currency' => 'BRL',
-            'confirmed' => false,
+            'is_confirmed' => false,
             'expense_date' => Carbon::now()->addDays(8),
         ]);
 

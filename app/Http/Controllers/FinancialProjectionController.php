@@ -10,6 +10,7 @@ use App\Services\CashFlowProjectionService;
 use App\Services\DreProjectionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 /**
@@ -113,6 +114,14 @@ class FinancialProjectionController extends Controller
         $projectedExpenses = $this->cashFlowService->calculateProjectedExpenses();
         $gigExpenses = $this->calculateTotalGigExpenses(); // Novo: despesas de eventos (GigCost)
 
+        // Calcula Total a Pagar Consolidado (Artistas + Bookers + Despesas + Custos Operacionais projetados)
+        // Usamos 3 meses de custos operacionais como projeção padrão para o total consolidado
+        $projectedMonths = 3;
+        $totalPayableConsolidated = $artistPaymentDetails['total_pending']
+            + $bookerCommissionDetails['total_pending']
+            + $gigExpenses['total_expenses']
+            + ($projectedExpenses['total_monthly'] * $projectedMonths);
+
         $globalMetrics = [
             'total_receivable' => $accountsReceivable['total_receivable'], // Contas pendentes reais
             'total_receivable_past_events' => $accountsReceivable['total_overdue'], // Recebíveis de eventos passados
@@ -123,6 +132,9 @@ class FinancialProjectionController extends Controller
             'total_expenses' => $gigExpenses, // Detalhes completos das despesas
             'operational_cost_count' => $projectedExpenses['expense_count'], // Contagem de custos operacionais
             'operational_cost_monthly' => $projectedExpenses['total_monthly'], // Total mensal de custos fixos
+            'operational_cost_projected_months' => $projectedMonths, // Meses projetados
+            'operational_cost_projected_total' => $projectedExpenses['total_monthly'] * $projectedMonths, // Total projetado
+            'total_payable_consolidated' => $totalPayableConsolidated, // NOVA MÉTRICA: Total a Pagar Consolidado
             'total_cash_flow' => $cashFlowSummary['kpis']['fluxo_caixa_liquido'],
             'overdue_analysis' => [
                 'overdue_count' => $accountsReceivable['payment_count'],
@@ -204,62 +216,65 @@ class FinancialProjectionController extends Controller
      */
     private function calculateGlobalAccountsReceivable(): array
     {
-        $pendingPayments = \App\Models\Payment::query()
-            ->whereNull('confirmed_at')
-            ->where('due_date', '>=', now()->subMonths(12)) // Últimos 12 meses para evitar dados muito antigos
-            ->whereHas('gig') // Garante que apenas payments com gigs não-deletados sejam incluídos
-            ->with('gig:id,contract_number,artist_id,gig_date', 'gig.artist:id,name') // Corrigido para gig_date
-            ->orderBy('due_date')
-            ->get();
+        // Cache por 30 minutos (1800 segundos) - dados de recebíveis mudam com menos frequência
+        return Cache::remember('projections:global_accounts_receivable', 1800, function () {
+            $pendingPayments = \App\Models\Payment::query()
+                ->whereNull('confirmed_at')
+                ->where('due_date', '>=', now()->subMonths(12)) // Últimos 12 meses para evitar dados muito antigos
+                ->whereHas('gig') // Garante que apenas payments com gigs não-deletados sejam incluídos
+                ->with('gig:id,contract_number,artist_id,gig_date', 'gig.artist:id,name') // Corrigido para gig_date
+                ->orderBy('due_date')
+                ->get();
 
-        $totalReceivable = $pendingPayments->sum('due_value_brl');
+            $totalReceivable = $pendingPayments->sum('due_value_brl');
 
-        // Separar pagamentos vencidos e futuros com base na DATA DO EVENTO
-        $overduePayments = $pendingPayments->filter(function ($payment) {
-            return $payment->gig && \Carbon\Carbon::parse($payment->gig->gig_date)->isPast();
-        });
+            // Separar pagamentos vencidos e futuros com base na DATA DO EVENTO
+            $overduePayments = $pendingPayments->filter(function ($payment) {
+                return $payment->gig && \Carbon\Carbon::parse($payment->gig->gig_date)->isPast();
+            });
 
-        $futurePayments = $pendingPayments->filter(function ($payment) {
-            return ! $payment->gig || \Carbon\Carbon::parse($payment->gig->gig_date)->isFuture() || \Carbon\Carbon::parse($payment->gig->gig_date)->isToday();
-        });
+            $futurePayments = $pendingPayments->filter(function ($payment) {
+                return ! $payment->gig || \Carbon\Carbon::parse($payment->gig->gig_date)->isFuture() || \Carbon\Carbon::parse($payment->gig->gig_date)->isToday();
+            });
 
-        $totalOverdue = $overduePayments->sum('due_value_brl');
-        $totalFuture = $futurePayments->sum('due_value_brl');
+            $totalOverdue = $overduePayments->sum('due_value_brl');
+            $totalFuture = $futurePayments->sum('due_value_brl');
 
-        $paymentsByMonth = $pendingPayments->groupBy(function ($payment) {
-            return \Carbon\Carbon::parse($payment->due_date)->format('Y-m');
-        })->map(function ($payments, $yearMonth) {
-            return [
-                'year_month' => $yearMonth,
-                'month_name' => \Carbon\Carbon::createFromFormat('Y-m', $yearMonth)->locale('pt_BR')->isoFormat('MMMM/YYYY'),
-                'total' => $payments->sum('due_value_brl'),
-                'count' => $payments->count(),
-            ];
-        })->sortKeys();
-
-        return [
-            'total_receivable' => $totalReceivable,
-            'total_overdue' => $totalOverdue,
-            'total_future' => $totalFuture,
-            'payment_count' => $pendingPayments->count(),
-            'overdue_count' => $overduePayments->count(),
-            'future_count' => $futurePayments->count(),
-            'by_month' => $paymentsByMonth->values(),
-            'payments' => $pendingPayments->map(function ($payment) {
-                $isOverdue = $payment->gig && \Carbon\Carbon::parse($payment->gig->gig_date)->isPast();
-
+            $paymentsByMonth = $pendingPayments->groupBy(function ($payment) {
+                return \Carbon\Carbon::parse($payment->due_date)->format('Y-m');
+            })->map(function ($payments, $yearMonth) {
                 return [
-                    'payment_id' => $payment->id,
-                    'gig_id' => $payment->gig_id,
-                    'gig_contract' => $payment->gig->contract_number ?? 'N/A',
-                    'artist_name' => $payment->gig->artist->name ?? 'N/A',
-                    'due_date' => \Carbon\Carbon::parse($payment->due_date)->isoFormat('L'),
-                    'due_value_brl' => $payment->due_value_brl,
-                    'days_until_due' => \Carbon\Carbon::today()->diffInDays(\Carbon\Carbon::parse($payment->due_date), false),
-                    'is_overdue' => $isOverdue,
+                    'year_month' => $yearMonth,
+                    'month_name' => \Carbon\Carbon::createFromFormat('Y-m', $yearMonth)->locale('pt_BR')->isoFormat('MMMM/YYYY'),
+                    'total' => $payments->sum('due_value_brl'),
+                    'count' => $payments->count(),
                 ];
-            })->sortBy('due_date')->values(),
-        ];
+            })->sortKeys();
+
+            return [
+                'total_receivable' => $totalReceivable,
+                'total_overdue' => $totalOverdue,
+                'total_future' => $totalFuture,
+                'payment_count' => $pendingPayments->count(),
+                'overdue_count' => $overduePayments->count(),
+                'future_count' => $futurePayments->count(),
+                'by_month' => $paymentsByMonth->values(),
+                'payments' => $pendingPayments->map(function ($payment) {
+                    $isOverdue = $payment->gig && \Carbon\Carbon::parse($payment->gig->gig_date)->isPast();
+
+                    return [
+                        'payment_id' => $payment->id,
+                        'gig_id' => $payment->gig_id,
+                        'gig_contract' => $payment->gig->contract_number ?? 'N/A',
+                        'artist_name' => $payment->gig->artist->name ?? 'N/A',
+                        'due_date' => \Carbon\Carbon::parse($payment->due_date)->isoFormat('L'),
+                        'due_value_brl' => $payment->due_value_brl,
+                        'days_until_due' => \Carbon\Carbon::today()->diffInDays(\Carbon\Carbon::parse($payment->due_date), false),
+                        'is_overdue' => $isOverdue,
+                    ];
+                })->sortBy('due_date')->values(),
+            ];
+        });
     }
 
     /**
@@ -315,55 +330,68 @@ class FinancialProjectionController extends Controller
      */
     private function calculateStrategicBalance(): array
     {
-        // 1. Obter Gigs passadas e futuras
-        $pastGigs = Gig::where('gig_date', '<', today())->get();
-        $futureGigs = Gig::where('gig_date', '>=', today())->get();
+        // Cache por 1 hora (3600 segundos) para evitar cálculos pesados repetidos
+        return Cache::remember('projections:strategic_balance', 3600, function () {
+            // 1. Obter Gigs passadas e futuras
+            $pastGigs = Gig::where('gig_date', '<', today())->get();
+            $futureGigs = Gig::where('gig_date', '>=', today())->get();
 
-        // Obter valor mensal de custos operacionais
-        $monthlyFixedCost = AgencyFixedCost::where('is_active', true)->sum('monthly_value');
+            // Obter valor mensal de custos operacionais
+            $monthlyFixedCost = AgencyFixedCost::where('is_active', true)->sum('monthly_value');
 
-        // 2. Calcular "Caixa Gerado (Eventos Passados)"
-        $pastInflows = Payment::whereIn('gig_id', $pastGigs->pluck('id'))->whereNotNull('confirmed_at')->get()->sum('received_value_actual_brl');
-        $pastArtistOutflows = Settlement::whereIn('gig_id', $pastGigs->pluck('id'))->sum('artist_payment_value');
-        $pastBookerOutflows = Settlement::whereIn('gig_id', $pastGigs->pluck('id'))->sum('booker_commission_value_paid');
+            // 2. Calcular "Caixa Gerado (Eventos Passados)"
+            $pastInflows = Payment::whereIn('gig_id', $pastGigs->pluck('id'))->whereNotNull('confirmed_at')->get()->sum('received_value_actual_brl');
+            $pastArtistOutflows = Settlement::whereIn('gig_id', $pastGigs->pluck('id'))->sum('artist_payment_value');
+            $pastBookerOutflows = Settlement::whereIn('gig_id', $pastGigs->pluck('id'))->sum('booker_commission_value_paid');
 
-        // Calcular custos operacionais proporcionalmente ao período dos eventos passados
-        $pastOperationalExpenses = 0;
-        if ($pastGigs->isNotEmpty()) {
-            $oldestGigDate = \Carbon\Carbon::parse($pastGigs->min('gig_date'));
-            $monthsSpan = max(1, $oldestGigDate->diffInMonths(\Carbon\Carbon::today()) + 1);
-            $pastOperationalExpenses = $monthlyFixedCost * $monthsSpan;
-        }
+            // Calcular custos operacionais proporcionalmente ao período dos eventos passados
+            $pastOperationalExpenses = 0;
+            if ($pastGigs->isNotEmpty()) {
+                $oldestGigDate = \Carbon\Carbon::parse($pastGigs->min('gig_date'));
+                $monthsSpan = max(1, $oldestGigDate->diffInMonths(\Carbon\Carbon::today()) + 1);
+                $pastOperationalExpenses = $monthlyFixedCost * $monthsSpan;
+            }
 
-        $generatedCash = $pastInflows - $pastArtistOutflows - $pastBookerOutflows - $pastOperationalExpenses;
+            $generatedCash = $pastInflows - $pastArtistOutflows - $pastBookerOutflows - $pastOperationalExpenses;
 
-        // 3. Calcular "Caixa Comprometido (Eventos Futuros)"
-        $futureInflows = Payment::whereIn('gig_id', $futureGigs->pluck('id'))->whereNull('confirmed_at')->get()->sum('due_value_brl');
-        $futureArtistOutflows = 0;
-        $futureBookerOutflows = 0;
-        foreach ($futureGigs as $gig) {
-            $futureArtistOutflows += $this->cashFlowService->getGigCalculator()->calculateArtistInvoiceValueBrl($gig);
-            $futureBookerOutflows += $this->cashFlowService->getGigCalculator()->calculateBookerCommissionBrl($gig);
-        }
+            // 3. Calcular "Caixa Comprometido (Eventos Futuros)"
+            $futureInflows = Payment::whereIn('gig_id', $futureGigs->pluck('id'))->whereNull('confirmed_at')->get()->sum('due_value_brl');
+            $futureArtistOutflows = 0;
+            $futureBookerOutflows = 0;
+            foreach ($futureGigs as $gig) {
+                $futureArtistOutflows += $this->cashFlowService->getGigCalculator()->calculateArtistInvoiceValueBrl($gig);
+                $futureBookerOutflows += $this->cashFlowService->getGigCalculator()->calculateBookerCommissionBrl($gig);
+            }
 
-        // Calcular custos operacionais proporcionalmente ao período dos eventos futuros
-        $futureOperationalExpenses = 0;
-        if ($futureGigs->isNotEmpty()) {
-            $furthestGigDate = \Carbon\Carbon::parse($futureGigs->max('gig_date'));
-            $monthsSpan = max(1, \Carbon\Carbon::today()->diffInMonths($furthestGigDate) + 1);
-            $futureOperationalExpenses = $monthlyFixedCost * $monthsSpan;
-        }
+            // Calcular custos operacionais proporcionalmente ao período dos eventos futuros
+            $futureOperationalExpenses = 0;
+            if ($futureGigs->isNotEmpty()) {
+                $furthestGigDate = \Carbon\Carbon::parse($futureGigs->max('gig_date'));
+                $monthsSpan = max(1, \Carbon\Carbon::today()->diffInMonths($furthestGigDate) + 1);
+                $futureOperationalExpenses = $monthlyFixedCost * $monthsSpan;
+            }
 
-        $committedCash = $futureInflows - $futureArtistOutflows - $futureBookerOutflows - $futureOperationalExpenses;
+            $committedCash = $futureInflows - $futureArtistOutflows - $futureBookerOutflows - $futureOperationalExpenses;
 
-        // 4. Calcular "Balanço Financeiro"
-        $financialBalance = $generatedCash + $committedCash;
+            // 4. Calcular "Balanço Financeiro"
+            $financialBalance = $generatedCash + $committedCash;
 
-        return [
-            'generated_cash' => $generatedCash,
-            'committed_cash' => $committedCash,
-            'financial_balance' => $financialBalance,
-        ];
+            return [
+                'generated_cash' => $generatedCash,
+                'committed_cash' => $committedCash,
+                'financial_balance' => $financialBalance,
+            ];
+        });
+    }
+
+    /**
+     * Limpa o cache de projeções financeiras.
+     * Deve ser chamado após atualizações em Gigs, Payments, Settlements ou Costs.
+     */
+    public static function clearCache(): void
+    {
+        Cache::forget('projections:strategic_balance');
+        Cache::forget('projections:global_accounts_receivable');
     }
 
     /**

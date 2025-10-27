@@ -84,3 +84,33 @@ A modernização da UI/UX do dashboard de projeções (`projections.dashboard.bl
 - **Verificação de Locale do Carbon:** Após configurar `Carbon::setLocale(config('app.locale'))` no AppServiceProvider, sempre verifique se o locale está sendo aplicado corretamente criando um script de teste que inicialize o Laravel e verifique `Carbon::getLocale()`.
 
 - **Diferenças Visuais Sutils:** Mudanças de `format('d/m/y H:i')` para `isoFormat('l LT')` podem parecer não ter efeito porque ambas produzem saídas similares em pt_BR, mas a segunda inclui o ano completo (4 dígitos) em vez de 2 dígitos, melhorando a consistência.
+
+## 9. Lições sobre Configurações Locais e Controle de Versão
+
+- **Arquivos de Configuração Local Não Devem Ser Commitados:** Arquivos de configuração específicos do ambiente local do desenvolvedor (como `.claude/settings.local.json`, `.vscode/settings.json`, `.idea/workspace.xml`) **NUNCA** devem ser incluídos no controle de versão.
+    - **Justificativa:** Esses arquivos contêm preferências pessoais, caminhos absolutos da máquina do desenvolvedor, credenciais locais e outras configurações que não devem ser compartilhadas ou impostas a outros desenvolvedores.
+    - **Solução:** Sempre adicionar esses arquivos ao `.gitignore` antes do primeiro commit.
+    - **Exemplo no Projeto:** O arquivo `.claude/settings.local.json` já está corretamente listado no `.gitignore` (linha 27).
+
+- **Verificar Status Antes de Commit:** Antes de criar um commit, sempre executar `git status` para revisar quais arquivos estão sendo incluídos. Se arquivos de configuração local aparecerem como modificados, verificar se estão no `.gitignore`.
+    - **Comando:** `git status --porcelain` (formato conciso, ideal para scripts)
+    - **Ação:** Se um arquivo local está modificado mas no `.gitignore`, ele não será commitado automaticamente (comportamento correto).
+
+- **Padrão de Nomenclatura para Arquivos Locais:** Adotar o sufixo `.local` para arquivos de configuração que não devem ser versionados facilita a manutenção do `.gitignore`.
+    - **Exemplos:**
+        - ✅ `settings.local.json` → Ignorado
+        - ✅ `.env.local` → Ignorado
+        - ✅ `config.local.php` → Ignorado
+        - ❌ `my-config.json` → Pode ser commitado por engano
+
+- **Documentar no README:** Quando houver arquivos de configuração que precisam ser criados localmente, documentar no README com exemplos:
+    ```markdown
+    ## Configuração Local
+
+    Copie o arquivo de exemplo e ajuste conforme necessário:
+    ```bash
+    cp .claude/settings.example.json .claude/settings.local.json
+    ```
+    ```
+
+- **Revisão de Pull Requests:** Durante code reviews, sempre verificar se arquivos de configuração local foram acidentalmente incluídos no PR. Esse é um erro comum que deve ser detectado antes do merge.
