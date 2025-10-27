@@ -441,7 +441,7 @@ class CashFlowProjectionService
                     'booker_id' => $bookerId,
                     'cache_bruto_brl' => $gig->cache_value_brl,
                     'commission_rate' => $gig->booker_commission_percentage ?? 0,
-                    'commission_total' => $bookerCommission,
+                    'booker_commission_value' => $bookerCommission,
                     'amount_paid' => $bookerSettlements,
                     'amount_pending' => $pendingAmount,
                     'days_since_event' => Carbon::today()->diffInDays($gig->gig_date),
@@ -472,7 +472,7 @@ class CashFlowProjectionService
         return [
             'total_pending' => $totalPending,
             'gig_count' => $totalGigs,
-            'commissions' => $pendingBookerCommissions,
+            'payments' => $pendingBookerCommissions,
             'by_booker' => array_values($bookerSummary),
             'by_urgency' => [
                 'critical' => collect($pendingBookerCommissions)->where('days_since_event', '>', 60)->sum('amount_pending'),
@@ -526,12 +526,22 @@ class CashFlowProjectionService
         $periodMonths = $this->startDate->diffInMonths($this->endDate) + 1;
         $totalProjected = $totalMonthly * $periodMonths;
 
+        $allExpenses = $fixedCosts->map(function ($cost) {
+            return [
+                'cost_center_name' => $cost->costCenter->name ?? 'Outros',
+                'description' => $cost->description,
+                'monthly_value' => $cost->monthly_value,
+                'is_active' => $cost->is_active,
+            ];
+        });
+
         return [
             'total_monthly' => $totalMonthly,
             'total_projected' => $totalProjected,
             'period_months' => $periodMonths,
             'by_category' => array_values($expensesByCategory),
             'expense_count' => $fixedCosts->count(),
+            'expenses' => $allExpenses,
         ];
     }
 }

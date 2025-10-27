@@ -265,21 +265,32 @@ class FinancialProjectionController extends Controller
         $pendingExpenses = \App\Models\GigCost::query()
             ->where('is_confirmed', false)
             ->whereHas('gig') // Garante que apenas custos de gigs não-deletados sejam incluídos
+            ->with('gig:id,gig_date')
             ->get();
 
         // Despesas confirmadas
         $confirmedExpenses = \App\Models\GigCost::query()
             ->where('is_confirmed', true)
             ->whereHas('gig')
+            ->with('gig:id,gig_date')
             ->get();
 
-        $totalPending = $pendingExpenses->sum(function ($cost) {
-            return $cost->value_brl;
-        });
+        $totalPending = $pendingExpenses->sum('value_brl');
+        $totalConfirmed = $confirmedExpenses->sum('value_brl');
 
-        $totalConfirmed = $confirmedExpenses->sum(function ($cost) {
-            return $cost->value_brl;
-        });
+        $mapExpenses = function ($cost) {
+            return [
+                'gig_id' => $cost->gig_id,
+                'gig_date_raw' => $cost->gig ? $cost->gig->gig_date : null,
+                'gig_date' => $cost->gig ? $cost->gig->gig_date->format('d/m/Y') : 'N/A',
+                'description' => $cost->description,
+                'value_brl' => $cost->value_brl,
+                'is_confirmed' => $cost->is_confirmed,
+            ];
+        };
+
+        $pending = $pendingExpenses->map($mapExpenses);
+        $confirmed = $confirmedExpenses->map($mapExpenses);
 
         return [
             'total_expenses' => $totalPending + $totalConfirmed,
@@ -287,6 +298,8 @@ class FinancialProjectionController extends Controller
             'total_confirmed' => $totalConfirmed,
             'pending_count' => $pendingExpenses->count(),
             'confirmed_count' => $confirmedExpenses->count(),
+            'pending' => $pending,
+            'confirmed' => $confirmed,
         ];
     }
 

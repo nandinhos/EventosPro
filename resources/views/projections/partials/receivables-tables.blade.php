@@ -406,7 +406,7 @@
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 @php
-                    $allGigExpenses = collect($gig_expenses_details['pending'] ?? [])->merge($gig_expenses_details['confirmed'] ?? [])->sortBy('gig_date');
+                    $allGigExpenses = collect($gig_expenses_details['pending'] ?? [])->merge($gig_expenses_details['confirmed'] ?? [])->sortBy('gig_date_raw');
                 @endphp
                 @forelse($allGigExpenses as $expense)
                     <tr class="hover:bg-orange-50/50 dark:hover:bg-orange-900/10 transition-colors">
