@@ -1,1123 +1,239 @@
-# CLAUDE.md
+# CLAUDE.md - EventosPro AI Assistant Guide
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> **Orchestrator File**: This is the central index for AI-assisted development in EventosPro. Read this first, then access specific guides based on your task context.
 
----
+## 🎯 Quick Context Selection
 
-# EventosPro - Artist Event Management System
+**Choose your context based on the task:**
 
-## Project Overview
+| Task Type | Read This | Why |
+|-----------|-----------|-----|
+| New Feature Development | [Feature Development Context](.claude/contexts/feature-development.md) | Service layer, testing requirements, architecture patterns |
+| Bug Fixing | [Bug Fixing Context](.claude/contexts/bug-fixing.md) | Debugging workflow, common issues, quick fixes |
+| Financial Operations | [Financial Context](.claude/contexts/financial-operations.md) | Calculation rules, currency handling, validation |
+| Writing Tests | [Testing Workflow](.claude/contexts/testing-workflow.md) | Test standards, coverage requirements, PHPUnit patterns |
+| Quick Reference | See sections below | Essential commands and rules |
 
-EventosPro is a specialized financial management system for artist agencies and bookers who manage artistic events (Gigs/Shows). It centralizes and automates event management from scheduling to complete financial settlement, replacing complex manual spreadsheets.
+## 🚀 Essential Information (Always Read)
 
-### Core Purpose
-- Detailed control of cachês (artist fees), expenses, and commissions
-- Payment status tracking (client → agency → artist/booker)
-- Financial reports for decision making
-- Complete audit trail and data preservation
+### Critical Development Rules
 
-## Development Environment
-
-**⚠️ CRITICAL**: This project uses Laravel Sail as the MANDATORY development environment. ALL commands must run through Sail:
-
+**1. ALWAYS USE LARAVEL SAIL** (Mandatory)
 ```bash
-# Recommended alias
+# Create alias first
 alias sail='./vendor/bin/sail'
 
-# Essential commands
-sail up -d                    # Start containers
-sail down                     # Stop containers
-sail artisan test             # Run tests
-sail artisan test --filter=  # Run specific test
-sail artisan migrate:fresh --seed  # Fresh database with seed
-sail npm install              # Install frontend dependencies
-sail npm run dev              # Run Vite dev server
-sail composer install         # Install PHP dependencies
-```
-
-### Running Tests
-```bash
-# All tests (minimum 80% coverage required)
+# All commands MUST use Sail
 sail artisan test
-
-# With coverage report
-sail artisan test --coverage
-
-# Specific test file
-sail artisan test tests/Unit/Services/AuditServiceTest.php
-
-# Run Pint before committing
-sail bash -c "vendor/bin/pint --dirty"
-```
-
-### Development Workflow
-```bash
-# Multi-process development (server + queue + logs + vite)
-composer run dev
-
-# Or manually
-sail artisan serve &
-sail artisan queue:listen &
+sail composer install
 sail npm run dev
 ```
 
-## Architecture Overview
+**2. ALWAYS USE SERVICES for Business Logic**
+- Never duplicate financial calculations
+- Always inject via constructor
+- See: [Services Guide](.claude/guides/03-services.md)
 
-### Domain Model - Core Entities
+**3. ALWAYS TEST Changes**
+```bash
+sail artisan test --filter=YourTest
+sail bash -c "vendor/bin/pint --dirty"  # Before commit
+```
 
-**Gig (Central Entity)**: Represents an artistic event/performance
-- Relationships: Artist, Booker, Payments (parcels), GigCosts, Settlement
-- Soft deletes enabled for historical preservation
-- Observer-driven automatic calculations
-
-**Payment**: Client payment installments
-- Tracks payment status and confirmation
-- Supports multi-currency with BRL conversion
-
-**GigCost**: Event-related expenses
-- Categorized by Cost Center
-- Observer triggers recalculation on changes
-
-**Settlement**: Financial settlements (actual payments made)
-- Records payments to artists and bookers
-- Commission validation for past vs future events
-
-**Artist**: Artist registry with performance metrics
-
-**Booker**: Booker registry with commission configuration
-
-**CostCenter**: Expense categorization
-
-**Tag**: Polymorphic tagging system
-
-### Service Layer (app/Services/)
-
-**CRITICAL**: Always use services for complex business logic. Never duplicate calculations.
-
-**GigFinancialCalculatorService** (Core Service - Use for ALL financial calculations)
-- `calculateGrossFeeInBrl(Gig $gig): float` - Total fee in BRL
-- `calculateAgencyCommissionBrl(Gig $gig): float` - Agency commission
-- `calculateArtistNetPayout(Gig $gig): float` - Net amount to artist
-- `calculateBookerCommissionBrl(Gig $gig): float` - Booker commission
-- Handles currency conversion with warnings
-- Optimized cost loading
-
-**AuditService** - Financial audits and integrity validation
-- `calculateGigAuditData(Gig $gig): array` - Full audit for single gig
-- `calculateBulkAuditData(Collection $gigs): array` - Bulk audit
-- `validateGigIntegrity(Gig $gig): array` - Data integrity checks
-
-**CommissionPaymentValidationService** - Payment authorization rules
-- `validateBookerCommissionPayment(Gig $gig, bool $allowExceptions): array`
-- `validateArtistPayment(Gig $gig, bool $allowExceptions): array`
-- Rule: Can only pay for past events OR future events with authorized exceptions
-
-**FinancialProjectionService** - Cash flow projections
-- `setPeriod(string $period): void` - Set projection period (30/60/90 days, next_semester, next_year)
-- `getAccountsReceivable(): float` - Total receivable from clients
-- `getAccountsPayableArtists(): float` - Amount owed to artists
-- `getAccountsPayableBookers(): float` - Commissions owed to bookers
-- `getProjectedCashFlow(): float` - Projected cash flow
-
-**DashboardService** - KPIs and dashboard data
-- `setFilters(array $filters): self` - Define date range
-- `getDashboardData(): array` - Consolidated dashboard metrics
-
-**FinancialReportService** - Financial reporting
-- `setFilters(array $filters): void` - Configure report filters
-- `getOverviewSummary(): array` - Cash flow summary
-- `getProfitabilitySummary(): array` - Profitability metrics
-- `getFinancialReportData(): array` - Complete financial report
-
-**ExchangeRateService** - Currency conversion
-- `convertToBRL(float $amount, string $currency): float`
-- Integrates with Brazilian Central Bank API
-
-**ArtistFinancialsService** - Artist financial metrics
-- `getFinancialMetrics(Artist $artist): array` - Received/pending cachês
-
-**BookerFinancialsService** - Booker financial metrics
-- `getSalesKpis(Booker $booker): array` - Sales KPIs
-- `getCommissionKpis(Booker $booker): array` - Commission metrics
-- `getTopArtists(Booker $booker): Collection` - Top selling artists
-
-**UserManagementService** - User and booker profile management
-- `createUser(array $userData): User` - Atomic user creation
-- `updateUser(User $user, array $userData): User` - User updates
-- `deleteUser(User $user): bool` - Soft delete user/booker
-
-### Observers (app/Observers/)
-
-**GigObserver**: Lifecycle events for Gigs
-**GigCostObserver**: Auto-recalculation when costs change
-
-### Filament Resources (app/Filament/Resources/)
-
-Admin interface uses Filament v3:
-- `ArtistResource` - Artist CRUD
-- `BookerResource` - Booker CRUD
-- `GigResource` - Gig CRUD with complex financial forms
-- `UserResource` - User management
-
-## Key Business Rules
-
-### Financial Calculations
-1. **ALWAYS use `GigFinancialCalculatorService` for consistency** - Never duplicate calculation logic
-2. All monetary values must be converted to BRL for reporting
-3. Currency conversions must include exchange rate warnings
-4. Soft deletes preserve financial history
-
-### Payment Rules
-1. **Commission Payments**: Can only pay for events that have occurred (past `gig_date`)
-2. **Exceptions**: Future event payments allowed only with authorized exceptions (detected in settlement notes with keywords: "exceção", "antecipado", "autorizado")
-3. **Artist Payments**: Similar rules to commissions
-4. Use `CommissionPaymentValidationService` for all payment validations
-
-### Data Integrity
-1. Run `GigDataAuditCommand` to validate financial data
-2. Divergences > 5% are classified as "high" priority
-3. Audit identifies currency inconsistencies
-
-## Important Patterns
-
-### Service Injection
+**4. ALWAYS USE PHP 8 Attributes for Tests**
 ```php
-// In controllers
+use PHPUnit\Framework\Attributes\Test;
+
+#[Test]  // ✅ REQUIRED
+public function it_does_something() { }
+
+/** @test */  // ❌ DEPRECATED - Never use
+```
+
+**5. NEVER Add Co-Authorship in Commits**
+```bash
+# ❌ NEVER include in commit messages:
+Co-Authored-By: Claude <noreply@anthropic.com>
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+# ✅ Write clean, professional commit messages without AI attribution
+```
+
+### Project Tech Stack
+
+- **Laravel 12** + **Filament v4** + **Livewire v3**
+- **PHP 8.4.13**
+- **MySQL 8.0+** (via Sail)
+- **Testing**: PHPUnit (80% coverage minimum)
+- **Code Quality**: Laravel Pint + PHPStan
+
+## 📚 Detailed Guides (Read as Needed)
+
+### Core Guides
+
+1. **[Quick Start](.claude/guides/01-quick-start.md)**
+   - Environment setup
+   - Common commands
+   - Development workflow
+
+2. **[Architecture Overview](.claude/guides/02-architecture.md)**
+   - Domain models and relationships
+   - Service layer pattern
+   - Observer pattern
+   - Filament resources
+
+3. **[Services API](.claude/guides/03-services.md)**
+   - GigFinancialCalculatorService (Core)
+   - AuditService
+   - FinancialProjectionService
+   - All other services with examples
+
+4. **[Testing Standards](.claude/guides/04-testing.md)**
+   - PHPUnit configuration
+   - Test structure and naming
+   - Coverage requirements
+   - Factory usage
+
+5. **[Financial Business Rules](.claude/guides/05-financial-rules.md)**
+   - Calculation flow
+   - Payment validation rules
+   - Currency handling
+   - Commission rules
+
+6. **[Database Patterns](.claude/guides/06-database.md)**
+   - Migrations
+   - Eloquent relationships
+   - Query optimization (N+1 prevention)
+   - Soft deletes
+
+### Optimization Guides
+
+7. **[Common Pitfalls & Solutions](.claude/guides/07-common-pitfalls.md)**
+   - Past errors to avoid
+   - Quick troubleshooting
+   - Known issues and fixes
+
+8. **[Token Optimization Strategies](.claude/guides/08-token-optimization.md)**
+   - Context reuse patterns
+   - When to read full guides vs summaries
+   - Efficient code reading strategies
+
+## ⚡ Quick Reference
+
+### Most Used Commands
+
+```bash
+# Testing
+sail artisan test
+sail artisan test --filter=TestName
+sail artisan test --coverage
+
+# Database
+sail artisan migrate
+sail artisan migrate:fresh --seed
+sail artisan tinker
+
+# Code Quality
+sail bash -c "vendor/bin/pint --dirty"
+sail bash -c "vendor/bin/phpstan analyse"
+
+# Development
+sail up -d
+sail down
+sail artisan pail  # Logs
+```
+
+### Core Service Usage Pattern
+
+```php
+// Always inject in constructor
 public function __construct(
     private GigFinancialCalculatorService $calculator,
     private AuditService $auditService
 ) {}
-```
 
-### Eager Loading (Prevent N+1)
-```php
-$gigs = Gig::with(['artist', 'booker', 'payments', 'gigCosts.costCenter'])
-    ->get();
-```
-
-### Financial Calculations
-```php
-// ALWAYS use service, NEVER calculate directly
+// Always use for calculations
 $grossFee = $this->calculator->calculateGrossFeeInBrl($gig);
-$agencyCommission = $this->calculator->calculateAgencyCommissionBrl($gig);
 ```
 
-### Testing
-```php
-// Use factories for test data
-$gig = Gig::factory()->create([
-    'artist_id' => Artist::factory(),
-    'booker_id' => Booker::factory(),
-]);
-
-// Test financial calculations through services
-$result = $this->calculator->calculateGrossFeeInBrl($gig);
-$this->assertEqualsWithDelta(1000.00, $result, 0.01);
-```
-
-## Testing Requirements
-
-- **Minimum Coverage**: 80% overall, 95% for critical services
-- **Critical Services**: AuditService, GigFinancialCalculatorService, ExchangeRateService
-- Run `sail artisan test --coverage` before committing
-- Always use factories for model creation in tests
-- Follow existing test patterns in `tests/Unit/Services/` and `tests/Feature/`
-
-## Testing Standards
-
-### PHPUnit Test Method Declaration
-
-**ALWAYS use PHP 8 Attributes (REQUIRED)**:
+### Query Optimization Pattern
 
 ```php
-use PHPUnit\Framework\Attributes\Test;
+// ✅ ALWAYS eager load relationships
+$gigs = Gig::with(['artist', 'booker', 'payments', 'gigCosts.costCenter'])->get();
 
-#[Test]
-public function it_calculates_commission_correctly()
-{
-    // Arrange
-    $gig = Gig::factory()->create(['cache_value' => 10000]);
-
-    // Act
-    $result = $this->calculator->calculateCommission($gig);
-
-    // Assert
-    $this->assertEquals(2000, $result);
-}
+// ❌ NEVER do this (N+1 problem)
+$gigs = Gig::all();
 ```
 
-**NEVER use deprecated doc-comment annotations**:
+## 🎯 Decision Tree: What Should I Read?
 
-```php
-/** @test */  // ❌ DEPRECATED - Will be removed in PHPUnit 12
-public function it_does_something()
-{
-    // test code
-}
+```
+START
+  │
+  ├─ Creating new feature?
+  │   └─> Read: Architecture + Services + Feature Development Context
+  │
+  ├─ Fixing bug?
+  │   └─> Read: Common Pitfalls + Bug Fixing Context
+  │
+  ├─ Working with financial calculations?
+  │   └─> Read: Financial Rules + Services + Financial Context
+  │
+  ├─ Writing tests?
+  │   └─> Read: Testing Standards + Testing Workflow Context
+  │
+  ├─ Database changes?
+  │   └─> Read: Database Patterns + Architecture
+  │
+  └─ Quick command reference?
+      └─> Stay here in Quick Reference section
 ```
 
-**Why**:
-- ❌ Deprecated since PHPUnit 10
-- ❌ Generates warnings in PHPUnit 11
-- ❌ Will be **completely removed** in PHPUnit 12
-- ❌ Not type-safe, relies on string parsing
+## 🔄 Context Reuse Strategy (Token Optimization)
 
-**Alternative: Traditional naming** (also acceptable):
+**Before asking for help:**
 
-```php
-public function test_it_calculates_commission()  // ✅ Valid
-{
-    // test code
-}
+1. ✅ Mention which guides you've read
+2. ✅ Reference specific sections relevant to your task
+3. ✅ Use file references (e.g., "following pattern from app/Services/AuditService.php:105")
+4. ✅ Ask about specific unknowns, not general explanations
+
+**Examples:**
+
+```
+❌ "How do I create a financial service?"
+✅ "Following Services Guide section 3.2, I need to add commission recalculation. Should I extend GigFinancialCalculatorService or create a new service?"
+
+❌ "Tests are failing"
+✅ "Test failing at AuditServiceTest.php:45 with decimal assertion error. Per Testing Standards section 2.1, should I use assertIsString instead?"
 ```
 
-### Test Naming Conventions
+## 📖 Laravel Boost Integration
 
-- Use descriptive names: `it_[does_what]_[when_condition]`
-- Follow AAA pattern: Arrange, Act, Assert
-- Include comments for complex setup
+This project uses **Laravel Boost MCP** with specialized tools:
 
-### Before Committing Tests
+- `search-docs` - Version-specific Laravel/Filament/Livewire docs
+- `tinker` - Execute PHP directly for debugging
+- `database-query` - Read from database
+- `list-artisan-commands` - Check available Artisan commands
 
-```bash
-# 1. Format code
-sail bash -c "vendor/bin/pint --dirty"
+**Important**: Always search Laravel Boost docs before external searches for version-specific guidance.
 
-# 2. Run tests (verify NO warnings)
-sail artisan test
+## 🔗 External Documentation
 
-# 3. Check coverage if modified critical services
-sail artisan test --coverage --min=80
-```
-
-**See**: `docs/TESTING_BEST_PRACTICES.md` for complete testing guidelines
-
-## Database Seeding
-
-```bash
-# Fresh database with demo data
-sail artisan migrate:fresh --seed
-
-# Large dataset for testing (1000+ gigs)
-sail artisan db:seed --class=LargeDatasetSeeder
-
-# Audit test data with specific scenarios
-sail artisan db:seed --class=AuditTestSeeder
-```
-
-## Common Commands
-
-```bash
-# Custom Artisan command
-sail artisan gig:audit                    # Run financial audit on all gigs
-
-# Code formatting (required before commits)
-sail bash -c "vendor/bin/pint --dirty"    # Format only changed files
-
-# Frontend
-sail npm run build                        # Production build
-sail npm run dev                          # Development with HMR
-
-# Database
-sail artisan migrate                      # Run migrations
-sail artisan db:seed                      # Seed database
-sail artisan migrate:fresh --seed         # Fresh start
-
-# Debugging
-sail artisan tinker                       # Interactive PHP console
-sail artisan pail                         # Real-time log viewer
-```
-
-## Additional Resources
-
-- **API Documentation**: `docs/SERVICES_API.md` - Complete service API reference
-- **Testing Guide**: `docs/TESTING.md` - Testing standards and coverage
-- **Sail Commands**: `docs/LARAVEL_SAIL_COMMANDS.md` - Complete Sail reference
-- **Architecture**: `docs/ai_context/2_architecture.md` - Detailed architecture docs
-- **Context**: `docs/ai_context/1_context.md` - Business context and requirements
-
-## Important Notes
-
-- **Never run commands outside Sail** - Use `sail artisan`, `sail composer`, `sail npm`
-- **Always check existing services** before creating new business logic
-- **Use factories in tests** - Never create models manually in tests
-- **Follow existing patterns** - Check sibling files for conventions
-- **Run Pint before commits** - Code formatting is enforced
+- Full API Reference: `docs/SERVICES_API.md`
+- Testing Guide: `docs/TESTING.md`
+- Sail Commands: `docs/LARAVEL_SAIL_COMMANDS.md`
+- Architecture Deep Dive: `docs/ai_context/2_architecture.md`
+- Business Context: `docs/ai_context/1_context.md`
 
 ---
 
-<laravel-boost-guidelines>
-=== foundation rules ===
+## 📝 Version History
 
-# Laravel Boost Guidelines
+- **v2.0** (2025-10-27): Modular structure with context-based guides
+- **v1.0**: Original monolithic documentation
 
-The Laravel Boost guidelines are specifically curated by Laravel maintainers for this application. These guidelines should be followed closely to enhance the user's satisfaction building Laravel applications.
-
-## Foundational Context
-This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
-
-- php - 8.4.13
-- filament/filament (FILAMENT) - v4
-- laravel/framework (LARAVEL) - v12
-- laravel/prompts (PROMPTS) - v0
-- livewire/livewire (LIVEWIRE) - v3
-- laravel/breeze (BREEZE) - v2
-- laravel/pint (PINT) - v1
-- laravel/sail (SAIL) - v1
-- rector/rector (RECTOR) - v2
-- alpinejs (ALPINEJS) - v3
-- tailwindcss (TAILWINDCSS) - v3
-
-
-## Conventions
-- You must follow all existing code conventions used in this application. When creating or editing a file, check sibling files for the correct structure, approach, naming.
-- Use descriptive names for variables and methods. For example, `isRegisteredForDiscounts`, not `discount()`.
-- Check for existing components to reuse before writing a new one.
-
-## Verification Scripts
-- Do not create verification scripts or tinker when tests cover that functionality and prove it works. Unit and feature tests are more important.
-
-## Application Structure & Architecture
-- Stick to existing directory structure - don't create new base folders without approval.
-- Do not change the application's dependencies without approval.
-
-## Frontend Bundling
-- If the user doesn't see a frontend change reflected in the UI, it could mean they need to run `npm run build`, `npm run dev`, or `composer run dev`. Ask them.
-
-## Replies
-- Be concise in your explanations - focus on what's important rather than explaining obvious details.
-
-## Documentation Files
-- You must only create documentation files if explicitly requested by the user.
-
-
-=== boost rules ===
-
-## Laravel Boost
-- Laravel Boost is an MCP server that comes with powerful tools designed specifically for this application. Use them.
-
-## Artisan
-- Use the `list-artisan-commands` tool when you need to call an Artisan command to double check the available parameters.
-
-## URLs
-- Whenever you share a project URL with the user you should use the `get-absolute-url` tool to ensure you're using the correct scheme, domain / IP, and port.
-
-## Tinker / Debugging
-- You should use the `tinker` tool when you need to execute PHP to debug code or query Eloquent models directly.
-- Use the `database-query` tool when you only need to read from the database.
-
-## Reading Browser Logs With the `browser-logs` Tool
-- You can read browser logs, errors, and exceptions using the `browser-logs` tool from Boost.
-- Only recent browser logs will be useful - ignore old logs.
-
-## Searching Documentation (Critically Important)
-- Boost comes with a powerful `search-docs` tool you should use before any other approaches. This tool automatically passes a list of installed packages and their versions to the remote Boost API, so it returns only version-specific documentation specific for the user's circumstance. You should pass an array of packages to filter on if you know you need docs for particular packages.
-- The 'search-docs' tool is perfect for all Laravel related packages, including Laravel, Inertia, Livewire, Filament, Tailwind, Pest, Nova, Nightwatch, etc.
-- You must use this tool to search for Laravel-ecosystem documentation before falling back to other approaches.
-- Search the documentation before making code changes to ensure we are taking the correct approach.
-- Use multiple, broad, simple, topic based queries to start. For example: `['rate limiting', 'routing rate limiting', 'routing']`.
-- Do not add package names to queries - package information is already shared. For example, use `test resource table`, not `filament 4 test resource table`.
-
-### Available Search Syntax
-- You can and should pass multiple queries at once. The most relevant results will be returned first.
-
-1. Simple Word Searches with auto-stemming - query=authentication - finds 'authenticate' and 'auth'
-2. Multiple Words (AND Logic) - query=rate limit - finds knowledge containing both "rate" AND "limit"
-3. Quoted Phrases (Exact Position) - query="infinite scroll" - Words must be adjacent and in that order
-4. Mixed Queries - query=middleware "rate limit" - "middleware" AND exact phrase "rate limit"
-5. Multiple Queries - queries=["authentication", "middleware"] - ANY of these terms
-
-
-=== php rules ===
-
-## PHP
-
-- Always use curly braces for control structures, even if it has one line.
-
-### Constructors
-- Use PHP 8 constructor property promotion in `__construct()`.
-    - <code-snippet>public function __construct(public GitHub $github) { }</code-snippet>
-- Do not allow empty `__construct()` methods with zero parameters.
-
-### Type Declarations
-- Always use explicit return type declarations for methods and functions.
-- Use appropriate PHP type hints for method parameters.
-
-<code-snippet name="Explicit Return Types and Method Params" lang="php">
-protected function isAccessible(User $user, ?string $path = null): bool
-{
-    ...
-}
-</code-snippet>
-
-## Comments
-- Prefer PHPDoc blocks over comments. Never use comments within the code itself unless there is something _very_ complex going on.
-
-## PHPDoc Blocks
-- Add useful array shape type definitions for arrays when appropriate.
-
-## Enums
-- Typically, keys in an Enum should be TitleCase. For example: `FavoritePerson`, `BestLake`, `Monthly`.
-
-
-=== filament/core rules ===
-
-## Filament
-- Filament is used by this application, check how and where to follow existing application conventions.
-- Filament is a Server-Driven UI (SDUI) framework for Laravel. It allows developers to define user interfaces in PHP using structured configuration objects. It is built on top of Livewire, Alpine.js, and Tailwind CSS.
-- You can use the `search-docs` tool to get information from the official Filament documentation when needed. This is very useful for Artisan command arguments, specific code examples, testing functionality, relationship management, and ensuring you're following idiomatic practices.
-- Utilize static `make()` methods for consistent component initialization.
-
-### Artisan
-- You must use the Filament specific Artisan commands to create new files or components for Filament. You can find these with the `list-artisan-commands` tool, or with `php artisan` and the `--help` option.
-- Inspect the required options, always pass `--no-interaction`, and valid arguments for other options when applicable.
-
-### Filament's Core Features
-- Actions: Handle doing something within the application, often with a button or link. Actions encapsulate the UI, the interactive modal window, and the logic that should be executed when the modal window is submitted. They can be used anywhere in the UI and are commonly used to perform one-time actions like deleting a record, sending an email, or updating data in the database based on modal form input.
-- Forms: Dynamic forms rendered within other features, such as resources, action modals, table filters, and more.
-- Infolists: Read-only lists of data.
-- Notifications: Flash notifications displayed to users within the application.
-- Panels: The top-level container in Filament that can include all other features like pages, resources, forms, tables, notifications, actions, infolists, and widgets.
-- Resources: Static classes that are used to build CRUD interfaces for Eloquent models. Typically live in `app/Filament/Resources`.
-- Schemas: Represent components that define the structure and behavior of the UI, such as forms, tables, or lists.
-- Tables: Interactive tables with filtering, sorting, pagination, and more.
-- Widgets: Small component included within dashboards, often used for displaying data in charts, tables, or as a stat.
-
-### Relationships
-- Determine if you can use the `relationship()` method on form components when you need `options` for a select, checkbox, repeater, or when building a `Fieldset`:
-
-<code-snippet name="Relationship example for Form Select" lang="php">
-Forms\Components\Select::make('user_id')
-    ->label('Author')
-    ->relationship('author')
-    ->required(),
-</code-snippet>
-
-
-## Testing
-- It's important to test Filament functionality for user satisfaction.
-- Ensure that you are authenticated to access the application within the test.
-- Filament uses Livewire, so start assertions with `livewire()` or `Livewire::test()`.
-
-### Example Tests
-
-<code-snippet name="Filament Table Test" lang="php">
-    livewire(ListUsers::class)
-        ->assertCanSeeTableRecords($users)
-        ->searchTable($users->first()->name)
-        ->assertCanSeeTableRecords($users->take(1))
-        ->assertCanNotSeeTableRecords($users->skip(1))
-        ->searchTable($users->last()->email)
-        ->assertCanSeeTableRecords($users->take(-1))
-        ->assertCanNotSeeTableRecords($users->take($users->count() - 1));
-</code-snippet>
-
-<code-snippet name="Filament Create Resource Test" lang="php">
-    livewire(CreateUser::class)
-        ->fillForm([
-            'name' => 'Howdy',
-            'email' => 'howdy@example.com',
-        ])
-        ->call('create')
-        ->assertNotified()
-        ->assertRedirect();
-
-    assertDatabaseHas(User::class, [
-        'name' => 'Howdy',
-        'email' => 'howdy@example.com',
-    ]);
-</code-snippet>
-
-<code-snippet name="Testing Multiple Panels (setup())" lang="php">
-    use Filament\Facades\Filament;
-
-    Filament::setCurrentPanel('app');
-</code-snippet>
-
-<code-snippet name="Calling an Action in a Test" lang="php">
-    livewire(EditInvoice::class, [
-        'invoice' => $invoice,
-    ])->callAction('send');
-
-    expect($invoice->refresh())->isSent()->toBeTrue();
-</code-snippet>
-
-
-=== filament/v4 rules ===
-
-## Filament 4
-
-### Important Version 4 Changes
-- File visibility is now `private` by default.
-- The `deferFilters` method from Filament v3 is now the default behavior in Filament v4, so users must click a button before the filters are applied to the table. To disable this behavior, you can use the `deferFilters(false)` method.
-- The `Grid`, `Section`, and `Fieldset` layout components no longer span all columns by default.
-- The `all` pagination page method is not available for tables by default.
-- All action classes extend `Filament\Actions\Action`. No action classes exist in `Filament\Tables\Actions`.
-- The `Form` & `Infolist` layout components have been moved to `Filament\Schemas\Components`, for example `Grid`, `Section`, `Fieldset`, `Tabs`, `Wizard`, etc.
-- A new `Repeater` component for Forms has been added.
-- Icons now use the `Filament\Support\Icons\Heroicon` Enum by default. Other options are available and documented.
-
-### Organize Component Classes Structure
-- Schema components: `Schemas/Components/`
-- Table columns: `Tables/Columns/`
-- Table filters: `Tables/Filters/`
-- Actions: `Actions/`
-
-
-=== laravel/core rules ===
-
-## Do Things the Laravel Way
-
-- Use `php artisan make:` commands to create new files (i.e. migrations, controllers, models, etc.). You can list available Artisan commands using the `list-artisan-commands` tool.
-- If you're creating a generic PHP class, use `artisan make:class`.
-- Pass `--no-interaction` to all Artisan commands to ensure they work without user input. You should also pass the correct `--options` to ensure correct behavior.
-
-### Database
-- Always use proper Eloquent relationship methods with return type hints. Prefer relationship methods over raw queries or manual joins.
-- Use Eloquent models and relationships before suggesting raw database queries
-- Avoid `DB::`; prefer `Model::query()`. Generate code that leverages Laravel's ORM capabilities rather than bypassing them.
-- Generate code that prevents N+1 query problems by using eager loading.
-- Use Laravel's query builder for very complex database operations.
-
-### Model Creation
-- When creating new models, create useful factories and seeders for them too. Ask the user if they need any other things, using `list-artisan-commands` to check the available options to `php artisan make:model`.
-
-### APIs & Eloquent Resources
-- For APIs, default to using Eloquent API Resources and API versioning unless existing API routes do not, then you should follow existing application convention.
-
-### Controllers & Validation
-- Always create Form Request classes for validation rather than inline validation in controllers. Include both validation rules and custom error messages.
-- Check sibling Form Requests to see if the application uses array or string based validation rules.
-
-### Queues
-- Use queued jobs for time-consuming operations with the `ShouldQueue` interface.
-
-### Authentication & Authorization
-- Use Laravel's built-in authentication and authorization features (gates, policies, Sanctum, etc.).
-
-### URL Generation
-- When generating links to other pages, prefer named routes and the `route()` function.
-
-### Configuration
-- Use environment variables only in configuration files - never use the `env()` function directly outside of config files. Always use `config('app.name')`, not `env('APP_NAME')`.
-
-### Testing
-- When creating models for tests, use the factories for the models. Check if the factory has custom states that can be used before manually setting up the model.
-- Faker: Use methods such as `$this->faker->word()` or `fake()->randomDigit()`. Follow existing conventions whether to use `$this->faker` or `fake()`.
-- When creating tests, make use of `php artisan make:test [options] <name>` to create a feature test, and pass `--unit` to create a unit test. Most tests should be feature tests.
-
-### Vite Error
-- If you receive an "Illuminate\Foundation\ViteException: Unable to locate file in Vite manifest" error, you can run `npm run build` or ask the user to run `npm run dev` or `composer run dev`.
-
-
-=== laravel/v12 rules ===
-
-## Laravel 12
-
-- Use the `search-docs` tool to get version specific documentation.
-- Since Laravel 11, Laravel has a new streamlined file structure which this project uses.
-
-### Laravel 12 Structure
-- No middleware files in `app/Http/Middleware/`.
-- `bootstrap/app.php` is the file to register middleware, exceptions, and routing files.
-- `bootstrap/providers.php` contains application specific service providers.
-- **No app\Console\Kernel.php** - use `bootstrap/app.php` or `routes/console.php` for console configuration.
-- **Commands auto-register** - files in `app/Console/Commands/` are automatically available and do not require manual registration.
-
-### Database
-- When modifying a column, the migration must include all of the attributes that were previously defined on the column. Otherwise, they will be dropped and lost.
-- Laravel 11 allows limiting eagerly loaded records natively, without external packages: `$query->latest()->limit(10);`.
-
-### Models
-- Casts can and likely should be set in a `casts()` method on a model rather than the `$casts` property. Follow existing conventions from other models.
-
-
-=== livewire/core rules ===
-
-## Livewire Core
-- Use the `search-docs` tool to find exact version specific documentation for how to write Livewire & Livewire tests.
-- Use the `php artisan make:livewire [Posts\CreatePost]` artisan command to create new components
-- State should live on the server, with the UI reflecting it.
-- All Livewire requests hit the Laravel backend, they're like regular HTTP requests. Always validate form data, and run authorization checks in Livewire actions.
-
-## Livewire Best Practices
-- Livewire components require a single root element.
-- Use `wire:loading` and `wire:dirty` for delightful loading states.
-- Add `wire:key` in loops:
-
-    ```blade
-    @foreach ($items as $item)
-        <div wire:key="item-{{ $item->id }}">
-            {{ $item->name }}
-        </div>
-    @endforeach
-    ```
-
-- Prefer lifecycle hooks like `mount()`, `updatedFoo()`) for initialization and reactive side effects:
-
-<code-snippet name="Lifecycle hook examples" lang="php">
-    public function mount(User $user) { $this->user = $user; }
-    public function updatedSearch() { $this->resetPage(); }
-</code-snippet>
-
-
-## Testing Livewire
-
-<code-snippet name="Example Livewire component test" lang="php">
-    Livewire::test(Counter::class)
-        ->assertSet('count', 0)
-        ->call('increment')
-        ->assertSet('count', 1)
-        ->assertSee(1)
-        ->assertStatus(200);
-</code-snippet>
-
-
-    <code-snippet name="Testing a Livewire component exists within a page" lang="php">
-        $this->get('/posts/create')
-        ->assertSeeLivewire(CreatePost::class);
-    </code-snippet>
-
-
-=== livewire/v3 rules ===
-
-## Livewire 3
-
-### Key Changes From Livewire 2
-- These things changed in Livewire 2, but may not have been updated in this application. Verify this application's setup to ensure you conform with application conventions.
-    - Use `wire:model.live` for real-time updates, `wire:model` is now deferred by default.
-    - Components now use the `App\Livewire` namespace (not `App\Http\Livewire`).
-    - Use `$this->dispatch()` to dispatch events (not `emit` or `dispatchBrowserEvent`).
-    - Use the `components.layouts.app` view as the typical layout path (not `layouts.app`).
-
-### New Directives
-- `wire:show`, `wire:transition`, `wire:cloak`, `wire:offline`, `wire:target` are available for use. Use the documentation to find usage examples.
-
-### Alpine
-- Alpine is now included with Livewire, don't manually include Alpine.js.
-- Plugins included with Alpine: persist, intersect, collapse, and focus.
-
-### Lifecycle Hooks
-- You can listen for `livewire:init` to hook into Livewire initialization, and `fail.status === 419` for the page expiring:
-
-<code-snippet name="livewire:load example" lang="js">
-document.addEventListener('livewire:init', function () {
-    Livewire.hook('request', ({ fail }) => {
-        if (fail && fail.status === 419) {
-            alert('Your session expired');
-        }
-    });
-
-    Livewire.hook('message.failed', (message, component) => {
-        console.error(message);
-    });
-});
-</code-snippet>
-
-
-=== pint/core rules ===
-
-## Laravel Pint Code Formatter
-
-- You must run `vendor/bin/pint --dirty` before finalizing changes to ensure your code matches the project's expected style.
-- Do not run `vendor/bin/pint --test`, simply run `vendor/bin/pint` to fix any formatting issues.
-
-
-=== tailwindcss/core rules ===
-
-## Tailwind Core
-
-- Use Tailwind CSS classes to style HTML, check and use existing tailwind conventions within the project before writing your own.
-- Offer to extract repeated patterns into components that match the project's conventions (i.e. Blade, JSX, Vue, etc..)
-- Think through class placement, order, priority, and defaults - remove redundant classes, add classes to parent or child carefully to limit repetition, group elements logically
-- You can use the `search-docs` tool to get exact examples from the official documentation when needed.
-
-### Spacing
-- When listing items, use gap utilities for spacing, don't use margins.
-
-    <code-snippet name="Valid Flex Gap Spacing Example" lang="html">
-        <div class="flex gap-8">
-            <div>Superior</div>
-            <div>Michigan</div>
-            <div>Erie</div>
-        </div>
-    </code-snippet>
-
-
-### Dark Mode
-- If existing pages and components support dark mode, new pages and components must support dark mode in a similar way, typically using `dark:`.
-
-
-=== tailwindcss/v3 rules ===
-
-## Tailwind 3
-
-- Always use Tailwind CSS v3 - verify you're using only classes supported by this version.
-
-
-=== tests rules ===
-
-## Test Enforcement
-
-- Every change must be programmatically tested. Write a new test or update an existing test, then run the affected tests to make sure they pass.
-- Run the minimum number of tests needed to ensure code quality and speed. Use `php artisan test` with a specific filename or filter.
-</laravel-boost-guidelines>
-## Project Overview
-
-EventosPro is a specialized management system for artist agencies and bookers who manage artistic events (Gigs). It centralizes and automates event management, offering detailed control of fees, expenses, commissions, and comprehensive financial tracking from booking through final settlement.
-
-## Development Environment
-
-### **CRITICAL: Laravel Sail Usage**
-
-This project uses Laravel Sail as the MANDATORY development environment. **ALL commands must be executed through Sail**.
-
-```bash
-# Correct command pattern
-./vendor/bin/sail artisan test
-./vendor/bin/sail composer install
-./vendor/bin/sail npm run dev
-
-# Create alias for convenience
-alias sail='./vendor/bin/sail'
-```
-
-**NEVER run commands directly on the host** (`php artisan`, `composer`, `npm`) - they will fail or cause environment inconsistencies.
-
-## Common Commands
-
-### Testing
-```bash
-# Run all tests
-./vendor/bin/sail test
-
-# Run tests with coverage
-./vendor/bin/sail test --coverage
-
-# Run specific test file
-./vendor/bin/sail test tests/Unit/Services/AuditServiceTest.php
-
-# Run tests with filter
-./vendor/bin/sail test --filter=testCalculateGigAuditData
-
-# Run with minimum coverage threshold
-./vendor/bin/sail test --coverage --min=80
-```
-
-### Database Operations
-```bash
-# Run migrations
-./vendor/bin/sail artisan migrate
-
-# Refresh database and seed
-./vendor/bin/sail artisan migrate:fresh --seed
-
-# Create new migration
-./vendor/bin/sail artisan make:migration create_table_name
-
-# Interactive console (Tinker)
-./vendor/bin/sail artisan tinker
-```
-
-### Code Quality
-```bash
-# Format code with Laravel Pint
-./vendor/bin/sail bin pint
-
-# Run static analysis with PHPStan
-./vendor/bin/sail bin phpstan analyse
-
-# Clear application cache
-./vendor/bin/sail artisan config:clear
-./vendor/bin/sail artisan cache:clear
-```
-
-### Development Workflow
-```bash
-# Start environment
-./vendor/bin/sail up -d
-
-# Stop environment
-./vendor/bin/sail down
-
-# View logs
-./vendor/bin/sail artisan pail
-
-# Access container shell
-./vendor/bin/sail shell
-```
-
-## Architecture Overview
-
-### Service Layer Pattern
-
-EventosPro implements a robust service layer that encapsulates complex business logic. Services are injected via dependency injection and handle:
-
-- **GigFinancialCalculatorService**: Core financial calculations for gigs (gross fees, commissions, currency conversions)
-- **AuditService**: Financial auditing and divergence analysis
-- **FinancialReportService**: Report generation with complex filtering
-- **DashboardService**: KPI aggregation and metrics
-- **ExchangeRateService**: Currency conversion with Banco Central do Brasil API integration
-- **ArtistFinancialsService** / **BookerFinancialsService**: Entity-specific financial metrics
-- **UserManagementService**: User/Booker management with atomic transactions
-- **FinancialProjectionService**: Cash flow projections and accounts receivable/payable
-
-**Key principle**: Controllers should delegate complex logic to services, not perform calculations directly.
-
-### Domain Models
-
-Core entities with critical relationships:
-
-- **Gig** (central entity): Represents artistic events
-  - `belongsTo`: Artist, Booker
-  - `hasMany`: Payment, GigCost
-  - `hasOne`: Settlement
-  - Uses SoftDeletes for historical preservation
-
-- **Payment**: Client payment installments with currency conversion
-- **GigCost**: Event expenses categorized by CostCenter
-- **Settlement**: Financial settlements with artists/bookers
-- **Artist** / **Booker**: Entity management with financial tracking
-
-### Observer Pattern
-
-The system uses Observers for automatic reactions to model events:
-
-- **GigObserver**: Lifecycle events for Gigs
-- **GigCostObserver**: Automatic recalculations when costs change
-
-These are registered in `app/Providers/EventServiceProvider.php`.
-
-### Currency Handling
-
-All financial calculations normalize to BRL:
-
-- Multiple currency support (USD, EUR, GBP)
-- ExchangeRateService integrates with Banco Central API
-- Fallback to configured default rates when API fails
-- Values stored in original currency but displayed/calculated in BRL
-
-**Important**: Laravel `decimal` casts return strings, not floats. In tests, use `assertIsString()` and compare string values.
-
-## Testing Guidelines
-
-### Test Coverage Requirements
-
-- **Minimum general coverage**: 80%
-- **Critical services**: 95% (AuditService, ExchangeRateService, ArtistFinancialsService)
-- Coverage reports generated in `coverage-report/` directory
-
-### Test Execution
-
-**ALWAYS use Sail** for test execution:
-```bash
-./vendor/bin/sail test
-```
-
-### Critical Testing Rules
-
-1. **Decimal Fields Return Strings**:
-   ```php
-   // ❌ WRONG
-   $this->assertIsFloat($payment->due_value);
-
-   // ✅ CORRECT
-   $this->assertIsString($payment->due_value);
-   $this->assertEquals('500.00', $payment->due_value);
-   ```
-
-2. **Service Mocking**:
-   ```php
-   App::shouldReceive('make')
-       ->with(ExchangeRateService::class)
-       ->andReturn($mockService);
-   ```
-
-3. **Configuration in Tests**:
-   ```php
-   Config::set('exchange_rates.default_rates.USD', 5.00);
-   ```
-
-4. **Use RefreshDatabase**: All feature/integration tests should use the trait to ensure clean state.
-
-## Code Conventions
-
-### Configuration Structure
-
-Use hierarchical config files instead of cramming everything into `config/app.php`:
-
-```php
-// ✅ CORRECT
-config('exchange_rates.default_rates.USD')
-config('services.bcb_api.endpoint')
-
-// ❌ AVOID
-config('app.default_exchange_rates.USD')
-```
-
-### Service Injection
-
-Always use constructor injection for services in controllers:
-
-```php
-class GigController extends Controller
-{
-    public function __construct(
-        private GigFinancialCalculatorService $calculator,
-        private AuditService $auditService
-    ) {}
-}
-```
-
-### Query Optimization
-
-**Always eager load relationships** to prevent N+1 queries:
-
-```php
-// ✅ CORRECT
-$gigs = Gig::with(['artist', 'booker', 'payments'])->get();
-
-// ❌ AVOID
-$gigs = Gig::all(); // Causes N+1 when accessing relationships
-```
-
-### Validation
-
-Use Form Request classes for complex validation:
-
-```php
-// In controller
-public function store(StoreGigRequest $request)
-{
-    $gig = Gig::create($request->validated());
-    // ...
-}
-```
-
-### Soft Deletes
-
-Important models use SoftDeletes to preserve history. When querying, be aware:
-- Default queries exclude soft-deleted records
-- Use `withTrashed()` to include soft-deleted records
-- Use `onlyTrashed()` to get only soft-deleted records
-
-## Financial Calculation Flow
-
-Understanding the financial flow is critical for working with this system:
-
-1. **Gross Fee (Cachê Bruto)**: Artist fee converted to BRL
-2. **Agency Commission**: Calculated from gross fee
-3. **Net to Artist**: Gross fee minus deductions (agency commission, reimbursables)
-4. **Booker Commission**: Calculated from gross fee at booker-specific rate
-5. **Expenses**: Tracked separately, categorized by CostCenter
-
-**All calculations go through GigFinancialCalculatorService** for consistency.
-
-## Important Business Rules
-
-### Payment Validation
-
-- **Artist payments**: Only allowed after gig date (events already performed)
-- **Booker commissions**: Only allowed after gig date OR with explicit exception
-- Exceptions tracked via Settlement notes with keywords: "exceção", "antecipado", "autorizado"
-
-See `CommissionPaymentValidationService` for validation logic.
-
-### Audit and Integrity
-
-The system performs financial integrity checks via `AuditService`:
-- Detects divergences between contract values and payments
-- Classifies divergences (low/medium/high)
-- Validates currency consistency
-- Generates consolidated audit reports
-
-## Documentation References
-
-Comprehensive documentation available in `docs/`:
-- `TESTING.md`: Complete testing guide with examples
-- `SERVICES_API.md`: Detailed API documentation for all services
-- `LARAVEL_SAIL_COMMANDS.md`: Full Sail command reference
-- `ai_context/`: Architecture, context, and business rules
-
-## Common Patterns
-
-### Creating a New Service
-
-1. Create class in `app/Services/`
-2. Inject dependencies via constructor
-3. Register in `AppServiceProvider` if needed
-4. Create corresponding test in `tests/Unit/Services/`
-5. Document in `SERVICES_API.md`
-
-### Adding a New Route
-
-Routes are organized in `routes/web.php`:
-- Protected routes inside `middleware('auth')` group
-- Use resource routes when following CRUD pattern
-- Nested routes under relevant resources
-- Follow RESTful naming conventions
-
-### Working with Financial Data
-
-```php
-// Get financial data for a gig
-$calculator = app(GigFinancialCalculatorService::class);
-$grossFee = $calculator->calculateGrossCacheBrl($gig);
-$netFee = $calculator->calculateArtistNetPayoutBrl($gig);
-$commission = $calculator->calculateAgencyCommissionBrl($gig);
-```
-
-## PHPUnit Configuration
-
-Tests use MySQL (not SQLite) to match production environment:
-- Database: `testing` (auto-created by Sail)
-- Configuration in `phpunit.xml`
-- Uses same database engine as production for accuracy
-
-## Tech Stack Summary
-
-- **Backend**: Laravel 12, PHP 8.2+
-- **Frontend**: Blade templates, Tailwind CSS, Alpine.js, Chart.js
-- **Database**: MySQL 8.0+
-- **Dev Environment**: Laravel Sail (Docker)
-- **Testing**: PHPUnit with 80% minimum coverage
-- **Code Quality**: Laravel Pint (PSR-12), PHPStan
-- **Key Packages**: Filament (admin), Spatie Permissions, DomPDF, Laravel Excel
-
-## Running a Single Test
-
-```bash
-# Specific test method
-./vendor/bin/sail test --filter=test_method_name
-
-# Specific test class
-./vendor/bin/sail test tests/Unit/Services/AuditServiceTest.php
-```
-
-## Troubleshooting
-
-### Tests Failing in CI
-```bash
-# Run locally first
-./vendor/bin/sail test --env=testing
-
-# Clear caches
-./vendor/bin/sail artisan config:clear
-./vendor/bin/sail artisan cache:clear
-```
-
-### Database Issues
-```bash
-# Recreate test database
-./vendor/bin/sail artisan migrate:fresh --env=testing
-./vendor/bin/sail artisan db:seed --env=testing
-```
-
-### Coverage Issues
-```bash
-# Generate detailed HTML report
-./vendor/bin/sail test --coverage --coverage-html=coverage-report
-
-# View in browser
-open coverage-report/index.html
-```
+**Last Updated**: 2025-10-27
+**Maintained by**: EventosPro Development Team
