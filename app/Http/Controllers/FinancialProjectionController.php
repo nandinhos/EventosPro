@@ -225,7 +225,7 @@ class FinancialProjectionController extends Controller
                 ->whereNull('confirmed_at')
                 ->where('due_date', '>=', now()->subMonths(12)) // Últimos 12 meses para evitar dados muito antigos
                 ->whereHas('gig') // Garante que apenas payments com gigs não-deletados sejam incluídos
-                ->with('gig:id,contract_number,artist_id,gig_date', 'gig.artist:id,name') // Corrigido para gig_date
+                ->with('gig:id,contract_number,artist_id,gig_date,location_event_details', 'gig.artist:id,name')
                 ->orderBy('due_date')
                 ->get();
 
@@ -270,6 +270,7 @@ class FinancialProjectionController extends Controller
                         'gig_id' => $payment->gig_id,
                         'gig_contract' => $payment->gig->contract_number ?? 'N/A',
                         'artist_name' => $payment->gig->artist->name ?? 'N/A',
+                        'location' => $payment->gig->location_event_details ?? 'N/A',
                         'due_date' => \Carbon\Carbon::parse($payment->due_date)->isoFormat('L'),
                         'due_value_brl' => $payment->due_value_brl,
                         'days_until_due' => \Carbon\Carbon::today()->diffInDays(\Carbon\Carbon::parse($payment->due_date), false),
