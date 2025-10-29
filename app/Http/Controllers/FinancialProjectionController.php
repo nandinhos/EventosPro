@@ -292,14 +292,14 @@ class FinancialProjectionController extends Controller
             $pendingExpenses = \App\Models\GigCost::query()
                 ->where('is_confirmed', false)
                 ->whereHas('gig') // Garante que apenas custos de gigs não-deletados sejam incluídos
-                ->with('gig:id,gig_date', 'costCenter:id,name')
+                ->with('gig:id,gig_date,contract_number,artist_id,location_event_details', 'gig.artist:id,name', 'costCenter:id,name')
                 ->get();
 
             // Despesas confirmadas
             $confirmedExpenses = \App\Models\GigCost::query()
                 ->where('is_confirmed', true)
                 ->whereHas('gig')
-                ->with('gig:id,gig_date', 'costCenter:id,name')
+                ->with('gig:id,gig_date,contract_number,artist_id,location_event_details', 'gig.artist:id,name', 'costCenter:id,name')
                 ->get();
 
             $totalPending = $pendingExpenses->sum('value_brl');
@@ -310,6 +310,9 @@ class FinancialProjectionController extends Controller
                     'gig_id' => $cost->gig_id,
                     'gig_date_raw' => $cost->gig ? $cost->gig->gig_date : null,
                     'gig_date' => $cost->gig ? $cost->gig->gig_date->isoFormat('L') : 'N/A',
+                    'gig_contract' => $cost->gig ? ($cost->gig->contract_number ?? "Gig #{$cost->gig->id}") : 'N/A',
+                    'artist_name' => $cost->gig && $cost->gig->artist ? $cost->gig->artist->name : 'N/A',
+                    'location' => $cost->gig ? ($cost->gig->location_event_details ?? 'N/A') : 'N/A',
                     'description' => $cost->description,
                     'value_brl' => $cost->value_brl,
                     'is_confirmed' => $cost->is_confirmed,

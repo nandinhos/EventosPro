@@ -204,8 +204,7 @@
             <thead class="bg-red-50 dark:bg-red-900/20">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-red-700 dark:text-red-300 uppercase tracking-wider">Data Evento</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-red-700 dark:text-red-300 uppercase tracking-wider">Gig</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-red-700 dark:text-red-300 uppercase tracking-wider">Artista</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-red-700 dark:text-red-300 uppercase tracking-wider">Artista - Gig - Local</th>
                     <th class="px-6 py-3 text-right text-xs font-semibold text-red-700 dark:text-red-300 uppercase tracking-wider">Cachê Líquido</th>
                     <th class="px-6 py-3 text-right text-xs font-semibold text-red-700 dark:text-red-300 uppercase tracking-wider">A Pagar (80%)</th>
                     <th class="px-6 py-3 text-right text-xs font-semibold text-red-700 dark:text-red-300 uppercase tracking-wider">Pago</th>
@@ -219,15 +218,21 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
                             {{ $payment['gig_date'] }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                            <a href="{{ route('gigs.show', $payment['gig_id']) }}"
-                               class="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
-                               title="Ver detalhes da Gig">
-                                {{ $payment['gig_contract'] }}
-                            </a>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                            {{ $payment['artist_name'] }}
+                        <td class="px-6 py-4 text-sm">
+                            <div>
+                                <p class="font-medium text-gray-900 dark:text-white">
+                                    {{ $payment['artist_name'] ?? 'N/A' }}
+                                </p>
+                                <a href="{{ route('gigs.show', $payment['gig_id']) }}"
+                                   class="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 text-xs font-medium inline-block mt-0.5"
+                                   title="Ver detalhes da Gig">
+                                    {{ $payment['gig_contract'] }}
+                                </a>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    <span class="inline-block mr-1">📍</span>
+                                    {{ Str::limit($payment['location'] ?? 'Local não informado', 40) }}
+                                </p>
+                            </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-700 dark:text-gray-300">
                             R$ {{ number_format($payment['cachee_liquido'], 2, ',', '.') }}
@@ -256,7 +261,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                        <td colspan="7" class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                             <div class="flex flex-col items-center">
                                 <svg class="w-12 h-12 text-gray-300 dark:text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -270,7 +275,7 @@
             @if(count($artist_payment_details['payments'] ?? []) > 0)
                 <tfoot class="bg-red-50 dark:bg-red-900/20">
                     <tr>
-                        <td colspan="6" class="px-6 py-4 text-right text-sm font-semibold text-red-700 dark:text-red-300">
+                        <td colspan="5" class="px-6 py-4 text-right text-sm font-semibold text-red-700 dark:text-red-300">
                             Total Pendente:
                         </td>
                         <td class="px-6 py-4 text-right text-base font-bold text-red-800 dark:text-red-200">
@@ -296,7 +301,7 @@
             <thead class="bg-yellow-50 dark:bg-yellow-900/20">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Data Evento</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Gig</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Artista - Gig - Local</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Booker</th>
                     <th class="px-6 py-3 text-right text-xs font-semibold text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Comissão</th>
                     <th class="px-6 py-3 text-right text-xs font-semibold text-yellow-700 dark:text-yellow-300 uppercase tracking-wider">Pago</th>
@@ -310,12 +315,21 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
                             {{ $payment['gig_date'] }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                            <a href="{{ route('gigs.show', $payment['gig_id']) }}"
-                               class="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
-                               title="Ver detalhes da Gig">
-                                {{ $payment['gig_contract'] }}
-                            </a>
+                        <td class="px-6 py-4 text-sm">
+                            <div>
+                                <p class="font-medium text-gray-900 dark:text-white">
+                                    {{ $payment['artist_name'] ?? 'N/A' }}
+                                </p>
+                                <a href="{{ route('gigs.show', $payment['gig_id']) }}"
+                                   class="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 text-xs font-medium inline-block mt-0.5"
+                                   title="Ver detalhes da Gig">
+                                    {{ $payment['gig_contract'] }}
+                                </a>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    <span class="inline-block mr-1">📍</span>
+                                    {{ Str::limit($payment['location'] ?? 'Local não informado', 40) }}
+                                </p>
+                            </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                             {{ $payment['booker_name'] }}
@@ -384,7 +398,7 @@
             <thead class="bg-orange-50 dark:bg-orange-900/20">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-wider">Data Evento</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-wider">Gig</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-wider">Artista - Gig - Local</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-wider">Descrição</th>
                     <th class="px-6 py-3 text-right text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-wider">Valor</th>
                     <th class="px-6 py-3 text-center text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-wider">Status</th>
@@ -399,16 +413,25 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
                             {{ $expense['gig_date'] ?? 'N/A' }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                            @if(isset($expense['gig_id']))
-                                <a href="{{ route('gigs.show', $expense['gig_id']) }}"
-                                   class="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
-                                   title="Ver detalhes da Gig">
-                                    Gig #{{ $expense['gig_id'] }}
-                                </a>
-                            @else
-                                N/A
-                            @endif
+                        <td class="px-6 py-4 text-sm">
+                            <div>
+                                <p class="font-medium text-gray-900 dark:text-white">
+                                    {{ $expense['artist_name'] ?? 'N/A' }}
+                                </p>
+                                @if(isset($expense['gig_id']))
+                                    <a href="{{ route('gigs.show', $expense['gig_id']) }}"
+                                       class="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 text-xs font-medium inline-block mt-0.5"
+                                       title="Ver detalhes da Gig">
+                                        {{ $expense['gig_contract'] ?? "Gig #{$expense['gig_id']}" }}
+                                    </a>
+                                @else
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">N/A</span>
+                                @endif
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    <span class="inline-block mr-1">📍</span>
+                                    {{ Str::limit($expense['location'] ?? 'Local não informado', 40) }}
+                                </p>
+                            </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                             {{ $expense['description'] ?? 'N/A' }}
