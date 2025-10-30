@@ -86,11 +86,18 @@ generate_key() {
     fi
 }
 
-# Run database migrations and seeders
+# Run database migrations and seeders (DEVELOPMENT)
 migrate_database() {
     print_status "Running database migrations and seeders..."
     ./vendor/bin/sail artisan migrate:fresh --seed
     print_success "Database migrated and seeded"
+}
+
+# Run database migrations only (PRODUCTION - SAFE)
+migrate_production() {
+    print_status "Running database migrations (production mode - preserving data)..."
+    ./vendor/bin/sail artisan migrate --force
+    print_success "Database migrated successfully (data preserved)"
 }
 
 # Cache configurations
@@ -154,23 +161,41 @@ if [[ "$1" == "--help" || "$1" == "-h" ]]; then
     echo "Usage: $0 [options]"
     echo ""
     echo "Options:"
-    echo "  --help, -h    Show this help message"
-    echo "  --fresh       Fresh deploy (stop containers, rebuild everything)"
-    echo "  --quick       Quick deploy (skip composer/npm install)"
-    echo "  --assets      Only rebuild assets"
-    echo "  --migrate     Only run migrations"
+    echo "  --help, -h        Show this help message"
+    echo "  --production      PRODUCTION deploy (migrations only, preserves data)"
+    echo "  --fresh           Fresh deploy (DEVELOPMENT - resets database)"
+    echo "  --quick           Quick deploy (skip composer/npm install)"
+    echo "  --assets          Only rebuild assets"
+    echo "  --migrate         Only run migrations (DEVELOPMENT - with seed)"
     echo ""
     echo "Examples:"
-    echo "  $0              # Full deployment"
-    echo "  $0 --fresh      # Fresh deployment"
-    echo "  $0 --quick      # Quick deployment"
-    echo "  $0 --assets     # Only rebuild assets"
-    echo "  $0 --migrate    # Only migrate database"
+    echo "  $0                  # Full deployment (DEVELOPMENT)"
+    echo "  $0 --production     # Production deployment (SAFE - preserves data)"
+    echo "  $0 --fresh          # Fresh deployment (DEVELOPMENT - resets DB)"
+    echo "  $0 --quick          # Quick deployment"
+    echo "  $0 --assets         # Only rebuild assets"
+    echo ""
+    echo "⚠️  WARNING: Use --production on VPS to preserve existing data!"
     exit 0
 fi
 
 # Handle different deployment modes
 case "$1" in
+    --production)
+        print_status "🚀 Performing PRODUCTION deployment (safe mode)..."
+        print_warning "This will preserve all existing data in the database"
+        check_docker
+        stop_containers
+        start_containers
+        install_composer
+        install_npm
+        build_assets
+        generate_key
+        migrate_production  # Use production migration (no seed, no fresh)
+        cache_configs
+        check_health
+        print_success "✅ Production deployment completed successfully!"
+        ;;
     --fresh)
         print_status "Performing fresh deployment..."
         check_docker
