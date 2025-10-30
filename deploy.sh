@@ -100,6 +100,28 @@ migrate_production() {
     print_success "Database migrated successfully (data preserved)"
 }
 
+# Create backup before deployment
+create_backup() {
+    if [ -f "scripts/backup-database.sh" ]; then
+        print_status "💾 Creating backup before deploy..."
+        bash scripts/backup-database.sh
+        if [ $? -eq 0 ]; then
+            print_success "Backup created successfully"
+        else
+            print_error "Failed to create backup!"
+            read -p "Do you want to continue without backup? (y/N): " CONTINUE
+            if [ "$CONTINUE" != "y" ] && [ "$CONTINUE" != "Y" ]; then
+                print_error "Deploy cancelled"
+                exit 1
+            fi
+        fi
+    else
+        print_warning "Backup script not found at scripts/backup-database.sh"
+        print_warning "Deploy will continue WITHOUT backup!"
+        sleep 3
+    fi
+}
+
 # Cache configurations
 cache_configs() {
     print_status "Caching configurations..."
@@ -191,6 +213,7 @@ case "$1" in
         install_npm
         build_assets
         generate_key
+        create_backup  # Create backup before migrations
         migrate_production  # Use production migration (no seed, no fresh)
         cache_configs
         check_health
