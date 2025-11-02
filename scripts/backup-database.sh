@@ -4,6 +4,14 @@
 
 set -e
 
+# Load environment variables from .env
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | grep 'DB_' | xargs)
+else
+    echo "❌ Arquivo .env não encontrado!"
+    exit 1
+fi
+
 BACKUP_DIR="backups"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 BACKUP_FILE="${BACKUP_DIR}/eventospro-backup-${TIMESTAMP}.sql"
@@ -12,16 +20,18 @@ BACKUP_FILE="${BACKUP_DIR}/eventospro-backup-${TIMESTAMP}.sql"
 mkdir -p ${BACKUP_DIR}
 
 echo "🔄 Criando backup do banco de dados..."
+echo "📊 Database: ${DB_DATABASE}"
+echo "👤 User: ${DB_USERNAME}"
 
 # Executar mysqldump via Sail (direto no container)
 # Using --single-transaction for consistent backup without locks
 docker exec eventospro-mysql-1 mysqldump \
-    -u user \
-    -ppassword \
+    -u ${DB_USERNAME} \
+    -p${DB_PASSWORD} \
     --single-transaction \
     --routines \
     --triggers \
-    laravel > ${BACKUP_FILE}
+    ${DB_DATABASE} > ${BACKUP_FILE}
 
 # Comprimir backup
 echo "📦 Comprimindo backup..."
