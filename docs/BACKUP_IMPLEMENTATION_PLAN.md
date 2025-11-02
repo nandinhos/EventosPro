@@ -20,6 +20,13 @@
 - **Tempo de downtime** excessivo em caso de problemas
 - **Sem estratégia de rollback** estruturada
 
+### Ação para alteração de Deploy
+
+- 🔄 **Substituir `migrate:fresh --seed` por `migrate` apenas, o intuito é trazer a onva funcionalidade no sistema com os dados reais em produção**
+  - 🔒 Garantir compatibilidade com schemas existentes para não haver quebra
+  - 🔄 Foco em Manter dados existentes ao atualizar
+  - Atualizar script de deploy para usar `migrate` após o backup
+
 ---
 
 ## 🎯 Objetivos da Solução
@@ -29,6 +36,7 @@
 3. **Sincronização segura**: Produção → Desenvolvimento com dados anonimizados
 4. **Automação**: Backups diários sem intervenção manual
 5. **Armazenamento seguro**: Google Drive como storage off-site
+6. **Interface administrativa**: Painel para monitorar backups e restaurações
 
 ---
 
@@ -233,6 +241,10 @@ sail composer require masbug/flysystem-google-drive-ext
 #### Arquivos a criar/modificar:
 
 **1. `config/filesystems.php`** (adicionar ao array 'disks'):
+
+### credentials json:
+{"web":{"client_id":"923618550839-g11buo87kur02t90m80656ab0uc2aela.apps.googleusercontent.com","project_id":"backupeventospro","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_secret":"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","javascript_origins":["http://localhost","http://eventospro.fssdev.com.br"]}}
+
 
 ```php
 'google_drive' => [

@@ -221,8 +221,8 @@ curl http://seu-vps:8081
 # Editar o arquivo: scripts/sync-database-to-vps.sh
 # OU exportar variáveis de ambiente:
 
-export VPS_HOST='seu-ip-ou-dominio.com'
-export VPS_USER='seu-usuario-ssh'
+export VPS_HOST='168.231.96.81'
+export VPS_USER='devuser'
 export VPS_PORT='22'
 export VPS_PROJECT_PATH='/var/www/eventospro'
 
