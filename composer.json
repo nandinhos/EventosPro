@@ -66,6 +66,24 @@
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
+        ],
+        "production:optimize": [
+            "@php artisan config:cache",
+            "@php artisan route:cache",
+            "@php artisan view:cache",
+            "@php artisan event:cache"
+        ],
+        "production:clear": [
+            "@php artisan config:clear",
+            "@php artisan route:clear",
+            "@php artisan view:clear",
+            "@php artisan event:clear",
+            "@php artisan cache:clear"
+        ],
+        "production:deploy": [
+            "@production:clear",
+            "@php artisan migrate --force",
+            "@production:optimize"
         ]
     },
     "extra": {
