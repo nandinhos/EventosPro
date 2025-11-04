@@ -16,6 +16,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Criar Permissões
         Permission::firstOrCreate(['name' => 'manage users']); // Uma permissão geral para o CRUD de usuários
+        Permission::firstOrCreate(['name' => 'manage cost-centers']); // Permissão para gerenciar centros de custo
         Permission::firstOrCreate(['name' => 'view performance reports']);
         Permission::firstOrCreate(['name' => 'view all gigs']);
         Permission::firstOrCreate(['name' => 'view own gigs']);

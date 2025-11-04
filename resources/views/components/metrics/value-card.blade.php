@@ -7,6 +7,7 @@
     'icon' => null,
     'link' => null,
     'badge' => null,
+    'tooltip' => null,
 ])
 
 @php
@@ -17,6 +18,7 @@ $gradientColors = [
     'yellow' => 'from-yellow-500 to-yellow-600',
     'orange' => 'from-orange-500 to-orange-600',
     'purple' => 'from-purple-500 to-purple-600',
+    'indigo' => 'from-indigo-500 to-indigo-600',
     'gray' => 'from-gray-500 to-gray-600',
 ];
 
@@ -27,6 +29,7 @@ $textLightColors = [
     'yellow' => 'text-yellow-100',
     'orange' => 'text-orange-100',
     'purple' => 'text-purple-100',
+    'indigo' => 'text-indigo-100',
     'gray' => 'text-gray-100',
 ];
 
@@ -40,11 +43,16 @@ if ($link) {
 @endphp
 
 @if($link)
-    <a href="{{ $link }}" {{ $attributes->merge(['class' => $baseClasses]) }}>
+    <a href="{{ $link }}" {{ $attributes->merge(['class' => $baseClasses]) }} @if($tooltip) title="{{ $tooltip }}" @endif>
         <div class="flex items-center justify-between">
             <div class="flex-1">
-                <p class="text-xs font-semibold {{ $textLightClass }} uppercase tracking-wider">
+                <p class="text-xs font-semibold {{ $textLightClass }} uppercase tracking-wider flex items-center gap-1">
                     {{ $title }}
+                    @if($tooltip)
+                        <svg class="w-4 h-4 opacity-75" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                        </svg>
+                    @endif
                 </p>
                 <p class="text-3xl font-bold mt-2">
                     {{ $value }}
@@ -76,11 +84,16 @@ if ($link) {
         </div>
     </a>
 @else
-    <div {{ $attributes->merge(['class' => $baseClasses]) }}>
+    <div {{ $attributes->merge(['class' => $baseClasses]) }} @if($tooltip) title="{{ $tooltip }}" @endif>
         <div class="flex items-center justify-between">
             <div class="flex-1">
-                <p class="text-xs font-semibold {{ $textLightClass }} uppercase tracking-wider">
+                <p class="text-xs font-semibold {{ $textLightClass }} uppercase tracking-wider flex items-center gap-1">
                     {{ $title }}
+                    @if($tooltip)
+                        <svg class="w-4 h-4 opacity-75" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                        </svg>
+                    @endif
                 </p>
                 <p class="text-3xl font-bold mt-2">
                     {{ $value }}

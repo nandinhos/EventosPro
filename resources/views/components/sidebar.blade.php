@@ -163,6 +163,20 @@
                         <span x-show="sidebarOpen" class="ml-3">Auditoria de Dados</span>
                     </a>
                 </li>
+
+                <!-- Configurações -->
+                @can('manage cost-centers')
+                    <li class="px-4 pt-4 pb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase" x-show="sidebarOpen">Configurações</li>
+
+                    <li>
+                        <a href="{{ route('cost-centers.index') }}"
+                           class="flex items-center py-2.5 px-4 rounded-md transition-colors duration-200 group
+                           {{ request()->is('cost-centers*') ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                            <i class="fas fa-tags fa-fw w-6 text-center text-lg"></i>
+                            <span x-show="sidebarOpen" class="ml-3">Centros de Custo</span>
+                        </a>
+                    </li>
+                @endcan
             </ul>
         </nav>
     </div>

@@ -366,6 +366,7 @@ class CashFlowProjectionService
                     'gig_date' => $gig->gig_date->isoFormat('L'),
                     'gig_contract' => $gig->contract_number ?? "Gig #{$gig->id}",
                     'artist_name' => $gig->artist->stage_name ?? $gig->artist->name ?? 'N/A',
+                    'location' => $gig->location_event_details ?? 'N/A',
                     'booker_name' => $gig->booker->name ?? 'N/A',
                     'cache_bruto_brl' => $gig->cache_value_brl,
                     'cachee_liquido' => $this->gigCalculator->calculateGrossCashBrl($gig), // Corrigido: usa o calculador
@@ -437,6 +438,7 @@ class CashFlowProjectionService
                     'gig_date' => $gig->gig_date->isoFormat('L'),
                     'gig_contract' => $gig->contract_number ?? "Gig #{$gig->id}",
                     'artist_name' => $gig->artist->stage_name ?? $gig->artist->name ?? 'N/A',
+                    'location' => $gig->location_event_details ?? 'N/A',
                     'booker_name' => $bookerName,
                     'booker_id' => $bookerId,
                     'cache_bruto_brl' => $gig->cache_value_brl,

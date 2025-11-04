@@ -27,6 +27,8 @@ class CostCenterFactory extends Factory
         return [
             'name' => $this->faker->unique()->words(2, true).' '.$this->faker->randomNumber(3),
             'description' => $this->faker->sentence(),
+            'is_active' => $this->faker->boolean(90), // 90% chance of being active
+            'color' => $this->faker->optional(0.3)->hexColor(), // 30% chance of having a color
         ];
     }
 }

@@ -73,3 +73,44 @@ A modernização da UI/UX do dashboard de projeções (`projections.dashboard.bl
 - **Commits via Laravel Sail**: Todos os commits devem ser executados de dentro do container do Sail para garantir que os hooks de pré-commit (como o Pint para formatação de código) funcionem corretamente. O comando `git commit` direto no host irá falhar.
 
 - **Tratamento de Erros de Pré-Commit**: Erros de linting, como `trailing whitespace`, podem ser introduzidos por ferramentas de substituição em massa. É importante corrigir esses erros antes de tentar o commit novamente. O fluxo é: 1) Tentar o commit, 2) Ler a saída do erro do hook, 3) Corrigir o problema, 4) Adicionar o arquivo corrigido (`git add .`), 5) Tentar o commit novamente.
+
+## 8. Lições da Padronização de Datas e Locale
+
+- **Reinicialização Após Mudanças no AppServiceProvider:** Alterações no `AppServiceProvider` (como configuração global do locale do Carbon) requerem reinicialização completa da aplicação Laravel. Mesmo após limpar caches de configuração, view e aplicação, pode ser necessário parar e reiniciar os containers do Laravel Sail para que as mudanças entrem em vigor.
+    - **Sintomas:** Funcionalidades que dependem das mudanças não funcionam, mesmo com caches limpos.
+    - **Solução:** Executar `./vendor/bin/sail down` seguido de `./vendor/bin/sail up -d`.
+    - **Justificativa:** O AppServiceProvider é carregado durante o bootstrap da aplicação, e mudanças nele podem não ser refletidas até uma reinicialização completa.
+
+- **Verificação de Locale do Carbon:** Após configurar `Carbon::setLocale(config('app.locale'))` no AppServiceProvider, sempre verifique se o locale está sendo aplicado corretamente criando um script de teste que inicialize o Laravel e verifique `Carbon::getLocale()`.
+
+- **Diferenças Visuais Sutils:** Mudanças de `format('d/m/y H:i')` para `isoFormat('l LT')` podem parecer não ter efeito porque ambas produzem saídas similares em pt_BR, mas a segunda inclui o ano completo (4 dígitos) em vez de 2 dígitos, melhorando a consistência.
+
+## 9. Lições sobre Configurações Locais e Controle de Versão
+
+- **Arquivos de Configuração Local Não Devem Ser Commitados:** Arquivos de configuração específicos do ambiente local do desenvolvedor (como `.claude/settings.local.json`, `.vscode/settings.json`, `.idea/workspace.xml`) **NUNCA** devem ser incluídos no controle de versão.
+    - **Justificativa:** Esses arquivos contêm preferências pessoais, caminhos absolutos da máquina do desenvolvedor, credenciais locais e outras configurações que não devem ser compartilhadas ou impostas a outros desenvolvedores.
+    - **Solução:** Sempre adicionar esses arquivos ao `.gitignore` antes do primeiro commit.
+    - **Exemplo no Projeto:** O arquivo `.claude/settings.local.json` já está corretamente listado no `.gitignore` (linha 27).
+
+- **Verificar Status Antes de Commit:** Antes de criar um commit, sempre executar `git status` para revisar quais arquivos estão sendo incluídos. Se arquivos de configuração local aparecerem como modificados, verificar se estão no `.gitignore`.
+    - **Comando:** `git status --porcelain` (formato conciso, ideal para scripts)
+    - **Ação:** Se um arquivo local está modificado mas no `.gitignore`, ele não será commitado automaticamente (comportamento correto).
+
+- **Padrão de Nomenclatura para Arquivos Locais:** Adotar o sufixo `.local` para arquivos de configuração que não devem ser versionados facilita a manutenção do `.gitignore`.
+    - **Exemplos:**
+        - ✅ `settings.local.json` → Ignorado
+        - ✅ `.env.local` → Ignorado
+        - ✅ `config.local.php` → Ignorado
+        - ❌ `my-config.json` → Pode ser commitado por engano
+
+- **Documentar no README:** Quando houver arquivos de configuração que precisam ser criados localmente, documentar no README com exemplos:
+    ```markdown
+    ## Configuração Local
+
+    Copie o arquivo de exemplo e ajuste conforme necessário:
+    ```bash
+    cp .claude/settings.example.json .claude/settings.local.json
+    ```
+    ```
+
+- **Revisão de Pull Requests:** Durante code reviews, sempre verificar se arquivos de configuração local foram acidentalmente incluídos no PR. Esse é um erro comum que deve ser detectado antes do merge.

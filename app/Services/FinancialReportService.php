@@ -382,14 +382,12 @@ class FinancialReportService
 
     public function getExpensesTableData(): Collection
     {
-        $expenses = GigCost::with(['gig'])
+        $expenses = GigCost::with(['gig', 'costCenter'])
             ->whereBetween('expense_date', [$this->startDate, $this->endDate])
+            ->whereHas('gig')
             ->when(isset($this->filters['booker_id']), fn ($q) => $q->whereHas('gig', fn ($q) => $q->where('booker_id', $this->filters['booker_id'])))
             ->when(isset($this->filters['artist_id']), fn ($q) => $q->whereHas('gig', fn ($q) => $q->where('artist_id', $this->filters['artist_id'])))
             ->get()
-            ->filter(function ($expense) {
-                return ! is_null($expense->gig);
-            })
             ->groupBy(function ($cost) {
                 return $cost->cost_center_id ? __('cost_centers.'.$cost->costCenter->name) : 'Sem Centro de Custo';
             });

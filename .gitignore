@@ -23,5 +23,11 @@ yarn-error.log
 /.zed
 /storage/debugbar
 /coverage-report
+
+# Database backups (local only)
+/backups/
+*.sql
+*.sql.gz
+
 # Claude Code local settings
 .claude/settings.local.json
