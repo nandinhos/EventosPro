@@ -292,13 +292,162 @@ sail artisan config:show database
 sail artisan route:list
 ```
 
+## 🚨 Troubleshooting de Deploy
+
+### Conflitos de Porta
+
+**Problema**: Erro "address already in use" ao subir containers
+
+**Solução**: Verificar e alterar portas no `.env`:
+
+```bash
+# 1. Identificar porta em conflito
+ss -tlnp | grep :3308
+netstat -tlnp | grep :9090
+
+# 2. Editar .env com portas livres
+nano .env
+# Alterar:
+# FORWARD_DB_PORT=3308 (ou outra porta livre)
+# FORWARD_REDIS_PORT=6380
+# FORWARD_PHPMYADMIN_PORT=9090 (use porta > 9000)
+
+# 3. Reiniciar containers
+sail down
+sail up -d
+```
+
+**Dica**: Docker Desktop/WSL costuma usar portas 3306, 6379, 8080-8090. Use portas > 9000 para evitar conflitos.
+
+---
+
+### Aplicar Mudanças do .env SEM Reiniciar Containers
+
+**NÃO precisa** reiniciar containers! Use cache:
+
+```bash
+# Limpar e recriar cache de configuração
+sail artisan config:clear
+sail artisan config:cache
+
+# Verificar que foi aplicado
+sail artisan tinker --execute="echo config('app.locale');"
+```
+
+---
+
+### ViteManifestNotFoundException
+
+**Problema**: Erro sobre manifest.json não encontrado
+
+**Solução**:
+
+```bash
+# Instalar dependências e compilar assets
+sail npm install
+sail npm run build
+
+# Verificar que foi criado
+ls -lh public/build/manifest.json
+```
+
+---
+
+### Container com Status "Unhealthy"
+
+**Problema**: Container sobe mas fica unhealthy
+
+**Diagnóstico**:
+
+```bash
+# Ver logs do container problemático
+sail logs laravel.test --tail=50
+sail logs mysql --tail=50
+sail logs redis --tail=20
+
+# Verificar status de todos
+docker ps --format "table {{.Names}}\t{{.Status}}"
+```
+
+**Solução**: Aguardar mais tempo (MySQL pode demorar 60s+) ou verificar healthcheck no docker-compose.yml
+
+---
+
+### Funcionalidade não Aparece (com código presente)
+
+**Checklist de verificação**:
+
+```bash
+# 1. Limpar cache Laravel
+sail artisan optimize:clear
+
+# 2. Verificar permissões
+sail artisan tinker --execute="echo Spatie\Permission\Models\Permission::pluck('name');"
+
+# 3. Executar seeders de permissões
+sail artisan db:seed --class=RolesAndPermissionsSeeder
+
+# 4. Dar permissão ao usuário
+sail artisan tinker --execute="
+\$user = App\Models\User::find(USER_ID);
+\$user->givePermissionTo('PERMISSION_NAME');
+echo 'Permissão atribuída';
+"
+
+# 5. Verificar rotas registradas
+sail artisan route:list --path=nome-rota
+
+# 6. Limpar cache do navegador (Ctrl+Shift+R)
+```
+
+---
+
+### Erro "permission denied" ao Parar Container
+
+**Problema**: `cannot stop container: permission denied`
+
+**Solução**: Use docker-compose diretamente:
+
+```bash
+# Em vez de:
+# sail down  # ❌ Pode dar erro
+
+# Use:
+docker-compose down  # ✅ Funciona
+```
+
+Ou simplesmente não pare! Para aplicar mudanças do .env, use `config:cache`.
+
+---
+
+### Sincronização Container vs Host
+
+**Verificar se código do host está no container**:
+
+```bash
+# 1. Verificar volume montado
+docker inspect eventospro-laravel.test-1 --format='{{range .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}'
+# Deve mostrar: /caminho/do/projeto -> /var/www/html
+
+# 2. Comparar arquivo
+ls -la app/Http/Controllers/SeuController.php
+sail bash -c "ls -la /var/www/html/app/Http/Controllers/SeuController.php"
+# Timestamps devem ser idênticos
+```
+
+---
+
 ## 📚 Recursos Adicionais
 
 - [Documentação Oficial do Laravel Sail](https://laravel.com/docs/sail)
 - [Docker Compose Reference](https://docs.docker.com/compose/)
-- [Configuração do Projeto](./TESTING.md)
+- [Procedimento de Deploy Completo](./DEPLOY_PROCEDURE.md)
+- [Lições Aprendidas](./LESSONS_LEARNED.md)
+- [Configuração de Testes](./TESTING.md)
 - [APIs dos Services](./SERVICES_API.md)
 
 ---
+
+**Última Atualização**: 2025-11-04
 
 **Lembre-se**: A consistência no uso do Laravel Sail garante que todos os desenvolvedores trabalhem no mesmo ambiente, evitando problemas de "funciona na minha máquina".

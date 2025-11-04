@@ -1,15 +1,54 @@
 # Procedimento de Deploy - EventosPro
 
-## Portas padrão usadas (alteradas para evitar conflitos locais)
+## ⚡ Deploy Rápido (TL;DR)
 
-Se você tem outros containers locais, estas são as portas recomendadas por este projeto para evitar conflitos. Elas estão configuradas no arquivo `.env` do projeto (variáveis: APP_PORT, VITE_PORT, FORWARD_DB_PORT, FORWARD_PHPMYADMIN_PORT).
+Para deploy em uma nova VPS, execute este comando único:
 
-- HTTP da aplicação: 8081 (host) -> 80 (container)
-- Vite (dev server): 5174 (host) -> 5174 (container)
-- MySQL (host): 3307 -> 3306 (container)
-- phpMyAdmin (host): 8089 -> 80 (container)
+```bash
+# Clone, configure e suba a aplicação em uma linha
+git clone https://github.com/nandinhos/EventosPro.git && \
+cd EventosPro && \
+cp .env.example .env && \
+# IMPORTANTE: Edite o .env para ajustar portas se necessário (veja seção abaixo)
+./vendor/bin/sail up -d && \
+./vendor/bin/sail artisan key:generate && \
+./vendor/bin/sail artisan migrate && \
+./vendor/bin/sail artisan db:seed --class=RolesAndPermissionsSeeder && \
+./vendor/bin/sail npm install && \
+./vendor/bin/sail npm run build && \
+./vendor/bin/sail artisan optimize
+```
 
-Se alguma dessas portas conflitar com outro serviço, edite o arquivo `.env` e ajuste as variáveis acima antes de subir os containers.
+**Após execução**: Acesse http://SEU_IP_VPS
+
+---
+
+## Portas padrão usadas (IMPORTANTE: Evitar conflitos)
+
+**Problema Comum**: Docker Desktop/WSL ou outros serviços podem ocupar portas baixas (3306, 6379, 8080-8090).
+
+**Solução**: Use portas altas no `.env` antes de subir os containers:
+
+```env
+# Configuração recomendada para VPS (editar .env)
+APP_PORT=80                      # HTTP da aplicação
+VITE_PORT=5173                   # Vite dev server
+FORWARD_DB_PORT=3308             # MySQL (NÃO use 3306/3307 - conflitam com WSL)
+FORWARD_REDIS_PORT=6380          # Redis (NÃO use 6379 - pode conflitar)
+FORWARD_PHPMYADMIN_PORT=9090     # phpMyAdmin (use porta > 9000)
+```
+
+**Dica**: Se trabalha com Docker Desktop no WSL, sempre use portas **> 9000** para serviços auxiliares (phpMyAdmin, Mailhog, etc.)
+
+### Como verificar conflitos de porta ANTES de subir:
+
+```bash
+# Verificar se porta está livre
+ss -tlnp | grep :3308
+netstat -tlnp | grep :9090
+
+# Se retornar algo, a porta está em uso - escolha outra!
+```
 
 ## Guia Completo de Deploy da Aplicação EventosPro
 
@@ -307,7 +346,171 @@ EventosPro/
 
 ---
 
-**Data de criação:** $(date)  
-**Versão:** 1.0  
-**Status:** Testado e validado  
-**Ambiente:** Laravel Sail + Docker
+## 17. Troubleshooting de Deploy Inicial em VPS
+
+### Problema: ViteManifestNotFoundException
+
+**Sintoma**: Erro "Vite manifest not found at: /var/www/html/public/build/manifest.json"
+
+**Causa**: Assets frontend não foram compilados
+
+**Solução**:
+```bash
+./vendor/bin/sail npm install
+./vendor/bin/sail npm run build
+# Verificar que manifest foi criado
+ls -lh public/build/manifest.json
+```
+
+---
+
+### Problema: Erro "address already in use" ao subir containers
+
+**Sintoma**: `Error: failed to bind host port... address already in use`
+
+**Causa**: Porta já está sendo usada por outro serviço (Docker Desktop/WSL comum)
+
+**Solução**:
+1. Identificar qual porta está em conflito:
+```bash
+# Exemplo: verificar porta 3307
+ss -tlnp | grep :3307
+```
+
+2. Editar `.env` e mudar para porta mais alta:
+```env
+# Exemplo: mudar MySQL de 3307 para 3308
+FORWARD_DB_PORT=3308
+
+# phpMyAdmin: sempre usar porta > 9000
+FORWARD_PHPMYADMIN_PORT=9090
+```
+
+3. Parar e reiniciar:
+```bash
+./vendor/bin/sail down
+./vendor/bin/sail up -d
+```
+
+---
+
+### Problema: Container marcado como "unhealthy"
+
+**Sintoma**: `docker ps` mostra container com status "unhealthy"
+
+**Causa**: Healthcheck falhando ou dependências (MySQL/Redis) não prontas
+
+**Solução**:
+1. Verificar logs do container:
+```bash
+./vendor/bin/sail logs laravel.test --tail=50
+./vendor/bin/sail logs mysql --tail=50
+```
+
+2. Aguardar mais tempo (MySQL pode demorar 60s+ no primeiro boot)
+
+3. Se persistir, verificar `docker-compose.yml`:
+```yaml
+healthcheck:
+  start_period: 60s  # Aumentar se necessário
+  retries: 10        # Aumentar tentativas
+```
+
+---
+
+### Problema: Funcionalidade não aparece (código existe mas não funciona)
+
+**Sintomas**:
+- Código está no repositório
+- Rotas registradas
+- Mas funcionalidade não aparece no menu ou não funciona
+
+**Verificações em ordem**:
+
+1. **Cache do Laravel**:
+```bash
+./vendor/bin/sail artisan optimize:clear
+```
+
+2. **Permissões de usuário**:
+```bash
+# Verificar permissões existentes
+./vendor/bin/sail artisan tinker --execute="echo Spatie\Permission\Models\Permission::pluck('name');"
+
+# Executar seeder de permissões
+./vendor/bin/sail artisan db:seed --class=RolesAndPermissionsSeeder
+
+# Dar permissão ao usuário (substituir USER_ID e PERMISSION)
+./vendor/bin/sail artisan tinker --execute="
+\$user = App\Models\User::find(USER_ID);
+\$user->givePermissionTo('PERMISSION_NAME');
+echo 'OK';
+"
+```
+
+3. **Sincronização container vs host**:
+```bash
+# Verificar volume montado
+docker inspect eventospro-laravel.test-1 --format='{{range .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}'
+
+# Deve mostrar: /home/USER/projects/EventosPro -> /var/www/html
+```
+
+4. **Cache do navegador**:
+- Abrir DevTools (F12)
+- Clicar com botão direito no refresh
+- Selecionar "Empty Cache and Hard Reload"
+
+---
+
+### Problema: "permission denied" ao parar containers
+
+**Sintoma**: `cannot stop container: permission denied`
+
+**Causa**: Container criado com usuário/grupo diferente
+
+**Solução**:
+```bash
+# Não use sail down, use docker-compose diretamente
+docker-compose down
+
+# Ou simplesmente não pare! Para aplicar mudanças do .env:
+./vendor/bin/sail artisan config:cache
+```
+
+---
+
+### Problema: Mudanças no .env não são aplicadas
+
+**Sintoma**: Alterou .env mas aplicação usa valores antigos
+
+**Solução**: **NÃO precisa** reiniciar containers!
+```bash
+# Limpar e recriar cache de configuração
+./vendor/bin/sail artisan config:clear
+./vendor/bin/sail artisan config:cache
+
+# Verificar que foi aplicado
+./vendor/bin/sail artisan tinker --execute="echo config('app.locale');"
+```
+
+---
+
+## 18. Checklist de Verificação Pós-Deploy
+
+Após deploy, verificar:
+
+- [ ] `docker ps` mostra todos containers "healthy"
+- [ ] `curl -I http://localhost` retorna HTTP 200
+- [ ] `ls public/build/manifest.json` existe
+- [ ] Login funciona
+- [ ] Menu mostra todas funcionalidades esperadas
+- [ ] phpMyAdmin acessível (se necessário): http://IP:9090
+
+---
+
+**Data de criação**: 2025-10-22
+**Data de atualização**: 2025-11-04
+**Versão**: 2.0
+**Status**: Testado e validado em múltiplas VPS
+**Ambiente**: Laravel Sail + Docker
