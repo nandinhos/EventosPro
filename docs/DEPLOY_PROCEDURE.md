@@ -440,13 +440,24 @@ healthcheck:
 # Executar seeder de permissões
 ./vendor/bin/sail artisan db:seed --class=RolesAndPermissionsSeeder
 
+# ⚠️ CRÍTICO: Limpar cache de permissões (OBRIGATÓRIO!)
+./vendor/bin/sail artisan permission:cache-reset
+
 # Dar permissão ao usuário (substituir USER_ID e PERMISSION)
 ./vendor/bin/sail artisan tinker --execute="
 \$user = App\Models\User::find(USER_ID);
 \$user->givePermissionTo('PERMISSION_NAME');
 echo 'OK';
 "
+
+# Verificar que permissão foi aplicada
+./vendor/bin/sail artisan tinker --execute="
+\$user = App\Models\User::where('email', 'admin@eventospro.com')->first();
+echo \$user->can('manage cost-centers') ? 'TEM PERMISSÃO ✅' : 'SEM PERMISSÃO ❌';
+"
 ```
+
+**IMPORTANTE**: O comando `permission:cache-reset` é **OBRIGATÓRIO** após rodar seeders ou atribuir permissões! O Spatie Laravel Permission mantém cache por 24h. Sem limpar o cache, menus e funcionalidades protegidas por `@can()` não aparecerão, mesmo estando corretamente configuradas.
 
 3. **Sincronização container vs host**:
 ```bash
