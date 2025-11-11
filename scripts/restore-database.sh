@@ -44,7 +44,12 @@ echo "🔄 Descomprimindo backup..."
 gunzip -c ${BACKUP_FILE} > /tmp/restore.sql
 
 echo "🔄 Restaurando banco de dados..."
-./vendor/bin/sail mysql laravel < /tmp/restore.sql
+
+# Criar database se não existir
+./vendor/bin/sail exec mysql mysql -uroot -e "CREATE DATABASE IF NOT EXISTS eventospro CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+# Restaurar backup
+./vendor/bin/sail mysql eventospro < /tmp/restore.sql
 
 echo "🧹 Limpando arquivos temporários..."
 rm /tmp/restore.sql
