@@ -17,6 +17,9 @@ class AgencyFixedCostFactory extends Factory
      */
     public function definition(): array
     {
+        $referenceMonth = fake()->dateTimeBetween('-6 months', '+6 months')->format('Y-m-01');
+        $dueDate = fake()->dateTimeBetween($referenceMonth, '+1 month')->format('Y-m-d');
+
         return [
             'description' => fake()->randomElement([
                 'Aluguel do Escritório',
@@ -28,7 +31,9 @@ class AgencyFixedCostFactory extends Factory
                 'Manutenção de Equipamentos',
             ]),
             'monthly_value' => fake()->randomFloat(2, 500, 5000),
-            'reference_month' => fake()->dateTimeBetween('-6 months', '+6 months')->format('Y-m-01'),
+            'reference_month' => $referenceMonth,
+            'due_date' => $dueDate,
+            'cost_type' => fake()->randomElement(['operacional', 'administrativo']),
             'cost_center_id' => CostCenter::factory(),
             'notes' => fake()->optional(0.3)->sentence(),
             'is_active' => fake()->boolean(90), // 90% ativos
@@ -52,6 +57,26 @@ class AgencyFixedCostFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_active' => false,
+        ]);
+    }
+
+    /**
+     * Indicate that the cost is operational (GIG).
+     */
+    public function operational(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'cost_type' => 'operacional',
+        ]);
+    }
+
+    /**
+     * Indicate that the cost is administrative (AGENCY).
+     */
+    public function administrative(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'cost_type' => 'administrativo',
         ]);
     }
 }
