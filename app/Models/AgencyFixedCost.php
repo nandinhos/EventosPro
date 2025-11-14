@@ -19,6 +19,8 @@ class AgencyFixedCost extends Model
         'monthly_value',
         'reference_month',
         'cost_center_id',
+        'due_date',
+        'cost_type',
         'notes',
         'is_active',
     ];
@@ -26,6 +28,7 @@ class AgencyFixedCost extends Model
     protected $casts = [
         'monthly_value' => 'decimal:2',
         'reference_month' => 'date',
+        'due_date' => 'date',
         'is_active' => 'boolean',
     ];
 
@@ -53,5 +56,25 @@ class AgencyFixedCost extends Model
     public function scopeByCategory($query, string $category)
     {
         return $query->where('category', $category);
+    }
+
+    public function scopeByType($query, string $type)
+    {
+        return $query->where('cost_type', $type);
+    }
+
+    public function scopeDueInMonth($query, string $yearMonth)
+    {
+        return $query->where('due_date', 'LIKE', $yearMonth.'%');
+    }
+
+    public function scopeOperational($query)
+    {
+        return $query->where('cost_type', 'GIG');
+    }
+
+    public function scopeAdministrative($query)
+    {
+        return $query->where('cost_type', 'AGENCY');
     }
 }

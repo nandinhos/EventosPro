@@ -42,6 +42,8 @@ class AgencyCostController extends Controller
             'cost_center_id' => 'required|exists:cost_centers,id',
             'monthly_value' => 'required|numeric|min:0',
             'reference_month' => 'required|date_format:Y-m',
+            'due_date' => 'required|date',
+            'cost_type' => 'required|in:GIG,AGENCY',
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
@@ -82,6 +84,8 @@ class AgencyCostController extends Controller
             'cost_center_id' => 'required|exists:cost_centers,id',
             'monthly_value' => 'required|numeric|min:0',
             'reference_month' => 'required|date_format:Y-m',
+            'due_date' => 'required|date',
+            'cost_type' => 'required|in:GIG,AGENCY',
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
         ]);

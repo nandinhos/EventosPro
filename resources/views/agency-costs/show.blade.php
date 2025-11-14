@@ -31,8 +31,26 @@
                                     <p class="text-lg text-gray-900 dark:text-white">R$ {{ number_format($cost->monthly_value, 2, ',', '.') }}</p>
                                 </div>
                                 <div>
-                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Mês de Referência</p>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Mês de Referência (Competência)</p>
                                     <p class="text-lg text-gray-900 dark:text-white">{{ $cost->reference_month->isoFormat('MM/YYYY') }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Data de Vencimento (Caixa)</p>
+                                    <p class="text-lg text-gray-900 dark:text-white">{{ $cost->due_date ? $cost->due_date->format('d/m/Y') : '-' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Tipo de Custo</p>
+                                    <p class="text-lg">
+                                        @if($cost->cost_type === 'GIG')
+                                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
+                                                Operacional (GIG)
+                                            </span>
+                                        @else
+                                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
+                                                Administrativo (AGENCY)
+                                            </span>
+                                        @endif
+                                    </p>
                                 </div>
                                 <div>
                                     <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Status</p>

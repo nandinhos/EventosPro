@@ -36,8 +36,23 @@
 
                             <!-- Reference Month -->
                             <div>
-                                <label for="reference_month" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Mês de Referência</label>
+                                <label for="reference_month" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Mês de Referência (Competência)</label>
                                 <input type="month" name="reference_month" id="reference_month" class="block mt-1 w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" required>
+                            </div>
+
+                            <!-- Due Date -->
+                            <div>
+                                <label for="due_date" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Data de Vencimento (Caixa)</label>
+                                <input type="date" name="due_date" id="due_date" class="block mt-1 w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" required>
+                            </div>
+
+                            <!-- Cost Type -->
+                            <div>
+                                <label for="cost_type" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Tipo de Custo</label>
+                                <select name="cost_type" id="cost_type" class="block mt-1 w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" required>
+                                    <option value="AGENCY" selected>Administrativo (AGENCY)</option>
+                                    <option value="GIG">Operacional (GIG)</option>
+                                </select>
                             </div>
 
                             <!-- Notes -->
