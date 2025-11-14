@@ -1,4 +1,18 @@
 <div class="space-y-6">
+    @if(session('restore_candidate'))
+        <div class="border border-yellow-300 bg-yellow-50 text-yellow-800 p-4 rounded">
+            <p>
+                O Centro de Custo "{{ session('restore_candidate')['name'] }}" já existiu e foi excluído em
+                {{ session('restore_candidate')['deleted_at'] }}.
+            </p>
+            <p class="mt-1">Deseja restaurá-lo com os dados atuais?</p>
+            <div class="mt-3 flex gap-3">
+                <input type="hidden" name="ghost_id" value="{{ session('restore_candidate')['id'] }}">
+                <button type="submit" name="restore_confirm" value="1" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded">Restaurar</button>
+                <a href="{{ url()->current() }}" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">Cancelar</a>
+            </div>
+        </div>
+    @endif
     <!-- Name -->
     <div>
         <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome *</label>

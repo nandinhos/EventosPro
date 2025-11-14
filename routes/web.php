@@ -1,5 +1,7 @@
 <?php
-
+    // (Optional API route) Restore via POST when using JS modal
+    Route::post('/cost-centers/restore', [\App\Http\Controllers\CostCenterController::class, 'restoreGhost'])
+        ->name('cost-centers.restore');
 use App\Http\Controllers\ArtistController;
 use App\Http\Controllers\ArtistPerformanceController;
 use App\Http\Controllers\AuditController;
@@ -14,7 +16,6 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PerformanceReportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettlementController;
-use App\Http\Controllers\TestReportController;
 use App\Http\Controllers\UserController;
 use App\Models\Gig;
 use Illuminate\Support\Facades\Auth;
@@ -160,11 +161,6 @@ Route::middleware('auth')->group(function () {
     // Coloque esta rota dentro do grupo de autenticação para que só usuários logados possam acessá-la.
     // Ela deve vir antes ou depois do Route::resource, a ordem aqui não é crítica.
     Route::get('gigs/{gig}/debug-financials', [GigController::class, 'debugFinancials'])->name('gigs.debugFinancials');
-
-    // Test Report Routes
-    Route::get('/test-report', [TestReportController::class, 'index'])->name('test-report.index');
-    Route::post('/test-report/run', [TestReportController::class, 'runTests'])->name('test-report.run');
-    Route::get('/test-report/export', [TestReportController::class, 'export'])->name('test-report.export');
 
     // Data Audit Routes
     Route::get('/audit/data-audit', [AuditController::class, 'dataAudit'])->name('audit.data-audit');

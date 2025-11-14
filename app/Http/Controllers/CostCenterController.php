@@ -59,9 +59,24 @@ class CostCenterController extends Controller
         $data = $request->validated();
         $data['is_active'] = $request->has('is_active');
 
-        // Se não usar cor personalizada, define como null
         if (! $request->has('use_custom_color')) {
             $data['color'] = null;
+        }
+
+        $ghost = CostCenter::onlyTrashed()->where('name', $data['name'])->first();
+        if ($ghost) {
+            if ($request->has('restore_confirm') && $request->input('restore_confirm') == '1') {
+                $ghost->restore();
+                $ghost->update($data);
+                return redirect()->route('cost-centers.index')->with('success', 'Centro de custo restaurado com sucesso!');
+            }
+            return back()
+                ->with('restore_candidate', [
+                    'id' => $ghost->id,
+                    'name' => $ghost->name,
+                    'deleted_at' => optional($ghost->deleted_at)->toDateTimeString(),
+                ])
+                ->withInput();
         }
 
         CostCenter::create($data);
@@ -89,9 +104,24 @@ class CostCenterController extends Controller
         $data = $request->validated();
         $data['is_active'] = $request->has('is_active');
 
-        // Se não usar cor personalizada, define como null
         if (! $request->has('use_custom_color')) {
             $data['color'] = null;
+        }
+
+        $ghost = CostCenter::onlyTrashed()->where('name', $data['name'])->first();
+        if ($ghost && $ghost->id !== $costCenter->id) {
+            if ($request->has('restore_confirm') && $request->input('restore_confirm') == '1') {
+                $ghost->restore();
+                $ghost->update($data);
+                return redirect()->route('cost-centers.index')->with('success', 'Centro de custo restaurado com sucesso!');
+            }
+            return back()
+                ->with('restore_candidate', [
+                    'id' => $ghost->id,
+                    'name' => $ghost->name,
+                    'deleted_at' => optional($ghost->deleted_at)->toDateTimeString(),
+                ])
+                ->withInput();
         }
 
         $costCenter->update($data);
@@ -114,5 +144,34 @@ class CostCenterController extends Controller
         $costCenter->delete();
 
         return redirect()->route('cost-centers.index')->with('success', 'Centro de custo excluído com sucesso!');
+    }
+
+    public function restoreGhost(Request $request)
+    {
+        $this->authorize('manage cost-centers');
+
+        $ghostId = $request->input('ghost_id');
+        $data = $request->validate([
+            'ghost_id' => 'required|integer',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'is_active' => 'nullable|boolean',
+            'use_custom_color' => 'nullable|boolean',
+            'color' => ['nullable','regex:/^#[0-9A-Fa-f]{6}$/'],
+        ]);
+
+        $ghost = CostCenter::onlyTrashed()->findOrFail($ghostId);
+        $ghost->restore();
+
+        $payload = [
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
+            'is_active' => $request->has('is_active'),
+            'color' => $request->has('use_custom_color') ? ($data['color'] ?? '#6366f1') : null,
+        ];
+
+        $ghost->update($payload);
+
+        return redirect()->route('cost-centers.index')->with('success', 'Centro de custo restaurado com sucesso!');
     }
 }

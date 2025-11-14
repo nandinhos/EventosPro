@@ -29,7 +29,9 @@ class CostCenterRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('cost_centers', 'name')->ignore($costCenterId),
+                Rule::unique('cost_centers', 'name')
+                    ->ignore($costCenterId)
+                    ->whereNull('deleted_at'),
             ],
             'description' => 'nullable|string',
             'is_active' => 'boolean',
