@@ -3,6 +3,13 @@
 **Feature**: Adicionar campos `due_date` e `cost_type` ao módulo de Custos Operacionais
 
 **Data de Início**: 2025-11-14
+**Data de Conclusão Fase 2**: 2025-11-14
+
+## ✅ STATUS GERAL: FASE 1 e FASE 2 CONCLUÍDAS
+
+- ✅ **Fase 1**: CRUD completo (8/8 tasks)
+- ✅ **Fase 2**: Integração com Services (7/7 tasks)
+- ⏳ **Fase 3**: Views e relatórios (pendente)
 
 ---
 
