@@ -53,8 +53,8 @@
                             <div>
                                 <label for="cost_type" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Tipo de Custo</label>
                                 <select name="cost_type" id="cost_type" class="block mt-1 w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" required>
-                                    <option value="AGENCY" {{ old('cost_type', $agencyCost->cost_type) == 'AGENCY' ? 'selected' : '' }}>Administrativo (AGENCY)</option>
-                                    <option value="GIG" {{ old('cost_type', $agencyCost->cost_type) == 'GIG' ? 'selected' : '' }}>Operacional (GIG)</option>
+                                    <option value="administrativo" {{ old('cost_type', $agencyCost->cost_type) == 'administrativo' ? 'selected' : '' }}>Administrativo</option>
+                                    <option value="operacional" {{ old('cost_type', $agencyCost->cost_type) == 'operacional' ? 'selected' : '' }}>Operacional</option>
                                 </select>
                             </div>
 

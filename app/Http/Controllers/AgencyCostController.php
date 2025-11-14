@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AgencyCostType;
 use App\Models\AgencyFixedCost;
 use App\Models\CostCenter;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rules\Enum;
 
 class AgencyCostController extends Controller
 {
@@ -43,7 +45,7 @@ class AgencyCostController extends Controller
             'monthly_value' => 'required|numeric|min:0',
             'reference_month' => 'required|date_format:Y-m',
             'due_date' => 'required|date',
-            'cost_type' => 'required|in:GIG,AGENCY',
+            'cost_type' => ['required', new Enum(AgencyCostType::class)],
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
@@ -85,7 +87,7 @@ class AgencyCostController extends Controller
             'monthly_value' => 'required|numeric|min:0',
             'reference_month' => 'required|date_format:Y-m',
             'due_date' => 'required|date',
-            'cost_type' => 'required|in:GIG,AGENCY',
+            'cost_type' => ['required', new Enum(AgencyCostType::class)],
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
         ]);

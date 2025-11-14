@@ -42,47 +42,61 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @foreach ($costs as $cost)
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                            {{ $cost->description }}
+                                @php
+                                    $costsByType = $costs->groupBy('cost_type');
+                                @endphp
+
+                                @foreach ($costsByType as $type => $typedCosts)
+                                    <tr class="bg-gray-50 dark:bg-gray-700/50">
+                                <th colspan="6" class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700/70">
+                                    {{ $type == 'operacional' ? 'Custos Operacionais' : 'Custos Administrativos' }}
+                                </th>
+                                    </tr>
+
+                                    @foreach ($typedCosts as $cost)
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                                {{ $cost->description }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                {{ $cost->costCenter->name ?? 'N/A' }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                {{ $cost->cost_type }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                {{ $cost->due_date?->isoFormat('L') ?? 'N/A' }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                R$ {{ number_format($cost->monthly_value, 2, ',', '.') }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <div class="flex items-center space-x-2 justify-end">
+                                                    <a href="{{ route('agency-costs.show', $cost) }}" title="Ver Detalhes" class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                                                        <i class="fas fa-eye fa-fw"></i>
+                                                    </a>
+                                                    <a href="{{ route('agency-costs.edit', $cost) }}" title="Editar" class="text-primary-500 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300">
+                                                        <i class="fas fa-edit fa-fw"></i>
+                                                    </a>
+                                                    <form action="{{ route('agency-costs.destroy', $cost) }}" method="POST" onsubmit="return confirm('Tem certeza?');" class="inline">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" title="Excluir" class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                                                            <i class="fas fa-trash-alt fa-fw"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+
+                                    <tr class="bg-gray-50 dark:bg-gray-700/80">
+                                <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700 dark:text-gray-200 text-right">
+                                    Subtotal {{ $type == 'operacional' ? 'Operacional' : 'Administrativo' }}:
+                                </td>
+                                        <td class="px-6 py-2 text-left text-sm font-bold text-gray-800 dark:text-white">
+                                            R$ {{ number_format($typedCosts->sum('monthly_value'), 2, ',', '.') }}
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            {{ $cost->costCenter->name ?? 'N/A' }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                            @if($cost->cost_type === 'GIG')
-                                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
-                                                    Operacional
-                                                </span>
-                                            @else
-                                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
-                                                    Administrativo
-                                                </span>
-                                            @endif
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            {{ $cost->due_date ? $cost->due_date->format('d/m/Y') : '-' }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            R$ {{ number_format($cost->monthly_value, 2, ',', '.') }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div class="flex items-center space-x-2 justify-end">
-                                                <a href="{{ route('agency-costs.show', $cost) }}" title="Ver Detalhes" class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                                                    <i class="fas fa-eye fa-fw"></i>
-                                                </a>
-                                                <a href="{{ route('agency-costs.edit', $cost) }}" title="Editar" class="text-primary-500 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300">
-                                                    <i class="fas fa-edit fa-fw"></i>
-                                                </a>
-                                                <form action="{{ route('agency-costs.destroy', $cost) }}" method="POST" onsubmit="return confirm('Tem certeza?');" class="inline">
-                                                    @csrf @method('DELETE')
-                                                    <button type="submit" title="Excluir" class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
-                                                        <i class="fas fa-trash-alt fa-fw"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
+                                        <td></td>
                                     </tr>
                                 @endforeach
                             </tbody>

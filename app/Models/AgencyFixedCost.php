@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AgencyCostType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -30,6 +31,7 @@ class AgencyFixedCost extends Model
         'reference_month' => 'date',
         'due_date' => 'date',
         'is_active' => 'boolean',
+        'cost_type' => AgencyCostType::class,
     ];
 
     /**
@@ -70,11 +72,11 @@ class AgencyFixedCost extends Model
 
     public function scopeOperational($query)
     {
-        return $query->where('cost_type', 'GIG');
+        return $query->where('cost_type', AgencyCostType::OPERACIONAL);
     }
 
     public function scopeAdministrative($query)
     {
-        return $query->where('cost_type', 'AGENCY');
+        return $query->where('cost_type', AgencyCostType::ADMINISTRATIVO);
     }
 }
