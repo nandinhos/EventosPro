@@ -1,0 +1,12 @@
+# Legados e Itens a Revisar
+-
+- Menções a arquivos inexistentes
+- `README.md` referencia `deploy.sh` — não localizado; alinhar documentação ou adicionar script.
+-
+- Arquivos de backup/cópia
+- `tailwind.config.js.v3.backup` — avaliar remoção ou documentação da diferença.
+- Views com sufixos `copy` — consolidar conteúdo e remover duplicatas.
+-
+- Documentação dispersa
+- `docs/ai_context/**`, `README_AGENTS.md`, `GEMINI.md` — consolidados em `docs/AI_CONTEXT.md`; manter apenas referências úteis.
+-

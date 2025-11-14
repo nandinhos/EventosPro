@@ -1,0 +1,88 @@
+# Endpoints — EventosPro
+-
+- Autenticação/Perfil (Breeze)
+- `GET /profile` → editar perfil — `routes/web.php:54`
+- `PATCH /profile` → atualizar perfil — `routes/web.php:55`
+- `DELETE /profile` → excluir perfil — `routes/web.php:56`
+-
+- Usuários
+- `resource users` — CRUD — `routes/web.php:48`
+-
+- Booker
+- `GET /meu-desempenho` — portal booker — `routes/web.php:51`
+- `POST /bookers/events/{eventId}/commission` — atualizar comissão — `routes/web.php:93`
+- `GET /bookers/{booker}/export/pdf|excel` — exportações — `routes/web.php:96–97`
+-
+- Artistas
+- `resource artists` — CRUD — `routes/web.php:78`
+- `POST /artists/payments/settle-batch` — liquidar pagamentos — `routes/web.php:80`
+- `PATCH /artists/payments/unsettle-batch` — desfazer liquidações — `routes/web.php:81`
+-
+- Custos da Agência
+- `resource agency-costs` — CRUD — `routes/web.php:87`
+-
+- Centros de Custo
+- `resource cost-centers` — CRUD (exceto show) — `routes/web.php:90`
+-
+- Relatórios
+- `GET /reports` — índice — `routes/web.php:59`
+- `GET /reports/overview/export/{format}` — export visão geral — `routes/web.php:61`
+- `GET /reports/delinquency` — inadimplência — `routes/web.php:63`
+- `GET /reports/delinquency/export/pdf` — export inadimplência — `routes/web.php:65`
+- `POST /reports/commissions/settle-batch` — liquidar comissões bookers — `routes/web.php:67`
+- `PATCH /reports/commissions/unsettle-batch` — desfazer comissões bookers — `routes/web.php:69`
+- `POST /reports/artist-payments/settle-batch` — liquidar artistas — `routes/web.php:71`
+- `PATCH /reports/artist-payments/unsettle-batch` — desfazer artistas — `routes/web.php:73`
+- `GET /reports/export/{type}/{format}` — exportações diversas — `routes/web.php:75`
+- `GET /reports/performance` — performance geral — `routes/web.php:106`
+- `GET /reports/performance/export` — export performance (PDF) — `routes/web.php:107`
+- `GET /reports/artist-performance` — performance artistas — `routes/web.php:110`
+- `GET /reports/artist-performance/export/pdf|excel` — export — `routes/web.php:111–112`
+- `GET /reports/due-dates` — relatório de vencimentos — `routes/web.php:120`
+- `GET /reports/due-dates/export/pdf` — export vencimentos — `routes/web.php:121`
+-
+- Projeções Financeiras
+- `GET /projections` — índice — `routes/web.php:100`
+- `GET /projections/debug` — debug — `routes/web.php:103`
+-
+- Auditoria
+- `GET /auditoria` — índice — `routes/web.php:115`
+- `GET /auditoria/{gig}` — detalhe — `routes/web.php:116`
+- `GET /auditoria/export/csv` — export — `routes/web.php:117`
+- `GET /audit/data-audit` — auditoria de dados — `routes/web.php:170`
+- `POST /audit/run-data-audit` — executar — `routes/web.php:171`
+- `POST /audit/get-issues` — listar problemas — `routes/web.php:172`
+- `POST /audit/apply-fix` — corrigir — `routes/web.php:173`
+- `POST /audit/apply-bulk-fix` — corrigir em massa — `routes/web.php:174`
+- `GET /audit/available-audits` — disponíveis — `routes/web.php:177`
+- `GET /audit/dashboard` — painel — `routes/web.php:178`
+- `POST /audit/run-specific-audit` — executar específica — `routes/web.php:179`
+- `POST /audit/run-all-audits` — executar todas — `routes/web.php:180`
+-
+- Fechamento Mensal
+- `GET /financeiro/fechamento-mensal` — índice — `routes/web.php:125`
+- `GET /financeiro/fechamento-mensal/exportar/pdf` — export — `routes/web.php:126`
+- `GET /financeiro/fechamento-mensal/exportar` — export genérica — `routes/web.php:127`
+-
+- Gigs
+- `resource gigs` — CRUD — `routes/web.php:130`
+- `GET /gigs/{gig}/request-nf` — formulário NF — `routes/web.php:131`
+- `GET /gigs/{gig}/debug-financials` — debug financeiro — `routes/web.php:162`
+- Aninhadas (`prefix gigs/{gig}`):
+- `POST /gigs/{gig}/payments` — criar — `routes/web.php:137`
+- `GET /gigs/{gig}/payments/{payment}/edit` — editar — `routes/web.php:138`
+- `PUT /gigs/{gig}/payments/{payment}` — atualizar — `routes/web.php:139`
+- `DELETE /gigs/{gig}/payments/{payment}` — excluir — `routes/web.php:140`
+- `PATCH /gigs/{gig}/payments/{payment}/confirm` — confirmar — `routes/web.php:141`
+- `PATCH /gigs/{gig}/payments/{payment}/unconfirm` — desconfirmar — `routes/web.php:142`
+- `resource /gigs/{gig}/costs` — custos (sem index/show) — `routes/web.php:145`
+- `PATCH /gigs/{gig}/costs/{cost}/confirm|unconfirm|toggle-invoice` — `routes/web.php:146–148`
+- `GET /gigs/{gig}/costs-json` — listar JSON — `routes/web.php:149`
+- `POST /gigs/{gig}/settle-artist|settle-booker` — liquidar — `routes/web.php:152–153`
+- `PATCH /gigs/{gig}/unsettle-artist|unsettle-booker` — desfazer — `routes/web.php:154–155`
+-
+- Test Report
+- `GET /test-report` — índice — `routes/web.php:165`
+- `POST /test-report/run` — executar — `routes/web.php:166`
+- `GET /test-report/export` — export — `routes/web.php:167`
+-

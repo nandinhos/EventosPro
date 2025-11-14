@@ -1,0 +1,24 @@
+# SERENA MCP — Guia de Instalação e Integração
+-
+- Objetivo
+- Integrar SERENA MCP como provedor de contexto consolidado (somente leitura) para agentes de IA.
+-
+- Pré-requisitos
+- Docker (opcional), Node 18+ (se usar host JS), acesso a `docs/**` do projeto.
+-
+- Instalação (exemplo genérico)
+- Clonar/instalar SERENA MCP Host conforme documentação oficial.
+- Configurar provider `file-system` apontando para `docs/`.
+-
+- Configuração
+- Policies: somente leitura em produção; permitir atualização em dev controlada.
+- Índice semântico: cadastrar cabeçalhos e tags dos arquivos `AI_CONTEXT.md`, `TECHNICAL_OVERVIEW.md`, `ENDPOINTS.md`, `OPERATIONS.md`, `DATA_MODEL.md`, `CODE_STANDARDS.md`, `SOURCE_OF_TRUTH.md`.
+-
+- Integração com Agente
+- Atualizar `README_AGENTS.md` com comando de bootstrap do MCP e exemplos de queries.
+- Testes: consultar `[ROUTES]`, `[DOMAIN]`, `[OPS]` para verificar retorno e latência.
+-
+- Boas Práticas
+- Manter arquivos curtos e objetivos; evitar redundância; usar tags consistentes.
+- Revisar periodicamente referências quebradas e menções a arquivos inexistentes.
+-

@@ -1,0 +1,42 @@
+# Operação e Execução — EventosPro
+-
+- Desenvolvimento (Laravel Sail)
+- `./vendor/bin/sail up -d`
+- `./vendor/bin/sail artisan migrate --seed`
+- `./vendor/bin/sail npm install && ./vendor/bin/sail npm run dev`
+- Acessar a saúde: `GET /up`
+-
+- Desenvolvimento sem Sail (opcional)
+- `composer install && cp .env.example .env && php artisan key:generate`
+- `php artisan migrate`
+- `npm install && npm run dev`
+- `composer run dev` para orquestração (server, queue, logs, vite)
+-
+- Build de Assets
+- `npm run build` (ou `sail npm run build`)
+-
+- Deploy (VPS via Docker Compose)
+- Ajustar `.env` conforme `.env.vps.example`:
+- `FORWARD_APP_PORT`, `FORWARD_DB_PORT`, `FORWARD_REDIS_PORT`, `FORWARD_PHPMYADMIN_PORT`
+- `docker-compose up -d`
+- `php artisan key:generate` (uma vez)
+- `php artisan migrate --force`
+- `npm run build`
+-
+- Serviços e Portas (exemplo padrão)
+- App: `http://localhost:8001` (ou 8081 no README)
+- phpMyAdmin: `http://localhost:8801` (ou 8089 no README)
+-
+- Scripts
+- Composer `dev`: `php artisan serve`, `queue:listen`, `pail`, `npm run dev` via `concurrently`
+- NPM: `dev`, `build`
+-
+- Logs e Monitoramento
+- `config/logging.php` para canais; usar `stack` em produção
+- Streaming: `php artisan pail --timeout=0`
+- Debug (dev): `barryvdh/laravel-debugbar`
+-
+- Manutenção
+- Limpar caches: `php artisan config:clear && php artisan cache:clear && php artisan route:clear && php artisan view:clear`
+- Atualizações: `composer update`, `npm update`, `php artisan migrate`
+-

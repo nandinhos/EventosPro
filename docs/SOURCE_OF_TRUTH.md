@@ -1,0 +1,18 @@
+# Fonte da Verdade — EventosPro
+-
+- Dados
+- Modelos Eloquent em `app/Models/**` refletem o schema definido por `database/migrations/**`.
+- Seeders (`database/seeders/**`) estabelecem papéis/permissões e dados base.
+-
+- Regras de Negócio
+- Serviços em `app/Services/**` centralizam cálculos financeiros, projeções, relatórios e validações.
+- Exemplos: `GigFinancialCalculatorService.php`, `FinancialProjectionService.php`, `FinancialReportService.php`.
+-
+- Invariantes/Eventos
+- Observers em `app/Observers/**` reagem a mudanças e mantêm consistência (Gig, GigCost, Payment).
+- Policies em `app/Policies/**` garantem autorização correta por operação.
+-
+- Configuração
+- `.env` + `config/**` controlam drivers (db, cache, queue), canais de log e permissões.
+- `bootstrap/app.php` define rotas, middleware, exceções e health `/up`.
+-

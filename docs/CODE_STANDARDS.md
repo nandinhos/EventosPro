@@ -1,0 +1,31 @@
+# Padrões de Codificação — EventosPro
+-
+- Convenções gerais
+- PSR-12 com `Laravel Pint`; seguir nomes descritivos para classes/métodos; evitar lógica em views e rotas; preferir Services para regras de negócio.
+-
+- PHP/Laravel
+- Controllers finos: validação via `FormRequest`, delegar lógica para Services.
+- Models: `fillable`/`guarded`, `SoftDeletes`, `casts` e `scopes` para consultas reutilizáveis.
+- Policies: autorização por recurso; cobrir ações CRUD e operações sensíveis (liquidações, confirmações).
+- Observers: atualizar derivativos e índices quando `Gig`, `Payment`, `GigCost` mudarem.
+- Rotas: usar `Route::resource` e `Route::prefix()->name()`; nomear rotas descritivamente.
+-
+- Views/Frontend
+- Blade modular: layouts em `resources/views/layouts`, componentes em `resources/views/components`.
+- Tailwind utilitário com `@apply` moderado; componentes reutilizáveis em `reports/components/*`.
+- JS leve com `Alpine.js`; requisições via `axios`; feedback com `SweetAlert2`.
+-
+- Testes
+- `tests/Feature/**` para fluxos completos; `tests/Unit/**` para Services/Policies/Observers.
+- Factories e seeders para dados consistentes; fixtures mínimas.
+-
+- Qualidade
+- Rodar `phpstan` nível moderado; `pint` antes de commits; usar `EditorConfig` do projeto.
+-
+- Logging/Erros
+- Usar `Monolog` com `context`; nunca logar segredos; configurar níveis por ambiente em `config/logging.php`.
+-
+- Segurança
+- CSRF nativo; validar inputs via `FormRequest`; nunca confiar em dados de cliente.
+- Permissões com Spatie; revisar roles em `RolesAndPermissionsSeeder`.
+-

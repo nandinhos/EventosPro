@@ -1,0 +1,16 @@
+# Tarefas de Desenvolvimento — EventosPro
+-
+- Formato
+- Lista de tarefas de alto nível para guiar a refatoração.
+-
+- Tarefas Atuais
+- [ ] Ajustar `README.md` (remover referência a `deploy.sh` se ausente)
+- [ ] Criar migration para `jobs` e configurar filas em dev (ou `QUEUE_CONNECTION=sync`)
+- [ ] Consolidar backups e cópias em views/config (mover para `docs/LEGACY.md` ou remover)
+- [ ] Revisar `docs/*` consolidados e alinhar links internos
+- [ ] Mapear gaps de testes e criar casos para Services críticos
+-
+- Como usar
+- Manter lista atualizada; cada item deve ter um responsável, prazo e status. 
+- Atualizar este documento ao concluir ou adicionar novas tarefas.
+-

@@ -1,0 +1,26 @@
+# Contexto de IA — EventosPro
+-
+- Objetivo
+- Consolidar informações essenciais para agentes LLM com mínimo custo de tokens.
+-
+- Índice
+- [ARQUITETURA] → `docs/TECHNICAL_OVERVIEW.md`
+- [PADRÕES] → `docs/CODE_STANDARDS.md`
+- [FONTE] → `docs/SOURCE_OF_TRUTH.md`
+- [OPERAÇÃO] → `docs/OPERATIONS.md`
+- [ENDPOINTS] → `docs/ENDPOINTS.md`
+- [MODELO DE DADOS] → `docs/DATA_MODEL.md`
+-
+- Pontos Críticos
+- Entrypoints: `public/index.php`, `bootstrap/app.php`, `artisan`.
+- Rotas chave: `routes/web.php:46–181` com recursos e relatórios.
+- Serviços de domínio: `app/Services/**`.
+- Segurança: Breeze + Spatie Permission + Policies.
+- Logs/Health: `config/logging.php` e `/up`.
+-
+- Estrutura de Tags
+- [DOMAIN] Serviços e modelos centrais.
+- [ROUTES] Catálogo de endpoints e nomes.
+- [SECURITY] Autenticação, autorização e sessões.
+- [OPS] Execução, deploy e portas.
+-

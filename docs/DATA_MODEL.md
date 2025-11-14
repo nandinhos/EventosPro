@@ -1,0 +1,31 @@
+# Modelo de Dados — EventosPro
+-
+- Entidades Principais
+- Gig
+- Campos: `artist_id`, `booker_id`, `contract_number`, `contract_date`, `gig_date`, `location_event_details`, `cache_value`, `currency`, `exchange_rate`, `cache_value_brl`, `expenses_value_brl`, `agency_commission_*`, `booker_commission_*`, `liquid_commission_value`, `contract_status`, `payment_status`, `artist_payment_status`, `booker_payment_status`, `notes`, timestamps, soft deletes.
+- Relacionamentos: `belongsTo Artist`, `belongsTo Booker`, `hasMany Payments`, `hasMany GigCosts`, `hasOne Settlement`, `morphToMany Tags`.
+-
+- Payment
+- Campos: valores, status de confirmação, relação com `gig` e `user` confirmador.
+-
+- GigCost
+- Campos: valor, `cost_center_id`, flags de invoice, confirmação, relação com `gig`.
+-
+- Settlement
+- Registra liquidações para artista e booker por `gig`.
+-
+- Artist, Booker
+- Cadastros com atributos e configurações (ex.: comissões de booker).
+-
+- CostCenter
+- Categorias de custo; soft deletes; índices.
+-
+- Tag, Taggable
+- Relacionamento polimórfico para marcação de entidades.
+-
+- ActivityLog
+- Registro de atividades e auditoria.
+-
+- Índices e Performance
+- Índices em `gig_date`, `contract_status`, `payment_status`, `artist_payment_status`, `booker_payment_status` e colunas de busca frequente.
+-
