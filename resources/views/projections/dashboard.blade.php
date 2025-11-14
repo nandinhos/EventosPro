@@ -210,6 +210,105 @@
                     </div>
                 </section>
 
+                {{-- SEÇÃO 3.5: CUSTOS OPERACIONAIS SEGREGADOS (NOVO) --}}
+                @if(isset($operational_expenses_details) && $operational_expenses_details['expense_count'] > 0)
+                <section>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        Custos Operacionais Segregados ({{ $operational_expenses_details['expense_count'] }} itens)
+                    </h3>
+
+                    @php
+                        $totalGig = 0;
+                        $totalAgency = 0;
+                        foreach ($operational_expenses_details['by_category'] as $category) {
+                            foreach ($category['items'] as $item) {
+                                if (isset($item['cost_type'])) {
+                                    $costTypeValue = is_object($item['cost_type']) ? $item['cost_type']->value : $item['cost_type'];
+                                    if (str_contains(strtolower($costTypeValue), 'gig') || str_contains(strtolower($costTypeValue), 'operacional')) {
+                                        $totalGig += $item['amount_monthly'];
+                                    } else {
+                                        $totalAgency += $item['amount_monthly'];
+                                    }
+                                }
+                            }
+                        }
+                    @endphp
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        {{-- Total Custos Operacionais (GIG) --}}
+                        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-green-100 uppercase tracking-wide">Custos Operacionais (GIG)</p>
+                                    <p class="text-3xl font-bold mt-2">R$ {{ number_format($totalGig, 2, ',', '.') }}</p>
+                                    <p class="text-xs text-green-100 mt-1">Relacionados a eventos</p>
+                                </div>
+                                <div class="bg-white/20 rounded-full p-3">
+                                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
+                                        <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Total Custos Administrativos (AGENCY) --}}
+                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-blue-100 uppercase tracking-wide">Custos Administrativos (AGENCY)</p>
+                                    <p class="text-3xl font-bold mt-2">R$ {{ number_format($totalAgency, 2, ',', '.') }}</p>
+                                    <p class="text-xs text-blue-100 mt-1">Overhead fixo</p>
+                                </div>
+                                <div class="bg-white/20 rounded-full p-3">
+                                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm6 7a1 1 0 011 1v3a1 1 0 11-2 0v-3a1 1 0 011-1zm-3 3a1 1 0 100 2h.01a1 1 0 100-2H10zm-4 1a1 1 0 011-1h.01a1 1 0 110 2H7a1 1 0 01-1-1zm1-4a1 1 0 100 2h.01a1 1 0 100-2H7zm2 1a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1zm4-4a1 1 0 100 2h.01a1 1 0 100-2H13zM9 9a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1zM7 8a1 1 0 000 2h.01a1 1 0 000-2H7z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Total Geral --}}
+                        <div class="bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg shadow-lg p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-300 uppercase tracking-wide">Total Mensal</p>
+                                    <p class="text-3xl font-bold mt-2">R$ {{ number_format($operational_expenses_details['total_monthly'], 2, ',', '.') }}</p>
+                                    <p class="text-xs text-gray-300 mt-1">{{ $operational_expenses_details['expense_count'] }} custos ativos</p>
+                                </div>
+                                <div class="bg-white/20 rounded-full p-3">
+                                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Breakdown por Categoria --}}
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                        <h4 class="text-md font-semibold text-gray-900 dark:text-white mb-4">Breakdown por Centro de Custo</h4>
+                        <div class="space-y-3">
+                            @foreach($operational_expenses_details['by_category'] as $category)
+                                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded">
+                                    <div class="flex-1">
+                                        <p class="font-medium text-gray-900 dark:text-white">{{ $category['category'] }}</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ count($category['items']) }} item(ns)</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-lg font-semibold text-gray-900 dark:text-white">R$ {{ number_format($category['total'], 2, ',', '.') }}</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">mensal</p>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </section>
+                @endif
+
                 {{-- SEÇÃO 4: DETALHAMENTO (TABELAS EXPANSÍVEIS) --}}
                 <section>
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
