@@ -6,20 +6,34 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Facades\Storage;
 
 class TestReportController extends Controller
 {
     public function index()
     {
         try {
-            $testResults = $this->getTestResults();
-            $coverageData = $this->getCoverageData();
+            $cached = $this->readCachedReport();
+            $testResults = $cached['test_results'] ?? [
+                'summary' => [
+                    'total' => 0,
+                    'passed' => 0,
+                    'failed' => 0,
+                    'skipped' => 0,
+                    'duration' => 0,
+                ],
+            ];
+            $coverageData = $cached['coverage_data'] ?? [
+                'overall_percentage' => 0,
+                'lines_covered' => 0,
+                'lines_total' => 0,
+                'files' => [],
+            ];
 
             return view('test-report.index', compact('testResults', 'coverageData'));
         } catch (Exception $e) {
             Log::error('Erro ao carregar relatório de testes', ['error' => $e->getMessage()]);
 
-            // Dados padrão em caso de erro
             $testResults = [
                 'summary' => [
                     'total' => 0,
@@ -49,15 +63,32 @@ class TestReportController extends Controller
         // Log::info('[DEBUG] Configuração de cobertura', ['withCoverage' => $withCoverage]);
 
         try {
-            $command = $withCoverage ?
-                base_path('vendor/bin/phpunit').' --coverage-text' :
-                base_path('vendor/bin/phpunit');
+            if ($withCoverage && ! (extension_loaded('xdebug') || extension_loaded('pcov'))) {
+                $withCoverage = false;
+            }
+
+            $env = [
+                'APP_ENV' => 'testing',
+                'APP_DEBUG' => 'true',
+                'DB_CONNECTION' => env('DB_CONNECTION', 'mysql'),
+                'DB_HOST' => env('DB_HOST', 'mysql'),
+                'DB_PORT' => env('DB_PORT', '3306'),
+                'DB_DATABASE' => env('DB_DATABASE', 'eventospro_testing'),
+                'DB_USERNAME' => env('DB_USERNAME', 'root'),
+                'DB_PASSWORD' => env('DB_PASSWORD', ''),
+                'CACHE_STORE' => 'array',
+                'SESSION_DRIVER' => 'array',
+                'QUEUE_CONNECTION' => 'sync',
+                'EXTERNAL_APIS_ENABLED' => 'false',
+            ];
+
+            $args = $withCoverage ? ['vendor/bin/phpunit', '--coverage-text', '-c', 'phpunit.xml'] : ['vendor/bin/phpunit', '-c', 'phpunit.xml'];
 
             // Log::info('[DEBUG] Comando a ser executado', ['command' => $command]);
             // Log::info('[DEBUG] Diretório base', ['base_path' => base_path()]);
             // Log::info('[DEBUG] Caminho do phpunit', ['phpunit_path' => base_path('vendor/bin/phpunit')]);
 
-            $result = Process::path(base_path())->run($command);
+            $result = Process::env($env)->path(base_path())->run($args);
 
             // Log::info('[DEBUG] Saída do comando', ['output' => $result->output()]);
             // Log::info('[DEBUG] Erro do comando', ['error' => $result->errorOutput()]);
@@ -68,6 +99,27 @@ class TestReportController extends Controller
                 'error' => $result->errorOutput(),
                 'exit_code' => $result->exitCode(),
             ];
+
+            if ($result->successful()) {
+                $summary = $this->parseTestSummary($result->output());
+                $coverage = $withCoverage ? $this->parseCoverage($result->output()) : [
+                    'overall_percentage' => 0,
+                    'lines_covered' => 0,
+                    'lines_total' => 0,
+                    'files' => [],
+                ];
+
+                $data = [
+                    'generated_at' => now()->toISOString(),
+                    'test_results' => [
+                        'tests' => [],
+                        'summary' => $summary,
+                    ],
+                    'coverage_data' => $coverage,
+                ];
+
+                Storage::disk('local')->put('test-report.json', json_encode($data));
+            }
 
             // Log::info('[DEBUG] Resposta a ser retornada', $response);
 
@@ -219,6 +271,58 @@ class TestReportController extends Controller
                 ],
             ],
         ];
+    }
+
+    private function parseTestSummary(string $output): array
+    {
+        $summary = ['total' => 0, 'passed' => 0, 'failed' => 0, 'skipped' => 0, 'duration' => 0];
+        if (preg_match('/OK \((\d+) tests?, (\d+) assertions?\)/', $output, $m)) {
+            $summary['total'] = (int) $m[1];
+            $summary['passed'] = (int) $m[1];
+        } elseif (preg_match('/Tests: (\d+), Assertions: (\d+)/', $output, $m)) {
+            $summary['total'] = (int) $m[1];
+            $summary['passed'] = (int) $m[1];
+        } elseif (preg_match('/(\d+) passing/', $output, $m)) {
+            $summary['passed'] = (int) $m[1];
+            $summary['total'] = $summary['passed'];
+        }
+        if (preg_match('/(\d+) failing/', $output, $m)) {
+            $summary['failed'] = (int) $m[1];
+            $summary['total'] += $summary['failed'];
+        }
+        if (preg_match('/Time: ([\d\.]+)/', $output, $m)) {
+            $summary['duration'] = (float) $m[1];
+        }
+
+        return $summary;
+    }
+
+    private function parseCoverage(string $output): array
+    {
+        $overallPercentage = 0;
+        if (preg_match('/Lines:\s+(\d+\.\d+)%/', $output, $m)) {
+            $overallPercentage = (float) $m[1];
+        }
+
+        return [
+            'overall_percentage' => $overallPercentage,
+            'lines_covered' => 0,
+            'lines_total' => 0,
+            'files' => [],
+        ];
+    }
+
+    private function readCachedReport(): array
+    {
+        if (Storage::disk('local')->exists('test-report.json')) {
+            $raw = Storage::disk('local')->get('test-report.json');
+            $data = json_decode($raw, true);
+            if (is_array($data)) {
+                return $data;
+            }
+        }
+
+        return [];
     }
 
     public function export(Request $request)

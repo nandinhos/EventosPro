@@ -141,17 +141,17 @@ class ArtistSeeder extends Seeder
             ],
         ];
 
-        $existingArtists = Artist::pluck('name')->toArray();
-        $createdCount = 0;
-
+        $created = 0;
         foreach ($artists as $artistData) {
-            if (! in_array($artistData['name'], $existingArtists)) {
-                Artist::create($artistData);
-                $createdCount++;
-                $existingArtists[] = $artistData['name'];
+            $model = Artist::updateOrCreate(
+                ['name' => $artistData['name']],
+                ['contact_info' => $artistData['contact_info']]
+            );
+            if ($model->wasRecentlyCreated) {
+                $created++;
             }
         }
 
-        $this->command->info("$createdCount novos artistas de música eletrônica criados.");
+        $this->command->info("$created novos artistas de música eletrônica criados.");
     }
 }

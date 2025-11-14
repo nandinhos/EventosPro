@@ -11,14 +11,38 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Criar usuários padrão
-        User::firstOrCreate(
-            ['email' => 'admin@eventospro.com'],
-            ['name' => 'Admin EventosPro', 'password' => Hash::make('password')]
-        );
-        User::firstOrCreate(
-            ['email' => 'nandinhos@gmail.com'],
-            ['name' => 'Nando DEV', 'password' => Hash::make('123456789')]
-        );
+        $admin = User::withTrashed()->where('email', 'admin@eventospro.com')->first();
+        if ($admin) {
+            if ($admin->trashed()) {
+                $admin->restore();
+            }
+            $admin->forceFill([
+                'name' => 'Admin EventosPro',
+                'password' => Hash::make('password'),
+            ])->save();
+        } else {
+            User::create([
+                'email' => 'admin@eventospro.com',
+                'name' => 'Admin EventosPro',
+                'password' => Hash::make('password'),
+            ]);
+        }
+        $nando = User::withTrashed()->where('email', 'nandinhos@gmail.com')->first();
+        if ($nando) {
+            if ($nando->trashed()) {
+                $nando->restore();
+            }
+            $nando->forceFill([
+                'name' => 'Nando DEV',
+                'password' => Hash::make('123456789'),
+            ])->save();
+        } else {
+            User::create([
+                'email' => 'nandinhos@gmail.com',
+                'name' => 'Nando DEV',
+                'password' => Hash::make('123456789'),
+            ]);
+        }
 
         $this->call([
             // Seeders de dados básicos (executar primeiro)

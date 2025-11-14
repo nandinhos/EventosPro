@@ -153,7 +153,7 @@
                     <div>
                         <p class="text-sm font-medium text-gray-600">Taxa de Sucesso</p>
                         <p class="text-2xl font-bold text-green-600">
-                            {{ number_format((($testResults['summary']['passed'] ?? 65) / ($testResults['summary']['total'] ?? 67)) * 100, 1) }}%
+                            {{ number_format((($testResults['summary']['total'] ?? 0) > 0 ? (($testResults['summary']['passed'] ?? 0) / ($testResults['summary']['total'] ?? 0)) * 100 : 0), 1) }}%
                         </p>
                     </div>
                     <div class="p-3 bg-green-100 rounded-full">
@@ -290,14 +290,14 @@
             
             showNotification('Iniciando Testes', 'Os testes estão sendo executados...', 'info');
             
-            fetch('{{ route("test-report.run-tests") }}', {
+            fetch('{{ route("test-report.run") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
                 body: JSON.stringify({
-                    with_coverage: true
+                    coverage: true
                 })
             })
             .then(response => {
@@ -330,7 +330,8 @@
 
         // Gráfico de distribuição dos testes
         const testsCtx = document.getElementById('testsChart').getContext('2d');
-        new Chart(testsCtx, {
+        if (window.testsChart && typeof window.testsChart.destroy === 'function') { window.testsChart.destroy() }
+        window.testsChart = new Chart(testsCtx, {
             type: 'doughnut',
             data: {
                 labels: ['Passaram', 'Falharam', 'Ignorados'],
@@ -353,7 +354,8 @@
 
         // Gráfico de cobertura por arquivo
         const coverageCtx = document.getElementById('coverageChart').getContext('2d');
-        new Chart(coverageCtx, {
+        if (window.coverageChart && typeof window.coverageChart.destroy === 'function') { window.coverageChart.destroy() }
+        window.coverageChart = new Chart(coverageCtx, {
             type: 'bar',
             data: {
                 labels: coverageFiles.map(file => file.name),

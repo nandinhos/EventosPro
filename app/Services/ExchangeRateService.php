@@ -56,8 +56,12 @@ class ExchangeRateService
             }
         }
 
-        // Tenta obter da API externa
-        $apiRate = $this->fetchFromExternalAPI($currencyCode, $date);
+        // Em testes/dev, evitar chamadas externas
+        $externalEnabled = (bool) (env('EXTERNAL_APIS_ENABLED', false));
+        $apiRate = null;
+        if ($externalEnabled) {
+            $apiRate = $this->fetchFromExternalAPI($currencyCode, $date);
+        }
         if ($apiRate !== null) {
             // Salva no cache
             if ($useCache) {
