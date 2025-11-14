@@ -125,8 +125,10 @@ class DreProjectionService
                 return $metrics;
             });
 
-            // Busca Custo Fixo Médio (CFM) do mês
-            $cfm = $this->getFixedCostsForMonth($yearMonth);
+            // Busca Custos Fixos do mês (segregados)
+            $custoOperacional = $this->getOperationalCostsForMonth($yearMonth);
+            $custoAdministrativo = $this->getAdministrativeCostsForMonth($yearMonth);
+            $cfm = $custoOperacional + $custoAdministrativo;
 
             // Resultado Operacional = Total RLRA - CFM
             $resultadoOperacional = $totalRlra - $cfm;
@@ -139,6 +141,8 @@ class DreProjectionService
                 'total_receita_bruta_agencia' => $totalRba,
                 'total_custo_booker' => $totalCbk,
                 'total_receita_liquida_real_agencia' => $totalRlra,
+                'custo_operacional' => $custoOperacional,
+                'custo_administrativo' => $custoAdministrativo,
                 'custo_fixo_medio' => $cfm,
                 'resultado_operacional' => $resultadoOperacional,
                 'margin_percentage' => $totalCl > 0 ? ($totalRlra / $totalCl) * 100 : 0,
@@ -160,6 +164,8 @@ class DreProjectionService
         $totalRba = $monthlyDre->sum('total_receita_bruta_agencia');
         $totalCbk = $monthlyDre->sum('total_custo_booker');
         $totalCl = $monthlyDre->sum('total_cachee_liquido');
+        $totalCustoOperacional = $monthlyDre->sum('custo_operacional');
+        $totalCustoAdministrativo = $monthlyDre->sum('custo_administrativo');
         $totalCfm = $monthlyDre->sum('custo_fixo_medio');
         $totalEventCount = $monthlyDre->sum('event_count');
         $resultadoOperacionalTotal = $totalRlra - $totalCfm;
@@ -176,6 +182,8 @@ class DreProjectionService
                 'total_receita_bruta_agencia' => $totalRba,
                 'total_custo_booker' => $totalCbk,
                 'total_receita_liquida_real_agencia' => $totalRlra,
+                'total_custo_operacional' => $totalCustoOperacional,
+                'total_custo_administrativo' => $totalCustoAdministrativo,
                 'total_custo_fixo_medio' => $totalCfm,
                 'resultado_operacional' => $resultadoOperacionalTotal,
                 'margin_percentage' => $totalCl > 0 ? ($totalRlra / $totalCl) * 100 : 0,
@@ -188,15 +196,42 @@ class DreProjectionService
      * Obtém Custo Fixo Médio (CFM) de um mês específico.
      *
      * @param  string  $yearMonth  Formato: 'Y-m' (ex: '2025-10')
+     * @param  string|null  $costType  Filtro por tipo: 'GIG' ou 'AGENCY' (null = todos)
      * @return float CFM em BRL
      */
-    protected function getFixedCostsForMonth(string $yearMonth): float
+    protected function getFixedCostsForMonth(string $yearMonth, ?string $costType = null): float
     {
-        $total = AgencyFixedCost::active()
-            ->forMonth($yearMonth)
-            ->sum('monthly_value');
+        $query = AgencyFixedCost::active()->forMonth($yearMonth);
+
+        if ($costType !== null) {
+            $query->where('cost_type', $costType);
+        }
+
+        $total = $query->sum('monthly_value');
 
         return (float) $total;
+    }
+
+    /**
+     * Obtém Custos Operacionais (GIG) de um mês específico.
+     *
+     * @param  string  $yearMonth  Formato: 'Y-m'
+     * @return float Total em BRL
+     */
+    protected function getOperationalCostsForMonth(string $yearMonth): float
+    {
+        return $this->getFixedCostsForMonth($yearMonth, 'GIG');
+    }
+
+    /**
+     * Obtém Custos Administrativos (AGENCY) de um mês específico.
+     *
+     * @param  string  $yearMonth  Formato: 'Y-m'
+     * @return float Total em BRL
+     */
+    protected function getAdministrativeCostsForMonth(string $yearMonth): float
+    {
+        return $this->getFixedCostsForMonth($yearMonth, 'AGENCY');
     }
 
     /**

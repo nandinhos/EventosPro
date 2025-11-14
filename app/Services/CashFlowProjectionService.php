@@ -154,8 +154,58 @@ class CashFlowProjectionService
     }
 
     /**
+     * Calcula CUSTOS OPERACIONAIS DA AGÊNCIA por mês.
+     * Base: due_date (Regime de Caixa)
+     *
+     * @return Collection Custos operacionais agrupados por mês
+     */
+    public function calculateMonthlyAgencyCosts(): Collection
+    {
+        $costs = \App\Models\AgencyFixedCost::query()
+            ->where('is_active', true)
+            ->whereBetween('due_date', [$this->startDate, $this->endDate])
+            ->with('costCenter')
+            ->orderBy('due_date')
+            ->get();
+
+        return $costs->groupBy(function ($cost) {
+            return $cost->due_date->format('Y-m');
+        })->map(function ($costsInMonth, $yearMonth) {
+            $totalOperational = 0;
+            $totalAdministrative = 0;
+
+            $costDetails = $costsInMonth->map(function ($cost) use (&$totalOperational, &$totalAdministrative) {
+                if ($cost->cost_type === 'GIG') {
+                    $totalOperational += $cost->monthly_value;
+                } else {
+                    $totalAdministrative += $cost->monthly_value;
+                }
+
+                return [
+                    'cost_id' => $cost->id,
+                    'description' => $cost->description,
+                    'cost_center' => $cost->costCenter->name ?? 'N/A',
+                    'due_date' => $cost->due_date->isoFormat('L'),
+                    'monthly_value' => $cost->monthly_value,
+                    'cost_type' => $cost->cost_type,
+                ];
+            });
+
+            return [
+                'year_month' => $yearMonth,
+                'month_name' => Carbon::createFromFormat('Y-m', $yearMonth)->locale('pt_BR')->isoFormat('MMMM/YYYY'),
+                'total_operational_costs' => $totalOperational,
+                'total_administrative_costs' => $totalAdministrative,
+                'total_agency_costs' => $totalOperational + $totalAdministrative,
+                'cost_count' => $costsInMonth->count(),
+                'costs' => $costDetails->values(),
+            ];
+        })->sortKeys();
+    }
+
+    /**
      * Calcula Fluxo de Caixa consolidado por mês.
-     * Fluxo = Entradas - Saídas
+     * Fluxo = Entradas - Saídas (Gigs + Custos Operacionais)
      *
      * @return Collection Fluxo de caixa mensal
      */
@@ -163,30 +213,45 @@ class CashFlowProjectionService
     {
         $inflows = $this->calculateMonthlyInflows();
         $outflows = $this->calculateMonthlyOutflows();
+        $agencyCosts = $this->calculateMonthlyAgencyCosts();
 
-        // Mescla inflows e outflows por mês
-        $allMonths = $inflows->keys()->merge($outflows->keys())->unique()->sort();
+        // Mescla inflows, outflows e agency costs por mês
+        $allMonths = $inflows->keys()
+            ->merge($outflows->keys())
+            ->merge($agencyCosts->keys())
+            ->unique()
+            ->sort();
 
-        return $allMonths->map(function ($yearMonth) use ($inflows, $outflows) {
+        return $allMonths->map(function ($yearMonth) use ($inflows, $outflows, $agencyCosts) {
             $inflowData = $inflows->get($yearMonth, ['total_inflow' => 0]);
             $outflowData = $outflows->get($yearMonth, [
                 'total_artist_payout' => 0,
                 'total_booker_commission' => 0,
                 'total_outflow' => 0,
             ]);
+            $agencyCostData = $agencyCosts->get($yearMonth, [
+                'total_operational_costs' => 0,
+                'total_administrative_costs' => 0,
+                'total_agency_costs' => 0,
+            ]);
 
             $totalInflow = $inflowData['total_inflow'] ?? 0;
-            $totalOutflow = $outflowData['total_outflow'] ?? 0;
+            $totalGigOutflow = $outflowData['total_outflow'] ?? 0;
+            $totalAgencyCosts = $agencyCostData['total_agency_costs'] ?? 0;
+            $totalOutflow = $totalGigOutflow + $totalAgencyCosts;
             $netCashFlow = $totalInflow - $totalOutflow;
 
             return [
                 'year_month' => $yearMonth,
                 'month_name' => Carbon::createFromFormat('Y-m', $yearMonth)->locale('pt_BR')->isoFormat('MMMM/YYYY'),
                 'total_inflow' => $totalInflow,
+                'total_gig_outflow' => $totalGigOutflow,
+                'total_agency_costs' => $totalAgencyCosts,
                 'total_outflow' => $totalOutflow,
                 'net_cash_flow' => $netCashFlow,
                 'inflow_details' => $inflowData,
                 'outflow_details' => $outflowData,
+                'agency_cost_details' => $agencyCostData,
             ];
         })->values();
     }
@@ -517,7 +582,8 @@ class CashFlowProjectionService
                 'id' => $cost->id,
                 'description' => $cost->description,
                 'amount_monthly' => $cost->monthly_value,
-                'payment_day' => $cost->payment_day ?? null,
+                'due_date' => $cost->due_date?->format('Y-m-d'),
+                'cost_type' => $cost->cost_type,
             ];
 
             $expensesByCategory[$categoryName]['total'] += $cost->monthly_value;

@@ -181,6 +181,31 @@ Os custos operacionais (agency_fixed_costs) estão sendo **salvos no banco** mas
 
 ### 🔍 Investigação Inicial
 
+- [x] **Task 9**: Mapear todos os locais onde despesas/custos são calculados
+  - Status: COMPLETO
+  - Data: 2025-11-14
+
+  **Achados Críticos**:
+
+  1. **DreProjectionService::getFixedCostsForMonth()** (linha 193)
+     - ✅ Já usa AgencyFixedCost
+     - ✅ Usa `forMonth($yearMonth)` que filtra por `reference_month` (competência) - CORRETO para DRE
+     - ❌ NÃO diferencia custos GIG vs AGENCY
+     - **Solução**: Adicionar parâmetro opcional `$costType = null` para permitir filtro
+
+  2. **CashFlowProjectionService::calculateProjectedExpenses()** (linha 494)
+     - ✅ Já usa AgencyFixedCost
+     - ❌ NÃO usa `due_date` para projeção (deveria usar regime de caixa!)
+     - ❌ BUG: Linha 520 tenta usar `$cost->payment_day` que **NÃO EXISTE**
+     - ❌ Calcula apenas `$totalMonthly * $periodMonths` sem considerar QUANDO pagamentos ocorrem
+     - **Solução**: Refatorar para usar `due_date` e calcular fluxo por data de vencimento
+
+  3. **Campos verificados na tabela**:
+     - ✅ `due_date` existe e está funcional
+     - ✅ `cost_type` existe e está funcional
+     - ✅ `reference_month` existe (competência)
+     - ❌ `payment_day` NÃO EXISTE (código obsoleto)
+
 - [ ] **Task 9**: Mapear todos os locais onde despesas/custos são calculados
   - [ ] Grep por "monthly_value" em Services
   - [ ] Grep por "expense" em Services
