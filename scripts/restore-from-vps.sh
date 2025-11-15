@@ -107,7 +107,7 @@ echo ""
 echo -e "${YELLOW}💾 Criando backup do banco local atual...${NC}"
 
 SAFETY_BACKUP="${BACKUP_DIR}/pre-restore-local-$(date +%Y%m%d-%H%M%S).sql.gz"
-./vendor/bin/sail exec mysql mysqldump \
+../vendor/bin/sail exec mysql mysqldump \
     -u sail \
     -ppassword \
     --single-transaction \
@@ -162,10 +162,10 @@ echo -e "${BLUE}🔄 Restaurando banco de dados...${NC}"
 echo -e "${YELLOW}⏳ Isso pode levar alguns minutos...${NC}"
 
 # Criar database se não existir
-./vendor/bin/sail exec mysql mysql -uroot -e "CREATE DATABASE IF NOT EXISTS eventospro CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+../vendor/bin/sail exec mysql mysql -uroot -e "CREATE DATABASE IF NOT EXISTS eventospro CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 # Restaurar backup
-./vendor/bin/sail mysql eventospro < /tmp/restore.sql
+../vendor/bin/sail mysql eventospro < /tmp/restore.sql
 echo -e "${GREEN}✅ Banco restaurado${NC}"
 
 # Limpar temporários
@@ -182,22 +182,22 @@ echo ""
 
 # Limpar caches
 echo -e "${BLUE}🧹 Limpando caches do Laravel...${NC}"
-./vendor/bin/sail artisan cache:clear
-./vendor/bin/sail artisan config:clear
-./vendor/bin/sail artisan view:clear
+../vendor/bin/sail artisan cache:clear
+../vendor/bin/sail artisan config:clear
+../vendor/bin/sail artisan view:clear
 echo -e "${GREEN}✅ Caches limpos${NC}"
 
 # Verificar migrations pendentes
 echo ""
 echo -e "${BLUE}🔍 Verificando migrations pendentes...${NC}"
-PENDING=$(./vendor/bin/sail artisan migrate:status 2>/dev/null | grep -c "Pending" || echo "0")
+PENDING=$(../vendor/bin/sail artisan migrate:status 2>/dev/null | grep -c "Pending" || echo "0")
 
 if [ "$PENDING" != "0" ]; then
     echo -e "${YELLOW}⚠️  Há ${PENDING} migration(s) pendente(s)${NC}"
     read -p "Executar migrations agora? (s/N): " RUN_MIGRATIONS
 
     if [ "$RUN_MIGRATIONS" == "s" ] || [ "$RUN_MIGRATIONS" == "S" ]; then
-        ./vendor/bin/sail artisan migrate
+        ../vendor/bin/sail artisan migrate
         echo -e "${GREEN}✅ Migrations executadas${NC}"
     else
         echo -e "${YELLOW}⚠️  Execute depois: sail artisan migrate${NC}"

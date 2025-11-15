@@ -46,10 +46,10 @@ gunzip -c ${BACKUP_FILE} > /tmp/restore.sql
 echo "🔄 Restaurando banco de dados..."
 
 # Criar database se não existir
-./vendor/bin/sail exec mysql mysql -uroot -e "CREATE DATABASE IF NOT EXISTS eventospro CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+../vendor/bin/sail exec mysql mysql -uroot -e "CREATE DATABASE IF NOT EXISTS eventospro CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 # Restaurar backup
-./vendor/bin/sail mysql eventospro < /tmp/restore.sql
+../vendor/bin/sail mysql eventospro < /tmp/restore.sql
 
 echo "🧹 Limpando arquivos temporários..."
 rm /tmp/restore.sql
@@ -57,9 +57,9 @@ rm /tmp/restore.sql
 echo ""
 echo "✅ Banco de dados restaurado com sucesso!"
 echo "🔄 Limpando caches do Laravel..."
-./vendor/bin/sail artisan cache:clear
-./vendor/bin/sail artisan config:clear
-./vendor/bin/sail artisan view:clear
+../vendor/bin/sail artisan cache:clear
+../vendor/bin/sail artisan config:clear
+../vendor/bin/sail artisan view:clear
 
 echo ""
 echo "🎉 Restauração concluída!"

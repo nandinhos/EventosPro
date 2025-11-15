@@ -21,7 +21,7 @@ echo ""
 # Verificar se containers estão rodando
 if ! docker ps | grep -q eventospro-mysql-1; then
     echo "❌ Container MySQL não está rodando!"
-    echo "   Execute: ./vendor/bin/sail up -d"
+    echo "   Execute: ../vendor/bin/sail up -d"
     exit 1
 fi
 
@@ -34,14 +34,14 @@ echo "📋 Verificando migrations pendentes..."
 echo "======================================================================"
 echo ""
 
-PENDING_MIGRATIONS=$(./vendor/bin/sail artisan migrate:status | grep -c "Pending" || echo "0")
+PENDING_MIGRATIONS=$(../vendor/bin/sail artisan migrate:status | grep -c "Pending" || echo "0")
 
 if [ "$PENDING_MIGRATIONS" -eq "0" ]; then
     echo "ℹ️  Nenhuma migration pendente encontrada."
     echo ""
     echo "Opções:"
-    echo "  1. Se você criou uma migration, rode: ./vendor/bin/sail artisan migrate:refresh"
-    echo "  2. Se quer testar rollback/re-run: ./vendor/bin/sail artisan migrate:refresh"
+    echo "  1. Se você criou uma migration, rode: ../vendor/bin/sail artisan migrate:refresh"
+    echo "  2. Se quer testar rollback/re-run: ../vendor/bin/sail artisan migrate:refresh"
     echo "  3. Se está tudo OK: nada a fazer!"
     echo ""
     read -p "Deseja continuar mesmo assim? (s/N): " CONTINUE_ANYWAY
@@ -51,7 +51,7 @@ if [ "$PENDING_MIGRATIONS" -eq "0" ]; then
 else
     echo "✅ Encontradas $PENDING_MIGRATIONS migration(s) pendente(s)"
     echo ""
-    ./vendor/bin/sail artisan migrate:status
+    ../vendor/bin/sail artisan migrate:status
 fi
 
 echo ""
@@ -75,7 +75,7 @@ echo ""
 
 # Tentar rodar migrations
 MIGRATION_SUCCESS=true
-./vendor/bin/sail artisan migrate --force || MIGRATION_SUCCESS=false
+../vendor/bin/sail artisan migrate --force || MIGRATION_SUCCESS=false
 
 if [ "$MIGRATION_SUCCESS" = false ]; then
     echo ""
@@ -87,7 +87,7 @@ if [ "$MIGRATION_SUCCESS" = false ]; then
 
     # Restaurar backup automaticamente
     gunzip -c $BACKUP_FILE > /tmp/auto-restore.sql
-    ./vendor/bin/sail mysql laravel < /tmp/auto-restore.sql
+    ../vendor/bin/sail mysql laravel < /tmp/auto-restore.sql
     rm /tmp/auto-restore.sql
 
     echo ""
@@ -117,7 +117,7 @@ TEST_SUCCESS=true
 
 # Test 1: Tinker pode conectar ao DB
 echo -n "  📝 Testando conexão com banco... "
-if echo "DB::connection()->getPdo();" | ./vendor/bin/sail artisan tinker --execute="DB::connection()->getPdo();" > /dev/null 2>&1; then
+if echo "DB::connection()->getPdo();" | ../vendor/bin/sail artisan tinker --execute="DB::connection()->getPdo();" > /dev/null 2>&1; then
     echo "✅"
 else
     echo "❌"
@@ -126,7 +126,7 @@ fi
 
 # Test 2: Cache funciona
 echo -n "  💾 Testando cache... "
-if ./vendor/bin/sail artisan cache:clear > /dev/null 2>&1; then
+if ../vendor/bin/sail artisan cache:clear > /dev/null 2>&1; then
     echo "✅"
 else
     echo "❌"
@@ -135,7 +135,7 @@ fi
 
 # Test 3: Config funciona
 echo -n "  ⚙️  Testando config... "
-if ./vendor/bin/sail artisan config:clear > /dev/null 2>&1; then
+if ../vendor/bin/sail artisan config:clear > /dev/null 2>&1; then
     echo "✅"
 else
     echo "❌"
@@ -144,7 +144,7 @@ fi
 
 # Test 4: Migrate status funciona
 echo -n "  📊 Testando migrate status... "
-if ./vendor/bin/sail artisan migrate:status > /dev/null 2>&1; then
+if ../vendor/bin/sail artisan migrate:status > /dev/null 2>&1; then
     echo "✅"
 else
     echo "❌"
@@ -160,7 +160,7 @@ if [ "$TEST_SUCCESS" = false ]; then
     echo "🔄 Restaurando backup automaticamente..."
 
     gunzip -c $BACKUP_FILE > /tmp/auto-restore.sql
-    ./vendor/bin/sail mysql laravel < /tmp/auto-restore.sql
+    ../vendor/bin/sail mysql laravel < /tmp/auto-restore.sql
     rm /tmp/auto-restore.sql
 
     echo ""
@@ -187,7 +187,7 @@ echo ""
 # Mostrar tabelas criadas/modificadas
 echo "📊 Status atual das migrations:"
 echo ""
-./vendor/bin/sail artisan migrate:status | tail -10
+../vendor/bin/sail artisan migrate:status | tail -10
 
 echo ""
 echo "======================================================================"

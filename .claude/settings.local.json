@@ -25,7 +25,14 @@
       "Bash(/home/devuser/projects/EventosPro/scripts/check-health.sh:*)",
       "Bash(git -C /home/gacpac/projects/EventosPro log --format=\"%h %s\" -1)",
       "Bash(.env)",
-      "Bash(docker-compose run:*)"
+      "Bash(docker-compose run:*)",
+      "mcp__serena__list_dir",
+      "Bash(find:*)",
+      "mcp__serena__get_symbols_overview",
+      "mcp__serena__find_symbol",
+      "mcp__serena__write_memory",
+      "Bash(git checkout:*)",
+      "Bash(sail artisan test:*)"
     ],
     "deny": [],
     "ask": []

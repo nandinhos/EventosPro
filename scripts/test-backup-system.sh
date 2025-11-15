@@ -33,7 +33,7 @@ echo "======================================================================"
 # Verificar se containers estão rodando
 if ! docker ps | grep -q eventospro-mysql-1; then
     echo "❌ Container MySQL não está rodando!"
-    echo "   Execute: ./vendor/bin/sail up -d"
+    echo "   Execute: ../vendor/bin/sail up -d"
     exit 1
 fi
 
@@ -43,9 +43,9 @@ echo "✅ Container MySQL rodando"
 echo ""
 echo "📋 Contando registros nas principais tabelas..."
 
-USERS_COUNT=$(./vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
-GIGS_COUNT=$(./vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM gigs;" 2>/dev/null || echo "0")
-PAYMENTS_COUNT=$(./vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM payments;" 2>/dev/null || echo "0")
+USERS_COUNT=$(../vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
+GIGS_COUNT=$(../vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM gigs;" 2>/dev/null || echo "0")
+PAYMENTS_COUNT=$(../vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM payments;" 2>/dev/null || echo "0")
 
 echo "   Users: $USERS_COUNT"
 echo "   Gigs: $GIGS_COUNT"
@@ -54,7 +54,7 @@ echo "   Payments: $PAYMENTS_COUNT"
 if [ "$USERS_COUNT" -eq "0" ]; then
     echo ""
     echo "⚠️  Banco de dados vazio! Recomenda-se rodar seeders primeiro."
-    echo "   Execute: ./vendor/bin/sail artisan migrate:fresh --seed"
+    echo "   Execute: ../vendor/bin/sail artisan migrate:fresh --seed"
     read -p "Continuar mesmo assim? (s/N): " CONTINUE_EMPTY
     if [ "$CONTINUE_EMPTY" != "s" ] && [ "$CONTINUE_EMPTY" != "S" ]; then
         exit 0
@@ -121,7 +121,7 @@ echo "Descomprimindo backup..."
 gunzip -c $LATEST_BACKUP > /tmp/test-restore.sql
 
 echo "Restaurando banco de dados..."
-./vendor/bin/sail mysql laravel < /tmp/test-restore.sql
+../vendor/bin/sail mysql laravel < /tmp/test-restore.sql
 
 echo "Limpando arquivo temporário..."
 rm /tmp/test-restore.sql
@@ -136,9 +136,9 @@ echo "======================================================================"
 echo ""
 echo "📋 Contando registros após restauração..."
 
-USERS_COUNT_AFTER=$(./vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
-GIGS_COUNT_AFTER=$(./vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM gigs;" 2>/dev/null || echo "0")
-PAYMENTS_COUNT_AFTER=$(./vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM payments;" 2>/dev/null || echo "0")
+USERS_COUNT_AFTER=$(../vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
+GIGS_COUNT_AFTER=$(../vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM gigs;" 2>/dev/null || echo "0")
+PAYMENTS_COUNT_AFTER=$(../vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM payments;" 2>/dev/null || echo "0")
 
 echo "   Users: $USERS_COUNT_AFTER (antes: $USERS_COUNT)"
 echo "   Gigs: $GIGS_COUNT_AFTER (antes: $GIGS_COUNT)"

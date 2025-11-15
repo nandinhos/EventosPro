@@ -12,16 +12,16 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Verifica se o Sail está instalado
-if [ ! -f "./vendor/bin/sail" ]; then
+if [ ! -f "../vendor/bin/sail" ]; then
     echo -e "${RED}❌ Laravel Sail não encontrado!${NC}"
     echo "Execute: docker-compose run --rm laravel.test composer install"
     exit 1
 fi
 
 # Verifica se os containers estão rodando
-if ! ./vendor/bin/sail ps | grep -q "Up"; then
+if ! ../vendor/bin/sail ps | grep -q "Up"; then
     echo -e "${RED}❌ Containers do Sail não estão rodando!${NC}"
-    echo "Execute: ./vendor/bin/sail up -d"
+    echo "Execute: ../vendor/bin/sail up -d"
     exit 1
 fi
 
@@ -46,7 +46,7 @@ echo -e "${GREEN}👤 User: ${DB_USERNAME}${NC}"
 echo -e "${GREEN}🏠 Ambiente: DESENVOLVIMENTO (Sail)${NC}"
 
 # Executar mysqldump via Sail
-./vendor/bin/sail exec mysql mysqldump \
+../vendor/bin/sail exec mysql mysqldump \
     -u ${DB_USERNAME} \
     -p${DB_PASSWORD} \
     --single-transaction \

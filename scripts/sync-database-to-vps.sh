@@ -110,7 +110,7 @@ echo ""
 # Verificar se containers locais estão rodando
 if ! docker ps | grep -q eventospro-mysql-1; then
     echo "❌ Container MySQL local não está rodando!"
-    echo "   Execute: ./vendor/bin/sail up -d"
+    echo "   Execute: ../vendor/bin/sail up -d"
     exit 1
 fi
 
@@ -209,8 +209,8 @@ echo "======================================================================"
 echo ""
 
 # Contar registros no banco local
-LOCAL_USERS=$(./vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
-LOCAL_GIGS=$(./vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM gigs;" 2>/dev/null || echo "0")
+LOCAL_USERS=$(../vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
+LOCAL_GIGS=$(../vendor/bin/sail mysql laravel -sN -e "SELECT COUNT(*) FROM gigs;" 2>/dev/null || echo "0")
 
 # Contar registros no banco da VPS
 VPS_USERS=$(ssh -p $VPS_PORT $VPS_USER@$VPS_HOST "cd $VPS_PROJECT_PATH && ./vendor/bin/sail mysql laravel -sN -e 'SELECT COUNT(*) FROM users;'" 2>/dev/null || echo "0")
