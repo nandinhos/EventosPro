@@ -31,6 +31,14 @@ class CostCenter extends Model
     }
 
     /**
+     * Get all the agency fixed costs associated with this cost center.
+     */
+    public function agencyFixedCosts(): HasMany
+    {
+        return $this->hasMany(AgencyFixedCost::class);
+    }
+
+    /**
      * Scope a query to only include active cost centers.
      */
     public function scopeActive($query)

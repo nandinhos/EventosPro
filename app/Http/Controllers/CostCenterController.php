@@ -15,7 +15,7 @@ class CostCenterController extends Controller
     {
         $this->authorize('manage cost-centers');
 
-        $query = CostCenter::withCount('gigCosts');
+        $query = CostCenter::withCount(['gigCosts', 'agencyFixedCosts']);
 
         // Filter by search term
         if ($request->filled('search')) {
@@ -68,8 +68,10 @@ class CostCenterController extends Controller
             if ($request->has('restore_confirm') && $request->input('restore_confirm') == '1') {
                 $ghost->restore();
                 $ghost->update($data);
+
                 return redirect()->route('cost-centers.index')->with('success', 'Centro de custo restaurado com sucesso!');
             }
+
             return back()
                 ->with('restore_candidate', [
                     'id' => $ghost->id,
@@ -91,7 +93,7 @@ class CostCenterController extends Controller
     {
         $this->authorize('manage cost-centers');
 
-        $costCenter->loadCount('gigCosts');
+        $costCenter->loadCount(['gigCosts', 'agencyFixedCosts']);
 
         return view('cost-centers.edit', compact('costCenter'));
     }
@@ -113,8 +115,10 @@ class CostCenterController extends Controller
             if ($request->has('restore_confirm') && $request->input('restore_confirm') == '1') {
                 $ghost->restore();
                 $ghost->update($data);
+
                 return redirect()->route('cost-centers.index')->with('success', 'Centro de custo restaurado com sucesso!');
             }
+
             return back()
                 ->with('restore_candidate', [
                     'id' => $ghost->id,
@@ -137,8 +141,21 @@ class CostCenterController extends Controller
         $this->authorize('manage cost-centers');
 
         // Check if cost center has associated costs
-        if ($costCenter->gigCosts()->count() > 0) {
-            return redirect()->route('cost-centers.index')->with('error', 'Não é possível excluir este centro de custo pois existem '.$costCenter->gigCosts()->count().' despesas associadas a ele.');
+        $gigCostsCount = $costCenter->gigCosts()->count();
+        $agencyCostsCount = $costCenter->agencyFixedCosts()->count();
+        $totalCosts = $gigCostsCount + $agencyCostsCount;
+
+        if ($totalCosts > 0) {
+            $message = 'Não é possível excluir este centro de custo pois existem despesas associadas: ';
+            $details = [];
+            if ($gigCostsCount > 0) {
+                $details[] = "{$gigCostsCount} custos de gigs";
+            }
+            if ($agencyCostsCount > 0) {
+                $details[] = "{$agencyCostsCount} custos operacionais";
+            }
+
+            return redirect()->route('cost-centers.index')->with('error', $message.implode(' e ', $details).'.');
         }
 
         $costCenter->delete();
@@ -157,7 +174,7 @@ class CostCenterController extends Controller
             'description' => 'nullable|string',
             'is_active' => 'nullable|boolean',
             'use_custom_color' => 'nullable|boolean',
-            'color' => ['nullable','regex:/^#[0-9A-Fa-f]{6}$/'],
+            'color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ]);
 
         $ghost = CostCenter::onlyTrashed()->findOrFail($ghostId);

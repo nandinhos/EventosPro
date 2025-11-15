@@ -438,6 +438,101 @@ Durante validação de testes, foram identificados e corrigidos 2 bugs críticos
 
 ---
 
+## 🚨 BUG CRÍTICO: Contador "Custos" em Centros de Custo (2025-11-15)
+
+### 📋 Problema Identificado pelo Usuário
+
+Na tabela de CRUD do menu "Centros de Custo" (`/cost-centers`), a coluna "Custos" **NÃO está contabilizando AgencyFixedCosts** - mostra apenas GigCosts.
+
+**Impacto**: Custos operacionais criados via `/agency-costs` são invisíveis na interface de Centros de Custo.
+
+### 🔍 Root Cause Analysis (Investigação Completa)
+
+#### ❌ Issue #1: Relacionamento Faltando (CRÍTICO)
+- **Arquivo**: `app/Models/CostCenter.php`
+- **Problema**: Modelo NÃO possui método `agencyFixedCosts()` relationship
+- **Consequência**: Impossível consultar `$costCenter->agencyFixedCosts`
+- **Prioridade**: ALTA
+
+#### ❌ Issue #2: Query Incompleta no Controller (CRÍTICO)
+- **Arquivo**: `app/Http/Controllers/CostCenterController.php:18`
+- **Código Atual**: `withCount('gigCosts')` (ignora AgencyFixedCosts)
+- **Problema**: AgencyFixedCosts invisíveis no contador
+- **Impacto**: Usuários não veem custos operacionais associados aos centros
+- **Prioridade**: ALTA
+
+#### ❌ Issue #3: View Incompleta (CRÍTICO)
+- **Arquivo**: `resources/views/cost-centers/index.blade.php:76-79`
+- **Código Atual**: `{{ $costCenter->gig_costs_count }}` (apenas GigCosts)
+- **Problema**: Coluna "Custos" mostra contador parcial
+- **Prioridade**: ALTA
+
+#### ❌ Issue #4: Validação de Deleção Insegura (CRÍTICO)
+- **Arquivo**: `app/Http/Controllers/CostCenterController.php:139-142`
+- **Problema**: Verifica apenas `gigCosts()`, não `agencyFixedCosts()`
+- **Impacto**: Permite deletar centros com AgencyFixedCosts, orfanando dados
+- **Consequência**: Violação de integridade referencial (mitigado por `nullOnDelete` no DB)
+- **Prioridade**: ALTA
+
+### 📝 Plano de Correção
+
+#### Task 1: Adicionar Relacionamento Faltando
+- **Arquivo**: `app/Models/CostCenter.php`
+- **Ação**: Adicionar método `agencyFixedCosts(): HasMany`
+- **Status**: 🔴 PENDENTE
+
+#### Task 2: Corrigir Contadores no Controller
+- **Arquivo**: `app/Http/Controllers/CostCenterController.php`
+- **Linha 18**: Mudar para `withCount(['gigCosts', 'agencyFixedCosts'])`
+- **Linha 94**: Mudar para `loadCount(['gigCosts', 'agencyFixedCosts'])`
+- **Status**: 🔴 PENDENTE
+
+#### Task 3: Atualizar Coluna "Custos" na Tabela
+- **Arquivo**: `resources/views/cost-centers/index.blade.php`
+- **Ação**: Mudar de 1 badge para 2 badges
+  - Badge azul: "G: X" (GigCosts)
+  - Badge roxo: "A: Y" (AgencyFixedCosts)
+  - Ambos com tooltips explicativos
+- **Status**: 🔴 PENDENTE
+
+#### Task 4: Corrigir Validação de Deleção
+- **Arquivo**: `app/Http/Controllers/CostCenterController.php:139-142`
+- **Ação**: Verificar AMBOS `gigCosts() + agencyFixedCosts()`
+- **Mensagem**: Detalhar quantos custos de cada tipo existem
+- **Status**: 🔴 PENDENTE
+
+#### Task 5: Testes Automatizados
+- Criar teste verificando relacionamento funciona
+- Testar contador com AgencyFixedCosts
+- Testar validação de deleção bloqueia corretamente
+- **Status**: 🔴 PENDENTE
+
+#### Task 6: Validação Manual
+1. Criar AgencyFixedCost associado a um cost_center_id
+2. Verificar coluna "Custos" mostra AMBOS contadores (G: X, A: Y)
+3. Tentar deletar centro de custo (deve bloquear com mensagem)
+- **Status**: 🔴 PENDENTE
+
+### 📊 Arquivos Afetados
+
+1. ✏️ `app/Models/CostCenter.php` (adicionar relationship)
+2. ✏️ `app/Http/Controllers/CostCenterController.php` (fix counts + deletion)
+3. ✏️ `resources/views/cost-centers/index.blade.php` (mostrar ambos contadores)
+
+### 🎯 Estimativas
+
+- **Tempo**: 30-45 minutos
+- **Risco**: BAIXO (mudanças aditivas, sem migração de dados)
+- **Prioridade**: ALTA (afeta usabilidade e integridade de dados)
+
+### 📅 Status Geral
+
+- **Identificado**: 2025-11-15
+- **Início**: 2025-11-15
+- **Status Atual**: 🔴 EM DESENVOLVIMENTO
+
+---
+
 ## 🚀 PRÓXIMAS TAREFAS DO PROJETO
 
 ### ✅ Tarefas de Otimização (docs/OPTIMIZATION_TASKS.md)
