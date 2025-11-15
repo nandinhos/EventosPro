@@ -57,9 +57,21 @@ class BookerFinancialsService
         $startDate = now()->subMonths(11)->startOfMonth();
         $endDate = now()->endOfMonth();
 
+        $driver = DB::connection()->getDriverName();
+
+        // Database-agnostic date extraction
+        if ($driver === 'sqlite') {
+            $yearExpression = "CAST(strftime('%Y', booker_commission_paid_at) AS INTEGER)";
+            $monthExpression = "CAST(strftime('%m', booker_commission_paid_at) AS INTEGER)";
+        } else {
+            // MySQL, PostgreSQL, etc.
+            $yearExpression = 'YEAR(booker_commission_paid_at)';
+            $monthExpression = 'MONTH(booker_commission_paid_at)';
+        }
+
         $commissionsByMonthData = Settlement::query()
             ->select(
-                DB::raw('YEAR(booker_commission_paid_at) as year, MONTH(booker_commission_paid_at) as month, SUM(booker_commission_value_paid) as total_commission')
+                DB::raw("{$yearExpression} as year, {$monthExpression} as month, SUM(booker_commission_value_paid) as total_commission")
             )
             ->whereHas('gig', fn ($q) => $q->where('booker_id', $booker->id))
             ->whereNotNull('booker_commission_paid_at')

@@ -22,6 +22,9 @@ class ExchangeRateServiceTest extends TestCase
         parent::setUp();
         $this->exchangeRateService = new ExchangeRateService;
 
+        // Enable external APIs for this test suite (tests API calls with HTTP mocks)
+        Config::set('app.external_apis_enabled', true);
+
         // Configurar taxas padrão para testes
         Config::set('exchange_rates.default_rates', [
             'USD' => 5.30,

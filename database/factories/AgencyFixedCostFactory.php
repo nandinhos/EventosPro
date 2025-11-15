@@ -18,7 +18,10 @@ class AgencyFixedCostFactory extends Factory
     public function definition(): array
     {
         $referenceMonth = fake()->dateTimeBetween('-6 months', '+6 months')->format('Y-m-01');
-        $dueDate = fake()->dateTimeBetween($referenceMonth, '+1 month')->format('Y-m-d');
+
+        // Calculate due_date as 5-25 days after reference_month start
+        $referenceMonthCarbon = \Carbon\Carbon::parse($referenceMonth);
+        $dueDate = $referenceMonthCarbon->copy()->addDays(fake()->numberBetween(5, 25))->format('Y-m-d');
 
         return [
             'description' => fake()->randomElement([

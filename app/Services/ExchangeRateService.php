@@ -57,7 +57,8 @@ class ExchangeRateService
         }
 
         // Em testes/dev, evitar chamadas externas
-        $externalEnabled = (bool) (env('EXTERNAL_APIS_ENABLED', false));
+        // Use config instead of env for testability
+        $externalEnabled = (bool) config('app.external_apis_enabled', env('EXTERNAL_APIS_ENABLED', false));
         $apiRate = null;
         if ($externalEnabled) {
             $apiRate = $this->fetchFromExternalAPI($currencyCode, $date);
