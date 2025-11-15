@@ -212,11 +212,7 @@ class GigController extends Controller
             ->paginate(10, ['*'], 'logs_page')
             ->withQueryString();
 
-        // $costCenters = CostCenter::orderBy('name')->get();
-        $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center) {
-            // A chave é o ID do centro, e o valor é o nome traduzido.
-            return [$center->id => __('cost_centers.'.$center->name)];
-        });
+        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
 
         return view('gigs.show', [
             'gig' => $gig,
@@ -234,9 +230,7 @@ class GigController extends Controller
         $bookersForSelect = $bookers->pluck('name', 'id');
         $bookersData = $bookers->keyBy('id')->toArray();
         $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type');
-        $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center) {
-            return [$center->id => __('cost_centers.'.$center->name)];
-        });
+        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
         $gig = new Gig; // Para o formulário
 
@@ -276,9 +270,7 @@ class GigController extends Controller
         $bookersData = $bookers->keyBy('id')->toArray();
         $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type');
         $selectedTags = $gig->tags()->pluck('id')->toArray();
-        $costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center) {
-            return [$center->id => __('cost_centers.'.$center->name)];
-        });
+        $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
 
         $gig->load('gigCosts');

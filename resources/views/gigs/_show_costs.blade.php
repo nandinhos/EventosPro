@@ -2,7 +2,7 @@
 
 <div x-data="costsManager(
         {{ $gig->id }},
-        {{ \Illuminate\Support\Js::from($costCenters->pluck('name', 'id')) }}
+        {{ \Illuminate\Support\Js::from($costCenters) }}
     )" 
      x-init="fetchCosts()"
      class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mt-6">
