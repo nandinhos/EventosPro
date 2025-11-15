@@ -445,21 +445,29 @@ Os custos operacionais (agency_fixed_costs) estão sendo **salvos no banco** mas
 
 ### 📝 Tarefas de Documentação (docs/TASKS.md)
 
-**Prioridade: BAIXA-MÉDIA**
+**Status: 80% CONCLUÍDO** ✅
 
-- [ ] **README.md**: Ajustar README e remover referências obsoletas
-  - Verificar referência a `deploy.sh` se ausente
+- [x] **README.md**: Ajustar README e remover referências obsoletas (COMPLETO 2025-11-15)
+  - ✅ Verificada referência a `deploy.sh` (arquivo existe e está correto)
+  - ✅ Todas as referências de documentação validadas
 
-- [ ] **Jobs Migration**: Criar migration para jobs table
-  - Configurar filas em dev ou usar `QUEUE_CONNECTION=sync`
+- [x] **Jobs Migration**: Criar migration para jobs table (COMPLETO 2025-11-15)
+  - ✅ Migration já existe e aplicada (0001_01_01_000002_create_jobs_table)
+  - ✅ Configurado para usar QUEUE_CONNECTION=sync em dev
 
-- [ ] **Consolidação**: Consolidar backups e cópias em views/config
-  - Mover para `docs/LEGACY.md` ou remover
+- [x] **Consolidação**: Consolidar backups e cópias em views/config (COMPLETO 2025-11-15)
+  - ✅ Arquivos datados movidos para `docs/archive/2025-10-optimization/`
+  - ✅ Documentação Gemini movida para `docs/archive/gemini/`
+  - ✅ LEGACY.md atualizado com índice de arquivos arquivados
 
-- [ ] **Revisar Docs**: Revisar `docs/*` consolidados e alinhar links internos
+- [x] **Revisar Docs**: Revisar `docs/*` consolidados e alinhar links internos (COMPLETO 2025-11-15)
+  - ✅ 11 arquivos obsoletos arquivados
+  - ✅ Estrutura de docs/* organizada
+  - ✅ LEGACY.md com referências ativas vs arquivadas
 
-- [ ] **Gaps de Testes**: Mapear gaps de testes e criar casos para Services críticos
+- [ ] **Gaps de Testes**: Mapear gaps de testes e criar casos para Services críticos (PENDENTE)
   - Foco: DreProjectionService, CashFlowProjectionService, GigFinancialCalculatorService
+  - Prioridade: BAIXA
 
 ### 🔍 Tarefas de Auditoria (docs/AUDIT_SYSTEM_EXPANSION.md)
 
@@ -491,6 +499,11 @@ Os custos operacionais (agency_fixed_costs) estão sendo **salvos no banco** mas
 - ✅ **Otimização: Performance** (OPcache + Bundle + Cache) - 100% (2025-11-15)
 - ✅ **Infraestrutura: Scripts de Backup** - 100% (2025-11-15)
 - ✅ **Documentação: Lessons Learned** - 100% (2025-11-15)
+- ✅ **Documentação: Reorganização** - 100% (2025-11-15)
+  - 11 arquivos obsoletos arquivados
+  - README.md validado
+  - Jobs migration verificada
+  - LEGACY.md atualizado
 - ✅ **Otimização: Redis Cache** - 100%
 - ✅ **Otimização: N+1 Queries** - 100%
 - ✅ **Otimização: Índices de Performance** - 100%
