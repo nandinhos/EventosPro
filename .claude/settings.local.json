@@ -32,7 +32,8 @@
       "mcp__serena__find_symbol",
       "mcp__serena__write_memory",
       "Bash(git checkout:*)",
-      "Bash(sail artisan test:*)"
+      "Bash(sail artisan test:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
