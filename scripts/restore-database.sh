@@ -63,3 +63,8 @@ echo "🔄 Limpando caches do Laravel..."
 
 echo ""
 echo "🎉 Restauração concluída!"
+echo ""
+echo -e "${YELLOW}⚠️  IMPORTANTE: Execute as migrations pendentes:${NC}"
+echo "   ../vendor/bin/sail artisan migrate"
+echo ""
+echo "   (Necessário quando o backup possui schema mais antigo)"
