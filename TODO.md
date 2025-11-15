@@ -554,6 +554,95 @@ Na tabela de CRUD do menu "Centros de Custo" (`/cost-centers`), a coluna "Custos
 
 ---
 
+## 🐛 BUG CRÍTICO: Exibição de Centros de Custo em Modais e Formulários (2025-11-15)
+
+### 📋 Problema Identificado pelo Usuário
+
+Durante testes manuais, foram encontrados **2 bugs críticos** relacionados à exibição de centros de custo:
+
+1. **Bug #1 - Modal Vazio**: Ao adicionar despesa em uma Gig (`/gigs/{id}`), o dropdown de centros de custo mostrava apenas "Selecione..." sem listar as opções
+2. **Bug #2 - Prefixo "cost_centers."**: Nos formulários de criar/editar Gig, os centros de custo apareciam como "cost_centers.Alimentação" em vez de apenas "Alimentação"
+
+### 🔍 Root Cause Analysis
+
+#### ❌ Bug #1: Double Pluck Causando Coleção Vazia
+- **Arquivo**: `resources/views/gigs/_show_costs.blade.php:5`
+- **Problema**: Chamada de `->pluck('name', 'id')` em coleção já mapeada
+- **Causa Raiz**: Controller já enviava `$costCenters` no formato `[id => name]`, segundo `pluck()` retornava coleção vazia
+- **Consequência**: Alpine.js recebia objeto vazio, dropdown sem opções
+
+#### ❌ Bug #2: Sistema de Tradução com Chaves Incompletas
+- **Arquivo**: `app/Http/Controllers/GigController.php` (métodos show, create, edit)
+- **Problema**: Lógica `__('cost_centers.'.$center->name)` falhava
+- **Causa Raiz**:
+  - Seeder cadastra nomes em português (ex: "Alimentação")
+  - Translation file `lang/pt_BR/cost_centers.php` usa chaves diferentes ou incompletas
+  - Laravel retorna chave completa quando tradução não encontrada
+- **Consequência**: UI mostra "cost_centers.Alimentação" em vez de "Alimentação"
+
+### ✅ Solução Implementada - COMPLETO (2025-11-15)
+
+#### Decisão Técnica: Remover Traduções (Opção B)
+- **Razão**: Aplicação é exclusivamente em português
+- **Vantagem**: Simplicidade, menor manutenção, zero overhead
+- **Alternativa Rejeitada**: Padronizar nomes inglês + traduções (complexo, desnecessário)
+
+#### Task 1: Fix Modal Vazio
+- **Arquivo**: `resources/views/gigs/_show_costs.blade.php`
+- **Mudança**: Linha 5 - Remover `.pluck('name', 'id')`
+- **Antes**: `{{ \Illuminate\Support\Js::from($costCenters->pluck('name', 'id')) }}`
+- **Depois**: `{{ \Illuminate\Support\Js::from($costCenters) }}`
+- **Status**: ✅ COMPLETO
+
+#### Task 2: Fix Prefixo "cost_centers."
+- **Arquivo**: `app/Http/Controllers/GigController.php` (3 locais)
+- **Métodos Afetados**: `show()`, `create()`, `edit()`
+- **Mudança**: Simplificar lógica de obtenção de cost centers
+- **Antes**:
+```php
+$costCenters = CostCenter::orderBy('name')->get()->mapWithKeys(function ($center) {
+    return [$center->id => __('cost_centers.'.$center->name)];
+});
+```
+- **Depois**:
+```php
+$costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
+```
+- **Status**: ✅ COMPLETO
+
+### 📊 Arquivos Modificados
+
+1. ✅ `resources/views/gigs/_show_costs.blade.php` (linha 5)
+2. ✅ `app/Http/Controllers/GigController.php` (3 métodos: show, create, edit)
+
+### ✅ Testes
+
+- **GigController Tests**: 21/21 PASSING
+- **Suite Geral**: 239 passed, 1 failed (pré-existente), 166 pending
+
+### 📝 Commit Criado
+
+- **Commit**: `a48590f` - fix: corrige exibição de centros de custo em modais e formulários
+  - Bug #1: Modal vazio (pluck duplicado removido)
+  - Bug #2: Prefixo "cost_centers." (tradução removida)
+  - Solução: Usar nomes em português diretamente do banco
+  - Testes: GigController 21/21 passando
+
+### 📅 Status
+
+- **Identificado**: 2025-11-15
+- **Início**: 2025-11-15
+- **Conclusão**: 2025-11-15
+- **Status Atual**: ✅ COMPLETO (aguardando validação manual do usuário)
+
+### 📋 Validação Manual Pendente
+
+1. ✅ Testar modal em `/gigs/{id}` - Verificar dropdown de centros de custo popula corretamente
+2. ✅ Testar formulário "+ Nova Gig" - Verificar centros aparecem sem prefixo
+3. ✅ Testar formulário "Editar Gig" - Verificar centros aparecem sem prefixo
+
+---
+
 ## 🚀 PRÓXIMAS TAREFAS DO PROJETO
 
 ### ✅ Tarefas de Otimização (docs/OPTIMIZATION_TASKS.md)
@@ -676,6 +765,21 @@ Na tabela de CRUD do menu "Centros de Custo" (`/cost-centers`), a coluna "Custos
 ## 📊 PROGRESSO GERAL DO PROJETO
 
 ### Concluído Recentemente
+- ✅ **Bug Fix: Centros de Custo em Modais/Formulários** - 100% (2025-11-15)
+  - 2 bugs críticos corrigidos (modal vazio + prefixo "cost_centers.")
+  - Simplificado sistema de tradução (usar português direto do banco)
+  - GigController 21/21 testes passando
+  - Commit: a48590f
+- ✅ **Bug Fix: Contador Cost Centers** - 100% (2025-11-15)
+  - Relationship agencyFixedCosts() adicionado ao model
+  - Contadores e validação de deleção corrigidos
+  - 6 novos testes criados (CostCenterTest)
+  - Commit: a19e380
+- ✅ **Fase 2: Agency Costs + Services** - 100% (2025-11-15)
+  - 13 novos testes (10 CashFlow + 3 Financial)
+  - 2 bugs corrigidos (dashboard + CashFlowService enum)
+  - Integração completa com DRE e Fluxo de Caixa
+  - Commit: fe79d4b
 - ✅ **Testes: DreProjectionService** - 100% (2025-11-15)
   - 13 testes criados (100% coverage dos métodos públicos)
   - 2 bugs críticos corrigidos (enum values + break even calculation)
