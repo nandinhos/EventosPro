@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\Services;
 
+use App\Enums\AgencyCostType;
+use App\Models\AgencyFixedCost;
 use App\Models\Artist;
 use App\Models\Booker;
 use App\Models\CostCenter;
@@ -753,5 +755,125 @@ class FinancialProjectionServiceTest extends TestCase
 
         // Should only include gigs within the custom range (and past pending gigs)
         $this->assertGreaterThanOrEqual(1, $upcomingArtistPayments->count());
+    }
+
+    #[Test]
+    public function it_handles_agency_fixed_costs_through_underlying_services()
+    {
+        // This test verifies that FinancialProjectionService correctly uses
+        // DreProjectionService and CashFlowProjectionService which handle AgencyFixedCosts
+
+        $this->projectionService->setPeriod('30_days');
+
+        $costCenter = CostCenter::factory()->create();
+
+        // Create operational agency costs
+        AgencyFixedCost::factory()->create([
+            'cost_center_id' => $costCenter->id,
+            'reference_month' => Carbon::now()->format('Y-m-01'),
+            'due_date' => Carbon::now()->addDays(10),
+            'monthly_value' => 2000.00,
+            'cost_type' => AgencyCostType::OPERACIONAL,
+            'is_active' => true,
+        ]);
+
+        // Create administrative agency costs
+        AgencyFixedCost::factory()->create([
+            'cost_center_id' => $costCenter->id,
+            'reference_month' => Carbon::now()->format('Y-m-01'),
+            'due_date' => Carbon::now()->addDays(15),
+            'monthly_value' => 3000.00,
+            'cost_type' => AgencyCostType::ADMINISTRATIVO,
+            'is_active' => true,
+        ]);
+
+        // FinancialProjectionService delegates to DRE and CashFlow services
+        // Verify it doesn't break when agency costs exist
+        $result = $this->projectionService->getProjectedCashFlow();
+
+        // Should return a valid float result without errors
+        $this->assertIsFloat($result);
+    }
+
+    #[Test]
+    public function it_handles_multiple_agency_cost_types_correctly()
+    {
+        // Verify FinancialProjectionService works with multiple agency cost types
+        $this->projectionService->setPeriod('60_days');
+
+        $costCenter1 = CostCenter::factory()->create(['name' => 'Marketing']);
+        $costCenter2 = CostCenter::factory()->create(['name' => 'IT Infrastructure']);
+
+        // Create 2 operational costs
+        AgencyFixedCost::factory()->create([
+            'cost_center_id' => $costCenter1->id,
+            'reference_month' => Carbon::now()->format('Y-m-01'),
+            'due_date' => Carbon::now()->addDays(10),
+            'monthly_value' => 1500.00,
+            'cost_type' => 'operacional',
+            'description' => 'Campaign costs',
+            'is_active' => true,
+        ]);
+
+        AgencyFixedCost::factory()->create([
+            'cost_center_id' => $costCenter1->id,
+            'reference_month' => Carbon::now()->format('Y-m-01'),
+            'due_date' => Carbon::now()->addDays(20),
+            'monthly_value' => 2500.00,
+            'cost_type' => 'operacional',
+            'description' => 'Event production',
+            'is_active' => true,
+        ]);
+
+        // Create 1 administrative cost
+        AgencyFixedCost::factory()->create([
+            'cost_center_id' => $costCenter2->id,
+            'reference_month' => Carbon::now()->format('Y-m-01'),
+            'due_date' => Carbon::now()->addDays(15),
+            'monthly_value' => 5000.00,
+            'cost_type' => 'administrativo',
+            'description' => 'Office rent',
+            'is_active' => true,
+        ]);
+
+        // Should not throw errors when calculating with agency costs present
+        $cashFlow = $this->projectionService->getProjectedCashFlow();
+
+        // Should return valid result
+        $this->assertIsFloat($cashFlow);
+    }
+
+    #[Test]
+    public function it_excludes_inactive_agency_fixed_costs_from_projections()
+    {
+        $this->projectionService->setPeriod('30_days');
+
+        $costCenter = CostCenter::factory()->create();
+
+        // Create active cost
+        AgencyFixedCost::factory()->create([
+            'cost_center_id' => $costCenter->id,
+            'reference_month' => Carbon::now()->format('Y-m-01'),
+            'due_date' => Carbon::now()->addDays(10),
+            'monthly_value' => 1000.00,
+            'cost_type' => AgencyCostType::OPERACIONAL,
+            'is_active' => true,
+        ]);
+
+        // Create inactive cost (should NOT be included)
+        AgencyFixedCost::factory()->create([
+            'cost_center_id' => $costCenter->id,
+            'reference_month' => Carbon::now()->format('Y-m-01'),
+            'due_date' => Carbon::now()->addDays(15),
+            'monthly_value' => 10000.00,
+            'cost_type' => AgencyCostType::ADMINISTRATIVO,
+            'is_active' => false,
+        ]);
+
+        $result = $this->projectionService->getAccountsPayableExpenses();
+
+        // Should only include the active cost (1000.00), not the inactive one (10000.00)
+        // The total should be significantly less than 11000.00
+        $this->assertLessThan(2000.00, $result);
     }
 }

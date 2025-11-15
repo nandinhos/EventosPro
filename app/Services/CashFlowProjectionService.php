@@ -175,7 +175,7 @@ class CashFlowProjectionService
             $totalAdministrative = 0;
 
             $costDetails = $costsInMonth->map(function ($cost) use (&$totalOperational, &$totalAdministrative) {
-                if ($cost->cost_type === 'GIG') {
+                if ($cost->cost_type === \App\Enums\AgencyCostType::OPERACIONAL) {
                     $totalOperational += $cost->monthly_value;
                 } else {
                     $totalAdministrative += $cost->monthly_value;

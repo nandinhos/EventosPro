@@ -227,7 +227,7 @@
                             foreach ($category['items'] as $item) {
                                 if (isset($item['cost_type'])) {
                                     $costTypeValue = is_object($item['cost_type']) ? $item['cost_type']->value : $item['cost_type'];
-                                    if (str_contains(strtolower($costTypeValue), 'gig') || str_contains(strtolower($costTypeValue), 'operacional')) {
+                                    if ($costTypeValue === 'operacional') {
                                         $totalGig += $item['amount_monthly'];
                                     } else {
                                         $totalAgency += $item['amount_monthly'];
