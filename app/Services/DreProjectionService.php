@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\AgencyCostType;
 use App\Models\AgencyFixedCost;
 use App\Models\Gig;
 use Carbon\Carbon;
@@ -213,25 +214,25 @@ class DreProjectionService
     }
 
     /**
-     * Obtém Custos Operacionais (GIG) de um mês específico.
+     * Obtém Custos Operacionais (operacional) de um mês específico.
      *
      * @param  string  $yearMonth  Formato: 'Y-m'
      * @return float Total em BRL
      */
     protected function getOperationalCostsForMonth(string $yearMonth): float
     {
-        return $this->getFixedCostsForMonth($yearMonth, 'GIG');
+        return $this->getFixedCostsForMonth($yearMonth, AgencyCostType::OPERACIONAL->value);
     }
 
     /**
-     * Obtém Custos Administrativos (AGENCY) de um mês específico.
+     * Obtém Custos Administrativos (administrativo) de um mês específico.
      *
      * @param  string  $yearMonth  Formato: 'Y-m'
      * @return float Total em BRL
      */
     protected function getAdministrativeCostsForMonth(string $yearMonth): float
     {
-        return $this->getFixedCostsForMonth($yearMonth, 'AGENCY');
+        return $this->getFixedCostsForMonth($yearMonth, AgencyCostType::ADMINISTRATIVO->value);
     }
 
     /**
@@ -264,19 +265,13 @@ class DreProjectionService
      */
     public function calculateBreakEvenPoint(): float
     {
-        // Calcula CFM médio mensal do período
-        $months = $this->startDate->diffInMonths($this->endDate) + 1;
+        // Conta meses únicos no período (ano-mês)
+        $monthlyDre = $this->calculateMonthlyDre();
+        $months = max(1, $monthlyDre->count());
 
-        $totalCfm = 0;
-        $currentMonth = $this->startDate->copy()->startOfMonth();
+        $totalCfm = $monthlyDre->sum('custo_fixo_medio');
 
-        for ($i = 0; $i < $months; $i++) {
-            $yearMonth = $currentMonth->format('Y-m');
-            $totalCfm += $this->getFixedCostsForMonth($yearMonth);
-            $currentMonth->addMonth();
-        }
-
-        return $totalCfm / max(1, $months);
+        return $totalCfm / $months;
     }
 
     /**
