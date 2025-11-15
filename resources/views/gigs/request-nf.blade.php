@@ -41,7 +41,7 @@
         <div class="pl-2 space-y-1">
             @forelse($gig->gigCosts->where('is_confirmed', true) as $cost)
                 <div class="flex justify-between text-[11px] sm:text-xs">
-                    <span class="text-gray-500 dark:text-gray-400">- {{ __('cost_centers.' . ($cost->costCenter->name ?? 'N/A')) }}: {{ $cost->description }}</span>
+                    <span class="text-gray-500 dark:text-gray-400">- {{ $cost->costCenter->name ?? 'N/A' }}: {{ $cost->description }}</span>
                             <span class="font-medium text-red-500 dark:text-red-400">R$ {{ number_format($cost->value, 2, ',', '.') }}</span>
                 </div>
             @empty
@@ -75,7 +75,7 @@
             <div class="pl-2 space-y-1">
                 @foreach($gig->gigCosts->where('is_confirmed', true)->where('is_invoice', true) as $cost)
                     <div class="flex justify-between text-[11px] sm:text-xs">
-                        <span class="text-gray-500 dark:text-gray-400">- {{ __('cost_centers.' . ($cost->costCenter->name ?? 'N/A')) }}: {{ $cost->description }}</span>
+                        <span class="text-gray-500 dark:text-gray-400">- {{ $cost->costCenter->name ?? 'N/A' }}: {{ $cost->description }}</span>
                                 <span class="font-medium text-green-600 dark:text-green-400">R$ {{ number_format($cost->value, 2, ',', '.') }}</span>
                     </div>
                 @endforeach

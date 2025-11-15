@@ -174,7 +174,7 @@ class FinancialProjectionService
 
                 $groupName = 'Sem Centro de Custo';
                 if ($firstCost && $firstCost->costCenter) {
-                    $groupName = __('cost_centers.'.$firstCost->costCenter->name);
+                    $groupName = $firstCost->costCenter->name;
                 }
 
                 $totalBrl = $group->sum('value_brl');

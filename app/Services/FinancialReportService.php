@@ -389,7 +389,7 @@ class FinancialReportService
             ->when(isset($this->filters['artist_id']), fn ($q) => $q->whereHas('gig', fn ($q) => $q->where('artist_id', $this->filters['artist_id'])))
             ->get()
             ->groupBy(function ($cost) {
-                return $cost->cost_center_id ? __('cost_centers.'.$cost->costCenter->name) : 'Sem Centro de Custo';
+                return $cost->cost_center_id ? $cost->costCenter->name : 'Sem Centro de Custo';
             });
 
         return $expenses->map(function ($group, $costCenterName) {
@@ -780,9 +780,9 @@ class FinancialReportService
 
         // 5. Agrupa os resultados por Centro de Custo
         $groupedCosts = $costs->groupBy(function ($cost) {
-            // Agrupa pelo NOME TRADUZIDO
-            return $cost->costCenter ? __('cost_centers.'.$cost->costCenter->name) : 'Sem Centro de Custo';
-        })->map(function ($costsInGroup, $translatedCostCenterName) { // A chave agora é o nome traduzido
+            // Agrupa pelo nome do centro de custo
+            return $cost->costCenter ? $cost->costCenter->name : 'Sem Centro de Custo';
+        })->map(function ($costsInGroup, $translatedCostCenterName) { // A chave agora é o nome do centro de custo
             return [
                 'cost_center_name' => $translatedCostCenterName, // Usa a chave diretamente
                 'subtotal' => $costsInGroup->sum('value_brl'),
