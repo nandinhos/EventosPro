@@ -68,8 +68,8 @@ class AuditCurrencyCommand extends Command
         // Mostrar configurações
         $this->displayConfiguration($scanOnly, $autoFix, $batchSize, $dateFrom, $dateTo);
 
-        // Confirmar execução
-        if (! $autoFix && ! $this->confirmExecution()) {
+        // Confirmar execução (não necessário em modo scan-only)
+        if (! $scanOnly && ! $autoFix && ! $this->confirmExecution()) {
             $this->info('⏹️  Operação cancelada pelo usuário');
 
             return 0;
