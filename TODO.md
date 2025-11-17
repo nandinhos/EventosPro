@@ -832,6 +832,11 @@ if (! $scanOnly && ! $autoFix && ! $this->confirmExecution()) {
 ## 📊 PROGRESSO GERAL DO PROJETO
 
 ### Concluído Recentemente
+- ✅ **Refactor: Dashboard de Projeções** - 100% (2025-11-15)
+  - Removida seção redundante "Breakdown por Centro de Custo"
+  - Informação já disponível na tabela "Detalhes dos Custos Operacionais Mensais"
+  - Melhoria de UX: UI mais limpa e focada
+  - Commit: 779ccf6
 - ✅ **Bug Fix: AuditCurrencyCommand scan-only** - 100% (2025-11-15)
   - Corrigido teste AuditCurrencyFixTest que estava falhando
   - Problema: comando solicitava confirmação mesmo com --scan-only
