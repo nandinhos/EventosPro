@@ -60,7 +60,10 @@ class DelinquencyReportController extends Controller
         $relevantGigs = $gigQuery
             ->with(['artist', 'booker', 'payments' => fn ($q) => $q->orderBy('due_date', 'asc')])
             ->get()
-            ->sortBy('booker.name');
+            ->sortBy([
+                ['booker.name', 'asc'],
+                ['gig_date', 'asc']
+            ]);
 
         $gigsGroupedByBooker = $relevantGigs->groupBy(fn ($gig) => $gig->booker->name ?? 'Agência Direta');
 
@@ -151,7 +154,10 @@ class DelinquencyReportController extends Controller
         $relevantGigs = $gigQuery
             ->with(['artist', 'booker', 'payments' => fn ($q) => $q->orderBy('due_date', 'asc')])
             ->get()
-            ->sortBy('booker.name');
+            ->sortBy([
+                ['booker.name', 'asc'],
+                ['gig_date', 'asc']
+            ]);
 
         $gigsGroupedByBooker = $relevantGigs->groupBy(fn ($gig) => $gig->booker->name ?? 'Agência Direta');
 
