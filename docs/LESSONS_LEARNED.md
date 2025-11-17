@@ -594,6 +594,23 @@ echo 'Permissão atribuída';
 
 ---
 
+## 14. Correções Recentes – Banco de Dados e Deploy
+
+### ✅ Padronização do Nome do Banco
+- Sintoma: ambiente local usava `DB_DATABASE=laravel` enquanto a VPS utilizava `eventospro`.
+- Correção: scripts de restauração passaram a ler `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` do `.env` e criar o banco conforme variável com `CREATE DATABASE IF NOT EXISTS \`${DB_DATABASE}\``.
+- Implementação: ajuste em `scripts/restore-from-vps.sh` para usar `./vendor/bin/sail` e variáveis do `.env` ao invés de valores fixos, incluindo o uso de `sail mysql ${DB_DATABASE}` na restauração.
+- Resultado: restauração sem erro “Unknown database” e consistência entre ambientes.
+
+### ✅ Deploy a partir da Branch `dev`
+- Necessidade: fazer deploy com correções de bugs e frontend ainda não mergeadas em `main`.
+- Correção: `scripts/deploy-vps.sh` passou a aceitar `--branch dev` ou `DEPLOY_BRANCH=dev` para selecionar a branch de deploy.
+- Resultado: deploy consistente na VPS com zero-downtime a partir de `dev`, mantendo previsibilidade.
+
+### ✅ Fluxo de Deploy Local Validado
+- Processo: `deploy.sh --production` usado para verificar build, caches e migrações com backup automático.
+- Resultado: containers sobem, assets compilados, caches gerados e migrações rodadas com sucesso; health check OK.
+
 ### ❌ Problemas Comuns e Soluções
 
 #### Problema 1: Containers com Conflito de Porta

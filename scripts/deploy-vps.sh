@@ -24,6 +24,22 @@ REPO_URL="https://github.com/nandinhos/EventosPro.git"
 BRANCH="main"
 KEEP_RELEASES=5  # Número de releases antigas para manter
 
+if [ -n "$DEPLOY_BRANCH" ]; then
+    BRANCH="$DEPLOY_BRANCH"
+fi
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --branch|-b)
+            BRANCH="$2"
+            shift 2
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
 # ====================================================
 # FUNÇÕES AUXILIARES
 # ====================================================

@@ -34,6 +34,19 @@ echo -e "${NC}"
 echo -e "${BLUE}VPS: ${VPS_USER}@${VPS_HOST}:${VPS_PORT}${NC}"
 echo ""
 
+# Carregar variáveis do .env local e preparar comandos Sail
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | grep 'DB_' | xargs)
+else
+    echo -e "${RED}❌ Arquivo .env não encontrado no projeto local${NC}"
+    exit 1
+fi
+
+SAIL="./vendor/bin/sail"
+
+# Garantir containers ativos
+${SAIL} up -d >/dev/null 2>&1 || true
+
 # Criar diretório de backups
 mkdir -p ${BACKUP_DIR}
 
@@ -107,13 +120,13 @@ echo ""
 echo -e "${YELLOW}💾 Criando backup do banco local atual...${NC}"
 
 SAFETY_BACKUP="${BACKUP_DIR}/pre-restore-local-$(date +%Y%m%d-%H%M%S).sql.gz"
-../vendor/bin/sail exec mysql mysqldump \
-    -u sail \
-    -ppassword \
+${SAIL} exec mysql mysqldump \
+    -u ${DB_USERNAME} \
+    -p${DB_PASSWORD} \
     --single-transaction \
     --quick \
     --lock-tables=false \
-    eventospro | gzip > ${SAFETY_BACKUP}
+    ${DB_DATABASE} | gzip > ${SAFETY_BACKUP}
 
 echo -e "${GREEN}✅ Backup de segurança criado: ${SAFETY_BACKUP}${NC}"
 
@@ -130,7 +143,7 @@ echo ""
 echo -e "${YELLOW}Resumo:${NC}"
 echo "  📥 Backup da VPS: ${BACKUP_NAME} (${BACKUP_SIZE})"
 echo "  💾 Backup local: ${SAFETY_BACKUP}"
-echo "  🎯 Destino: Banco de dados local (eventospro)"
+echo "  🎯 Destino: Banco de dados local (${DB_DATABASE})"
 echo ""
 read -p "Confirmar restauração? (digite 'SIM' em maiúsculas): " CONFIRM
 
@@ -162,10 +175,10 @@ echo -e "${BLUE}🔄 Restaurando banco de dados...${NC}"
 echo -e "${YELLOW}⏳ Isso pode levar alguns minutos...${NC}"
 
 # Criar database se não existir
-../vendor/bin/sail exec mysql mysql -uroot -e "CREATE DATABASE IF NOT EXISTS eventospro CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+${SAIL} exec mysql mysql -uroot -p${DB_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS \`${DB_DATABASE}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 # Restaurar backup
-../vendor/bin/sail mysql eventospro < /tmp/restore.sql
+${SAIL} mysql ${DB_DATABASE} < /tmp/restore.sql
 echo -e "${GREEN}✅ Banco restaurado${NC}"
 
 # Limpar temporários
@@ -182,22 +195,22 @@ echo ""
 
 # Limpar caches
 echo -e "${BLUE}🧹 Limpando caches do Laravel...${NC}"
-../vendor/bin/sail artisan cache:clear
-../vendor/bin/sail artisan config:clear
-../vendor/bin/sail artisan view:clear
+${SAIL} artisan cache:clear
+${SAIL} artisan config:clear
+${SAIL} artisan view:clear
 echo -e "${GREEN}✅ Caches limpos${NC}"
 
 # Verificar migrations pendentes
 echo ""
 echo -e "${BLUE}🔍 Verificando migrations pendentes...${NC}"
-PENDING=$(../vendor/bin/sail artisan migrate:status 2>/dev/null | grep -c "Pending" || echo "0")
+PENDING=$(${SAIL} artisan migrate:status 2>/dev/null | grep -c "Pending" || echo "0")
 
 if [ "$PENDING" != "0" ]; then
     echo -e "${YELLOW}⚠️  Há ${PENDING} migration(s) pendente(s)${NC}"
     read -p "Executar migrations agora? (s/N): " RUN_MIGRATIONS
 
     if [ "$RUN_MIGRATIONS" == "s" ] || [ "$RUN_MIGRATIONS" == "S" ]; then
-        ../vendor/bin/sail artisan migrate
+        ${SAIL} artisan migrate
         echo -e "${GREEN}✅ Migrations executadas${NC}"
     else
         echo -e "${YELLOW}⚠️  Execute depois: sail artisan migrate${NC}"
