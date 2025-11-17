@@ -60,9 +60,24 @@
                             </div>
                         </div>
                         <div class="text-right">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $colorClasses[$groupInfo['color']] }}">
-                                {{ $itemCount }} {{ $itemCount === 1 ? 'item' : 'itens' }}
-                            </span>
+                            @if($groupKey === 'evento_futuro_multiplas_vencidas')
+                                @php
+                                    $totalOverdue = collect($groupPayments)->sum('overdue_count');
+                                    $totalUpcoming = collect($groupPayments)->sum('upcoming_count');
+                                @endphp
+                                <div class="space-y-1">
+                                    <div class="text-xs font-semibold text-red-700 dark:text-red-400">
+                                        {{ $totalOverdue }} vencidas
+                                    </div>
+                                    <div class="text-xs font-semibold text-blue-700 dark:text-blue-400">
+                                        {{ $totalUpcoming }} à vencer
+                                    </div>
+                                </div>
+                            @else
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $colorClasses[$groupInfo['color']] }}">
+                                    {{ $itemCount }} {{ $itemCount === 1 ? 'item' : 'itens' }}
+                                </span>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -94,96 +109,194 @@
                                                 </p>
                                             </div>
                                         </div>
-                                        <div class="text-right">
-                                            <div class="text-lg font-bold text-orange-800 dark:text-orange-200">
-                                                R$ {{ number_format($subGroup['subtotal'], 2, ',', '.') }}
+                                        <div class="text-right space-y-1">
+                                            <div class="text-sm font-semibold text-red-700 dark:text-red-400">
+                                                Vencidas: R$ {{ number_format($subGroup['overdue_total'], 2, ',', '.') }}
+                                                <span class="text-xs font-normal">({{ $subGroup['overdue_count'] }})</span>
                                             </div>
-                                            <div class="text-xs text-orange-600 dark:text-orange-400">
-                                                Subtotal ({{ $subGroup['payments']->count() }} parcelas)
+                                            <div class="text-sm font-semibold text-blue-700 dark:text-blue-400">
+                                                À Vencer: R$ {{ number_format($subGroup['upcoming_total'], 2, ',', '.') }}
+                                                <span class="text-xs font-normal">({{ $subGroup['upcoming_count'] }})</span>
+                                            </div>
+                                            <div class="text-lg font-bold text-orange-800 dark:text-orange-200 pt-1 border-t border-orange-300 dark:border-orange-700">
+                                                Total: R$ {{ number_format($subGroup['grand_total'], 2, ',', '.') }}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                {{-- Tabela das parcelas do sub-grupo --}}
-                                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                    <thead class="bg-gray-50 dark:bg-gray-800">
-                                        <tr>
-                                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-20">Status Contrato</th>
-                                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-20">Booker</th>
-                                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-24">Vencimento</th>
-                                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-24">Parcela</th>
-                                            <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-24">Valor</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                        @foreach($subGroup['payments'] as $payment)
-                                            @php
-                                                $gig = $payment->gig;
-                                                $status = $payment->inferred_status;
-                                                $contractStatus = $gig?->contract_status ?? 'rascunho';
-                                                
-                                                $statusMap = [
-                                                    'assinado' => ['title' => 'Assinado', 'color' => 'blue', 'bg' => 'bg-blue-50', 'text' => 'text-blue-800', 'dark:bg' => 'dark:bg-blue-900/20', 'dark:text' => 'dark:text-blue-300'],
-                                                    'cancelado' => ['title' => 'Cancelado', 'color' => 'red', 'bg' => 'bg-red-50', 'text' => 'text-red-800', 'dark:bg' => 'dark:bg-red-900/20', 'dark:text' => 'dark:text-red-300'],
-                                                    'concluido' => ['title' => 'Concluído', 'color' => 'green', 'bg' => 'bg-green-50', 'text' => 'text-green-800', 'dark:bg' => 'dark:bg-green-900/20', 'dark:text' => 'dark:text-green-300'],
-                                                    'expirado' => ['title' => 'Expirado', 'color' => 'orange', 'bg' => 'bg-orange-50', 'text' => 'text-orange-800', 'dark:bg' => 'dark:bg-orange-900/20', 'dark:text' => 'dark:text-orange-300'],
-                                                    'n/a' => ['title' => 'N/A', 'color' => 'gray', 'bg' => 'bg-gray-50', 'text' => 'text-gray-800', 'dark:bg' => 'dark:bg-gray-900/20', 'dark:text' => 'dark:text-gray-300'],
-                                                    'para_assinatura' => ['title' => 'Para Assinatura', 'color' => 'yellow', 'bg' => 'bg-yellow-50', 'text' => 'text-yellow-800', 'dark:bg' => 'dark:bg-yellow-900/20', 'dark:text' => 'dark:text-yellow-300'],
-                                                    'rascunho' => ['title' => 'Rascunho', 'color' => 'gray', 'bg' => 'bg-gray-50', 'text' => 'text-gray-800', 'dark:bg' => 'dark:bg-gray-900/20', 'dark:text' => 'dark:text-gray-300'],
-                                                ];
-                                                
-                                                $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray'];
-                                                
-                                                $rowClass = [
-                                                    'vencido' => 'bg-red-50 dark:bg-red-900/10',
-                                                    'a_vencer' => 'bg-yellow-50 dark:bg-yellow-900/10',
-                                                ][$status] ?? '';
-                                            @endphp
-                                            
-                                            <tr class="{{ $rowClass }} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150">
-                                                <td class="px-4 py-3 whitespace-nowrap">
-                                                    <div class="flex items-center">
-                                                        <x-status-dot :status="strtolower($contractStatus)" :title="$statusInfo['title']" size="md" />
-                                                        <span class="ml-2 text-sm font-medium {{ $statusInfo['text'] }} dark:{{ $statusInfo['dark:text'] }}">{{ $statusInfo['title'] }}</span>
-                                                    </div>
-                                                </td>
-                                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                                                    <div class="font-medium">{{ $gig?->booker?->name ?? 'Agência Direta' }}</div>
-                                                </td>
-                                                <td class="px-4 py-3 whitespace-nowrap">
-                                                    <div class="text-sm font-semibold {{ $status === 'vencido' ? 'text-red-600 dark:text-red-400' : 'text-blue-700 dark:text-blue-400' }}">
-                                                        {{ $payment->due_date?->isoFormat('L') }}
-                                                        @if($status === 'vencido')
-                                                            <div class="text-xs font-medium text-red-500 dark:text-red-400 mt-1">
-                                                                <i class="fas fa-exclamation-circle mr-1"></i> {{ $payment->due_date->diffForHumans() }}
+
+
+                                {{-- PARCELAS VENCIDAS --}}
+                                @if($subGroup['overdue_payments']->count() > 0)
+                                    <div class="mt-3">
+                                        <h5 class="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 font-semibold text-sm uppercase tracking-wide">
+                                            <i class="fas fa-exclamation-triangle mr-2"></i>Parcelas Vencidas
+                                        </h5>
+                                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                                <tr>
+                                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-20">Status Contrato</th>
+                                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-20">Booker</th>
+                                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-24">Vencimento</th>
+                                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-24">Parcela</th>
+                                                    <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-24">Valor</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                                @foreach($subGroup['overdue_payments'] as $payment)
+                                                    @php
+                                                        $gig = $payment->gig;
+                                                        $status = $payment->inferred_status;
+                                                        $contractStatus = $gig?->contract_status ?? 'rascunho';
+
+                                                        $statusMap = [
+                                                            'assinado' => ['title' => 'Assinado', 'color' => 'blue', 'bg' => 'bg-blue-50', 'text' => 'text-blue-800', 'dark:bg' => 'dark:bg-blue-900/20', 'dark:text' => 'dark:text-blue-300'],
+                                                            'cancelado' => ['title' => 'Cancelado', 'color' => 'red', 'bg' => 'bg-red-50', 'text' => 'text-red-800', 'dark:bg' => 'dark:bg-red-900/20', 'dark:text' => 'dark:text-red-300'],
+                                                            'concluido' => ['title' => 'Concluído', 'color' => 'green', 'bg' => 'bg-green-50', 'text' => 'text-green-800', 'dark:bg' => 'dark:bg-green-900/20', 'dark:text' => 'dark:text-green-300'],
+                                                            'expirado' => ['title' => 'Expirado', 'color' => 'orange', 'bg' => 'bg-orange-50', 'text' => 'text-orange-800', 'dark:bg' => 'dark:bg-orange-900/20', 'dark:text' => 'dark:text-orange-300'],
+                                                            'n/a' => ['title' => 'N/A', 'color' => 'gray', 'bg' => 'bg-gray-50', 'text' => 'text-gray-800', 'dark:bg' => 'dark:bg-gray-900/20', 'dark:text' => 'dark:text-gray-300'],
+                                                            'para_assinatura' => ['title' => 'Para Assinatura', 'color' => 'yellow', 'bg' => 'bg-yellow-50', 'text' => 'text-yellow-800', 'dark:bg' => 'dark:bg-yellow-900/20', 'dark:text' => 'dark:text-yellow-300'],
+                                                            'rascunho' => ['title' => 'Rascunho', 'color' => 'gray', 'bg' => 'bg-gray-50', 'text' => 'text-gray-800', 'dark:bg' => 'dark:bg-gray-900/20', 'dark:text' => 'dark:text-gray-300'],
+                                                        ];
+
+                                                        $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray'];
+                                                        $rowClass = 'bg-red-50 dark:bg-red-900/10';
+                                                    @endphp
+
+                                                    <tr class="{{ $rowClass }} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150">
+                                                        <td class="px-4 py-3 whitespace-nowrap">
+                                                            <div class="flex items-center">
+                                                                <x-status-dot :status="strtolower($contractStatus)" :title="$statusInfo['title']" size="md" />
+                                                                <span class="ml-2 text-sm font-medium {{ $statusInfo['text'] }} dark:{{ $statusInfo['dark:text'] }}">{{ $statusInfo['title'] }}</span>
                                                             </div>
-                                                        @else
-                                                            <div class="text-xs font-medium text-amber-600 dark:text-amber-400 mt-1">
-                                                                <i class="far fa-clock mr-1"></i> Vence {{ $payment->due_date->diffForHumans() }}
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                                            <div class="font-medium">{{ $gig?->booker?->name ?? 'Agência Direta' }}</div>
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap">
+                                                            <div class="text-sm font-semibold text-red-600 dark:text-red-400">
+                                                                {{ $payment->due_date?->isoFormat('L') }}
+                                                                <div class="text-xs font-medium text-red-500 dark:text-red-400 mt-1">
+                                                                    <i class="fas fa-exclamation-circle mr-1"></i> {{ $payment->due_date->diffForHumans() }}
+                                                                </div>
                                                             </div>
-                                                        @endif
-                                                    </div>
-                                                </td>
-                                                <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                                                    <div class="whitespace-normal text-xs bg-gray-50 dark:bg-gray-700/50 rounded px-2 py-1">
-                                                        {{ $payment->description ?: 'Parcela' }}
-                                                    </div>
-                                                </td>
-                                                <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                                    <div class="font-bold text-gray-900 dark:text-white">
-                                                        {{ $payment->currency }} {{ number_format($payment->due_value, 2, ',', '.') }}
-                                                        @if($payment->currency !== 'BRL')
-                                                            <div class="text-xs text-gray-500 dark:text-gray-400 font-normal">
-                                                                ~R$ {{ number_format($payment->due_value_brl, 2, ',', '.') }}
+                                                        </td>
+                                                        <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                                            <div class="whitespace-normal text-xs bg-gray-50 dark:bg-gray-700/50 rounded px-2 py-1">
+                                                                {{ $payment->description ?: 'Parcela' }}
                                                             </div>
-                                                        @endif
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                                            <div class="font-bold text-gray-900 dark:text-white">
+                                                                {{ $payment->currency }} {{ number_format($payment->due_value, 2, ',', '.') }}
+                                                                @if($payment->currency !== 'BRL')
+                                                                    <div class="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                                                                        ~R$ {{ number_format($payment->due_value_brl, 2, ',', '.') }}
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                                {{-- Subtotal Vencidas --}}
+                                                <tr class="bg-red-100 dark:bg-red-900/20 border-t-2 border-red-300 dark:border-red-700">
+                                                    <td colspan="4" class="px-4 py-3 text-right font-semibold text-red-800 dark:text-red-200">
+                                                        Subtotal Vencidas ({{ $subGroup['overdue_count'] }} parcelas)
+                                                    </td>
+                                                    <td class="px-4 py-3 text-right font-bold text-red-800 dark:text-red-200">
+                                                        R$ {{ number_format($subGroup['overdue_total'], 2, ',', '.') }}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @endif
+
+                                {{-- PARCELAS À VENCER --}}
+                                @if($subGroup['upcoming_payments']->count() > 0)
+                                    <div class="mt-3">
+                                        <h5 class="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 font-semibold text-sm uppercase tracking-wide">
+                                            <i class="far fa-clock mr-2"></i>Parcelas à Vencer
+                                        </h5>
+                                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                                <tr>
+                                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-20">Status Contrato</th>
+                                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-20">Booker</th>
+                                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-24">Vencimento</th>
+                                                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-24">Parcela</th>
+                                                    <th scope="col" class="px-4 py-3 text-right text-xs font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider w-24">Valor</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                                @foreach($subGroup['upcoming_payments'] as $payment)
+                                                    @php
+                                                        $gig = $payment->gig;
+                                                        $status = $payment->inferred_status;
+                                                        $contractStatus = $gig?->contract_status ?? 'rascunho';
+
+                                                        $statusMap = [
+                                                            'assinado' => ['title' => 'Assinado', 'color' => 'blue', 'bg' => 'bg-blue-50', 'text' => 'text-blue-800', 'dark:bg' => 'dark:bg-blue-900/20', 'dark:text' => 'dark:text-blue-300'],
+                                                            'cancelado' => ['title' => 'Cancelado', 'color' => 'red', 'bg' => 'bg-red-50', 'text' => 'text-red-800', 'dark:bg' => 'dark:bg-red-900/20', 'dark:text' => 'dark:text-red-300'],
+                                                            'concluido' => ['title' => 'Concluído', 'color' => 'green', 'bg' => 'bg-green-50', 'text' => 'text-green-800', 'dark:bg' => 'dark:bg-green-900/20', 'dark:text' => 'dark:text-green-300'],
+                                                            'expirado' => ['title' => 'Expirado', 'color' => 'orange', 'bg' => 'bg-orange-50', 'text' => 'text-orange-800', 'dark:bg' => 'dark:bg-orange-900/20', 'dark:text' => 'dark:text-orange-300'],
+                                                            'n/a' => ['title' => 'N/A', 'color' => 'gray', 'bg' => 'bg-gray-50', 'text' => 'text-gray-800', 'dark:bg' => 'dark:bg-gray-900/20', 'dark:text' => 'dark:text-gray-300'],
+                                                            'para_assinatura' => ['title' => 'Para Assinatura', 'color' => 'yellow', 'bg' => 'bg-yellow-50', 'text' => 'text-yellow-800', 'dark:bg' => 'dark:bg-yellow-900/20', 'dark:text' => 'dark:text-yellow-300'],
+                                                            'rascunho' => ['title' => 'Rascunho', 'color' => 'gray', 'bg' => 'bg-gray-50', 'text' => 'text-gray-800', 'dark:bg' => 'dark:bg-gray-900/20', 'dark:text' => 'dark:text-gray-300'],
+                                                        ];
+
+                                                        $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray'];
+                                                        $rowClass = 'bg-yellow-50 dark:bg-yellow-900/10';
+                                                    @endphp
+
+                                                    <tr class="{{ $rowClass }} hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150">
+                                                        <td class="px-4 py-3 whitespace-nowrap">
+                                                            <div class="flex items-center">
+                                                                <x-status-dot :status="strtolower($contractStatus)" :title="$statusInfo['title']" size="md" />
+                                                                <span class="ml-2 text-sm font-medium {{ $statusInfo['text'] }} dark:{{ $statusInfo['dark:text'] }}">{{ $statusInfo['title'] }}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                                            <div class="font-medium">{{ $gig?->booker?->name ?? 'Agência Direta' }}</div>
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap">
+                                                            <div class="text-sm font-semibold text-blue-700 dark:text-blue-400">
+                                                                {{ $payment->due_date?->isoFormat('L') }}
+                                                                <div class="text-xs font-medium text-amber-600 dark:text-amber-400 mt-1">
+                                                                    <i class="far fa-clock mr-1"></i> Vence {{ $payment->due_date->diffForHumans() }}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                                            <div class="whitespace-normal text-xs bg-gray-50 dark:bg-gray-700/50 rounded px-2 py-1">
+                                                                {{ $payment->description ?: 'Parcela' }}
+                                                            </div>
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                                            <div class="font-bold text-gray-900 dark:text-white">
+                                                                {{ $payment->currency }} {{ number_format($payment->due_value, 2, ',', '.') }}
+                                                                @if($payment->currency !== 'BRL')
+                                                                    <div class="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                                                                        ~R$ {{ number_format($payment->due_value_brl, 2, ',', '.') }}
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                                {{-- Subtotal À Vencer --}}
+                                                <tr class="bg-blue-100 dark:bg-blue-900/20 border-t-2 border-blue-300 dark:border-blue-700">
+                                                    <td colspan="4" class="px-4 py-3 text-right font-semibold text-blue-800 dark:text-blue-200">
+                                                        Subtotal À Vencer ({{ $subGroup['upcoming_count'] }} parcelas)
+                                                    </td>
+                                                    <td class="px-4 py-3 text-right font-bold text-blue-800 dark:text-blue-200">
+                                                        R$ {{ number_format($subGroup['upcoming_total'], 2, ',', '.') }}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     @else

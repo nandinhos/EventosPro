@@ -33,7 +33,12 @@
       "mcp__serena__write_memory",
       "Bash(git checkout:*)",
       "Bash(sail artisan test:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(sail artisan route:list:*)",
+      "Bash(sail tinker --execute=\"echo ''CostCenter Model Relations: ''; echo get_class_methods(App\\Models\\CostCenter::class) | grep -i ''cost\\|relation'';\")",
+      "Bash(git config:*)",
+      "Bash(git fetch:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

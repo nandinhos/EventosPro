@@ -318,7 +318,12 @@
                                             <div style="font-size: 6px; margin-top: 2px; opacity: 0.8;">{{ $groupInfo['description'] }}</div>
                                         </div>
                                         <div style="text-align: right; font-size: 7px;">
-                                            {{ $totalItems }} {{ Str::plural('item', $totalItems) }} em {{ count($groupPayments) }} {{ Str::plural('evento', count($groupPayments)) }}
+                                            @php
+                                                $totalOverdue = collect($groupPayments)->sum('overdue_count');
+                                                $totalUpcoming = collect($groupPayments)->sum('upcoming_count');
+                                            @endphp
+                                            <div style="color: #b91c1c; font-weight: bold;">{{ $totalOverdue }} vencidas</div>
+                                            <div style="color: #1e40af; font-weight: bold; margin-top: 2px;">{{ $totalUpcoming }} à vencer</div>
                                         </div>
                                     </div>
                                 </div>
@@ -329,76 +334,174 @@
                             {{-- Cabeçalho do sub-agrupamento por Gig --}}
                             <tr>
                                 <td colspan="8" style="padding: 0; border: none;">
-                                    <div class="subgroup-header">
-                                        <div class="subgroup-title">
-                                            Gig #{{ $gigData['gig']->id }} - {{ $gigData['gig']->artist->name ?? 'N/A' }}
+                                    <div class="subgroup-header" style="position: relative;">
+                                        <div style="width: 70%; float: left;">
+                                            <div class="subgroup-title">
+                                                Gig #{{ $gigData['gig']->id }} - {{ $gigData['gig']->artist->name ?? 'N/A' }}
+                                            </div>
+                                            <div class="subgroup-details">
+                                                {{ $gigData['gig']->location_event_details ?? 'Local não informado' }} •
+                                                {{ $gigData['gig']->gig_date?->isoFormat('L') ?? 'Data não informada' }}
+                                            </div>
                                         </div>
-                                        <div class="subgroup-details">
-                                            {{ $gigData['gig']->location_event_details ?? 'Local não informado' }} • 
-                                            {{ $gigData['gig']->gig_date?->isoFormat('L') ?? 'Data não informada' }}
+                                        <div style="width: 30%; float: right; text-align: right; font-size: 8px;">
+                                            <div style="color: #b91c1c; font-weight: bold; margin-bottom: 2px;">
+                                                Vencidas: R$ {{ number_format($gigData['overdue_total'], 2, ',', '.') }} ({{ $gigData['overdue_count'] }})
+                                            </div>
+                                            <div style="color: #1e40af; font-weight: bold; margin-bottom: 2px;">
+                                                À Vencer: R$ {{ number_format($gigData['upcoming_total'], 2, ',', '.') }} ({{ $gigData['upcoming_count'] }})
+                                            </div>
+                                            <div style="color: #c2410c; font-weight: bold; border-top: 1px solid #c2410c; padding-top: 2px; margin-top: 2px;">
+                                                Total: R$ {{ number_format($gigData['grand_total'], 2, ',', '.') }}
+                                            </div>
                                         </div>
-                                        <div class="subgroup-stats">
-                                            {{ $gigData['parcelas_vencidas_count'] }} vencida(s), {{ $gigData['parcelas_a_vencer_count'] }} a vencer • 
-                                            Subtotal: R$ {{ number_format($gigData['subtotal'], 2, ',', '.') }}
-                                        </div>
+                                        <div style="clear: both;"></div>
                                     </div>
                                 </td>
                             </tr>
-                            
-                            @foreach($gigData['payments'] as $payment)
-                                @php
-                                    $gig = $payment->gig;
-                                    $contractStatus = $gig?->contract_status ?? 'rascunho';
-                                    
-                                    $statusMap = [
-                                        'assinado' => ['title' => 'Assinado', 'color' => 'green'],
-                                        'cancelado' => ['title' => 'Cancelado', 'color' => 'red'],
-                                        'concluido' => ['title' => 'Concluído', 'color' => 'green'],
-                                        'expirado' => ['title' => 'Expirado', 'color' => 'orange'],
-                                        'n/a' => ['title' => 'N/A', 'color' => 'gray'],
-                                        'para_assinatura' => ['title' => 'Para Assinatura', 'color' => 'yellow'],
-                                        'rascunho' => ['title' => 'Rascunho', 'color' => 'gray'],
-                                    ];
-                                    
-                                    $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray'];
-                                    $dueStatus = $payment->inferred_status;
-                                @endphp
+
+
+                            {{-- PARCELAS VENCIDAS --}}
+                            @if($gigData['overdue_payments']->count() > 0)
                                 <tr>
-                                    <td>
-                                        <span class="status-badge status-{{ $statusInfo['color'] }}">
-                                            {{ $statusInfo['title'] }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="font-bold">{{ $gig?->booker?->name ?? 'Agência' }}</div>
-                                        <div class="text-xs">{{ $gig?->booker?->email ?? '' }}</div>
-                                    </td>
-                                    <td>{{ $gig?->artist?->name ?? 'N/A' }}</td>
-                                    <td>
-                                        <div class="text-xs">{{ $gig?->location_event_details ?? '' }}</div>
-                                    </td>
-                                    <td>{{ $gig?->gig_date?->isoFormat('L') ?? 'N/A' }}</td>
-                                    <td class="{{ $dueStatus === 'vencido' ? 'text-red' : 'text-yellow' }}">
-                                        <div>{{ $payment->due_date?->isoFormat('L') }}</div>
-                                        <div class="text-xs">{{ $payment->due_date?->diffForHumans() }}</div>
-                                    </td>
-                                    <td style="word-wrap: break-word;">
-                                        <div style="max-width: 120px; font-size: 7px; line-height: 1.2;">
-                                            {{ $payment->description ?: 'Parcela' }}
-                                        </div>
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="font-bold">
-                                            {{ $payment->currency }} {{ number_format($payment->due_value, 2, ',', '.') }} 
-                                        </div>
-                                        @if($payment->currency !== 'BRL')
-                                            <div class="text-xs">
-                                                ~R$ {{ number_format($payment->due_value_brl, 2, ',', '.') }}
-                                            </div>
-                                        @endif
+                                    <td colspan="8" style="background-color: #fee2e2; padding: 6px 8px; font-weight: bold; font-size: 9px; color: #991b1b; border: none;">
+                                        ⚠ PARCELAS VENCIDAS
                                     </td>
                                 </tr>
-                            @endforeach
+                                @foreach($gigData['overdue_payments'] as $payment)
+                                    @php
+                                        $gig = $payment->gig;
+                                        $contractStatus = $gig?->contract_status ?? 'rascunho';
+
+                                        $statusMap = [
+                                            'assinado' => ['title' => 'Assinado', 'color' => 'green'],
+                                            'cancelado' => ['title' => 'Cancelado', 'color' => 'red'],
+                                            'concluido' => ['title' => 'Concluído', 'color' => 'green'],
+                                            'expirado' => ['title' => 'Expirado', 'color' => 'orange'],
+                                            'n/a' => ['title' => 'N/A', 'color' => 'gray'],
+                                            'para_assinatura' => ['title' => 'Para Assinatura', 'color' => 'yellow'],
+                                            'rascunho' => ['title' => 'Rascunho', 'color' => 'gray'],
+                                        ];
+
+                                        $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray'];
+                                    @endphp
+                                    <tr style="background-color: #fef2f2;">
+                                        <td>
+                                            <span class="status-badge status-{{ $statusInfo['color'] }}">
+                                                {{ $statusInfo['title'] }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="font-bold">{{ $gig?->booker?->name ?? 'Agência' }}</div>
+                                            <div class="text-xs">{{ $gig?->booker?->email ?? '' }}</div>
+                                        </td>
+                                        <td>{{ $gig?->artist?->name ?? 'N/A' }}</td>
+                                        <td>
+                                            <div class="text-xs">{{ $gig?->location_event_details ?? '' }}</div>
+                                        </td>
+                                        <td>{{ $gig?->gig_date?->isoFormat('L') ?? 'N/A' }}</td>
+                                        <td class="text-red">
+                                            <div>{{ $payment->due_date?->isoFormat('L') }}</div>
+                                            <div class="text-xs">{{ $payment->due_date?->diffForHumans() }}</div>
+                                        </td>
+                                        <td style="word-wrap: break-word;">
+                                            <div style="max-width: 120px; font-size: 7px; line-height: 1.2;">
+                                                {{ $payment->description ?: 'Parcela' }}
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="font-bold">
+                                                {{ $payment->currency }} {{ number_format($payment->due_value, 2, ',', '.') }}
+                                            </div>
+                                            @if($payment->currency !== 'BRL')
+                                                <div class="text-xs">
+                                                    ~R$ {{ number_format($payment->due_value_brl, 2, ',', '.') }}
+                                                </div>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                {{-- Subtotal Vencidas --}}
+                                <tr style="background-color: #fecaca; border-top: 2px solid #b91c1c;">
+                                    <td colspan="7" style="text-align: right; font-weight: bold; color: #991b1b; padding: 6px 8px;">
+                                        Subtotal Vencidas ({{ $gigData['overdue_count'] }} parcelas)
+                                    </td>
+                                    <td class="text-center" style="font-weight: bold; color: #991b1b;">
+                                        R$ {{ number_format($gigData['overdue_total'], 2, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @endif
+
+                            {{-- PARCELAS À VENCER --}}
+                            @if($gigData['upcoming_payments']->count() > 0)
+                                <tr>
+                                    <td colspan="8" style="background-color: #dbeafe; padding: 6px 8px; font-weight: bold; font-size: 9px; color: #1e40af; border: none;">
+                                        🕐 PARCELAS À VENCER
+                                    </td>
+                                </tr>
+                                @foreach($gigData['upcoming_payments'] as $payment)
+                                    @php
+                                        $gig = $payment->gig;
+                                        $contractStatus = $gig?->contract_status ?? 'rascunho';
+
+                                        $statusMap = [
+                                            'assinado' => ['title' => 'Assinado', 'color' => 'green'],
+                                            'cancelado' => ['title' => 'Cancelado', 'color' => 'red'],
+                                            'concluido' => ['title' => 'Concluído', 'color' => 'green'],
+                                            'expirado' => ['title' => 'Expirado', 'color' => 'orange'],
+                                            'n/a' => ['title' => 'N/A', 'color' => 'gray'],
+                                            'para_assinatura' => ['title' => 'Para Assinatura', 'color' => 'yellow'],
+                                            'rascunho' => ['title' => 'Rascunho', 'color' => 'gray'],
+                                        ];
+
+                                        $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray'];
+                                    @endphp
+                                    <tr style="background-color: #fef9e7;">
+                                        <td>
+                                            <span class="status-badge status-{{ $statusInfo['color'] }}">
+                                                {{ $statusInfo['title'] }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="font-bold">{{ $gig?->booker?->name ?? 'Agência' }}</div>
+                                            <div class="text-xs">{{ $gig?->booker?->email ?? '' }}</div>
+                                        </td>
+                                        <td>{{ $gig?->artist?->name ?? 'N/A' }}</td>
+                                        <td>
+                                            <div class="text-xs">{{ $gig?->location_event_details ?? '' }}</div>
+                                        </td>
+                                        <td>{{ $gig?->gig_date?->isoFormat('L') ?? 'N/A' }}</td>
+                                        <td class="text-yellow">
+                                            <div>{{ $payment->due_date?->isoFormat('L') }}</div>
+                                            <div class="text-xs">{{ $payment->due_date?->diffForHumans() }}</div>
+                                        </td>
+                                        <td style="word-wrap: break-word;">
+                                            <div style="max-width: 120px; font-size: 7px; line-height: 1.2;">
+                                                {{ $payment->description ?: 'Parcela' }}
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="font-bold">
+                                                {{ $payment->currency }} {{ number_format($payment->due_value, 2, ',', '.') }}
+                                            </div>
+                                            @if($payment->currency !== 'BRL')
+                                                <div class="text-xs">
+                                                    ~R$ {{ number_format($payment->due_value_brl, 2, ',', '.') }}
+                                                </div>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                {{-- Subtotal À Vencer --}}
+                                <tr style="background-color: #bfdbfe; border-top: 2px solid #1e40af;">
+                                    <td colspan="7" style="text-align: right; font-weight: bold; color: #1e40af; padding: 6px 8px;">
+                                        Subtotal À Vencer ({{ $gigData['upcoming_count'] }} parcelas)
+                                    </td>
+                                    <td class="text-center" style="font-weight: bold; color: #1e40af;">
+                                        R$ {{ number_format($gigData['upcoming_total'], 2, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @endif
                         @endforeach
                     @elseif(is_object($groupPayments) && $groupPayments->count() > 0)
                         {{-- Grupos normais --}}
