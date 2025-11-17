@@ -287,25 +287,6 @@
                             </div>
                         </div>
                     </div>
-
-                    {{-- Breakdown por Categoria --}}
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                        <h4 class="text-md font-semibold text-gray-900 dark:text-white mb-4">Breakdown por Centro de Custo</h4>
-                        <div class="space-y-3">
-                            @foreach($operational_expenses_details['by_category'] as $category)
-                                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded">
-                                    <div class="flex-1">
-                                        <p class="font-medium text-gray-900 dark:text-white">{{ $category['category'] }}</p>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ count($category['items']) }} item(ns)</p>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="text-lg font-semibold text-gray-900 dark:text-white">R$ {{ number_format($category['total'], 2, ',', '.') }}</p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">mensal</p>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
                 </section>
                 @endif
 
