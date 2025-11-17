@@ -83,7 +83,7 @@ class Payment extends Model
         if ($this->confirmed_at) {
             return 'confirmado'; // Ou 'Recebido'
         }
-        if ($this->due_date && Carbon::parse($this->due_date)->isPast()) {
+        if ($this->due_date && Carbon::parse($this->due_date)->startOfDay()->lte(today()->startOfDay())) {
             return 'vencido';
         }
 

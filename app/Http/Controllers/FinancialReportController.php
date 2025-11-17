@@ -581,21 +581,41 @@ class FinancialReportController extends Controller
 
             // Contar parcelas vencidas para esta gig
             $parcelasVencidas = $gigPayments->filter(function ($payment) use ($today) {
-                return Carbon::parse($payment->due_date)->startOfDay()->lt($today);
+                return Carbon::parse($payment->due_date)->startOfDay()->lte($today);
             });
 
             $parcelasAVencer = $gigPayments->filter(function ($payment) use ($today) {
-                return Carbon::parse($payment->due_date)->startOfDay()->gte($today);
+                return Carbon::parse($payment->due_date)->startOfDay()->gt($today);
             });
 
             // Verificar se é evento futuro com múltiplas parcelas vencidas
             if (! $isEventRealized && $parcelasVencidas->count() > 1) {
-                // Criar sub-agrupamento por Gig com subtotal
-                $subtotal = $gigPayments->sum('due_value_brl');
+                // Separar pagamentos em vencidos e a vencer
+                $overduePayments = $parcelasVencidas->sortBy('due_date');
+                $upcomingPayments = $parcelasAVencer->sortBy('due_date');
+
+                // Calcular totais separados
+                $overdueTotal = $overduePayments->sum('due_value_brl');
+                $upcomingTotal = $upcomingPayments->sum('due_value_brl');
+                $grandTotal = $overdueTotal + $upcomingTotal;
+
                 $grouped['evento_futuro_multiplas_vencidas'][] = [
                     'gig' => $gig,
-                    'payments' => $gigPayments->sortBy('due_date'),
-                    'subtotal' => $subtotal,
+                    'payments' => $gigPayments->sortBy('due_date'), // Mantém compatibilidade
+
+                    // NOVO: Arrays separados
+                    'overdue_payments' => $overduePayments,
+                    'upcoming_payments' => $upcomingPayments,
+
+                    // NOVO: Totais detalhados
+                    'overdue_total' => $overdueTotal,
+                    'overdue_count' => $overduePayments->count(),
+                    'upcoming_total' => $upcomingTotal,
+                    'upcoming_count' => $upcomingPayments->count(),
+                    'grand_total' => $grandTotal,
+
+                    // Mantém compatibilidade
+                    'subtotal' => $grandTotal,
                     'parcelas_vencidas_count' => $parcelasVencidas->count(),
                     'parcelas_a_vencer_count' => $parcelasAVencer->count(),
                 ];
@@ -603,7 +623,7 @@ class FinancialReportController extends Controller
                 // Processar pagamentos individualmente para outros grupos
                 foreach ($gigPayments as $payment) {
                     $dueDate = Carbon::parse($payment->due_date)->startOfDay();
-                    $isVencido = $dueDate->lt($today);
+                    $isVencido = $dueDate->lte($today);
 
                     if ($isEventRealized && $isVencido) {
                         // Prioridade 1: Evento realizado com vencimento pendente
