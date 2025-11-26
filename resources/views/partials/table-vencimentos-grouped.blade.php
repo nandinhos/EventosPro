@@ -74,9 +74,17 @@
                                     </div>
                                 </div>
                             @else
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $colorClasses[$groupInfo['color']] }}">
-                                    {{ $itemCount }} {{ $itemCount === 1 ? 'item' : 'itens' }}
-                                </span>
+                                @php
+                                    $groupSubtotal = $groupPayments->sum('due_value_brl');
+                                @endphp
+                                <div class="text-right">
+                                    <div class="text-sm font-bold {{ $colorClasses[$groupInfo['color']] }} mb-1">
+                                        R$ {{ number_format($groupSubtotal, 2, ',', '.') }}
+                                    </div>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $colorClasses[$groupInfo['color']] }}">
+                                        {{ $itemCount }} {{ $itemCount === 1 ? 'item' : 'itens' }}
+                                    </span>
+                                </div>
                             @endif
                         </div>
                     </div>

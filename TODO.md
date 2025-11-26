@@ -895,3 +895,62 @@ if (! $scanOnly && ! $autoFix && ! $this->confirmExecution()) {
 2. **BAIXA**: Documentação e consolidação
 3. **BAIXA**: Expansão do sistema de auditoria
 4. **OPCIONAL**: Rebuild no VPS para aplicar otimizações
+
+---
+
+## 🎯 FEATURE: Subtotais em Relatório de Vencimentos (2025-11-26)
+
+### 📋 Objetivo
+Adicionar subtotais nos cabeçalhos das tabelas do relatório "Vencimentos" para melhorar UX e facilitar visualização rápida dos valores totais.
+
+### ✅ Implementação Concluída (2025-11-26)
+
+**Status**: 100% COMPLETO
+
+**Tabelas Modificadas**:
+1. ✅ Eventos Realizados com Vencimento Pendente
+2. ✅ Eventos Futuros com Parcela Vencida
+3. ✅ Eventos Futuros com Parcela a Vencer
+4. ✅ Eventos Futuros com Múltiplas Parcelas Vencidas (já tinha subtotais)
+
+**Características Implementadas**:
+- Subtotal exibido no **cabeçalho** da tabela (acima dos dados)
+- Formato: "R$ X.XXX,XX" + "(X itens)" abaixo
+- Cores consistentes por tipo de prioridade:
+  - 🔴 Vermelho: Eventos realizados com vencimento pendente (prioridade máxima)
+  - 🟡 Amarelo: Eventos futuros com parcela vencida (média prioridade)
+  - 🔵 Azul: Eventos futuros com parcela a vencer (baixa prioridade)
+- Implementado em **HTML** e **PDF** (exportação)
+
+### 📊 Arquivos Modificados
+
+1. ✅ `resources/views/partials/table-vencimentos-grouped.blade.php`
+   - Adicionado cálculo de subtotal no cabeçalho (linhas 77-87)
+   - Removida lógica de subtotal no rodapé da tabela
+
+2. ✅ `resources/views/reports/exports/due_dates_pdf.blade.php`
+   - Adicionado cálculo de subtotal no cabeçalho (linhas 526-535)
+   - Removida lógica de subtotal no rodapé da tabela
+
+### 🎨 Benefícios UX
+
+**Antes**: Usuário precisava rolar até o final da tabela para ver o total
+**Agora**: Visualização imediata do valor total no topo do grupo
+
+- ✅ Menos scroll necessário
+- ✅ Informação mais importante (valor) em destaque
+- ✅ Facilita cálculos rápidos por categoria
+- ✅ Consistência visual entre todas as tabelas
+
+### 📝 Commit Criado
+
+- **Commit**: `XXXXXXX` - feat(reports): add subtotals to due dates report headers
+  - Subtotais movidos de rodapé para cabeçalho
+  - Implementado em 3 tabelas que não tinham subtotais
+  - Views HTML e PDF atualizadas
+  - Melhoria de UX: visualização imediata dos totais
+
+### 📅 Status
+
+- **Data de Implementação**: 2025-11-26
+- **Status Atual**: ✅ COMPLETO - Pronto para commit e push

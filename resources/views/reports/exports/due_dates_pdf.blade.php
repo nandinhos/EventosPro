@@ -522,8 +522,16 @@
                                             <div style="font-size: 9px; font-weight: bold;">{{ $groupInfo['title'] }}</div>
                                             <div style="font-size: 6px; margin-top: 2px; opacity: 0.8;">{{ $groupInfo['description'] }}</div>
                                         </div>
-                                        <div style="text-align: right; font-size: 7px;">
-                                            {{ $groupPayments->count() }} {{ Str::plural('item', $groupPayments->count()) }}
+                                        <div style="text-align: right;">
+                                            @php
+                                                $groupSubtotal = $groupPayments->sum('due_value_brl');
+                                            @endphp
+                                            <div style="font-size: 9px; font-weight: bold; margin-bottom: 2px;">
+                                                R$ {{ number_format($groupSubtotal, 2, ',', '.') }}
+                                            </div>
+                                            <div style="font-size: 7px;">
+                                                {{ $groupPayments->count() }} {{ Str::plural('item', $groupPayments->count()) }}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
