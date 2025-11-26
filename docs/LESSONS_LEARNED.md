@@ -264,6 +264,26 @@ TodoWrite([
 - [ ] Testes atualizados (se necessário)
 - [ ] Documentação atualizada
 
+### 11.1 Padrão de Commits (Conventional Commits)
+
+- Formato: `tipo(escopo): resumo curto`
+- Tipos usados no projeto: `feat`, `fix`, `docs`, `chore`, `refactor`, `perf`, `test`
+- `escopo` é opcional e descreve o módulo afetado (ex.: `reports`, `cost-centers`, `agency-costs`)
+- `resumo curto` em voz imperativa, em minúsculas, sem ponto final
+- Commits devem ser realizados dentro do container Sail para acionar hooks de qualidade:
+  - `./vendor/bin/sail bash -lc 'git add -A && git commit -m "feat(reports): add subtotals to due dates report headers"'`
+
+Exemplos reais do repositório:
+- `feat(reports): add subtotals to due dates report headers`
+- `fix(cost-centers): add AgencyFixedCosts to counter and deletion validation`
+- `docs: adicionar lições aprendidas (DB e deploy)`
+- `chore: ajustar restore para usar .env e sail`
+
+Boas práticas:
+- Agrupar mudanças correlatas no mesmo commit; separar assuntos distintos
+- Preferir múltiplos commits em sequência a mensagens muito longas
+- Validar testes e build antes de commit: `./vendor/bin/sail artisan test` e `./vendor/bin/sail npm run build`
+
 ---
 
 ## 12. Infraestrutura e Deploy - Alta Disponibilidade em VPS
