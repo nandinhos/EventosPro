@@ -335,7 +335,8 @@ class Gig extends Model
 
     /**
      * Accessor INTELIGENTE para o Valor do Contrato em BRL.
-     * Retorna um array com o valor, o tipo ('confirmed' ou 'projected') e a taxa usada.
+     * Usa lógica HÍBRIDA: pagamentos confirmados com taxa real + pendentes com taxa projetada.
+     * Retorna array com valor, tipo ('confirmed', 'hybrid', 'projected', 'unavailable'), taxa usada e detalhes.
      */
     protected function cacheValueBrlDetails(): Attribute
     {
@@ -353,45 +354,73 @@ class Gig extends Model
                     ];
                 }
 
-                // Verifica se a Gig está totalmente paga
-                $isFullyPaid = $this->payment_status === 'pago';
+                // Carregar pagamentos para análise híbrida
+                $this->loadMissing('payments');
 
-                if ($isFullyPaid) {
-                    // SE TOTALMENTE PAGO, o "Valor Contrato BRL" é a soma real de todos os pagamentos convertidos.
-                    $confirmedBrlValue = $this->total_received_brl; // Usa o accessor que acabamos de criar
-                    $effectiveRate = ($originalValue > 0) ? $confirmedBrlValue / $originalValue : null;
+                $confirmedPayments = $this->payments->whereNotNull('confirmed_at');
+                $pendingPayments = $this->payments->whereNull('confirmed_at');
 
-                    // Log::debug("[Accessor] Gig #{$this->id} está PAGA. Valor BRL confirmado: {$confirmedBrlValue}");
+                // 1. Soma real dos pagamentos confirmados (já convertidos em BRL)
+                $confirmedBrlValue = $this->total_received_brl;
 
-                    return [
-                        'value' => $confirmedBrlValue,
-                        'type' => 'confirmed',
-                        'rate_used' => $effectiveRate, // Taxa de câmbio média efetiva
-                    ];
-                } else {
-                    // SE AINDA NÃO ESTÁ PAGO, usamos uma taxa de PROJEÇÃO.
-                    $defaultRates = config('exchange_rates.default_rates', []);
-                    $projectionRate = $defaultRates[$gigCurrency] ?? null;
-
-                    if ($projectionRate) {
-                        $projectedValue = $originalValue * $projectionRate;
-                        // Log::debug("[Accessor] Gig #{$this->id} está PENDENTE. Valor BRL projetado: {$projectedValue}");
-
-                        return [
-                            'value' => $projectedValue,
-                            'type' => 'projected',
-                            'rate_used' => $projectionRate,
-                        ];
+                // 2. Determinar taxa para projetar parte pendente
+                $rateForPending = null;
+                if ($confirmedPayments->isNotEmpty()) {
+                    // Usar taxa do último pagamento confirmado na mesma moeda
+                    $lastConfirmed = $confirmedPayments
+                        ->where('currency', $gigCurrency)
+                        ->sortByDesc('confirmed_at')
+                        ->first();
+                    if ($lastConfirmed && $lastConfirmed->exchange_rate > 0) {
+                        $rateForPending = (float) $lastConfirmed->exchange_rate;
                     }
                 }
+                if (! $rateForPending) {
+                    // Fallback: usar taxa de projeção do config
+                    $defaultRates = config('exchange_rates.default_rates', []);
+                    $rateForPending = $defaultRates[$gigCurrency] ?? null;
+                }
 
-                // Fallback: Se não está pago e não há taxa de projeção, não podemos calcular.
-                // Log::warning("[Accessor] Não foi possível calcular valor BRL para Gig #{$this->id}.");
+                // 3. Calcular valor a projetar
+                // Se houver pagamentos, usa a soma dos pendentes; senão, usa valor original do contrato
+                $pendingOriginalValue = $pendingPayments->isNotEmpty()
+                    ? $pendingPayments->sum('due_value')
+                    : ($confirmedPayments->isEmpty() ? $originalValue : 0);
+
+                // Se não temos taxa e precisamos projetar, retornar unavailable
+                if ($pendingOriginalValue > 0 && ! $rateForPending) {
+                    return [
+                        'value' => null,
+                        'type' => 'unavailable',
+                        'rate_used' => null,
+                    ];
+                }
+
+                $projectedPendingBrl = $rateForPending ? $pendingOriginalValue * $rateForPending : 0;
+
+                // 4. Calcular valor total híbrido
+                $totalBrlValue = $confirmedBrlValue + $projectedPendingBrl;
+
+                // 5. Determinar o tipo baseado no estado
+                $type = 'projected';
+                if ($confirmedPayments->isNotEmpty() && $pendingPayments->isEmpty() && $pendingOriginalValue == 0) {
+                    $type = 'confirmed';
+                } elseif ($confirmedPayments->isNotEmpty() && ($pendingPayments->isNotEmpty() || $pendingOriginalValue > 0)) {
+                    $type = 'hybrid';
+                }
+
+                // 6. Calcular taxa média efetiva (para display)
+                $effectiveRate = $originalValue > 0 ? $totalBrlValue / $originalValue : null;
+
+                // Log::debug("[Accessor] Gig #{$this->id} - Tipo: {$type}, Confirmado BRL: {$confirmedBrlValue}, Pendente BRL: {$projectedPendingBrl}, Total: {$totalBrlValue}");
 
                 return [
-                    'value' => null,
-                    'type' => 'unavailable',
-                    'rate_used' => null,
+                    'value' => $totalBrlValue,
+                    'type' => $type,
+                    'rate_used' => $effectiveRate,
+                    'confirmed_portion_brl' => $confirmedBrlValue,
+                    'pending_portion_brl' => $projectedPendingBrl,
+                    'rate_for_pending' => $rateForPending,
                 ];
             },
         );
