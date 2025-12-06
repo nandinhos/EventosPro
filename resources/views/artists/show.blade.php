@@ -71,7 +71,7 @@
                 </div>
             </div>
 
-            {{-- Tabela de Eventos --}}
+            {{-- Lista de Eventos Interativa --}}
             <div class="p-4 sm:px-6">
                 @php
                     // Combina gigs realizados + futuros e aplica busca
@@ -89,69 +89,156 @@
                     }
                 @endphp
 
-                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Data</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Booker / Local</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Gig</th>
-                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status</th>
-                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cachê (R$)</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                                @forelse ($allGigs as $gig)
-                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                        <td class="px-4 py-2 text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                                            {{ $gig->gig_date->isoFormat('L') }}
-                                            @if($gig->gig_date->isFuture())
-                                                <span class="ml-1 px-1.5 py-0.5 text-[10px] rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Futuro</span>
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    {{-- Cabeçalho --}}
+                    <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
+                        <div class="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                            <div class="flex items-center space-x-4">
+                                <span class="w-20">Data</span>
+                                <span class="w-32">Booker</span>
+                                <span>Gig / Local</span>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <span class="w-16 text-center">Status</span>
+                                <span class="w-24 text-right">Cachê</span>
+                                <span class="w-4"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Lista de Eventos --}}
+                    <div class="p-4">
+                    @forelse ($allGigs as $gig)
+                        @php
+                            $gigCosts = $gig->gigCosts;
+                            $confirmedCosts = $gigCosts->where('is_confirmed', true);
+                            $pendingCosts = $gigCosts->where('is_confirmed', false);
+                            $totalConfirmed = $confirmedCosts->sum('value_brl');
+                            $totalPending = $pendingCosts->sum('value_brl');
+                            $hasExpenses = $gigCosts->count() > 0;
+                        @endphp
+
+                        <div x-data="{ open: false }" class="py-2 {{ !$loop->last ? 'border-b border-gray-200 dark:border-gray-700' : '' }}">
+                            {{-- Linha Resumida Clicável --}}
+                            <div @click="open = !open" class="flex items-center justify-between cursor-pointer group hover:bg-gray-50 dark:hover:bg-gray-700/30 -mx-2 px-2 py-1 rounded">
+                                {{-- Coluna Esquerda: Data, Booker, Gig/Local --}}
+                                <div class="flex items-center space-x-4">
+                                    {{-- Data --}}
+                                    <div class="w-20 text-xs text-gray-700 dark:text-gray-300">
+                                        {{ $gig->gig_date->isoFormat('DD/MM/YY') }}
+                                        @if($gig->gig_date->isFuture())
+                                            <span class="block text-[9px] text-blue-600 dark:text-blue-400 font-medium">Futuro</span>
+                                        @endif
+                                    </div>
+                                    {{-- Booker --}}
+                                    <div class="w-32">
+                                        <p class="text-xs font-semibold text-gray-900 dark:text-white uppercase truncate">{{ $gig->booker->name ?? 'N/A' }}</p>
+                                    </div>
+                                    {{-- Gig / Local --}}
+                                    <div>
+                                        <a href="{{ route('gigs.show', $gig->id) }}" @click.stop class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline" title="Ver detalhes da Gig">
+                                            @if($gig->contract_number)
+                                                #{{ $gig->contract_number }}
+                                            @else
+                                                #{{ $gig->id }}
                                             @endif
-                                        </td>
-                                        <td class="px-4 py-2">
-                                            <div class="text-xs font-medium text-gray-900 dark:text-white">
-                                                {{ $gig->booker->name ?? 'N/A' }}
+                                        </a>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ Str::limit($gig->location_event_details, 35) ?: '-' }}</p>
+                                    </div>
+                                </div>
+
+                                {{-- Coluna Direita: Status, Valor, Chevron --}}
+                                <div class="flex items-center space-x-4">
+                                    {{-- Ícones de Status --}}
+                                    <div class="w-16 flex justify-center space-x-1" title="Cliente | Despesas | Artista">
+                                        <i class="fas fa-dollar-sign fa-fw text-xs {{ $gig->payment_status === 'pago' ? 'text-green-500' : ($gig->payment_status === 'vencido' ? 'text-red-500' : 'text-gray-400') }}"></i>
+                                        <i class="fas fa-receipt fa-fw text-xs {{ $hasExpenses && $totalConfirmed > 0 ? 'text-green-500' : ($hasExpenses ? 'text-yellow-500' : 'text-gray-400') }}"></i>
+                                        <i class="fas fa-user-check fa-fw text-xs {{ $gig->artist_payment_status === 'pago' ? 'text-green-500' : 'text-gray-400' }}"></i>
+                                    </div>
+                                    {{-- Valor --}}
+                                    <div class="w-24 text-right">
+                                        <p class="text-xs font-semibold text-gray-700 dark:text-gray-200">R$ {{ number_format($gig->calculated_artist_net_payout_brl ?? 0, 2, ',', '.') }}</p>
+                                    </div>
+                                    {{-- Indicador de expansão --}}
+                                    <i class="fas fa-chevron-down w-4 text-xs text-gray-400 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+                                </div>
+                            </div>
+
+                            {{-- Área Expandida com Detalhes --}}
+                            <div x-show="open" x-collapse class="mt-4 pl-8 border-l-2 border-gray-200 dark:border-gray-700 ml-2">
+                                <div class="space-y-2 text-xs">
+                                    {{-- Status --}}
+                                    <div class="flex items-center">
+                                        <span class="w-3 h-3 rounded-full {{ $gig->payment_status === 'pago' ? 'bg-green-500' : ($gig->payment_status === 'vencido' ? 'bg-red-500' : 'bg-gray-400') }} mr-2"></span>
+                                        <span class="font-medium text-gray-600 dark:text-gray-400 w-32">Pagamento Cliente:</span>
+                                        <span class="font-semibold text-gray-800 dark:text-white">{{ ucfirst($gig->payment_status) }}</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="w-3 h-3 rounded-full {{ $gig->artist_payment_status === 'pago' ? 'bg-green-500' : 'bg-gray-400' }} mr-2"></span>
+                                        <span class="font-medium text-gray-600 dark:text-gray-400 w-32">Repasse Artista:</span>
+                                        <span class="font-semibold text-gray-800 dark:text-white">{{ ucfirst($gig->artist_payment_status) }}</span>
+                                    </div>
+
+                                    {{-- Cachê Líquido --}}
+                                    <div class="flex items-center mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                        <span class="font-medium text-gray-600 dark:text-gray-400 w-32">Cachê Líquido:</span>
+                                        <span class="font-semibold text-green-600 dark:text-green-400">R$ {{ number_format($gig->calculated_artist_net_payout_brl ?? 0, 2, ',', '.') }}</span>
+                                    </div>
+
+                                    {{-- Despesas --}}
+                                    @if ($hasExpenses)
+                                        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <h4 class="text-xs font-medium text-gray-800 dark:text-white">Despesas do Evento</h4>
+                                                <div class="text-xs space-x-2">
+                                                    @if ($totalConfirmed > 0)
+                                                        <span class="text-green-600 dark:text-green-400">Conf: R$ {{ number_format($totalConfirmed, 2, ',', '.') }}</span>
+                                                    @endif
+                                                    @if ($totalPending > 0)
+                                                        <span class="text-yellow-600 dark:text-yellow-400">Pend: R$ {{ number_format($totalPending, 2, ',', '.') }}</span>
+                                                    @endif
+                                                </div>
                                             </div>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                {{ $gig->location_event_details ?: '-' }}
+                                            <div class="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 space-y-2">
+                                                @foreach ($gigCosts as $cost)
+                                                    <div class="flex items-center justify-between text-xs {{ !$cost->is_confirmed ? 'bg-yellow-50 dark:bg-yellow-900/10 p-2 rounded' : '' }}">
+                                                        <div class="flex-1">
+                                                            <span class="font-medium text-gray-700 dark:text-gray-300">{{ $cost->costCenter->name ?? 'N/A' }}</span>
+                                                            @if($cost->description)
+                                                                <span class="text-gray-500 dark:text-gray-400"> - {{ $cost->description }}</span>
+                                                            @endif
+                                                        </div>
+                                                        <div class="flex items-center space-x-2">
+                                                            <span class="font-mono text-gray-700 dark:text-gray-300">
+                                                                {{ $cost->currency }} {{ number_format($cost->value, 2, ',', '.') }}
+                                                            </span>
+                                                            @if ($cost->is_invoice)
+                                                                <i class="fas fa-file-invoice text-green-500" title="Incluído na NF"></i>
+                                                            @endif
+                                                            @if ($cost->is_confirmed)
+                                                                <i class="fas fa-check-circle text-green-500" title="Confirmado"></i>
+                                                            @else
+                                                                <i class="fas fa-clock text-yellow-500" title="Pendente"></i>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                @endforeach
                                             </div>
-                                        </td>
-                                        <td class="px-4 py-2">
-                                            <a href="{{ route('gigs.show', $gig) }}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
-                                                @if($gig->contract_number)
-                                                    #{{ $gig->contract_number }}
-                                                @else
-                                                    #{{ $gig->id }}
-                                                @endif
-                                            </a>
-                                        </td>
-                                        <td class="px-4 py-2 text-center">
-                                            <div class="flex justify-center space-x-1" title="Cliente | Despesas | Artista">
-                                                @php
-                                                    $hasExpenses = $gig->gigCosts->count() > 0;
-                                                    $confirmedCosts = $gig->gigCosts->where('is_confirmed', true)->sum('value_brl');
-                                                @endphp
-                                                <i class="fas fa-dollar-sign text-xs {{ $gig->payment_status === 'pago' ? 'text-green-500' : ($gig->payment_status === 'vencido' ? 'text-red-500' : 'text-gray-400') }}" title="Pagamento Cliente"></i>
-                                                <i class="fas fa-receipt text-xs {{ $hasExpenses && $confirmedCosts > 0 ? 'text-green-500' : ($hasExpenses ? 'text-yellow-500' : 'text-gray-400') }}" title="Despesas"></i>
-                                                <i class="fas fa-user-check text-xs {{ $gig->artist_payment_status === 'pago' ? 'text-green-500' : 'text-gray-400' }}" title="Pagamento Artista"></i>
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-2 text-xs text-right font-mono text-gray-700 dark:text-gray-200">
-                                            R$ {{ number_format($gig->calculated_artist_net_payout_brl ?? 0, 2, ',', '.') }}
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                                            <i class="fas fa-calendar-times text-3xl mb-2 opacity-50"></i>
-                                            <p class="text-sm">Nenhum evento encontrado para este período.</p>
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                                        </div>
+                                    @else
+                                        <div class="flex items-center mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                            <span class="text-gray-400 dark:text-gray-500 text-xs italic">Sem despesas registradas</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-8">
+                            <i class="fas fa-calendar-times text-gray-400 text-3xl mb-2"></i>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Nenhum evento encontrado para este período.</p>
+                        </div>
+                    @endforelse
                     </div>
                 </div>
             </div>
