@@ -1,155 +1,157 @@
 <x-app-layout>
-    <div class="max-w-9xl mx-auto py-10 sm:px-6 lg:px-8">
+    <div class="max-w-9xl mx-auto py-6 sm:px-6 lg:px-8">
         <div class="bg-white dark:bg-gray-800 shadow-xl rounded-lg">
-            <div class="p-6 sm:px-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                <div class="flex justify-between items-center">
+            {{-- Cabeçalho --}}
+            <div class="p-4 sm:px-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $artist->name }}</h1>
-                        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Visão geral da atividade do artista.</p>
+                        <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ $artist->name }}</h1>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Painel administrativo do artista</p>
                     </div>
-                    <div class="flex items-center space-x-4">
-                        <a href="{{ route('artists.index') }}" class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                            Voltar
+                    <div class="flex items-center space-x-2">
+                        <a href="{{ route('artists.index') }}" class="inline-flex items-center px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <i class="fas fa-arrow-left mr-2"></i>Voltar
                         </a>
-                        <a href="{{ route('artists.edit', $artist) }}" class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 active:bg-gray-900 focus:outline-none focus:border-gray-900 focus:ring ring-gray-300 disabled:opacity-25 transition ease-in-out duration-150">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>
-                            Editar Artista
+                        <a href="{{ route('artists.edit', $artist) }}" class="inline-flex items-center px-3 py-1.5 bg-gray-800 dark:bg-gray-700 rounded-md text-xs font-medium text-white hover:bg-gray-700 dark:hover:bg-gray-600">
+                            <i class="fas fa-pen mr-2"></i>Editar
                         </a>
                     </div>
                 </div>
             </div>
 
-            <div class="p-6 sm:px-20 bg-white dark:bg-gray-800" x-data="{ currentTab: '{{ request()->get('tab', 'overview') }}' }" @tab-changed.window="currentTab = $event.detail">
-                <form method="GET" action="{{ route('artists.show', $artist) }}">
-                    <input type="hidden" name="tab" :value="currentTab">
-                    <div class="flex items-center space-x-4">
-                        <div class="flex-grow">
-                            <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Período de Análise</label>
-                            <div class="flex items-center mt-1 space-x-2">
-                                <input type="date" name="start_date" id="start_date" value="{{ $startDate->format('Y-m-d') }}" class="block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
-                                <span class="text-gray-500">até</span>
-                                <input type="date" name="end_date" id="end_date" value="{{ $endDate->format('Y-m-d') }}" class="block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
-                            </div>
-                        </div>
-                        <div class="pt-6">
-                            <x-secondary-button type="submit">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
-                                Aplicar Filtro
-                            </x-secondary-button>
-                        </div>
+            {{-- Filtros --}}
+            <div class="p-4 sm:px-6 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                <form method="GET" action="{{ route('artists.show', $artist) }}" class="flex flex-col sm:flex-row gap-4 items-end">
+                    <div class="flex-grow">
+                        <label for="search" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Busca Livre</label>
+                        <input type="text" name="search" id="search" value="{{ request('search') }}" 
+                               placeholder="Booker, local, contrato..."
+                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-primary-500 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label for="start_date" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">De</label>
+                        <input type="date" name="start_date" id="start_date" value="{{ $startDate->format('Y-m-d') }}" 
+                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-primary-500 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label for="end_date" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Até</label>
+                        <input type="date" name="end_date" id="end_date" value="{{ $endDate->format('Y-m-d') }}" 
+                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-primary-500 focus:ring-primary-500">
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit" class="inline-flex items-center px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-xs font-medium">
+                            <i class="fas fa-search mr-2"></i>Filtrar
+                        </button>
+                        <a href="{{ route('artists.show', $artist) }}" class="inline-flex items-center px-3 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md text-xs font-medium">
+                            <i class="fas fa-times mr-1"></i>Limpar
+                        </a>
                     </div>
                 </form>
             </div>
 
-            <div class="rounded-xl">
-                <div x-data="{
-                    tab: '{{ request()->get('tab', 'overview') }}',
-                    init() {
-                        // Listen for browser back/forward buttons
-                        window.addEventListener('popstate', () => {
-                            const urlParams = new URLSearchParams(window.location.search);
-                            const tabFromUrl = urlParams.get('tab') || 'overview';
-                            this.tab = tabFromUrl;
-                            this.$dispatch('tab-changed', tabFromUrl);
+            {{-- Cards de Métricas --}}
+            <div class="p-4 sm:px-6">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border-l-4 border-blue-500">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Total de Gigs</p>
+                        <p class="text-xl font-bold text-blue-600 dark:text-blue-400">{{ $realizedGigs->count() + $futureGigs->count() }}</p>
+                    </div>
+                    <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 border-l-4 border-purple-500">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Cachê Bruto</p>
+                        <p class="text-xl font-bold text-purple-600 dark:text-purple-400">R$ {{ number_format($metrics['totalGrossFee'] ?? 0, 2, ',', '.') }}</p>
+                    </div>
+                    <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border-l-4 border-green-500">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Líquido Recebido</p>
+                        <p class="text-xl font-bold text-green-600 dark:text-green-400">R$ {{ number_format($metrics['cache_received_brl'] ?? 0, 2, ',', '.') }}</p>
+                    </div>
+                    <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 border-l-4 border-yellow-500">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">A Receber</p>
+                        <p class="text-xl font-bold text-yellow-600 dark:text-yellow-400">R$ {{ number_format($metrics['cache_pending_brl'] ?? 0, 2, ',', '.') }}</p>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Tabela de Eventos --}}
+            <div class="p-4 sm:px-6">
+                @php
+                    // Combina gigs realizados + futuros e aplica busca
+                    $allGigs = $realizedGigs->concat($futureGigs)->sortByDesc('gig_date');
+                    
+                    // Aplica filtro de busca se houver
+                    if (request('search')) {
+                        $search = strtolower(request('search'));
+                        $allGigs = $allGigs->filter(function ($gig) use ($search) {
+                            return str_contains(strtolower($gig->booker->name ?? ''), $search) ||
+                                   str_contains(strtolower($gig->location_event_details ?? ''), $search) ||
+                                   str_contains(strtolower($gig->contract_number ?? ''), $search) ||
+                                   str_contains((string) $gig->id, $search);
                         });
-                    },
-                    changeTab(newTab) {
-                        this.tab = newTab;
-                        this.$dispatch('tab-changed', newTab);
-                        // Update URL without reloading
-                        const url = new URL(window.location);
-                        url.searchParams.set('tab', newTab);
-                        window.history.pushState({}, '', url);
                     }
-                }" class="p-4 sm:p-6 lg:p-8">
-                    <div class="sm:hidden">
-                        <label for="tabs" class="sr-only">Select a tab</label>
-                        <select id="tabs" name="tabs" @change="changeTab($event.target.value)" class="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="overview" :selected="tab === 'overview'">Visão Geral</option>
-                            <option value="events" :selected="tab === 'events'">Eventos</option>
-                            <option value="financials" :selected="tab === 'financials'">Fechamento Financeiro</option>
-                        </select>
-                    </div>
-                    <div class="hidden sm:block">
-                        <div class="border-b border-gray-200">
-                            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                                <a href="#" @click.prevent="changeTab('overview')" :class="{'border-indigo-500 text-indigo-600': tab === 'overview', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': tab !== 'overview'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Visão Geral</a>
-                                <a href="#" @click.prevent="changeTab('events')" :class="{'border-indigo-500 text-indigo-600': tab === 'events', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': tab !== 'events'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Eventos</a>
-                                <a href="#" @click.prevent="changeTab('financials')" :class="{'border-indigo-500 text-indigo-600': tab === 'financials', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': tab !== 'financials'}" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">Fechamento Financeiro</a>
-                            </nav>
-                        </div>
-                    </div>
+                @endphp
 
-                    <div x-show="tab === 'overview'" class="mt-6">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <!-- Total de Gigs -->
-                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 border-blue-500 p-5">
-                                <div class="flex items-center">
-                                    <div class="text-blue-500 text-3xl">
-                                        <i class="fas fa-list-alt"></i>
-                                    </div>
-                                    <div class="ml-4">
-                                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Total de Gigs no Período</h3>
-                                        <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white">{{ $realizedGigs->count() + $futureGigs->count() }}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Cachê Bruto Total -->
-                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 border-purple-500 p-5">
-                                <div class="flex items-center">
-                                    <div class="text-purple-500 text-3xl">
-                                        <i class="fas fa-dollar-sign"></i>
-                                    </div>
-                                    <div class="ml-4">
-                                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Cachê Bruto Total</h3>
-                                        <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white">R$ {{ number_format($metrics['totalGrossFee'] ?? 0, 2, ',', '.') }}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Líquido Recebido -->
-                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 border-green-500 p-5">
-                                <div class="flex items-center">
-                                    <div class="text-green-500 text-3xl">
-                                        <i class="fas fa-check-circle"></i>
-                                    </div>
-                                    <div class="ml-4">
-                                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Líquido Recebido (Realizado)</h3>
-                                        <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white">R$ {{ number_format($metrics['cache_received_brl'] ?? 0, 2, ',', '.') }}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Líquido Pendente -->
-                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 border-yellow-500 p-5">
-                                <div class="flex items-center">
-                                    <div class="text-yellow-500 text-3xl">
-                                        <i class="fas fa-hourglass-half"></i>
-                                    </div>
-                                    <div class="ml-4">
-                                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Líquido a Receber (Futuro)</h3>
-                                        <p class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white">R$ {{ number_format($metrics['cache_pending_brl'] ?? 0, 2, ',', '.') }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div x-show="tab === 'events'">
-                        <div class="mt-6">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">Eventos Realizados</h3>
-                            @include('artists.components.gigs-table', ['gigs' => $realizedGigs, 'tableId' => 'past-gigs-table'])
-                        </div>
-                        <div class="mt-8">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">Próximos Eventos</h3>
-                            @include('artists.components.gigs-table', ['gigs' => $futureGigs, 'tableId' => 'future-gigs-table'])
-                        </div>
-                    </div>
-
-                    <div x-show="tab === 'financials'" class="mt-6">
-                        @include('artists.components.financial-closing', ['metrics' => $metrics])
+                <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Data</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Booker / Local</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Gig</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cachê (R$)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                @forelse ($allGigs as $gig)
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                        <td class="px-4 py-2 text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                            {{ $gig->gig_date->isoFormat('L') }}
+                                            @if($gig->gig_date->isFuture())
+                                                <span class="ml-1 px-1.5 py-0.5 text-[10px] rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Futuro</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-2">
+                                            <div class="text-xs font-medium text-gray-900 dark:text-white">
+                                                {{ $gig->booker->name ?? 'N/A' }}
+                                            </div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                {{ $gig->location_event_details ?: '-' }}
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-2">
+                                            <a href="{{ route('gigs.show', $gig) }}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
+                                                @if($gig->contract_number)
+                                                    #{{ $gig->contract_number }}
+                                                @else
+                                                    #{{ $gig->id }}
+                                                @endif
+                                            </a>
+                                        </td>
+                                        <td class="px-4 py-2 text-center">
+                                            <div class="flex justify-center space-x-1" title="Cliente | Despesas | Artista">
+                                                @php
+                                                    $hasExpenses = $gig->gigCosts->count() > 0;
+                                                    $confirmedCosts = $gig->gigCosts->where('is_confirmed', true)->sum('value_brl');
+                                                @endphp
+                                                <i class="fas fa-dollar-sign text-xs {{ $gig->payment_status === 'pago' ? 'text-green-500' : ($gig->payment_status === 'vencido' ? 'text-red-500' : 'text-gray-400') }}" title="Pagamento Cliente"></i>
+                                                <i class="fas fa-receipt text-xs {{ $hasExpenses && $confirmedCosts > 0 ? 'text-green-500' : ($hasExpenses ? 'text-yellow-500' : 'text-gray-400') }}" title="Despesas"></i>
+                                                <i class="fas fa-user-check text-xs {{ $gig->artist_payment_status === 'pago' ? 'text-green-500' : 'text-gray-400' }}" title="Pagamento Artista"></i>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-2 text-xs text-right font-mono text-gray-700 dark:text-gray-200">
+                                            R$ {{ number_format($gig->calculated_artist_net_payout_brl ?? 0, 2, ',', '.') }}
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                            <i class="fas fa-calendar-times text-3xl mb-2 opacity-50"></i>
+                                            <p class="text-sm">Nenhum evento encontrado para este período.</p>
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
