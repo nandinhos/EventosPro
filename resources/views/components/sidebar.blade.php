@@ -40,7 +40,7 @@
                 </li>
 
                 <!-- Artistas -->
-                <li x-data="{ open: @js(request()->routeIs('artists.index') || request()->routeIs('reports.artist-performance.index')) }"
+                <li x-data="{ open: @js(request()->routeIs('artists.index') || request()->routeIs('reports.artist-performance.index') || request()->routeIs('artists.settlements.index')) }"
     :class="open ? 'text-primary-600 dark:text-primary-300' : ''">
     <button @click="open = !open" class="w-full flex items-center justify-between py-2.5 px-4 rounded-md transition-colors duration-200 text-left"
             :class="open ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'">
@@ -56,6 +56,11 @@
            {{ request()->routeIs('artists.index') ? 'text-primary-600 dark:text-primary-400 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
             <i class="fas fa-list fa-fw w-4 mr-2 text-center"></i>
             Lista de Artistas
+        </a>
+        <a href="{{ route('artists.settlements.index') }}" class="flex items-center py-2 px-4 text-sm rounded-md transition-colors
+           {{ request()->routeIs('artists.settlements.index') ? 'text-primary-600 dark:text-primary-400 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+            <i class="fas fa-money-check-alt fa-fw w-4 mr-2 text-center"></i>
+            Fechamentos
         </a>
         <a href="{{ route('reports.artist-performance.index') }}" class="flex items-center py-2 px-4 text-sm rounded-md transition-colors
            {{ request()->routeIs('reports.artist-performance.index') ? 'text-primary-600 dark:text-primary-400 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">

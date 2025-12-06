@@ -81,6 +81,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/artists/payments/settle-batch', [ArtistController::class, 'settleBatchArtistPayments'])->name('artists.payments.settleBatch');
     Route::patch('/artists/payments/unsettle-batch', [ArtistController::class, 'unsettleBatchArtistPayments'])->name('artists.payments.unsettleBatch');
 
+    // Artist Settlements (Fechamentos)
+    Route::get('/artists-settlements', [App\Http\Controllers\ArtistSettlementsController::class, 'index'])->name('artists.settlements.index');
+    Route::post('/artists-settlements/settle-batch', [App\Http\Controllers\ArtistSettlementsController::class, 'settleBatch'])->name('artists.settlements.settleBatch');
+    Route::patch('/artists-settlements/unsettle-batch', [App\Http\Controllers\ArtistSettlementsController::class, 'unsettleBatch'])->name('artists.settlements.unsettleBatch');
+
     // Bookers
     Route::resource('bookers', BookerController::class);
 
