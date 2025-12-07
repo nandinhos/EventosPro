@@ -25,14 +25,26 @@ class GigCost extends Model
         'confirmed_by',
         'confirmed_at',
         'notes',
+        // Campos de rastreio de reembolso
+        'reimbursement_stage',
+        'reimbursement_proof_type',
+        'reimbursement_proof_file',
+        'reimbursement_proof_received_at',
+        'reimbursement_value_confirmed',
+        'reimbursement_confirmed_at',
+        'reimbursement_confirmed_by',
+        'reimbursement_notes',
     ];
 
     protected $casts = [
         'value' => 'decimal:2',
         'expense_date' => 'date',
-        'is_confirmed' => 'boolean', // Cast para booleano
+        'is_confirmed' => 'boolean',
         'is_invoice' => 'boolean',
         'confirmed_at' => 'datetime',
+        'reimbursement_proof_received_at' => 'datetime',
+        'reimbursement_value_confirmed' => 'decimal:2',
+        'reimbursement_confirmed_at' => 'datetime',
     ];
 
     /**
@@ -81,5 +93,71 @@ class GigCost extends Model
         }
 
         return (float) $this->value * $exchangeRate;
+    }
+
+    // ====================================================
+    // CONSTANTES DE ESTÁGIO DE REEMBOLSO
+    // ====================================================
+    
+    public const REIMBURSEMENT_STAGES = [
+        'aguardando_comprovante' => 'Aguardando Comprovante',
+        'comprovante_recebido' => 'Comprovante Recebido',
+        'conferido' => 'Conferido',
+        'reembolsado' => 'Reembolsado',
+    ];
+
+    public const REIMBURSEMENT_PROOF_TYPES = [
+        'recibo' => 'Recibo',
+        'nf' => 'Nota Fiscal',
+        'transferencia' => 'Comprovante de Transferência',
+        'outro' => 'Outro',
+    ];
+
+    // ====================================================
+    // SCOPES
+    // ====================================================
+
+    /**
+     * Scope para despesas reembolsáveis (is_invoice = true)
+     */
+    public function scopeReimbursable($query)
+    {
+        return $query->where('is_invoice', true);
+    }
+
+    /**
+     * Scope para filtrar por estágio de reembolso
+     */
+    public function scopeReimbursementStage($query, string $stage)
+    {
+        return $query->where('reimbursement_stage', $stage);
+    }
+
+    // ====================================================
+    // ACCESSORS
+    // ====================================================
+
+    /**
+     * Accessor para label do estágio de reembolso
+     */
+    public function getReimbursementStageLabelAttribute(): string
+    {
+        return self::REIMBURSEMENT_STAGES[$this->reimbursement_stage] ?? 'N/A';
+    }
+
+    /**
+     * Accessor para label do tipo de comprovante
+     */
+    public function getReimbursementProofTypeLabelAttribute(): string
+    {
+        return self::REIMBURSEMENT_PROOF_TYPES[$this->reimbursement_proof_type] ?? 'N/A';
+    }
+
+    /**
+     * Retorna o usuário que confirmou o reembolso
+     */
+    public function reimbursementConfirmer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reimbursement_confirmed_by');
     }
 }

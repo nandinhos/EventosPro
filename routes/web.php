@@ -92,6 +92,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('/artists-settlements/{gig}/revert', [App\Http\Controllers\ArtistSettlementsController::class, 'revertStage'])->name('artists.settlements.revert');
     Route::patch('/artists-settlements/revert-batch', [App\Http\Controllers\ArtistSettlementsController::class, 'revertBatch'])->name('artists.settlements.revertBatch');
 
+    // Expense Reimbursements (Despesas Reembolsáveis)
+    Route::get('/expense-reimbursements', [App\Http\Controllers\ExpenseReimbursementController::class, 'index'])->name('expenses.reimbursements.index');
+    Route::post('/expense-reimbursements/{cost}/receive-proof', [App\Http\Controllers\ExpenseReimbursementController::class, 'receiveProof'])->name('expenses.reimbursements.receiveProof');
+    Route::post('/expense-reimbursements/{cost}/confirm', [App\Http\Controllers\ExpenseReimbursementController::class, 'confirmReimbursement'])->name('expenses.reimbursements.confirm');
+    Route::post('/expense-reimbursements/{cost}/reimburse', [App\Http\Controllers\ExpenseReimbursementController::class, 'markReimbursed'])->name('expenses.reimbursements.reimburse');
+    Route::patch('/expense-reimbursements/{cost}/revert', [App\Http\Controllers\ExpenseReimbursementController::class, 'revertStage'])->name('expenses.reimbursements.revert');
+
     // Bookers
     Route::resource('bookers', BookerController::class);
 

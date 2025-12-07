@@ -62,6 +62,11 @@
             <i class="fas fa-money-check-alt fa-fw w-4 mr-2 text-center"></i>
             Fechamentos
         </a>
+        <a href="{{ route('expenses.reimbursements.index') }}" class="flex items-center py-2 px-4 text-sm rounded-md transition-colors
+           {{ request()->routeIs('expenses.reimbursements.index') ? 'text-primary-600 dark:text-primary-400 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+            <i class="fas fa-receipt fa-fw w-4 mr-2 text-center"></i>
+            Reembolsos
+        </a>
         <a href="{{ route('reports.artist-performance.index') }}" class="flex items-center py-2 px-4 text-sm rounded-md transition-colors
            {{ request()->routeIs('reports.artist-performance.index') ? 'text-primary-600 dark:text-primary-400 font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
             <i class="fas fa-rocket fa-fw w-4 mr-2 text-center"></i>
