@@ -122,7 +122,8 @@ class ArtistSettlementsController extends Controller
     {
         $request->validate([
             'communication_notes' => 'nullable|string|max:1000',
-            'redirect_to' => 'nullable|string|in:gig,index,show',
+            'redirect_to' => 'nullable|string|in:gig,index,show,artist',
+            'artist_id' => 'nullable|integer|exists:artists,id',
         ]);
 
         DB::transaction(function () use ($request, $gig) {
@@ -163,6 +164,12 @@ class ArtistSettlementsController extends Controller
                 ->with('success', 'Fechamento enviado com sucesso!');
         }
 
+        if ($redirectTo === 'artist' && $request->input('artist_id')) {
+            return redirect()
+                ->route('artists.show', $request->input('artist_id'))
+                ->with('success', 'Fechamento enviado com sucesso!');
+        }
+
         return redirect()
             ->route('artists.settlements.index', $request->query())
             ->with('success', 'Fechamento enviado com sucesso!');
@@ -174,11 +181,12 @@ class ArtistSettlementsController extends Controller
     public function markDocumentationReceived(Request $request, Gig $gig)
     {
         $request->validate([
-            'documentation_type' => 'required|in:nf,recibo',
+            'documentation_type' => 'required|in:nf,rpa,recibo',
             'documentation_number' => 'nullable|string|max:100',
             'documentation_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'communication_notes' => 'nullable|string|max:1000',
-            'redirect_to' => 'nullable|string|in:gig,index,show',
+            'redirect_to' => 'nullable|string|in:gig,index,show,artist',
+            'artist_id' => 'nullable|integer|exists:artists,id',
         ]);
 
         $settlement = $gig->settlement;
@@ -188,6 +196,9 @@ class ArtistSettlementsController extends Controller
             $errorRedirect = match($redirectTo) {
                 'gig' => redirect()->route('gigs.request-nf', $gig),
                 'show' => redirect()->route('gigs.show', $gig),
+                'artist' => $request->input('artist_id') 
+                    ? redirect()->route('artists.show', $request->input('artist_id'))
+                    : redirect()->route('artists.settlements.index', $request->query()),
                 default => redirect()->route('artists.settlements.index', $request->query()),
             };
             
@@ -231,6 +242,12 @@ class ArtistSettlementsController extends Controller
                 ->with('success', 'Documentação registrada com sucesso!');
         }
 
+        if ($redirectTo === 'artist' && $request->input('artist_id')) {
+            return redirect()
+                ->route('artists.show', $request->input('artist_id'))
+                ->with('success', 'Documentação registrada com sucesso!');
+        }
+
         return redirect()
             ->route('artists.settlements.index', $request->query())
             ->with('success', 'Documentação registrada com sucesso!');
@@ -243,7 +260,10 @@ class ArtistSettlementsController extends Controller
     {
         $request->validate([
             'payment_date' => 'required|date|before_or_equal:today',
-            'redirect_to' => 'nullable|string|in:gig,index,show',
+            'payment_value' => 'nullable|numeric|min:0',
+            'payment_proof_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'redirect_to' => 'nullable|string|in:gig,index,show,artist',
+            'artist_id' => 'nullable|integer|exists:artists,id',
         ]);
 
         // Validar estágio - só permite pagar se estiver em documentacao_recebida
@@ -268,15 +288,26 @@ class ArtistSettlementsController extends Controller
         }
 
         $paymentDate = $request->input('payment_date', now()->toDateString());
+        $paymentValue = $request->input('payment_value', $gig->calculated_artist_invoice_value_brl);
 
-        DB::transaction(function () use ($gig, $settlement, $paymentDate) {
+        DB::transaction(function () use ($request, $gig, $settlement, $paymentDate, $paymentValue) {
             $gig->update(['artist_payment_status' => 'pago']);
+
+            // Upload do comprovante se enviado
+            $proofPath = $settlement->artist_payment_proof;
+            if ($request->hasFile('payment_proof_file')) {
+                $proofPath = $request->file('payment_proof_file')->store(
+                    'settlements/proofs',
+                    'public'
+                );
+            }
 
             // Atualiza o settlement com estágio 'pago'
             $settlement->update([
                 'settlement_stage' => Settlement::STAGE_PAGO,
-                'artist_payment_value' => $gig->calculated_artist_invoice_value_brl,
+                'artist_payment_value' => $paymentValue,
                 'artist_payment_paid_at' => $paymentDate,
+                'artist_payment_proof' => $proofPath,
             ]);
         });
 
@@ -295,6 +326,12 @@ class ArtistSettlementsController extends Controller
                 ->with('success', 'Pagamento registrado com sucesso!');
         }
 
+        if ($redirectTo === 'artist' && $request->input('artist_id')) {
+            return redirect()
+                ->route('artists.show', $request->input('artist_id'))
+                ->with('success', 'Pagamento registrado com sucesso!');
+        }
+
         return redirect()
             ->route('artists.settlements.index', $request->query())
             ->with('success', 'Pagamento registrado com sucesso!');
@@ -306,7 +343,8 @@ class ArtistSettlementsController extends Controller
     public function revertStage(Request $request, Gig $gig)
     {
         $request->validate([
-            'redirect_to' => 'nullable|string|in:gig,index,show',
+            'redirect_to' => 'nullable|string|in:gig,index,show,artist',
+            'artist_id' => 'nullable|integer|exists:artists,id',
         ]);
 
         $settlement = $gig->settlement;
@@ -375,6 +413,12 @@ class ArtistSettlementsController extends Controller
         if ($redirectTo === 'show') {
             return redirect()
                 ->route('gigs.show', $gig)
+                ->with($type, $message);
+        }
+
+        if ($redirectTo === 'artist' && $request->input('artist_id')) {
+            return redirect()
+                ->route('artists.show', $request->input('artist_id'))
                 ->with($type, $message);
         }
 

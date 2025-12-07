@@ -8,9 +8,7 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400">Hub de informações de performance, comissões e atividades.</p>
             </div>
             <div class="flex items-center space-x-2 mt-4 md:mt-0">
-                <a href="{{ route('bookers.index') }}" class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-md text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="Voltar para a lista de bookers">
-                    <i class="fas fa-arrow-left fa-fw"></i>
-                </a>
+                <x-back-button :fallback="route('bookers.index')" class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-md text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors" title="Voltar" />
                 <a href="{{ route('gigs.create', ['booker_id' => $booker->id]) }}" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-semibold flex items-center">
                     <i class="fas fa-plus mr-2"></i> Adicionar Gig
                 </a>

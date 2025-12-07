@@ -106,47 +106,55 @@ class ArtistController extends Controller
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param  ArtistFinancialsService  $financialsService  // Injeção de dependência
-     */
-    public function show(Artist $artist, Request $request, ArtistFinancialsService $financialsService): View
-    {
-        $artist->load('tags');
+ * Display the specified resource.
+ *
+ * @param  ArtistFinancialsService  $financialsService  // Injeção de dependência
+ */
+public function show(Artist $artist, Request $request, ArtistFinancialsService $financialsService): View
+{
+    $artist->load('tags');
 
-        // 1. Período (com valores padrão)
-        $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date')) : Carbon::now()->startOfYear();
-        $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date')) : Carbon::now()->endOfYear();
+    // 1. Período (com valores padrão)
+    $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date')) : Carbon::now()->startOfYear();
+    $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date')) : Carbon::now()->endOfYear();
 
-        // 2. Busca e Filtra Gigs no período (eager load para evitar N+1)
-        $gigsInPeriod = $artist->gigs()
-            ->with(['booker', 'gigCosts.costCenter', 'payments'])
-            ->whereBetween('gig_date', [$startDate, $endDate])
-            ->orderBy('gig_date', 'desc')
-            ->get();
+    // 2. Busca e Filtra Gigs no período (eager load para evitar N+1)
+    $gigsInPeriod = $artist->gigs()
+        ->with(['booker', 'gigCosts.costCenter', 'payments', 'settlement'])
+        ->whereBetween('gig_date', [$startDate, $endDate])
+        ->orderBy('gig_date', 'desc')
+        ->get();
 
-        // 3. Separa Gigs em Realizadas e Futuras
-        $today = Carbon::today();
-        $realizedGigs = $gigsInPeriod->where('gig_date', '<=', $today);
-        $futureGigs = $gigsInPeriod->where('gig_date', '>', $today);
+    // 3. Separa Gigs em Realizadas e Futuras
+    $today = Carbon::today();
+    $realizedGigs = $gigsInPeriod->where('gig_date', '<=', $today);
+    $futureGigs = $gigsInPeriod->where('gig_date', '>', $today);
 
-        // 4. Calcula Métricas Financeiras para o período
-        $metrics = $financialsService->getFinancialMetrics($artist, $gigsInPeriod);
+    // 4. Calcula Métricas Financeiras para o período
+    $metrics = $financialsService->getFinancialMetrics($artist, $gigsInPeriod);
 
-        // 5. Busca Cost Centers para o gerenciamento de despesas
-        $costCenters = CostCenter::orderBy('name')->get();
+    // 5. Calcula Dados do Gráfico Mensal
+    $chartData = $financialsService->getMonthlyPerformance($gigsInPeriod, $startDate, $endDate);
 
-        // 6. Retorna a view com os dados
-        return view('artists.show', compact(
-            'artist',
-            'startDate',
-            'endDate',
-            'realizedGigs',
-            'futureGigs',
-            'metrics',
-            'costCenters'
-        ));
-    }
+    // 6. Calcula Métricas de Settlement
+    $settlementMetrics = $financialsService->getSettlementMetrics($gigsInPeriod);
+
+    // 7. Busca Cost Centers para o gerenciamento de despesas
+    $costCenters = CostCenter::orderBy('name')->get();
+
+    // 8. Retorna a view com os dados
+    return view('artists.show', compact(
+        'artist',
+        'startDate',
+        'endDate',
+        'realizedGigs',
+        'futureGigs',
+        'metrics',
+        'chartData',
+        'settlementMetrics',
+        'costCenters'
+    ));
+}
 
     /**
      * Settle batch artist payments for multiple gigs at once.

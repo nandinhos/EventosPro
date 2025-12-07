@@ -15,9 +15,7 @@
             </p>
         </div>
         <div class="flex space-x-2 items-center">
-            <a href="{{ route('gigs.index', $backUrlParams) }}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-sm">
-                <i class="fas fa-arrow-left mr-1"></i> Voltar para Lista
-            </a>
+            <x-back-button :fallback="route('gigs.index', $backUrlParams)" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-md text-sm">Voltar para Lista</x-back-button>
             <a href="{{ route('gigs.edit', ['gig' => $gig] + $backUrlParams) }}" class="bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-md text-sm">
                 <i class="fas fa-edit mr-1"></i> Editar
             </a>

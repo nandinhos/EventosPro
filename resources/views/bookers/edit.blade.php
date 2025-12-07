@@ -8,10 +8,7 @@
     
     <div class="mb-6 flex justify-between items-center">
        
-        <a href="{{ route('bookers.index') }}"
-           class="inline-flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium rounded-md shadow-sm transition">
-            <i class="fas fa-arrow-left mr-2"></i> Voltar
-        </a>
+        <x-back-button :fallback="route('bookers.index')" class="inline-flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium rounded-md shadow-sm transition" />
     </div>
 
     {{-- Formulário --}}

@@ -32,9 +32,7 @@
             <span class="px-3 py-1.5 text-sm font-semibold rounded-full {{ $stageColors[$settlementStage] }}">
                 <i class="fas fa-{{ $stageIcons[$settlementStage] }} mr-1"></i>{{ $stageLabels[$settlementStage] }}
             </span>
-            <a href="{{ route('gigs.show', $backUrlParams) }}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-md text-sm">
-                <i class="fas fa-arrow-left mr-1"></i> Voltar
-            </a>
+            <x-back-button :fallback="route('gigs.show', $backUrlParams)" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-md text-sm" />
         </div>
     </div>
 

@@ -3,9 +3,7 @@
         <div>
             <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Novo Artista</h2>
         </div>
-         <a href="{{ route('artists.index') }}" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-md text-sm">
-             <i class="fas fa-arrow-left mr-1"></i> Voltar
-        </a>
+         <x-back-button :fallback="route('artists.index')" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-md text-sm" />
     </div>
      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
         <form action="{{ route('artists.store') }}" method="POST">
