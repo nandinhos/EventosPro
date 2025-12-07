@@ -165,6 +165,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('costs/{cost}/confirm', [GigCostController::class, 'confirm'])->name('costs.confirm');
         Route::patch('costs/{cost}/unconfirm', [GigCostController::class, 'unconfirm'])->name('costs.unconfirm');
         Route::patch('costs/{cost}/toggle-invoice', [GigCostController::class, 'toggleInvoice'])->name('costs.toggleInvoice');
+        Route::patch('costs/{cost}/reimbursement-stage', [GigCostController::class, 'updateReimbursementStage'])->name('costs.updateReimbursementStage');
         Route::get('costs-json', [GigCostController::class, 'listJson'])->name('costs.listJson');
 
         // Settlements

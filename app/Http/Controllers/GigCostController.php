@@ -57,6 +57,10 @@ class GigCostController extends Controller
                             'confirmed_at_formatted' => $cost->confirmed_at ? $cost->confirmed_at->isoFormat('l LT') : null,
                             'confirmed_by_name' => $cost->confirmer?->name,
                             'notes' => $cost->notes,
+                            // Campos de reembolso
+                            'reimbursement_stage' => $cost->reimbursement_stage,
+                            'reimbursement_proof_type' => $cost->reimbursement_proof_type,
+                            'reimbursement_proof_file' => $cost->reimbursement_proof_file,
                         ];
                     }),
                 ];
@@ -263,4 +267,56 @@ class GigCostController extends Controller
     }
 
     // public function edit(Gig $gig, GigCost $cost): View { ... }
+
+    /**
+     * Atualiza o estágio de reembolso de uma despesa inline.
+     */
+    public function updateReimbursementStage(Request $request, Gig $gig, GigCost $cost): JsonResponse
+    {
+        if ($cost->gig_id !== $gig->id) {
+            return response()->json(['message' => 'Acesso não autorizado.'], 403);
+        }
+        
+        if (!$cost->is_invoice) {
+            return response()->json(['message' => 'Esta despesa não é reembolsável.'], 422);
+        }
+
+        $validated = $request->validate([
+            'stage' => ['required', 'in:aguardando_comprovante,comprovante_recebido,conferido,reembolsado'],
+            'proof_type' => ['nullable', 'in:recibo,nf,transferencia,outro'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $updateData = ['reimbursement_stage' => $validated['stage']];
+            
+            // Se estiver marcando como recebido, registra data e tipo
+            if ($validated['stage'] === 'comprovante_recebido') {
+                $updateData['reimbursement_proof_received_at'] = now();
+                if (!empty($validated['proof_type'])) {
+                    $updateData['reimbursement_proof_type'] = $validated['proof_type'];
+                }
+                if (!empty($validated['notes'])) {
+                    $updateData['reimbursement_notes'] = $validated['notes'];
+                }
+            }
+            
+            // Se estiver marcando como conferido
+            if ($validated['stage'] === 'conferido') {
+                $updateData['reimbursement_confirmed_at'] = now();
+                $updateData['reimbursement_confirmed_by'] = Auth::id();
+                $updateData['reimbursement_value_confirmed'] = $cost->value;
+            }
+
+            $cost->update($updateData);
+
+            return response()->json([
+                'message' => 'Estágio de reembolso atualizado!',
+                'cost' => $cost->fresh()->load('costCenter', 'confirmer'),
+            ]);
+        } catch (Exception $e) {
+            Log::error("Erro ao atualizar estágio de reembolso da despesa {$cost->id}: " . $e->getMessage());
+            return response()->json(['message' => 'Erro ao atualizar estágio.'], 500);
+        }
+    }
 }

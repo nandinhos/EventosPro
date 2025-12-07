@@ -53,6 +53,7 @@
                                 <th class="pb-2 text-left font-medium uppercase">Descrição</th>
                                 <th class="pb-2 text-right font-medium uppercase">Valor</th>
                                 <th class="pb-2 text-center font-medium uppercase">NF</th>
+                                <th class="pb-2 text-center font-medium uppercase">Comprovante</th>
                                 <th class="pb-2 text-center font-medium uppercase">Status</th>
                                 <th class="pb-2 text-center font-medium uppercase">Ações</th>
                             </tr>
@@ -68,6 +69,37 @@
                                                    class="rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500 disabled:opacity-50"
                                                    :title="!cost.is_confirmed ? 'Confirme a despesa primeiro para marcar para NF' : 'Incluir/Remover da Nota Fiscal do Artista'">
                                         </div>
+                                    </td>
+                                    <td class="py-2 px-1 whitespace-nowrap text-center">
+                                        <template x-if="cost.is_invoice">
+                                            <div class="flex flex-col items-center gap-1">
+                                                <!-- Badge de estágio -->
+                                                <template x-if="cost.reimbursement_stage === 'aguardando_comprovante'">
+                                                    <button @click="receiveProof(cost.id)"
+                                                            class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer" title="Clicar para registrar comprovante">
+                                                        <i class="fas fa-clock mr-1"></i>Aguard.
+                                                    </button>
+                                                </template>
+                                                <template x-if="cost.reimbursement_stage === 'comprovante_recebido'">
+                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400" title="Comprovante recebido">
+                                                        <i class="fas fa-file-alt mr-1"></i>Recebido
+                                                    </span>
+                                                </template>
+                                                <template x-if="cost.reimbursement_stage === 'conferido'">
+                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400" title="Valor conferido">
+                                                        <i class="fas fa-check-double mr-1"></i>Conferido
+                                                    </span>
+                                                </template>
+                                                <template x-if="cost.reimbursement_stage === 'reembolsado'">
+                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400" title="Reembolsado">
+                                                        <i class="fas fa-check-circle mr-1"></i>OK
+                                                    </span>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        <template x-if="!cost.is_invoice">
+                                            <span class="text-gray-400">-</span>
+                                        </template>
                                     </td>
                                     <td class="py-2 px-1 whitespace-nowrap text-center">
                                         <span x-text="cost.is_confirmed ? 'Confirmado' : 'Pendente'"
@@ -238,6 +270,33 @@
                 
                 await this.performAction(url, method, this.costFormData);
                 this.showCostFormModal = false;
+            },
+
+            // Método para atualizar estágio de reembolso
+            async updateReimbursementStage(costId, newStage, proofType = null) {
+                const body = { stage: newStage };
+                if (proofType) body.proof_type = proofType;
+                await this.performAction(`/gigs/${gigId}/costs/${costId}/reimbursement-stage`, 'PATCH', body);
+            },
+
+            // Atalhos para ações rápidas de reembolso
+            receiveProof(costId) {
+                // Abre um prompt simples para tipo de comprovante
+                const proofType = prompt('Tipo de comprovante:\n1 - Recibo\n2 - Nota Fiscal\n3 - Transferência\n4 - Outro');
+                const types = { '1': 'recibo', '2': 'nf', '3': 'transferencia', '4': 'outro' };
+                const selectedType = types[proofType] || 'recibo';
+                this.updateReimbursementStage(costId, 'comprovante_recebido', selectedType);
+            },
+            confirmReimbursement(costId) {
+                this.updateReimbursementStage(costId, 'conferido');
+            },
+            markReimbursed(costId) {
+                this.updateReimbursementStage(costId, 'reembolsado');
+            },
+            revertReimbursement(costId) {
+                if (confirm('Reverter estágio de reembolso para Aguardando?')) {
+                    this.updateReimbursementStage(costId, 'aguardando_comprovante');
+                }
             }
         };
     }
