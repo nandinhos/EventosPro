@@ -70,31 +70,82 @@
                                                    :title="!cost.is_confirmed ? 'Confirme a despesa primeiro para marcar para NF' : 'Incluir/Remover da Nota Fiscal do Artista'">
                                         </div>
                                     </td>
-                                    <td class="py-2 px-1 whitespace-nowrap text-center">
+                                    <td class="py-2 px-1 whitespace-nowrap text-center" x-data="{ open: false }">
                                         <template x-if="cost.is_invoice">
-                                            <div class="flex flex-col items-center gap-1">
-                                                <!-- Badge de estágio -->
-                                                <template x-if="cost.reimbursement_stage === 'aguardando_comprovante'">
-                                                    <button @click="receiveProof(cost.id)"
-                                                            class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer" title="Clicar para registrar comprovante">
-                                                        <i class="fas fa-clock mr-1"></i>Aguard.
-                                                    </button>
-                                                </template>
-                                                <template x-if="cost.reimbursement_stage === 'comprovante_recebido'">
-                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400" title="Comprovante recebido">
-                                                        <i class="fas fa-file-alt mr-1"></i>Recebido
-                                                    </span>
-                                                </template>
-                                                <template x-if="cost.reimbursement_stage === 'conferido'">
-                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400" title="Valor conferido">
-                                                        <i class="fas fa-check-double mr-1"></i>Conferido
-                                                    </span>
-                                                </template>
-                                                <template x-if="cost.reimbursement_stage === 'reembolsado'">
-                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400" title="Reembolsado">
-                                                        <i class="fas fa-check-circle mr-1"></i>OK
-                                                    </span>
-                                                </template>
+                                            <div class="relative inline-block">
+                                                <!-- Badge clicável que abre dropdown -->
+                                                <button @click="open = !open" @click.away="open = false"
+                                                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs transition-colors cursor-pointer"
+                                                        :class="{
+                                                            'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200': cost.reimbursement_stage === 'aguardando_comprovante',
+                                                            'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200': cost.reimbursement_stage === 'comprovante_recebido',
+                                                            'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 hover:bg-blue-200': cost.reimbursement_stage === 'conferido',
+                                                            'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 hover:bg-green-200': cost.reimbursement_stage === 'reembolsado'
+                                                        }">
+                                                    <template x-if="cost.reimbursement_stage === 'aguardando_comprovante'"><span><i class="fas fa-clock mr-1"></i>Aguard.</span></template>
+                                                    <template x-if="cost.reimbursement_stage === 'comprovante_recebido'"><span><i class="fas fa-file-alt mr-1"></i>Recebido</span></template>
+                                                    <template x-if="cost.reimbursement_stage === 'conferido'"><span><i class="fas fa-check-double mr-1"></i>Conferido</span></template>
+                                                    <template x-if="cost.reimbursement_stage === 'reembolsado'"><span><i class="fas fa-check-circle mr-1"></i>OK</span></template>
+                                                    <i class="fas fa-caret-down ml-1 text-xxs"></i>
+                                                </button>
+
+                                                <!-- Dropdown de ações -->
+                                                <div x-show="open" x-transition
+                                                     class="absolute z-20 right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 py-1 text-left">
+                                                    
+                                                    <!-- Ações baseadas no estágio atual -->
+                                                    <template x-if="cost.reimbursement_stage === 'aguardando_comprovante'">
+                                                        <button @click="receiveProof(cost.id); open = false"
+                                                                class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center text-yellow-600 dark:text-yellow-400">
+                                                            <i class="fas fa-file-upload mr-2 w-4"></i>Registrar Recebimento
+                                                        </button>
+                                                    </template>
+
+                                                    <template x-if="cost.reimbursement_stage === 'comprovante_recebido'">
+                                                        <div>
+                                                            <button @click="confirmReimbursement(cost.id); open = false"
+                                                                    class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center text-blue-600 dark:text-blue-400">
+                                                                <i class="fas fa-check-double mr-2 w-4"></i>Conferir Valor
+                                                            </button>
+                                                            <button @click="markReimbursed(cost.id); open = false"
+                                                                    class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center text-green-600 dark:text-green-400">
+                                                                <i class="fas fa-check-circle mr-2 w-4"></i>Marcar OK
+                                                            </button>
+                                                            <hr class="my-1 border-gray-200 dark:border-gray-700">
+                                                            <button @click="revertReimbursement(cost.id); open = false"
+                                                                    class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center text-gray-500">
+                                                                <i class="fas fa-undo mr-2 w-4"></i>Reverter
+                                                            </button>
+                                                        </div>
+                                                    </template>
+
+                                                    <template x-if="cost.reimbursement_stage === 'conferido'">
+                                                        <div>
+                                                            <button @click="markReimbursed(cost.id); open = false"
+                                                                    class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center text-green-600 dark:text-green-400">
+                                                                <i class="fas fa-check-circle mr-2 w-4"></i>Marcar OK
+                                                            </button>
+                                                            <hr class="my-1 border-gray-200 dark:border-gray-700">
+                                                            <button @click="revertToReceived(cost.id); open = false"
+                                                                    class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center text-gray-500">
+                                                                <i class="fas fa-undo mr-2 w-4"></i>Voltar p/ Recebido
+                                                            </button>
+                                                        </div>
+                                                    </template>
+
+                                                    <template x-if="cost.reimbursement_stage === 'reembolsado'">
+                                                        <div>
+                                                            <span class="block px-3 py-1.5 text-xs text-green-600 dark:text-green-400">
+                                                                <i class="fas fa-check mr-2"></i>Documento em posse ✓
+                                                            </span>
+                                                            <hr class="my-1 border-gray-200 dark:border-gray-700">
+                                                            <button @click="revertToConfirmed(cost.id); open = false"
+                                                                    class="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center text-gray-500">
+                                                                <i class="fas fa-undo mr-2 w-4"></i>Voltar p/ Conferido
+                                                            </button>
+                                                        </div>
+                                                    </template>
+                                                </div>
                                             </div>
                                         </template>
                                         <template x-if="!cost.is_invoice">
@@ -297,6 +348,12 @@
                 if (confirm('Reverter estágio de reembolso para Aguardando?')) {
                     this.updateReimbursementStage(costId, 'aguardando_comprovante');
                 }
+            },
+            revertToReceived(costId) {
+                this.updateReimbursementStage(costId, 'comprovante_recebido');
+            },
+            revertToConfirmed(costId) {
+                this.updateReimbursementStage(costId, 'conferido');
             }
         };
     }
