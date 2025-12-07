@@ -24,6 +24,13 @@ REPO_URL="https://github.com/nandinhos/EventosPro.git"
 BRANCH="main"
 KEEP_RELEASES=5  # Número de releases antigas para manter
 
+# Detectar Docker Compose v1 ou v2
+if docker compose version &> /dev/null; then
+    DOCKER_COMPOSE="docker compose"
+else
+    DOCKER_COMPOSE="docker-compose"
+fi
+
 if [ -n "$DEPLOY_BRANCH" ]; then
     BRANCH="$DEPLOY_BRANCH"
 fi
@@ -93,7 +100,7 @@ print_info "Usuário: $(whoami)"
 print_info "Diretório deploy: ${DEPLOY_PATH}"
 
 # Verificar Docker
-if command -v docker &> /dev/null && command -v docker-compose &> /dev/null; then
+if command -v docker &> /dev/null && command -v $DOCKER_COMPOSE &> /dev/null; then
     print_success "Docker e Docker Compose instalados"
 else
     print_error "Docker ou Docker Compose não encontrados!"
@@ -202,12 +209,12 @@ print_info "  storage -> ${DEPLOY_PATH}/shared/storage"
 print_header "7/10 - Instalando Dependências"
 
 print_info "Composer install (sem dev)..."
-docker-compose run --rm laravel.test composer install --optimize-autoloader --no-dev
+$DOCKER_COMPOSE run --rm laravel.test composer install --optimize-autoloader --no-dev
 print_success "Dependências Composer instaladas"
 
 print_info "NPM install e build..."
-docker-compose run --rm laravel.test npm install
-docker-compose run --rm laravel.test npm run build
+$DOCKER_COMPOSE run --rm laravel.test npm install
+$DOCKER_COMPOSE run --rm laravel.test npm run build
 print_success "Assets compilados"
 
 # ====================================================
@@ -215,9 +222,9 @@ print_success "Assets compilados"
 # ====================================================
 print_header "8/10 - Otimizando Laravel"
 
-docker-compose run --rm laravel.test php artisan config:cache
-docker-compose run --rm laravel.test php artisan route:cache
-docker-compose run --rm laravel.test php artisan view:cache
+$DOCKER_COMPOSE run --rm laravel.test php artisan config:cache
+$DOCKER_COMPOSE run --rm laravel.test php artisan route:cache
+$DOCKER_COMPOSE run --rm laravel.test php artisan view:cache
 
 print_success "Caches gerados"
 
@@ -229,7 +236,7 @@ print_header "9/10 - Verificando Migrations"
 read -p "Executar migrations? (y/N): " RUN_MIGRATIONS
 if [ "$RUN_MIGRATIONS" == "y" ] || [ "$RUN_MIGRATIONS" == "Y" ]; then
     print_warning "Executando migrations..."
-    docker-compose run --rm laravel.test php artisan migrate --force
+    $DOCKER_COMPOSE run --rm laravel.test php artisan migrate --force
     print_success "Migrations executadas"
 else
     print_info "Migrations puladas"
@@ -243,14 +250,14 @@ print_header "10/10 - Ativando Nova Release"
 # Health check da nova release
 print_info "Subindo containers da nova release..."
 cd ${RELEASE_PATH}
-docker-compose up -d
+$DOCKER_COMPOSE up -d
 
 # Aguardar containers ficarem healthy
 print_info "Aguardando containers ficarem saudáveis (30s)..."
 sleep 30
 
 # Verificar se aplicação está respondendo
-HEALTH_CHECK=$(docker-compose exec -T laravel.test php artisan --version 2>/dev/null || echo "FAIL")
+HEALTH_CHECK=$($DOCKER_COMPOSE exec -T laravel.test php artisan --version 2>/dev/null || echo "FAIL")
 if [[ "$HEALTH_CHECK" == *"Laravel"* ]]; then
     print_success "Nova release está saudável"
 
@@ -259,7 +266,7 @@ if [[ "$HEALTH_CHECK" == *"Laravel"* ]]; then
         OLD_RELEASE=$(readlink ${DEPLOY_PATH}/current)
         print_info "Parando containers da release antiga..."
         cd ${OLD_RELEASE}
-        docker-compose down || true
+        $DOCKER_COMPOSE down || true
     fi
 
     # Atualizar symlink current para nova release (ATOMIC)
@@ -269,7 +276,7 @@ if [[ "$HEALTH_CHECK" == *"Laravel"* ]]; then
 else
     print_error "Health check falhou! Fazendo rollback..."
     cd ${RELEASE_PATH}
-    docker-compose down
+    $DOCKER_COMPOSE down
     rm -rf ${RELEASE_PATH}
     exit 1
 fi
@@ -287,7 +294,7 @@ if [ -n "$RELEASES_TO_DELETE" ]; then
     echo "$RELEASES_TO_DELETE" | while read OLD_RELEASE; do
         print_info "Removendo release antiga: $OLD_RELEASE"
         cd ${DEPLOY_PATH}/releases/${OLD_RELEASE}
-        docker-compose down 2>/dev/null || true
+        $DOCKER_COMPOSE down 2>/dev/null || true
         rm -rf ${DEPLOY_PATH}/releases/${OLD_RELEASE}
     done
     print_success "Releases antigas removidas"
@@ -311,13 +318,13 @@ echo -e "  🗄️  Banco: ${GREEN}porta ${FORWARD_DB_PORT:-33061}${NC}"
 echo ""
 echo -e "${BLUE}Próximos Passos:${NC}"
 echo "  1. Testar aplicação no navegador"
-echo "  2. Verificar logs: cd ${DEPLOY_PATH}/current && docker-compose logs -f"
+echo "  2. Verificar logs: cd ${DEPLOY_PATH}/current && $DOCKER_COMPOSE logs -f"
 echo "  3. Monitorar métricas e performance"
 echo ""
 echo -e "${BLUE}Rollback (se necessário):${NC}"
 echo "  cd ${DEPLOY_PATH}/releases"
 echo "  ls -lt  # Listar releases"
-echo "  cd RELEASE_ANTERIOR && docker-compose up -d"
+echo "  cd RELEASE_ANTERIOR && $DOCKER_COMPOSE up -d"
 echo "  ln -sfn ${DEPLOY_PATH}/releases/RELEASE_ANTERIOR ${DEPLOY_PATH}/current"
 echo ""
 print_success "Deploy finalizado! 🚀"
