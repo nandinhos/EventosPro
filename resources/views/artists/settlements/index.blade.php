@@ -200,16 +200,26 @@
                                     'documentacao_recebida' => 'Pronto',
                                     'pago' => 'Pago',
                                 ];
+                                $reimbursableCosts = $gig->gigCosts ?? collect();
+                                $totalCosts = $reimbursableCosts->count();
+                                $pendingCosts = $reimbursableCosts->where('reimbursement_stage', 'aguardando_comprovante')->count();
+                                $receivedCosts = $reimbursableCosts->where('reimbursement_stage', 'comprovante_recebido')->count();
+                                $completedCosts = $reimbursableCosts->whereIn('reimbursement_stage', ['conferido', 'reembolsado'])->count();
                             @endphp
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 {{ $stage === 'pago' ? 'opacity-60' : '' }}">
-                                <td class="px-3 py-2">
+                            {{-- Linha Principal --}}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 {{ $stage === 'pago' ? 'opacity-60' : '' }} cursor-pointer"
+                                @click="toggleExpand({{ $gig->id }})">
+                                <td class="px-3 py-2" @click.stop>
                                     <input type="checkbox" 
                                            value="{{ $gig->id }}"
                                            x-model="selectedGigs"
                                            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
                                 </td>
                                 <td class="px-4 py-2 text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                                    {{ $gig->gig_date->isoFormat('L') }}
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-chevron-right text-gray-400 transition-transform duration-200" :class="isExpanded({{ $gig->id }}) && 'rotate-90'"></i>
+                                        {{ $gig->gig_date->isoFormat('L') }}
+                                    </div>
                                 </td>
                                 <td class="px-4 py-2">
                                     <div class="text-xs font-bold text-gray-900 dark:text-white uppercase">
@@ -221,7 +231,7 @@
                                 </td>
                                 <td class="px-4 py-2">
                                     <div>
-                                        <a href="{{ route('gigs.show', $gig) }}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium" title="Ver detalhes da Gig">
+                                        <a href="{{ route('gigs.show', $gig) }}" @click.stop class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium" title="Ver detalhes da Gig">
                                             @if($gig->contract_number)
                                                 #{{ $gig->contract_number }}
                                             @else
@@ -237,13 +247,6 @@
                                     R$ {{ number_format($gig->calculated_artist_net_payout_brl ?? 0, 2, ',', '.') }}
                                 </td>
                                 <td class="px-4 py-2 text-center">
-                                    @php
-                                        $reimbursableCosts = $gig->gigCosts ?? collect();
-                                        $totalCosts = $reimbursableCosts->count();
-                                        $pendingCosts = $reimbursableCosts->where('reimbursement_stage', 'aguardando_comprovante')->count();
-                                        $receivedCosts = $reimbursableCosts->where('reimbursement_stage', 'comprovante_recebido')->count();
-                                        $completedCosts = $reimbursableCosts->whereIn('reimbursement_stage', ['conferido', 'reembolsado'])->count();
-                                    @endphp
                                     @if($totalCosts > 0)
                                         <span class="text-xs whitespace-nowrap" title="{{ $pendingCosts }} aguardando, {{ $receivedCosts }} recebido, {{ $completedCosts }} OK">
                                             @if($pendingCosts > 0)
@@ -272,7 +275,7 @@
                                         <i class="fas fa-{{ $stageIcons[$stage] }} mr-1"></i>{{ $stageLabels[$stage] }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-2 text-center">
+                                <td class="px-4 py-2 text-center" @click.stop>
                                     @if($stage === 'aguardando_conferencia')
                                         <button type="button" 
                                                 @click="openSendModal({{ $gig->id }})"
@@ -296,6 +299,141 @@
                                             <i class="fas fa-check"></i>
                                         </span>
                                     @endif
+                                </td>
+                            </tr>
+                            
+                            {{-- Linha Expansível com Detalhes --}}
+                            <tr x-show="isExpanded({{ $gig->id }})"
+                                x-transition:enter="transition ease-out duration-200"
+                                x-transition:enter-start="opacity-0"
+                                x-transition:enter-end="opacity-100"
+                                x-cloak
+                                class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-750">
+                                <td colspan="8" class="px-4 py-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        
+                                        {{-- Card: Dados Financeiros --}}
+                                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                                            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                                                <i class="fas fa-calculator text-indigo-500"></i>Resumo Financeiro
+                                            </h4>
+                                            <div class="space-y-2 text-xs">
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-500 dark:text-gray-400">Cachê Bruto:</span>
+                                                    <span class="font-medium text-gray-700 dark:text-gray-300">R$ {{ number_format($gig->artist_fee_brl ?? 0, 2, ',', '.') }}</span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-500 dark:text-gray-400">Comissão Agência:</span>
+                                                    <span class="font-medium text-red-500">- R$ {{ number_format($gig->calculated_agency_commission_brl ?? 0, 2, ',', '.') }}</span>
+                                                </div>
+                                                @if($gig->booker_id)
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-500 dark:text-gray-400">Comissão Booker:</span>
+                                                    <span class="font-medium text-red-500">- R$ {{ number_format($gig->calculated_booker_commission_brl ?? 0, 2, ',', '.') }}</span>
+                                                </div>
+                                                @endif
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-500 dark:text-gray-400">Despesas Conf.:</span>
+                                                    <span class="font-medium text-orange-500">+ R$ {{ number_format($gig->gigCosts?->where('is_confirmed', true)->where('is_invoice', true)->sum('value') ?? 0, 2, ',', '.') }}</span>
+                                                </div>
+                                                <hr class="border-gray-200 dark:border-gray-600">
+                                                <div class="flex justify-between font-bold">
+                                                    <span class="text-gray-700 dark:text-gray-200">Líquido Artista:</span>
+                                                    <span class="text-green-600 dark:text-green-400">R$ {{ number_format($gig->calculated_artist_net_payout_brl ?? 0, 2, ',', '.') }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {{-- Card: Timeline do Workflow --}}
+                                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                                            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                                                <i class="fas fa-tasks text-blue-500"></i>Status do Fechamento
+                                            </h4>
+                                            <div class="space-y-3">
+                                                @php
+                                                    $stageOrder = ['aguardando_conferencia', 'fechamento_enviado', 'documentacao_recebida', 'pago'];
+                                                    $currentIndex = array_search($stage, $stageOrder);
+                                                @endphp
+                                                @foreach(['aguardando_conferencia' => ['Conferência', 'clipboard-check'], 'fechamento_enviado' => ['Envio', 'paper-plane'], 'documentacao_recebida' => ['NF/Recibo', 'file-invoice'], 'pago' => ['Pagamento', 'check-circle']] as $s => $info)
+                                                    @php
+                                                        $sIndex = array_search($s, $stageOrder);
+                                                        $isCompleted = $sIndex < $currentIndex;
+                                                        $isCurrent = $s === $stage;
+                                                    @endphp
+                                                    <div class="flex items-center gap-3 text-xs">
+                                                        <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0
+                                                            {{ $isCompleted ? 'bg-green-500 text-white' : ($isCurrent ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-400') }}">
+                                                            <i class="fas fa-{{ $isCompleted ? 'check' : $info[1] }} text-xs"></i>
+                                                        </div>
+                                                        <span class="{{ $isCurrent ? 'font-bold text-gray-800 dark:text-white' : ($isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-400') }}">
+                                                            {{ $info[0] }}
+                                                            @if($isCurrent) <span class="text-blue-500">(atual)</span> @endif
+                                                        </span>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+
+                                        {{-- Card: Despesas Reembolsáveis --}}
+                                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                                            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                                                <i class="fas fa-receipt text-yellow-500"></i>Comprovantes de Despesas
+                                            </h4>
+                                            @if($totalCosts > 0)
+                                                <div class="space-y-2">
+                                                    @foreach($reimbursableCosts as $cost)
+                                                        <div class="flex items-center justify-between text-xs p-2 rounded bg-gray-50 dark:bg-gray-700/50">
+                                                            <div class="flex-1 truncate pr-2">
+                                                                <span class="text-gray-700 dark:text-gray-300">{{ $cost->description ?: 'Despesa' }}</span>
+                                                                <span class="text-gray-400 ml-1">(R$ {{ number_format($cost->value, 2, ',', '.') }})</span>
+                                                            </div>
+                                                            @php
+                                                                $costStageColors = [
+                                                                    'aguardando_comprovante' => 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400',
+                                                                    'comprovante_recebido' => 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400',
+                                                                    'conferido' => 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400',
+                                                                    'reembolsado' => 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400',
+                                                                ];
+                                                                $costStageLabels = [
+                                                                    'aguardando_comprovante' => 'Aguard.',
+                                                                    'comprovante_recebido' => 'Recebido',
+                                                                    'conferido' => 'Conferido',
+                                                                    'reembolsado' => 'OK',
+                                                                ];
+                                                            @endphp
+                                                            <span class="px-1.5 py-0.5 rounded-full text-xxs font-medium {{ $costStageColors[$cost->reimbursement_stage ?? 'aguardando_comprovante'] }}">
+                                                                {{ $costStageLabels[$cost->reimbursement_stage ?? 'aguardando_comprovante'] }}
+                                                            </span>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                                <div class="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
+                                                    <a href="{{ route('gigs.show', $gig) }}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+                                                        <i class="fas fa-external-link-alt"></i>Gerenciar comprovantes na Gig
+                                                    </a>
+                                                </div>
+                                            @else
+                                                <p class="text-xs text-gray-400 italic">Nenhuma despesa reembolsável vinculada</p>
+                                            @endif
+                                        </div>
+                                        
+                                    </div>
+
+                                    {{-- Datas e Informações Adicionais --}}
+                                    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
+                                        @if($gig->settlement?->settlement_sent_at)
+                                            <span><i class="fas fa-paper-plane mr-1 text-blue-400"></i>Enviado: {{ $gig->settlement->settlement_sent_at->format('d/m/Y H:i') }}</span>
+                                        @endif
+                                        @if($gig->settlement?->documentation_received_at)
+                                            <span><i class="fas fa-file-invoice mr-1 text-yellow-400"></i>NF/Recibo: {{ $gig->settlement->documentation_received_at->format('d/m/Y H:i') }}</span>
+                                        @endif
+                                        @if($gig->settlement?->paid_at)
+                                            <span><i class="fas fa-check-circle mr-1 text-green-400"></i>Pago: {{ $gig->settlement->paid_at->format('d/m/Y H:i') }}</span>
+                                        @endif
+                                        @if($gig->created_at)
+                                            <span><i class="fas fa-calendar mr-1 text-gray-400"></i>Criado: {{ $gig->created_at->format('d/m/Y') }}</span>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -473,6 +611,7 @@
         function settlementsManager() {
             return {
                 selectedGigs: [],
+                expandedGigs: [],
                 paymentDate: '{{ now()->format('Y-m-d') }}',
                 today: '{{ now()->format('Y-m-d') }}',
                 allGigIds: @json($gigs->pluck('id')->toArray()),
@@ -480,6 +619,19 @@
                 sendGigId: null,
                 showReceiveDocModal: false,
                 receiveDocGigId: null,
+
+                toggleExpand(gigId) {
+                    const index = this.expandedGigs.indexOf(gigId);
+                    if (index === -1) {
+                        this.expandedGigs.push(gigId);
+                    } else {
+                        this.expandedGigs.splice(index, 1);
+                    }
+                },
+
+                isExpanded(gigId) {
+                    return this.expandedGigs.includes(gigId);
+                },
 
                 toggleSelectAll(checked) {
                     if (checked) {
