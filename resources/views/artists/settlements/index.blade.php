@@ -173,6 +173,7 @@
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Artista / Booker</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Gig / Local</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cachê (R$)</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Despesas</th>
                             <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estágio</th>
                             <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Ação</th>
                         </tr>
@@ -236,6 +237,36 @@
                                     R$ {{ number_format($gig->calculated_artist_net_payout_brl ?? 0, 2, ',', '.') }}
                                 </td>
                                 <td class="px-4 py-2 text-center">
+                                    @php
+                                        $reimbursableCosts = $gig->gigCosts ?? collect();
+                                        $totalCosts = $reimbursableCosts->count();
+                                        $pendingCosts = $reimbursableCosts->where('reimbursement_stage', 'aguardando_comprovante')->count();
+                                        $receivedCosts = $reimbursableCosts->where('reimbursement_stage', 'comprovante_recebido')->count();
+                                        $completedCosts = $reimbursableCosts->whereIn('reimbursement_stage', ['conferido', 'reembolsado'])->count();
+                                    @endphp
+                                    @if($totalCosts > 0)
+                                        <span class="text-xs whitespace-nowrap" title="{{ $pendingCosts }} aguardando, {{ $receivedCosts }} recebido, {{ $completedCosts }} OK">
+                                            @if($pendingCosts > 0)
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                                                    <i class="fas fa-clock mr-1"></i>{{ $pendingCosts }}
+                                                </span>
+                                            @endif
+                                            @if($receivedCosts > 0)
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400">
+                                                    <i class="fas fa-file-alt mr-1"></i>{{ $receivedCosts }}
+                                                </span>
+                                            @endif
+                                            @if($completedCosts > 0)
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400">
+                                                    <i class="fas fa-check mr-1"></i>{{ $completedCosts }}
+                                                </span>
+                                            @endif
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400 text-xs">-</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-2 text-center">
                                     <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $stageColors[$stage] }}" 
                                           title="{{ $gig->settlement?->settlement_sent_at ? 'Enviado: ' . $gig->settlement->settlement_sent_at->format('d/m/Y H:i') : '' }}">
                                         <i class="fas fa-{{ $stageIcons[$stage] }} mr-1"></i>{{ $stageLabels[$stage] }}
@@ -269,7 +300,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
+                                <td colspan="8" class="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
                                     <i class="fas fa-search text-4xl mb-3 opacity-50"></i>
                                     <p>Nenhum fechamento encontrado com os filtros aplicados.</p>
                                 </td>

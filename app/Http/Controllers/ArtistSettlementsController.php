@@ -21,7 +21,12 @@ class ArtistSettlementsController extends Controller
 
         // Query base: gigs realizadas com artista
         $query = Gig::query()
-            ->with(['artist', 'booker', 'settlement'])
+            ->with([
+                'artist', 
+                'booker', 
+                'settlement',
+                'gigCosts' => fn($q) => $q->where('is_invoice', true)->whereNotNull('reimbursement_stage'),
+            ])
             ->whereNotNull('artist_id')
             ->where('gig_date', '<=', now());
 
