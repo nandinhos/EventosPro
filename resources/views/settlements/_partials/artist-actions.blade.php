@@ -6,17 +6,31 @@
 @props(['gig', 'backUrlParams'])
 
 @if ($gig->artist_payment_status === 'pendente')
+    @php
+        $workflowStage = $gig->settlement?->settlement_stage ?? 'aguardando_conferencia';
+    @endphp
     <div class="mt-4">
          <div class="flex flex-wrap gap-2">
-             <button type="button"
-                     @click="$dispatch('open-settle-artist-modal', {
-                         gigId: {{ $gig->id }},
-                         artistName: '{{ addslashes($gig->artist->name ?? 'N/A') }}',
-                         amountDue: financials.calculatedArtistInvoiceValueBrl < 0 ? 0 : financials.calculatedArtistInvoiceValueBrl
-                     })"
-                     class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs flex items-center">
-                <i class="fas fa-hand-holding-usd mr-2"></i> Registrar Pagamento ao Artista
-            </button>
+             {{-- Botões de Ação do Workflow --}}
+             @if($workflowStage === 'aguardando_conferencia')
+                 <form action="{{ route('artists.settlements.send', $gig) }}" method="POST" class="inline">
+                     @csrf
+                     @method('PATCH')
+                     <input type="hidden" name="redirect_to" value="show">
+                     <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded-md text-xs flex items-center">
+                         <i class="fas fa-paper-plane mr-1"></i> Enviar Fechamento
+                     </button>
+                 </form>
+             @elseif($workflowStage === 'fechamento_enviado')
+                 <span class="px-3 py-1.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded-md">
+                     <i class="fas fa-hourglass-half mr-1"></i> Aguardando NF/Recibo
+                 </span>
+             @elseif($workflowStage === 'documentacao_recebida')
+                 <span class="px-3 py-1.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 rounded-md">
+                     <i class="fas fa-check mr-1"></i> Pronto p/ Pagar
+                 </span>
+             @endif
+             
              <a href="{{ route('gigs.request-nf', ['gig' => $gig] + ($backUrlParams ?? [])) }}"
                 class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-md text-xs flex items-center">
                 <i class="fas fa-file-invoice mr-2"></i> Detalhes NF Artista
@@ -45,10 +59,11 @@
                 <i class="fas fa-file-invoice mr-1"></i> Ver/Atualizar Detalhes NF
             </a>
         </div>
-        <form action="{{ route('gigs.settlements.artist.unsettle', $gig) }}" method="POST" onsubmit="return confirm('Reverter pagamento ao artista para PENDENTE?');" class="inline">
+        <form action="{{ route('artists.settlements.revert', $gig) }}" method="POST" onsubmit="return confirm('Reverter pagamento ao artista? O status voltará para Pronto p/ Pagar.');" class="inline">
             @csrf @method('PATCH')
+            <input type="hidden" name="redirect_to" value="show">
             <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-md text-xs flex items-center">
-                <i class="fas fa-undo-alt mr-1"></i> Reverter para Pendente
+                <i class="fas fa-undo-alt mr-1"></i> Reverter Pagamento
             </button>
         </form>
     </div>

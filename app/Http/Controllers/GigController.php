@@ -462,7 +462,7 @@ class GigController extends Controller
      */
     public function showRequestNfForm(Gig $gig, Request $request): View
     {
-        $gig->loadMissing(['artist', 'gigCosts.costCenter']);
+        $gig->loadMissing(['artist', 'gigCosts.costCenter', 'settlement']);
 
         // Instanciar o service para fazer os cálculos
         $financialCalculator = App::make(GigFinancialCalculatorService::class);
@@ -474,24 +474,30 @@ class GigController extends Controller
         }
 
         // Preparar todas as variáveis necessárias para a view
-        $gigCacheValueBrl = $gig->cache_value_brl; // Valor original do contrato em BRL
+        $gigCacheValueBrl = $gig->cache_value_brl;
         $totalConfirmedExpensesBrl = $financialCalculator->calculateTotalConfirmedExpensesBrl($gig);
-        $calculatedGrossCashBrl = $financialCalculator->calculateGrossCashBrl($gig); // <<-- ESTA É A CHAVE
+        $calculatedGrossCashBrl = $financialCalculator->calculateGrossCashBrl($gig);
         $calculatedAgencyGrossCommissionBrl = $financialCalculator->calculateAgencyGrossCommissionBrl($gig);
         $artistNetPayoutBeforeReimbursement = $financialCalculator->calculateArtistNetPayoutBrl($gig);
         $totalReimbursableExpensesBrl = $financialCalculator->calculateTotalReimbursableExpensesBrl($gig);
         $finalArtistInvoiceValueBrl = $financialCalculator->calculateArtistInvoiceValueBrl($gig);
 
+        // Settlement stage info para o workflow
+        $settlement = $gig->settlement;
+        $settlementStage = $settlement?->settlement_stage ?? 'aguardando_conferencia';
+
         return view('gigs.request-nf', compact(
             'gig',
             'gigCacheValueBrl',
             'totalConfirmedExpensesBrl',
-            'calculatedGrossCashBrl', // <<-- Garantir que está aqui
+            'calculatedGrossCashBrl',
             'calculatedAgencyGrossCommissionBrl',
             'artistNetPayoutBeforeReimbursement',
             'totalReimbursableExpensesBrl',
             'finalArtistInvoiceValueBrl',
-            'backUrlParams'
+            'backUrlParams',
+            'settlement',
+            'settlementStage'
         ));
     }
 

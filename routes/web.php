@@ -85,6 +85,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/artists-settlements', [App\Http\Controllers\ArtistSettlementsController::class, 'index'])->name('artists.settlements.index');
     Route::post('/artists-settlements/settle-batch', [App\Http\Controllers\ArtistSettlementsController::class, 'settleBatch'])->name('artists.settlements.settleBatch');
     Route::patch('/artists-settlements/unsettle-batch', [App\Http\Controllers\ArtistSettlementsController::class, 'unsettleBatch'])->name('artists.settlements.unsettleBatch');
+    Route::post('/artists-settlements/send-batch', [App\Http\Controllers\ArtistSettlementsController::class, 'sendBatch'])->name('artists.settlements.sendBatch');
+    Route::patch('/artists-settlements/{gig}/send', [App\Http\Controllers\ArtistSettlementsController::class, 'sendSettlement'])->name('artists.settlements.send');
+    Route::patch('/artists-settlements/{gig}/receive-document', [App\Http\Controllers\ArtistSettlementsController::class, 'markDocumentationReceived'])->name('artists.settlements.receiveDocument');
+    Route::post('/artists-settlements/{gig}/settle', [App\Http\Controllers\ArtistSettlementsController::class, 'settleArtist'])->name('artists.settlements.settle');
+    Route::patch('/artists-settlements/{gig}/revert', [App\Http\Controllers\ArtistSettlementsController::class, 'revertStage'])->name('artists.settlements.revert');
+    Route::patch('/artists-settlements/revert-batch', [App\Http\Controllers\ArtistSettlementsController::class, 'revertBatch'])->name('artists.settlements.revertBatch');
 
     // Bookers
     Route::resource('bookers', BookerController::class);
@@ -155,9 +161,13 @@ Route::middleware('auth')->group(function () {
         Route::get('costs-json', [GigCostController::class, 'listJson'])->name('costs.listJson');
 
         // Settlements
-        Route::post('settle-artist', [SettlementController::class, 'settleArtistPayment'])->name('settlements.artist');
+        // DEPRECATED: Rotas de artista substituídas pelo novo workflow em ArtistSettlementsController
+        // Use artists.settlements.settle e artists.settlements.revert em vez destas
+        // Route::post('settle-artist', [SettlementController::class, 'settleArtistPayment'])->name('settlements.artist');
+        // Route::patch('unsettle-artist', [SettlementController::class, 'unsettleArtistPayment'])->name('settlements.artist.unsettle');
+        
+        // Rotas de booker continuam ativas
         Route::post('settle-booker', [SettlementController::class, 'settleBookerCommission'])->name('settlements.booker');
-        Route::patch('unsettle-artist', [SettlementController::class, 'unsettleArtistPayment'])->name('settlements.artist.unsettle');
         Route::patch('unsettle-booker', [SettlementController::class, 'unsettleBookerCommission'])->name('settlements.booker.unsettle');
 
     });
