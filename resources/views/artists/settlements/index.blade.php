@@ -318,28 +318,54 @@
                                                 <i class="fas fa-calculator text-indigo-500"></i>Resumo Financeiro
                                             </h4>
                                             <div class="space-y-2 text-xs">
+                                                {{-- Valor do Contrato --}}
                                                 <div class="flex justify-between">
-                                                    <span class="text-gray-500 dark:text-gray-400">Cachê Bruto:</span>
-                                                    <span class="font-medium text-gray-700 dark:text-gray-300">R$ {{ number_format($gig->artist_fee_brl ?? 0, 2, ',', '.') }}</span>
+                                                    <span class="text-gray-500 dark:text-gray-400">Contrato ({{ $gig->currency }}):</span>
+                                                    <span class="font-medium text-gray-700 dark:text-gray-300">
+                                                        {{ $gig->currency }} {{ number_format($gig->cache_value ?? 0, 2, ',', '.') }}
+                                                        @if($gig->currency !== 'BRL')
+                                                            <span class="text-gray-400">(R$ {{ number_format($gig->cache_value_brl ?? 0, 2, ',', '.') }})</span>
+                                                        @endif
+                                                    </span>
                                                 </div>
+                                                {{-- Despesas Confirmadas (subtraídas do contrato para base de comissão) --}}
                                                 <div class="flex justify-between">
-                                                    <span class="text-gray-500 dark:text-gray-400">Comissão Agência:</span>
-                                                    <span class="font-medium text-red-500">- R$ {{ number_format($gig->calculated_agency_commission_brl ?? 0, 2, ',', '.') }}</span>
+                                                    <span class="text-gray-500 dark:text-gray-400">(-) Despesas Conf.:</span>
+                                                    <span class="font-medium text-orange-500">- R$ {{ number_format($gig->total_confirmed_expenses_brl ?? 0, 2, ',', '.') }}</span>
+                                                </div>
+                                                {{-- Cachê Bruto (Base de Comissão) --}}
+                                                <div class="flex justify-between border-t border-dashed border-gray-200 dark:border-gray-600 pt-1">
+                                                    <span class="text-gray-500 dark:text-gray-400">= Cachê Bruto (base com.):</span>
+                                                    <span class="font-medium text-gray-700 dark:text-gray-300">R$ {{ number_format($gig->gross_cash_brl ?? 0, 2, ',', '.') }}</span>
+                                                </div>
+                                                {{-- Comissão Agência --}}
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-500 dark:text-gray-400">(-) Com. Agência ({{ $gig->agency_commission_rate ?? 20 }}%):</span>
+                                                    <span class="font-medium text-red-500">- R$ {{ number_format($gig->calculated_agency_gross_commission_brl ?? 0, 2, ',', '.') }}</span>
                                                 </div>
                                                 @if($gig->booker_id)
+                                                {{-- Comissão Booker --}}
                                                 <div class="flex justify-between">
-                                                    <span class="text-gray-500 dark:text-gray-400">Comissão Booker:</span>
+                                                    <span class="text-gray-500 dark:text-gray-400">(-) Com. Booker ({{ $gig->booker_commission_rate ?? 0 }}%):</span>
                                                     <span class="font-medium text-red-500">- R$ {{ number_format($gig->calculated_booker_commission_brl ?? 0, 2, ',', '.') }}</span>
                                                 </div>
                                                 @endif
-                                                <div class="flex justify-between">
-                                                    <span class="text-gray-500 dark:text-gray-400">Despesas Conf.:</span>
-                                                    <span class="font-medium text-orange-500">+ R$ {{ number_format($gig->gigCosts?->where('is_confirmed', true)->where('is_invoice', true)->sum('value') ?? 0, 2, ',', '.') }}</span>
+                                                {{-- Líquido Artista (antes reembolso) --}}
+                                                <div class="flex justify-between border-t border-gray-200 dark:border-gray-600 pt-1">
+                                                    <span class="text-gray-500 dark:text-gray-400">= Líquido Artista:</span>
+                                                    <span class="font-medium text-indigo-600 dark:text-indigo-400">R$ {{ number_format($gig->calculated_artist_net_payout_brl ?? 0, 2, ',', '.') }}</span>
                                                 </div>
-                                                <hr class="border-gray-200 dark:border-gray-600">
-                                                <div class="flex justify-between font-bold">
-                                                    <span class="text-gray-700 dark:text-gray-200">Líquido Artista:</span>
-                                                    <span class="text-green-600 dark:text-green-400">R$ {{ number_format($gig->calculated_artist_net_payout_brl ?? 0, 2, ',', '.') }}</span>
+                                                @if($gig->total_reimbursable_expenses_brl > 0)
+                                                {{-- Despesas Reembolsáveis (NF Artista) --}}
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-500 dark:text-gray-400">(+) Reembolsáveis (NF):</span>
+                                                    <span class="font-medium text-green-600 dark:text-green-400">+ R$ {{ number_format($gig->total_reimbursable_expenses_brl ?? 0, 2, ',', '.') }}</span>
+                                                </div>
+                                                @endif
+                                                {{-- Total NF Artista --}}
+                                                <div class="flex justify-between border-t-2 border-gray-300 dark:border-gray-500 pt-2 font-bold">
+                                                    <span class="text-gray-700 dark:text-gray-200">TOTAL NF ARTISTA:</span>
+                                                    <span class="text-green-600 dark:text-green-400">R$ {{ number_format($gig->calculated_artist_invoice_value_brl ?? 0, 2, ',', '.') }}</span>
                                                 </div>
                                             </div>
                                         </div>
