@@ -86,6 +86,13 @@ class GigController extends Controller
             $query->where('gigs.artist_payment_status', $request->input('artist_payment_status'));
         }
 
+        // Filtro pelo novo workflow de settlement
+        if ($request->filled('settlement_stage')) {
+            $query->whereHas('settlement', function ($q) use ($request) {
+                $q->where('settlement_stage', $request->input('settlement_stage'));
+            });
+        }
+
         if ($request->filled('booker_payment_status')) {
             $query->where('gigs.booker_payment_status', $request->input('booker_payment_status'));
         }

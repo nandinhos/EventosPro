@@ -55,12 +55,16 @@
         {{-- ============================================= --}}
         {{-- Seção: Acerto com Artista                     --}}
         {{-- ============================================= --}}
-        <div class="p-4 rounded-md {{ $gig->artist_payment_status === 'pago' ? 'bg-green-50 dark:bg-green-800/20 border border-green-200 dark:border-green-700/50' : 'bg-yellow-50 dark:bg-yellow-800/20 border border-yellow-200 dark:border-yellow-700/50' }}">
+        @php
+            $workflowStage = $gig->settlement?->settlement_stage ?? 'aguardando_conferencia';
+            $isPago = $workflowStage === 'pago';
+        @endphp
+        <div class="p-4 rounded-md {{ $isPago ? 'bg-green-50 dark:bg-green-800/20 border border-green-200 dark:border-green-700/50' : 'bg-yellow-50 dark:bg-yellow-800/20 border border-yellow-200 dark:border-yellow-700/50' }}">
             <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
                 <h4 class="font-semibold text-gray-700 dark:text-gray-200">
                     Pagamento do Artista: <span class="text-primary-600 dark:text-primary-400">{{ $gig->artist->name ?? 'N/A' }}</span>
                 </h4>
-                <x-status-badge :status="$gig->artist_payment_status" type="payment-internal" />
+                <x-workflow-badge :gig="$gig" />
             </div>
 
             <div class="space-y-2 text-sm">
@@ -170,9 +174,8 @@
             </div>
 
             {{-- Botões de Ação para pagamento ao artista --}}
-            @if ($gig->artist_payment_status === 'pendente')
+            @if ($workflowStage !== 'pago')
                 @php
-                    $workflowStage = $settlement->settlement_stage ?? 'aguardando_conferencia';
                     $workflowColors = [
                         'aguardando_conferencia' => 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
                         'fechamento_enviado' => 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
@@ -266,7 +269,7 @@
                         </button>
                     </form>
                 </div>
-            @endif {{-- Fim do if ($gig->artist_payment_status === 'pendente') --}}
+            @endif {{-- Fim do if ($workflowStage !== 'pago') --}}
         </div>
         {{-- FIM Acerto com Artista --}}
 

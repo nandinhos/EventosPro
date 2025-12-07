@@ -361,11 +361,13 @@ class ArtistSettlementsController extends Controller
                 'new_stage' => Settlement::STAGE_AGUARDANDO_CONFERENCIA,
                 'clear' => ['settlement_sent_at', 'communication_notes'],
                 'message' => 'Envio do fechamento revertido.',
+                'update_gig' => ['artist_payment_status' => 'pendente'],
             ],
             Settlement::STAGE_DOCUMENTACAO_RECEBIDA => [
                 'new_stage' => Settlement::STAGE_FECHAMENTO_ENVIADO,
                 'clear' => ['documentation_received_at', 'documentation_type', 'documentation_number', 'documentation_file_path'],
                 'message' => 'Recebimento de documentação revertido.',
+                'update_gig' => ['artist_payment_status' => 'pendente'],
             ],
             Settlement::STAGE_PAGO => [
                 'new_stage' => Settlement::STAGE_DOCUMENTACAO_RECEBIDA,
@@ -374,6 +376,7 @@ class ArtistSettlementsController extends Controller
                 'update_gig' => ['artist_payment_status' => 'pendente'],
             ],
         ];
+
 
         if (! isset($revertMap[$currentStage])) {
             return $this->redirectWithMessage($request, $gig, 'error', 'Este estágio não pode ser revertido.');

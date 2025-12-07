@@ -68,15 +68,17 @@
                 ]"
             />
 
-            {{-- 6. Status Pgto. Artista --}}
+            {{-- 6. Workflow Artista --}}
             <x-form.select 
-                id="artist_payment_status" 
-                label="Status Pgto. Artista" 
-                :selected="request('artist_payment_status')" 
+                id="settlement_stage" 
+                label="Workflow Artista" 
+                :selected="request('settlement_stage')" 
                 empty="Todos"
                 :options="[
+                    'aguardando_conferencia' => 'Conferir',
+                    'fechamento_enviado' => 'Ag. NF/Recibo',
+                    'documentacao_recebida' => 'Pronto p/ Pgto',
                     'pago' => 'Pago',
-                    'pendente' => 'Pendente',
                 ]"
             />
 
@@ -138,7 +140,7 @@
                     <x-sortable-th column="cache_value" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Cachê" class="text-right" defaultDirection="desc" /> {{-- Adiciona classe text-right --}}
                     <x-sortable-th column="contract_status" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Status Contrato" class="text-center" />
                     <x-sortable-th column="payment_status" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Pgto Cliente" class="text-center" />
-                    <x-sortable-th column="artist_payment_status" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Pgto Artista" class="text-center" />
+                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Workflow Artista</th>
                     <x-sortable-th column="booker_payment_status" :currentSortBy="$sortBy" :currentSortDirection="$sortDirection" label="Pgto Booker" class="text-center" />
                     {{-- Coluna Ações - Não ordenável --}}
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ações</th>
@@ -171,7 +173,7 @@
                                 <x-status-badge :status="$gig->payment_status" type="payment" />
                             </td>
                             <td class="px-3 py-1.5 whitespace-nowrap text-center">
-                               <x-status-badge :status="$gig->artist_payment_status" type="payment-artist" />
+                               <x-workflow-badge :gig="$gig" />
                             </td>
                              <td class="px-3 py-1.5 whitespace-nowrap text-center">
                                 <x-status-badge :status="$gig->booker_payment_status" type="payment-booker" />
