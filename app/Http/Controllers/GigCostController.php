@@ -319,4 +319,54 @@ class GigCostController extends Controller
             return response()->json(['message' => 'Erro ao atualizar estágio.'], 500);
         }
     }
+
+    /**
+     * Atualiza o estágio de reembolso de uma despesa (API sem gig).
+     * Usado pelo componente cost-reimbursement-inline.
+     */
+    public function updateReimbursementStageApi(Request $request, GigCost $cost): JsonResponse
+    {
+        // Verifica se o custo é reembolsável
+        if (!$cost->is_invoice) {
+            return response()->json(['message' => 'Esta despesa não é reembolsável.'], 422);
+        }
+
+        $validated = $request->validate([
+            'stage' => ['required', 'in:aguardando_comprovante,comprovante_recebido,conferido,reembolsado'],
+            'proof_type' => ['nullable', 'in:recibo,nf,transferencia,outro'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        try {
+            $updateData = ['reimbursement_stage' => $validated['stage']];
+            
+            // Se estiver marcando como recebido, registra data e tipo
+            if ($validated['stage'] === 'comprovante_recebido') {
+                $updateData['reimbursement_proof_received_at'] = now();
+                if (!empty($validated['proof_type'])) {
+                    $updateData['reimbursement_proof_type'] = $validated['proof_type'];
+                }
+                if (!empty($validated['notes'])) {
+                    $updateData['reimbursement_notes'] = $validated['notes'];
+                }
+            }
+            
+            // Se estiver marcando como conferido
+            if ($validated['stage'] === 'conferido') {
+                $updateData['reimbursement_confirmed_at'] = now();
+                $updateData['reimbursement_confirmed_by'] = Auth::id();
+                $updateData['reimbursement_value_confirmed'] = $cost->value;
+            }
+
+            $cost->update($updateData);
+
+            return response()->json([
+                'message' => 'Estágio de reembolso atualizado!',
+                'cost' => $cost->fresh()->load('costCenter', 'confirmer'),
+            ]);
+        } catch (Exception $e) {
+            Log::error("Erro ao atualizar estágio de reembolso da despesa {$cost->id}: " . $e->getMessage());
+            return response()->json(['message' => 'Erro ao atualizar estágio.'], 500);
+        }
+    }
 }

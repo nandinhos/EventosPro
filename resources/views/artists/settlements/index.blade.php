@@ -370,76 +370,32 @@
                                             </div>
                                         </div>
 
-                                        {{-- Card: Timeline do Workflow --}}
+                                        {{-- Card: Status do Fechamento (interativo) --}}
                                         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                                             <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                                                 <i class="fas fa-tasks text-blue-500"></i>Status do Fechamento
                                             </h4>
-                                            <div class="space-y-3">
-                                                @php
-                                                    $stageOrder = ['aguardando_conferencia', 'fechamento_enviado', 'documentacao_recebida', 'pago'];
-                                                    $currentIndex = array_search($stage, $stageOrder);
-                                                @endphp
-                                                @foreach(['aguardando_conferencia' => ['Conferência', 'clipboard-check'], 'fechamento_enviado' => ['Envio', 'paper-plane'], 'documentacao_recebida' => ['NF/Recibo', 'file-invoice'], 'pago' => ['Pagamento', 'check-circle']] as $s => $info)
-                                                    @php
-                                                        $sIndex = array_search($s, $stageOrder);
-                                                        $isCompleted = $sIndex < $currentIndex;
-                                                        $isCurrent = $s === $stage;
-                                                    @endphp
-                                                    <div class="flex items-center gap-3 text-xs">
-                                                        <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0
-                                                            {{ $isCompleted ? 'bg-green-500 text-white' : ($isCurrent ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-400') }}">
-                                                            <i class="fas fa-{{ $isCompleted ? 'check' : $info[1] }} text-xs"></i>
-                                                        </div>
-                                                        <span class="{{ $isCurrent ? 'font-bold text-gray-800 dark:text-white' : ($isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-400') }}">
-                                                            {{ $info[0] }}
-                                                            @if($isCurrent) <span class="text-blue-500">(atual)</span> @endif
-                                                        </span>
-                                                    </div>
-                                                @endforeach
-                                            </div>
+                                            <x-settlement-workflow-actions :gig="$gig" :stage="$stage" />
                                         </div>
 
-                                        {{-- Card: Despesas Reembolsáveis --}}
+                                        {{-- Card: Comprovantes de Despesas (interativo) --}}
                                         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
                                             <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                                                 <i class="fas fa-receipt text-yellow-500"></i>Comprovantes de Despesas
                                             </h4>
                                             @if($totalCosts > 0)
-                                                <div class="space-y-2">
+                                                <div class="space-y-1">
                                                     @foreach($reimbursableCosts as $cost)
-                                                        <div class="flex items-center justify-between text-xs p-2 rounded bg-gray-50 dark:bg-gray-700/50">
-                                                            <div class="flex-1 truncate pr-2">
-                                                                <span class="text-gray-700 dark:text-gray-300">{{ $cost->description ?: 'Despesa' }}</span>
-                                                                <span class="text-gray-400 ml-1">(R$ {{ number_format($cost->value, 2, ',', '.') }})</span>
-                                                            </div>
-                                                            @php
-                                                                $costStageColors = [
-                                                                    'aguardando_comprovante' => 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400',
-                                                                    'comprovante_recebido' => 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400',
-                                                                    'conferido' => 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400',
-                                                                    'reembolsado' => 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400',
-                                                                ];
-                                                                $costStageLabels = [
-                                                                    'aguardando_comprovante' => 'Aguard.',
-                                                                    'comprovante_recebido' => 'Recebido',
-                                                                    'conferido' => 'Conferido',
-                                                                    'reembolsado' => 'OK',
-                                                                ];
-                                                            @endphp
-                                                            <span class="px-1.5 py-0.5 rounded-full text-xxs font-medium {{ $costStageColors[$cost->reimbursement_stage ?? 'aguardando_comprovante'] }}">
-                                                                {{ $costStageLabels[$cost->reimbursement_stage ?? 'aguardando_comprovante'] }}
-                                                            </span>
-                                                        </div>
+                                                        <x-cost-reimbursement-inline :cost="$cost" />
                                                     @endforeach
                                                 </div>
                                                 <div class="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
                                                     <a href="{{ route('gigs.show', $gig) }}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
-                                                        <i class="fas fa-external-link-alt"></i>Gerenciar comprovantes na Gig
+                                                        <i class="fas fa-external-link-alt"></i>Ver todos na Gig
                                                     </a>
                                                 </div>
                                             @else
-                                                <p class="text-xs text-gray-400 italic">Nenhuma despesa reembolsável vinculada</p>
+                                                <p class="text-xs text-gray-400 italic">Nenhuma despesa reembolsável</p>
                                             @endif
                                         </div>
                                         
