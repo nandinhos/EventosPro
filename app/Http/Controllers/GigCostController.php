@@ -61,6 +61,7 @@ class GigCostController extends Controller
                             'reimbursement_stage' => $cost->reimbursement_stage,
                             'reimbursement_proof_type' => $cost->reimbursement_proof_type,
                             'reimbursement_proof_file' => $cost->reimbursement_proof_file,
+                            'reimbursement_notes' => $cost->reimbursement_notes,
                         ];
                     }),
                 ];
@@ -334,6 +335,7 @@ class GigCostController extends Controller
         $validated = $request->validate([
             'stage' => ['required', 'in:aguardando_comprovante,comprovante_recebido,conferido,reembolsado'],
             'proof_type' => ['nullable', 'in:recibo,nf,transferencia,outro'],
+            'proof_number' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -346,7 +348,10 @@ class GigCostController extends Controller
                 if (!empty($validated['proof_type'])) {
                     $updateData['reimbursement_proof_type'] = $validated['proof_type'];
                 }
-                if (!empty($validated['notes'])) {
+                // Salva o número do documento em reimbursement_notes
+                if (!empty($validated['proof_number'])) {
+                    $updateData['reimbursement_notes'] = $validated['proof_number'];
+                } elseif (!empty($validated['notes'])) {
                     $updateData['reimbursement_notes'] = $validated['notes'];
                 }
             }

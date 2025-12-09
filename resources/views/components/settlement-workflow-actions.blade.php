@@ -70,6 +70,12 @@
                     <span class="flex-1 {{ $isCurrent ? 'font-bold text-gray-800 dark:text-white' : ($isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-400') }}">
                         {{ $config['label'] }}
                         @if($isCurrent) <span class="text-blue-500">(atual)</span> @endif
+                        {{-- Mostrar número da NF/Recibo quando o estágio de documentação estiver concluído --}}
+                        @if($s === 'fechamento_enviado' && $isCompleted && $gig->settlement?->documentation_number)
+                            <span class="text-xs font-normal text-gray-500 dark:text-gray-400 ml-1">
+                                ({{ $gig->settlement->documentation_number }})
+                            </span>
+                        @endif
                     </span>
                 </div>
             @endforeach
@@ -259,6 +265,10 @@ function settlementWorkflowActions(gigId, currentStage) {
         receiveDocData: { documentation_type: '', documentation_number: '' },
         paymentData: { payment_date: new Date().toISOString().split('T')[0], notes: '' },
 
+        init() {
+            console.log('[settlementWorkflowActions] Initialized with gigId:', this.gigId, 'stage:', this.currentStage);
+        },
+
         openSendModal() {
             this.sendData = { notes: '' };
             this.showSendModal = true;
@@ -275,9 +285,16 @@ function settlementWorkflowActions(gigId, currentStage) {
         },
 
         async submitSendSettlement() {
+            if (!this.gigId) {
+                console.error('[settlementWorkflowActions] gigId is undefined or null');
+                alert('Erro: ID da gig não encontrado. Recarregue a página.');
+                return;
+            }
             this.loading = true;
             try {
-                const response = await fetch(`/artists-settlements/${this.gigId}/send`, {
+                const url = `/artists-settlements/${this.gigId}/send`;
+                console.log('[settlementWorkflowActions] Calling:', url);
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -309,7 +326,14 @@ function settlementWorkflowActions(gigId, currentStage) {
             }
             this.loading = true;
             try {
-                const response = await fetch(`/artists-settlements/${this.gigId}/receive-document`, {
+                if (!this.gigId) {
+                    console.error('[settlementWorkflowActions] gigId is undefined or null');
+                    alert('Erro: ID da gig não encontrado. Recarregue a página.');
+                    return;
+                }
+                const url = `/artists-settlements/${this.gigId}/receive-document`;
+                console.log('[settlementWorkflowActions] Calling:', url);
+                const response = await fetch(url, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -335,9 +359,16 @@ function settlementWorkflowActions(gigId, currentStage) {
         },
 
         async submitPayment() {
+            if (!this.gigId) {
+                console.error('[settlementWorkflowActions] gigId is undefined or null');
+                alert('Erro: ID da gig não encontrado. Recarregue a página.');
+                return;
+            }
             this.loading = true;
             try {
-                const response = await fetch(`/artists-settlements/${this.gigId}/pay`, {
+                const url = `/artists-settlements/${this.gigId}/pay`;
+                console.log('[settlementWorkflowActions] Calling:', url);
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -367,7 +398,14 @@ function settlementWorkflowActions(gigId, currentStage) {
             
             this.loading = true;
             try {
-                const response = await fetch(`/artists-settlements/${this.gigId}/revert`, {
+                if (!this.gigId) {
+                    console.error('[settlementWorkflowActions] gigId is undefined or null');
+                    alert('Erro: ID da gig não encontrado. Recarregue a página.');
+                    return;
+                }
+                const url = `/artists-settlements/${this.gigId}/revert`;
+                console.log('[settlementWorkflowActions] Calling:', url);
+                const response = await fetch(url, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',

@@ -154,6 +154,11 @@ class ArtistSettlementsController extends Controller
             ]);
         });
 
+        // Se for requisição AJAX, retorna JSON
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Fechamento enviado com sucesso!']);
+        }
+
         // Redireciona de volta para a página de origem
         $redirectTo = $request->input('redirect_to');
         
@@ -231,6 +236,11 @@ class ArtistSettlementsController extends Controller
                 'communication_notes' => $request->input('communication_notes') ?: $settlement->communication_notes,
             ]);
         });
+
+        // Se for requisição AJAX, retorna JSON
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Documentação registrada com sucesso!']);
+        }
 
         // Redireciona de volta para a página de origem
         $redirectTo = $request->input('redirect_to');
@@ -315,6 +325,11 @@ class ArtistSettlementsController extends Controller
                 'artist_payment_proof' => $proofPath,
             ]);
         });
+
+        // Se for requisição AJAX, retorna JSON
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Pagamento registrado com sucesso!']);
+        }
 
         // Redireciona de volta para a página de origem
         $redirectTo = $request->input('redirect_to');
@@ -410,6 +425,14 @@ class ArtistSettlementsController extends Controller
      */
     private function redirectWithMessage(Request $request, Gig $gig, string $type, string $message)
     {
+        // Se for requisição AJAX, retorna JSON ao invés de redirect
+        if ($request->wantsJson() || $request->ajax()) {
+            if ($type === 'error') {
+                return response()->json(['success' => false, 'message' => $message], 400);
+            }
+            return response()->json(['success' => true, 'message' => $message]);
+        }
+
         $redirectTo = $request->input('redirect_to');
 
         if ($redirectTo === 'gig') {

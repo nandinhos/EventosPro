@@ -8,7 +8,7 @@
     // Determinar o estágio
     $stage = $stage ?? ($cost?->reimbursement_stage ?? 'aguardando_comprovante');
     
-    // Configurações de cada estágio
+    // Configurações de cada estágio (workflow de Despesas/Custos: 3 estágios)
     $stageConfig = [
         'aguardando_comprovante' => [
             'label' => 'Aguardando',
@@ -26,17 +26,18 @@
             'icon' => 'file-alt',
             'iconColor' => 'text-yellow-500',
         ],
+        // Estágio "conferido" removido do workflow de despesas (mantido apenas para compatibilidade)
         'conferido' => [
-            'label' => 'Conferido',
-            'shortLabel' => 'Conf.',
-            'bg' => 'bg-blue-100 dark:bg-blue-900/40',
-            'text' => 'text-blue-700 dark:text-blue-300',
-            'icon' => 'check-double',
-            'iconColor' => 'text-blue-500',
+            'label' => 'Pago',
+            'shortLabel' => 'Pago',
+            'bg' => 'bg-green-100 dark:bg-green-900/40',
+            'text' => 'text-green-700 dark:text-green-300',
+            'icon' => 'check-circle',
+            'iconColor' => 'text-green-500',
         ],
         'reembolsado' => [
-            'label' => 'Reembolsado',
-            'shortLabel' => 'Reemb.',
+            'label' => 'Pago',
+            'shortLabel' => 'Pago',
             'bg' => 'bg-green-100 dark:bg-green-900/40',
             'text' => 'text-green-700 dark:text-green-300',
             'icon' => 'check-circle',

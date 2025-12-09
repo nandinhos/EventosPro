@@ -30,20 +30,12 @@
                 @break
 
             @case('comprovante_recebido')
-                {{-- Ação: Conferir Valor --}}
-                <button type="button"
-                        @click="$dispatch('open-confirm-modal', { costId: {{ $expense->id }}, description: '{{ addslashes($expense->description) }}', value: {{ $expense->value }} })"
-                        class="w-full flex items-center px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700">
-                    <i class="fas fa-check-double w-5"></i>
-                    Conferir Valor
-                </button>
-
-                {{-- Pular conferência e marcar reembolsado --}}
+                {{-- Ação: Marcar como Pago (sem conferência intermediária) --}}
                 <form action="{{ route('expenses.reimbursements.reimburse', $expense) }}" method="POST">
                     @csrf
                     <button type="submit" class="w-full flex items-center px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <i class="fas fa-forward w-5"></i>
-                        Marcar Reembolsado
+                        <i class="fas fa-check-circle w-5"></i>
+                        Marcar como Pago
                     </button>
                 </form>
 
@@ -58,12 +50,12 @@
                 @break
 
             @case('conferido')
-                {{-- Ação: Marcar Reembolsado --}}
+                {{-- Ação: Marcar como Pago --}}
                 <form action="{{ route('expenses.reimbursements.reimburse', $expense) }}" method="POST">
                     @csrf
                     <button type="submit" class="w-full flex items-center px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700">
                         <i class="fas fa-check-circle w-5"></i>
-                        Marcar Reembolsado
+                        Marcar como Pago
                     </button>
                 </form>
 

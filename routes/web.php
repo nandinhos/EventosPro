@@ -90,7 +90,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/artists-settlements/{gig}/receive-document', [App\Http\Controllers\ArtistSettlementsController::class, 'markDocumentationReceived'])->name('artists.settlements.receiveDocument');
     Route::match(['patch', 'post'], '/artists-settlements/{gig}/pay', [App\Http\Controllers\ArtistSettlementsController::class, 'settleArtist'])->name('artists.settlements.pay');
     Route::post('/artists-settlements/{gig}/settle', [App\Http\Controllers\ArtistSettlementsController::class, 'settleArtist'])->name('artists.settlements.settle');
-    Route::patch('/artists-settlements/{gig}/revert', [App\Http\Controllers\ArtistSettlementsController::class, 'revertStage'])->name('artists.settlements.revert');
+    Route::match(['patch', 'post'], '/artists-settlements/{gig}/revert', [App\Http\Controllers\ArtistSettlementsController::class, 'revertStage'])->name('artists.settlements.revert');
     Route::patch('/artists-settlements/revert-batch', [App\Http\Controllers\ArtistSettlementsController::class, 'revertBatch'])->name('artists.settlements.revertBatch');
 
     // Expense Reimbursements (Despesas Reembolsáveis)

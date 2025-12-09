@@ -34,7 +34,7 @@
         ],
         'reembolsado' => [
             'color' => 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400',
-            'label' => 'OK',
+            'label' => 'Pago',
             'icon' => 'check-circle',
         ],
     ];
@@ -56,12 +56,20 @@
     
     <div class="flex items-center gap-1">
         {{-- Badge de Status (clicável para abrir modal) --}}
-        <button @click="openModal()"
-                class="px-1.5 py-0.5 rounded-full font-medium {{ $config['color'] }} hover:opacity-80 transition-opacity flex items-center gap-1 cursor-pointer"
-                title="Clique para gerenciar">
-            <i class="fas fa-{{ $config['icon'] }} text-xxs"></i>
-            <span>{{ $config['label'] }}</span>
-        </button>
+        <div class="flex flex-col items-start">
+            <button @click="openModal()"
+                    class="px-1.5 py-0.5 rounded-full font-medium {{ $config['color'] }} hover:opacity-80 transition-opacity flex items-center gap-1 cursor-pointer"
+                    title="Clique para gerenciar">
+                <i class="fas fa-{{ $config['icon'] }} text-xxs"></i>
+                <span>{{ $config['label'] }}</span>
+            </button>
+            {{-- Número do documento (se existir e estágio for >= recebido) --}}
+            @if(in_array($stage, ['comprovante_recebido', 'conferido', 'reembolsado']) && $cost->reimbursement_notes)
+                <span class="text-xxs text-gray-500 dark:text-gray-400 ml-1 mt-0.5 truncate max-w-[80px]" title="{{ $cost->reimbursement_notes }}">
+                    {{ $cost->reimbursement_notes }}
+                </span>
+            @endif
+        </div>
         
         {{-- Botões de ação rápida --}}
         @if($stage === 'aguardando_comprovante')
@@ -73,7 +81,7 @@
         @elseif($stage === 'comprovante_recebido')
             <button @click="advanceStage('reembolsado')"
                     class="p-1 rounded text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
-                    title="Marcar como OK">
+                    title="Marcar como Pago">
                 <i class="fas fa-check-circle text-xs"></i>
             </button>
             <button @click="revertStage('aguardando_comprovante')"
@@ -84,7 +92,7 @@
         @elseif($stage === 'conferido')
             <button @click="advanceStage('reembolsado')"
                     class="p-1 rounded text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
-                    title="Marcar como OK">
+                    title="Marcar como Pago">
                 <i class="fas fa-check-circle text-xs"></i>
             </button>
             <button @click="revertStage('comprovante_recebido')"
@@ -96,7 +104,7 @@
             <span class="text-green-500 ml-1" title="Documento em posse">
                 <i class="fas fa-check text-xs"></i>
             </span>
-            <button @click="revertStage('conferido')"
+            <button @click="revertStage('comprovante_recebido')"
                     class="p-1 rounded text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     title="Reverter">
                 <i class="fas fa-undo text-xs"></i>
@@ -135,7 +143,7 @@
                     </span>
                 </div>
 
-                {{-- Seletor de tipo (só aguardando) --}}
+                {{-- Seletor de tipo e número (só aguardando) --}}
                 @if($stage === 'aguardando_comprovante')
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Comprovante</label>
@@ -145,6 +153,12 @@
                         <option value="transferencia">Comprovante de Transferência</option>
                         <option value="outro">Outro</option>
                     </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Número do Documento (opcional)</label>
+                    <input type="text" x-model="proofNumber" 
+                           class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm"
+                           placeholder="Ex: NF-e 123456 ou Recibo #001">
                 </div>
                 @endif
 
@@ -158,13 +172,9 @@
                             <i class="fas fa-file-upload"></i>Registrar Recebimento
                         </button>
                     @elseif($stage === 'comprovante_recebido')
-                        <button @click="advanceStage('conferido'); showModal = false"
-                                class="w-full px-4 py-2 text-sm rounded-md bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center gap-2">
-                            <i class="fas fa-check-double"></i>Conferir Valor
-                        </button>
                         <button @click="advanceStage('reembolsado'); showModal = false"
                                 class="w-full px-4 py-2 text-sm rounded-md bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2">
-                            <i class="fas fa-check-circle"></i>Marcar como OK
+                            <i class="fas fa-check-circle"></i>Marcar como Pago
                         </button>
                         <button @click="revertStage('aguardando_comprovante'); showModal = false"
                                 class="w-full px-4 py-2 text-sm rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
@@ -173,7 +183,7 @@
                     @elseif($stage === 'conferido')
                         <button @click="advanceStage('reembolsado'); showModal = false"
                                 class="w-full px-4 py-2 text-sm rounded-md bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2">
-                            <i class="fas fa-check-circle"></i>Marcar como OK
+                            <i class="fas fa-check-circle"></i>Marcar como Pago
                         </button>
                         <button @click="revertStage('comprovante_recebido'); showModal = false"
                                 class="w-full px-4 py-2 text-sm rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
@@ -182,11 +192,11 @@
                     @elseif($stage === 'reembolsado')
                         <div class="flex items-center gap-2 text-green-600 dark:text-green-400 py-2">
                             <i class="fas fa-check-circle text-lg"></i>
-                            <span class="font-medium">Documento em posse ✓</span>
+                            <span class="font-medium">Despesa Paga ✓</span>
                         </div>
-                        <button @click="revertStage('conferido'); showModal = false"
+                        <button @click="revertStage('comprovante_recebido'); showModal = false"
                                 class="w-full px-4 py-2 text-sm rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
-                            <i class="fas fa-undo"></i>Voltar p/ Conferido
+                            <i class="fas fa-undo"></i>Voltar p/ Recebido
                         </button>
                     @endif
                 </div>
@@ -209,6 +219,7 @@ function costReimbursementInline(costId, currentStage) {
         currentStage: currentStage,
         showModal: false,
         proofType: 'recibo',
+        proofNumber: '',
         loading: false,
 
         openModal() {
@@ -220,20 +231,21 @@ function costReimbursementInline(costId, currentStage) {
         },
 
         async advanceStageWithType(newStage) {
-            await this.updateStage(newStage, this.proofType);
+            await this.updateStage(newStage, this.proofType, this.proofNumber);
         },
 
         async revertStage(targetStage) {
             await this.updateStage(targetStage, null);
         },
 
-        async updateStage(newStage, proofType) {
+        async updateStage(newStage, proofType, proofNumber) {
             this.loading = true;
             try {
                 const body = { stage: newStage };
                 if (proofType) body.proof_type = proofType;
+                if (proofNumber) body.proof_number = proofNumber;
                 
-                // Buscar gig_id do cost - vamos usar uma rota genérica
+                // Rota para atualizar estágio de comprovante
                 const response = await fetch(`/api/costs/${this.costId}/reimbursement-stage`, {
                     method: 'PATCH',
                     headers: {
