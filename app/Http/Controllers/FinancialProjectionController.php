@@ -52,22 +52,14 @@ class FinancialProjectionController extends Controller
             'show_global' => 'nullable|boolean',
         ]);
 
-        // Verifica se deve mostrar métricas globais
-        $showGlobal = $request->boolean('show_global');
+        // Define período - usa mês atual como padrão se não informado
+        $startDate = $request->input('start_date')
+            ? Carbon::parse($request->input('start_date'))
+            : Carbon::now()->startOfMonth();
 
-        // Define período - só usa valores padrão se não for visualização global
-        $startDate = null;
-        $endDate = null;
-
-        if (! $showGlobal) {
-            $startDate = $request->input('start_date')
-                ? Carbon::parse($request->input('start_date'))
-                : null;
-
-            $endDate = $request->input('end_date')
-                ? Carbon::parse($request->input('end_date'))
-                : null;
-        }
+        $endDate = $request->input('end_date')
+            ? Carbon::parse($request->input('end_date'))
+            : Carbon::now()->endOfMonth();
 
         $viewMode = $request->input('view_mode', 'dre');
 
@@ -75,38 +67,26 @@ class FinancialProjectionController extends Controller
         $dreData = null;
         $cashFlowData = null;
         $comparisonData = null;
-        $cashFlowSummary = null;
-        $dreSummary = null;
 
-        // Só configura serviços e carrega dados se não for visualização global
-        if (! $showGlobal && $startDate && $endDate) {
-            $this->dreService->setPeriod($startDate, $endDate);
-            $this->cashFlowService->setPeriod($startDate, $endDate);
+        // Sempre configura serviços com o período (agora sempre temos período definido)
+        $this->dreService->setPeriod($startDate, $endDate);
+        $this->cashFlowService->setPeriod($startDate, $endDate);
 
-            if ($viewMode === 'dre' || $viewMode === 'comparison') {
-                $dreData = $this->dreService->getExecutiveSummary();
-            }
-
-            if ($viewMode === 'cashflow' || $viewMode === 'comparison') {
-                $cashFlowData = $this->cashFlowService->getExecutiveSummary();
-            }
-
-            if ($viewMode === 'comparison') {
-                $comparisonData = $this->cashFlowService->compareWithDre();
-            }
-
-            // Monta estrutura compatível com a view antiga (global_metrics e period_metrics)
-            // Usa os dados do Fluxo de Caixa como base para métricas globais
-            $cashFlowSummary = $this->cashFlowService->getExecutiveSummary();
-            $dreSummary = $this->dreService->getExecutiveSummary();
-        } else {
-            // Para visualização global, carrega dados sem restrição de período
-            $this->dreService->setPeriod(Carbon::today()->subYear(), Carbon::today()->addYear());
-            $this->cashFlowService->setPeriod(Carbon::today()->subYear(), Carbon::today()->addYear());
-
-            $cashFlowSummary = $this->cashFlowService->getExecutiveSummary();
-            $dreSummary = $this->dreService->getExecutiveSummary();
+        if ($viewMode === 'dre' || $viewMode === 'comparison') {
+            $dreData = $this->dreService->getExecutiveSummary();
         }
+
+        if ($viewMode === 'cashflow' || $viewMode === 'comparison') {
+            $cashFlowData = $this->cashFlowService->getExecutiveSummary();
+        }
+
+        if ($viewMode === 'comparison') {
+            $comparisonData = $this->cashFlowService->compareWithDre();
+        }
+
+        // Carrega dados para métricas
+        $cashFlowSummary = $this->cashFlowService->getExecutiveSummary();
+        $dreSummary = $this->dreService->getExecutiveSummary();
 
         // Calcula contas a receber pendentes (para métricas globais, usa período amplo)
         $accountsReceivable = $this->calculateGlobalAccountsReceivable();
@@ -160,37 +140,40 @@ class FinancialProjectionController extends Controller
             'financial_balance' => $strategicBalance['financial_balance'],
         ];
 
-        $periodMetrics = null;
-        if (! $showGlobal && $startDate && $endDate && $cashFlowSummary && $dreSummary) {
-            $periodMetrics = [
-                'executive_summary' => [
-                    'receivable' => $cashFlowSummary['kpis']['total_entradas'],
-                    'payable_artists' => $cashFlowSummary['kpis']['total_saidas'] * 0.8,
-                    'payable_bookers' => $cashFlowSummary['kpis']['total_saidas'] * 0.2,
-                    'payable_expenses' => 0,
-                    'total_payable' => $cashFlowSummary['kpis']['total_saidas'],
-                    'net_cash_flow' => $cashFlowSummary['kpis']['fluxo_caixa_liquido'],
-                    'health_score' => $this->calculateHealthScore($cashFlowSummary['kpis']['indice_liquidez']),
-                    'period_days' => $startDate->diffInDays($endDate) + 1,
-                    // Add keys expected by the partial view
-                    'liquidity_index' => $cashFlowSummary['kpis']['indice_liquidez'],
-                    'operational_margin' => $dreSummary['kpis']['margem_percentual'],
-                    'commitment_rate' => 100 - $dreSummary['kpis']['margem_percentual'],
-                    'cash_flow' => $cashFlowSummary['kpis']['fluxo_caixa_liquido'],
-                ],
-                'key_insights' => [
-                    $cashFlowSummary['kpis']['status_financeiro'] === 'positivo'
-                        ? 'Situação financeira saudável com fluxo de caixa positivo.'
-                        : 'Atenção: fluxo de caixa negativo detectado.',
-                    'Ticket médio dos eventos: R$ '.number_format($dreSummary['kpis']['ticket_medio'], 2, ',', '.'),
-                ],
-                'recommendations' => [
-                    $cashFlowSummary['kpis']['fluxo_caixa_liquido'] >= 0
-                        ? 'Mantenha estratégia atual - situação sólida.'
-                        : 'Priorize cobrança de recebimentos pendentes.',
-                ],
-            ];
-        }
+        // Sempre calcula dados filtrados por período (agora sempre temos período)
+        $periodAccountsReceivable = $this->cashFlowService->calculateAccountsReceivable();
+        $periodArtistPayments = $this->cashFlowService->calculateArtistPaymentDetailsByPeriod();
+        $periodBookerPayments = $this->cashFlowService->calculateBookerCommissionDetailsByPeriod();
+        $periodExpenses = $this->calculateGigExpensesByPeriod($startDate, $endDate);
+
+        $periodMetrics = [
+            'executive_summary' => [
+                'receivable' => $cashFlowSummary['kpis']['total_entradas'],
+                'payable_artists' => $cashFlowSummary['kpis']['total_saidas'] * 0.8,
+                'payable_bookers' => $cashFlowSummary['kpis']['total_saidas'] * 0.2,
+                'payable_expenses' => 0,
+                'total_payable' => $cashFlowSummary['kpis']['total_saidas'],
+                'net_cash_flow' => $cashFlowSummary['kpis']['fluxo_caixa_liquido'],
+                'health_score' => $this->calculateHealthScore($cashFlowSummary['kpis']['indice_liquidez']),
+                'period_days' => $startDate->diffInDays($endDate) + 1,
+                'liquidity_index' => $cashFlowSummary['kpis']['indice_liquidez'],
+                'operational_margin' => $dreSummary['kpis']['margem_percentual'],
+                'commitment_rate' => 100 - $dreSummary['kpis']['margem_percentual'],
+                'cash_flow' => $cashFlowSummary['kpis']['fluxo_caixa_liquido'],
+            ],
+            'key_insights' => [
+                $cashFlowSummary['kpis']['status_financeiro'] === 'positivo'
+                    ? 'Situação financeira saudável com fluxo de caixa positivo.'
+                    : 'Atenção: fluxo de caixa negativo detectado.',
+                'Ticket médio dos eventos: R$ '.number_format($dreSummary['kpis']['ticket_medio'], 2, ',', '.'),
+            ],
+            'recommendations' => [
+                $cashFlowSummary['kpis']['fluxo_caixa_liquido'] >= 0
+                    ? 'Mantenha estratégia atual - situação sólida.'
+                    : 'Priorize cobrança de recebimentos pendentes.',
+            ],
+        ];
+
 
         return view('projections.dashboard', [
             'start_date' => $startDate ? $startDate->format('Y-m-d') : Carbon::today()->format('Y-m-d'),
@@ -202,7 +185,6 @@ class FinancialProjectionController extends Controller
             'global_metrics' => $globalMetrics,
             'period_metrics' => $periodMetrics,
             'period_listings' => null, // Compatibilidade
-            'show_global' => $showGlobal,
             'accounts_receivable' => $accountsReceivable, // Dados para tabelas detalhadas
             'artist_payment_details' => $artistPaymentDetails, // Detalhes dos pagamentos aos artistas
             'booker_commission_details' => $bookerCommissionDetails, // Detalhes das comissões aos bookers
@@ -210,8 +192,14 @@ class FinancialProjectionController extends Controller
             'strategic_balance' => $strategicBalance, // Novas métricas estratégicas
             'gig_expenses_details' => $gigExpenses, // Detalhes das despesas de eventos
             'operational_expenses_details' => $projectedExpenses, // Detalhes dos custos operacionais
+            // Novos dados filtrados por período para os 4 cards
+            'period_accounts_receivable' => $periodAccountsReceivable,
+            'period_artist_payments' => $periodArtistPayments,
+            'period_booker_payments' => $periodBookerPayments,
+            'period_expenses' => $periodExpenses, // Despesas de eventos filtradas por período
         ]);
     }
+
 
     /**
      * Calcula contas a receber globais (sem restrição de período).
@@ -332,6 +320,76 @@ class FinancialProjectionController extends Controller
                 'confirmed' => $confirmed,
             ];
         });
+    }
+
+    /**
+     * Calcula o total de despesas de eventos (GigCost) FILTRADO POR PERÍODO.
+     * Retorna despesas de eventos com gig_date entre startDate e endDate.
+     * Inclui subdivisão temporal: passado (gig_date < hoje) e futuro (gig_date >= hoje)
+     */
+    private function calculateGigExpensesByPeriod(Carbon $startDate, Carbon $endDate): array
+    {
+        $today = Carbon::today();
+
+        // Todas as despesas filtradas por período
+        $allExpenses = \App\Models\GigCost::query()
+            ->whereHas('gig', function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('gig_date', [$startDate, $endDate]);
+            })
+            ->with('gig:id,gig_date,contract_number,artist_id,location_event_details', 'gig.artist:id,name', 'costCenter:id,name')
+            ->get();
+
+        // Despesas pendentes (não confirmadas)
+        $pendingExpenses = $allExpenses->where('is_confirmed', false);
+        $confirmedExpenses = $allExpenses->where('is_confirmed', true);
+
+        $totalPending = $pendingExpenses->sum('value_brl');
+        $totalConfirmed = $confirmedExpenses->sum('value_brl');
+
+        // Separação temporal baseada em gig_date
+        $pastExpenses = $allExpenses->filter(fn($cost) => $cost->gig && $cost->gig->gig_date->lt($today));
+        $futureExpenses = $allExpenses->filter(fn($cost) => !$cost->gig || $cost->gig->gig_date->gte($today));
+
+        $totalPast = $pastExpenses->sum('value_brl');
+        $totalFuture = $futureExpenses->sum('value_brl');
+
+        $mapExpenses = function ($cost) use ($today) {
+            $isPast = $cost->gig ? $cost->gig->gig_date->lt($today) : false;
+            return [
+                'gig_id' => $cost->gig_id,
+                'gig_date_raw' => $cost->gig ? $cost->gig->gig_date->format('Y-m-d') : null,
+                'gig_date' => $cost->gig ? $cost->gig->gig_date->isoFormat('L') : 'N/A',
+                'gig_contract' => $cost->gig ? ($cost->gig->contract_number ?? "Gig #{$cost->gig->id}") : 'N/A',
+                'artist_name' => $cost->gig && $cost->gig->artist ? $cost->gig->artist->name : 'N/A',
+                'location' => $cost->gig ? ($cost->gig->location_event_details ?? 'N/A') : 'N/A',
+                'description' => $cost->description,
+                'value_brl' => $cost->value_brl,
+                'is_confirmed' => $cost->is_confirmed,
+                'is_past' => $isPast,
+                'temporal_group' => $isPast ? 'past' : 'future',
+            ];
+        };
+
+        $pending = $pendingExpenses->map($mapExpenses)->sortBy('gig_date_raw')->values();
+        $confirmed = $confirmedExpenses->map($mapExpenses)->sortBy('gig_date_raw')->values();
+        $pastMapped = $pastExpenses->map($mapExpenses)->sortBy('gig_date_raw')->values();
+        $futureMapped = $futureExpenses->map($mapExpenses)->sortBy('gig_date_raw')->values();
+
+        return [
+            'total_expenses' => $totalPending + $totalConfirmed,
+            'total_pending' => $totalPending,
+            'total_confirmed' => $totalConfirmed,
+            'total_past' => $totalPast,
+            'total_future' => $totalFuture,
+            'pending_count' => $pendingExpenses->count(),
+            'confirmed_count' => $confirmedExpenses->count(),
+            'past_count' => $pastExpenses->count(),
+            'future_count' => $futureExpenses->count(),
+            'pending' => $pending,
+            'confirmed' => $confirmed,
+            'past_expenses' => $pastMapped,
+            'future_expenses' => $futureMapped,
+        ];
     }
 
     /**
