@@ -31,23 +31,27 @@
 <div x-data="expenseBatchManager()" class="space-y-6 mt-4">
     {{-- Cards de Resumo --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-gradient-to-br from-red-500 to-red-600 p-4 rounded-lg shadow-lg">
-            <h3 class="text-sm text-red-100">Total Geral de Despesas</h3>
-            <p class="text-2xl font-bold text-white">R$ {{ number_format($totalGeral, 2, ',', '.') }}</p>
+        {{-- Card Vermelho: Total Geral --}}
+        <div class="bg-red-100 dark:bg-red-900/20 p-4 rounded-lg">
+            <h3 class="text-sm text-gray-500 dark:text-gray-400">Total Geral de Despesas</h3>
+            <p class="text-lg font-semibold text-red-800 dark:text-red-300">R$ {{ number_format($totalGeral, 2, ',', '.') }}</p>
         </div>
-        <div class="bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-lg shadow-lg">
-            <h3 class="text-sm text-green-100">Total Confirmado</h3>
-            <p class="text-2xl font-bold text-white">R$ {{ number_format($totalConfirmado, 2, ',', '.') }}</p>
+        {{-- Card Verde: Confirmado --}}
+        <div class="bg-green-100 dark:bg-green-900/20 p-4 rounded-lg">
+            <h3 class="text-sm text-gray-500 dark:text-gray-400">Total Confirmado</h3>
+            <p class="text-lg font-semibold text-green-800 dark:text-green-300">R$ {{ number_format($totalConfirmado, 2, ',', '.') }}</p>
         </div>
-        <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 p-4 rounded-lg shadow-lg">
-            <h3 class="text-sm text-yellow-100">Total Pendente</h3>
-            <p class="text-2xl font-bold text-white">R$ {{ number_format($totalPendente, 2, ',', '.') }}</p>
+        {{-- Card Amarelo: Pendente --}}
+        <div class="bg-yellow-100 dark:bg-yellow-900/20 p-4 rounded-lg">
+            <h3 class="text-sm text-gray-500 dark:text-gray-400">Total Pendente</h3>
+            <p class="text-lg font-semibold text-yellow-800 dark:text-yellow-300">R$ {{ number_format($totalPendente, 2, ',', '.') }}</p>
         </div>
-        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-lg shadow-lg">
-            <h3 class="text-sm text-blue-100">Reembolsável (Pago/Total)</h3>
-            <p class="text-2xl font-bold text-white">
+        {{-- Card Azul: Reembolsável --}}
+        <div class="bg-blue-100 dark:bg-blue-900/20 p-4 rounded-lg">
+            <h3 class="text-sm text-gray-500 dark:text-gray-400">Reembolsável (Pago/Total)</h3>
+            <p class="text-lg font-semibold text-blue-800 dark:text-blue-300">
                 R$ {{ number_format($totalReembolsado, 2, ',', '.') }}
-                <span class="text-sm font-normal text-blue-200">/ {{ number_format($totalReembolsavel, 2, ',', '.') }}</span>
+                <span class="text-sm font-normal text-blue-600 dark:text-blue-400">/ {{ number_format($totalReembolsavel, 2, ',', '.') }}</span>
             </p>
         </div>
     </div>
