@@ -92,6 +92,11 @@ class GigCostController extends Controller
 
             // Garante que 'is_invoice' seja booleano
             $data['is_invoice'] = ! empty($data['is_invoice']);
+            
+            // Se marcada como NF, inicializa estágio de comprovante
+            if ($data['is_invoice'] && empty($data['reimbursement_stage'])) {
+                $data['reimbursement_stage'] = GigCost::STAGE_AGUARDANDO_COMPROVANTE;
+            }
 
             $cost = GigCost::create($data);
 
@@ -241,8 +246,25 @@ class GigCostController extends Controller
         // if (!$cost->is_confirmed) { return response()->json(['message' => 'Apenas despesas confirmadas...'], 422); } // MANTENHA SE QUISER
 
         try {
-            $cost->update(['is_invoice' => ! $cost->is_invoice]);
-            $message = $cost->is_invoice ? 'Despesa marcada como inclusa na NF!' : 'Marcação de NF removida da despesa!';
+            $newIsInvoice = ! $cost->is_invoice;
+            $updateData = ['is_invoice' => $newIsInvoice];
+            
+            // Se marcando como NF e não tem estágio de comprovante, inicializa
+            if ($newIsInvoice && empty($cost->reimbursement_stage)) {
+                $updateData['reimbursement_stage'] = GigCost::STAGE_AGUARDANDO_COMPROVANTE;
+            }
+            
+            // Se desmarcando NF, limpa estágio de comprovante
+            if (! $newIsInvoice) {
+                $updateData['reimbursement_stage'] = null;
+                $updateData['reimbursement_proof_type'] = null;
+                $updateData['reimbursement_notes'] = null;
+                $updateData['reimbursement_confirmed_at'] = null;
+                $updateData['reimbursement_confirmed_by'] = null;
+            }
+            
+            $cost->update($updateData);
+            $message = $newIsInvoice ? 'Despesa marcada como inclusa na NF!' : 'Marcação de NF removida da despesa!';
 
             return response()->json(['message' => $message, 'cost' => $cost->fresh()->load('costCenter', 'confirmer')]);
         } catch (Exception $e) {
@@ -271,6 +293,7 @@ class GigCostController extends Controller
 
     /**
      * Atualiza o estágio de reembolso de uma despesa inline.
+     * Workflow simplificado: aguardando_comprovante <-> pago
      */
     public function updateReimbursementStage(Request $request, Gig $gig, GigCost $cost): JsonResponse
     {
@@ -283,7 +306,7 @@ class GigCostController extends Controller
         }
 
         $validated = $request->validate([
-            'stage' => ['required', 'in:aguardando_comprovante,comprovante_recebido,conferido,reembolsado'],
+            'stage' => ['required', 'in:aguardando_comprovante,pago'],
             'proof_type' => ['nullable', 'in:recibo,nf,transferencia,outro'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
@@ -291,9 +314,10 @@ class GigCostController extends Controller
         try {
             $updateData = ['reimbursement_stage' => $validated['stage']];
             
-            // Se estiver marcando como recebido, registra data e tipo
-            if ($validated['stage'] === 'comprovante_recebido') {
-                $updateData['reimbursement_proof_received_at'] = now();
+            // Se estiver marcando como pago, registra data e usuário
+            if ($validated['stage'] === GigCost::STAGE_PAGO) {
+                $updateData['reimbursement_confirmed_at'] = now();
+                $updateData['reimbursement_confirmed_by'] = Auth::id();
                 if (!empty($validated['proof_type'])) {
                     $updateData['reimbursement_proof_type'] = $validated['proof_type'];
                 }
@@ -302,11 +326,10 @@ class GigCostController extends Controller
                 }
             }
             
-            // Se estiver marcando como conferido
-            if ($validated['stage'] === 'conferido') {
-                $updateData['reimbursement_confirmed_at'] = now();
-                $updateData['reimbursement_confirmed_by'] = Auth::id();
-                $updateData['reimbursement_value_confirmed'] = $cost->value;
+            // Se reverter para aguardando, limpa dados de confirmação
+            if ($validated['stage'] === GigCost::STAGE_AGUARDANDO_COMPROVANTE) {
+                $updateData['reimbursement_confirmed_at'] = null;
+                $updateData['reimbursement_confirmed_by'] = null;
             }
 
             $cost->update($updateData);
@@ -323,6 +346,7 @@ class GigCostController extends Controller
 
     /**
      * Atualiza o estágio de reembolso de uma despesa (API sem gig).
+     * Workflow simplificado: aguardando_comprovante <-> pago
      * Usado pelo componente cost-reimbursement-inline.
      */
     public function updateReimbursementStageApi(Request $request, GigCost $cost): JsonResponse
@@ -333,7 +357,7 @@ class GigCostController extends Controller
         }
 
         $validated = $request->validate([
-            'stage' => ['required', 'in:aguardando_comprovante,comprovante_recebido,conferido,reembolsado'],
+            'stage' => ['required', 'in:aguardando_comprovante,pago'],
             'proof_type' => ['nullable', 'in:recibo,nf,transferencia,outro'],
             'proof_number' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:500'],
@@ -342,9 +366,10 @@ class GigCostController extends Controller
         try {
             $updateData = ['reimbursement_stage' => $validated['stage']];
             
-            // Se estiver marcando como recebido, registra data e tipo
-            if ($validated['stage'] === 'comprovante_recebido') {
-                $updateData['reimbursement_proof_received_at'] = now();
+            // Se estiver marcando como pago, registra data e usuário
+            if ($validated['stage'] === GigCost::STAGE_PAGO) {
+                $updateData['reimbursement_confirmed_at'] = now();
+                $updateData['reimbursement_confirmed_by'] = Auth::id();
                 if (!empty($validated['proof_type'])) {
                     $updateData['reimbursement_proof_type'] = $validated['proof_type'];
                 }
@@ -356,11 +381,10 @@ class GigCostController extends Controller
                 }
             }
             
-            // Se estiver marcando como conferido
-            if ($validated['stage'] === 'conferido') {
-                $updateData['reimbursement_confirmed_at'] = now();
-                $updateData['reimbursement_confirmed_by'] = Auth::id();
-                $updateData['reimbursement_value_confirmed'] = $cost->value;
+            // Se reverter para aguardando, limpa dados de confirmação
+            if ($validated['stage'] === GigCost::STAGE_AGUARDANDO_COMPROVANTE) {
+                $updateData['reimbursement_confirmed_at'] = null;
+                $updateData['reimbursement_confirmed_by'] = null;
             }
 
             $cost->update($updateData);

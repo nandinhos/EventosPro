@@ -25,7 +25,7 @@ class ArtistSettlementsController extends Controller
                 'artist', 
                 'booker', 
                 'settlement',
-                'gigCosts' => fn($q) => $q->where('is_invoice', true)->whereNotNull('reimbursement_stage'),
+                'gigCosts' => fn($q) => $q->where('is_invoice', true),
             ])
             ->whereNotNull('artist_id')
             ->where('gig_date', '<=', now());

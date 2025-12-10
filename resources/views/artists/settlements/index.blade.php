@@ -202,9 +202,14 @@
                                 ];
                                 $reimbursableCosts = $gig->gigCosts ?? collect();
                                 $totalCosts = $reimbursableCosts->count();
-                                $pendingCosts = $reimbursableCosts->where('reimbursement_stage', 'aguardando_comprovante')->count();
-                                $receivedCosts = $reimbursableCosts->where('reimbursement_stage', 'comprovante_recebido')->count();
-                                $completedCosts = $reimbursableCosts->whereIn('reimbursement_stage', ['conferido', 'reembolsado'])->count();
+                                // Contagem simplificada: 2 estágios (mapeando legados para 'pago')
+                                $legacyPaidStages = ['comprovante_recebido', 'conferido', 'reembolsado', 'pago'];
+                                $pendingCosts = $reimbursableCosts->filter(fn($c) => 
+                                    !$c->reimbursement_stage || $c->reimbursement_stage === 'aguardando_comprovante'
+                                )->count();
+                                $paidCosts = $reimbursableCosts->filter(fn($c) => 
+                                    in_array($c->reimbursement_stage, $legacyPaidStages)
+                                )->count();
                             @endphp
                             {{-- Linha Principal --}}
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 {{ $stage === 'pago' ? 'opacity-60' : '' }} cursor-pointer"
@@ -248,20 +253,15 @@
                                 </td>
                                 <td class="px-4 py-2 text-center">
                                     @if($totalCosts > 0)
-                                        <span class="text-xs whitespace-nowrap" title="{{ $pendingCosts }} aguardando, {{ $receivedCosts }} recebido, {{ $completedCosts }} OK">
+                                        <span class="text-xs whitespace-nowrap" title="{{ $pendingCosts }} aguardando, {{ $paidCosts }} pago">
                                             @if($pendingCosts > 0)
                                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
                                                     <i class="fas fa-clock mr-1"></i>{{ $pendingCosts }}
                                                 </span>
                                             @endif
-                                            @if($receivedCosts > 0)
-                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400">
-                                                    <i class="fas fa-file-alt mr-1"></i>{{ $receivedCosts }}
-                                                </span>
-                                            @endif
-                                            @if($completedCosts > 0)
+                                            @if($paidCosts > 0)
                                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400">
-                                                    <i class="fas fa-check mr-1"></i>{{ $completedCosts }}
+                                                    <i class="fas fa-check mr-1"></i>{{ $paidCosts }}
                                                 </span>
                                             @endif
                                         </span>

@@ -1,3 +1,13 @@
+{{--
+    Componente: x-reimbursement-badge
+    Exibe badge visual do estágio de comprovante de despesa.
+    Workflow simplificado: aguardando_comprovante | pago
+    
+    Props:
+    - $cost: Modelo GigCost (opcional)
+    - $stage: String do estágio (usa este se $cost não for passado)
+    - $size: xs, sm, md, lg (default: sm)
+--}}
 @props([
     'cost' => null,
     'stage' => null,
@@ -5,10 +15,12 @@
 ])
 
 @php
-    // Determinar o estágio
-    $stage = $stage ?? ($cost?->reimbursement_stage ?? 'aguardando_comprovante');
+    // Determinar o estágio (normaliza estágios legados para 'pago')
+    $rawStage = $stage ?? ($cost?->reimbursement_stage ?? 'aguardando_comprovante');
+    $legacyStages = ['comprovante_recebido', 'conferido', 'reembolsado'];
+    $effectiveStage = in_array($rawStage, $legacyStages) ? 'pago' : $rawStage;
     
-    // Configurações de cada estágio (workflow de Despesas/Custos: 3 estágios)
+    // Configurações simplificadas (2 estágios)
     $stageConfig = [
         'aguardando_comprovante' => [
             'label' => 'Aguardando',
@@ -18,24 +30,7 @@
             'icon' => 'clock',
             'iconColor' => 'text-gray-500',
         ],
-        'comprovante_recebido' => [
-            'label' => 'Recebido',
-            'shortLabel' => 'Receb.',
-            'bg' => 'bg-yellow-100 dark:bg-yellow-900/40',
-            'text' => 'text-yellow-700 dark:text-yellow-300',
-            'icon' => 'file-alt',
-            'iconColor' => 'text-yellow-500',
-        ],
-        // Estágio "conferido" removido do workflow de despesas (mantido apenas para compatibilidade)
-        'conferido' => [
-            'label' => 'Pago',
-            'shortLabel' => 'Pago',
-            'bg' => 'bg-green-100 dark:bg-green-900/40',
-            'text' => 'text-green-700 dark:text-green-300',
-            'icon' => 'check-circle',
-            'iconColor' => 'text-green-500',
-        ],
-        'reembolsado' => [
+        'pago' => [
             'label' => 'Pago',
             'shortLabel' => 'Pago',
             'bg' => 'bg-green-100 dark:bg-green-900/40',
@@ -45,7 +40,7 @@
         ],
     ];
     
-    $config = $stageConfig[$stage] ?? $stageConfig['aguardando_comprovante'];
+    $config = $stageConfig[$effectiveStage] ?? $stageConfig['aguardando_comprovante'];
     
     // Tamanhos
     $sizes = [

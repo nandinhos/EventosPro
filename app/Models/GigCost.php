@@ -96,14 +96,23 @@ class GigCost extends Model
     }
 
     // ====================================================
-    // CONSTANTES DE ESTÁGIO DE REEMBOLSO
+    // CONSTANTES DE ESTÁGIO DE REEMBOLSO (Simplificado: 2 estágios)
     // ====================================================
     
+    public const STAGE_AGUARDANDO_COMPROVANTE = 'aguardando_comprovante';
+    public const STAGE_PAGO = 'pago';
+    
+    // Estágios válidos (novo workflow simplificado)
     public const REIMBURSEMENT_STAGES = [
-        'aguardando_comprovante' => 'Aguardando Comprovante',
-        'comprovante_recebido' => 'Comprovante Recebido',
-        'conferido' => 'Conferido',
-        'reembolsado' => 'Reembolsado',
+        self::STAGE_AGUARDANDO_COMPROVANTE => 'Aguardando Comprovante',
+        self::STAGE_PAGO => 'Pago',
+    ];
+    
+    // Mapeamento de estágios legados para o novo workflow
+    public const LEGACY_STAGE_MAPPING = [
+        'comprovante_recebido' => self::STAGE_PAGO,
+        'conferido' => self::STAGE_PAGO,
+        'reembolsado' => self::STAGE_PAGO,
     ];
 
     public const REIMBURSEMENT_PROOF_TYPES = [
@@ -112,6 +121,21 @@ class GigCost extends Model
         'transferencia' => 'Comprovante de Transferência',
         'outro' => 'Outro',
     ];
+    
+    /**
+     * Accessor que normaliza estágios legados para o novo workflow
+     */
+    public function getEffectiveReimbursementStageAttribute(): string
+    {
+        $stage = $this->reimbursement_stage ?? self::STAGE_AGUARDANDO_COMPROVANTE;
+        
+        // Mapeia estágios legados para 'pago'
+        if (isset(self::LEGACY_STAGE_MAPPING[$stage])) {
+            return self::LEGACY_STAGE_MAPPING[$stage];
+        }
+        
+        return $stage;
+    }
 
     // ====================================================
     // SCOPES
@@ -138,11 +162,11 @@ class GigCost extends Model
     // ====================================================
 
     /**
-     * Accessor para label do estágio de reembolso
+     * Accessor para label do estágio de reembolso (usa estágio normalizado)
      */
     public function getReimbursementStageLabelAttribute(): string
     {
-        return self::REIMBURSEMENT_STAGES[$this->reimbursement_stage] ?? 'N/A';
+        return self::REIMBURSEMENT_STAGES[$this->effective_reimbursement_stage] ?? 'N/A';
     }
 
     /**

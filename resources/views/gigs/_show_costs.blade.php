@@ -72,23 +72,19 @@
                                     </td>
                                     <td class="py-2 px-1 whitespace-nowrap text-center">
                                         <template x-if="cost.is_invoice">
-                                            <!-- Badge clicável que abre modal + número do documento -->
+                                            <!-- Badge clicável + número do documento (Simplificado: 2 estágios) -->
                                             <div class="flex flex-col items-center">
                                                 <button @click="openProofModal(cost)"
                                                         class="inline-flex items-center px-2 py-0.5 rounded-full text-xs transition-colors cursor-pointer"
                                                         :class="{
-                                                            'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200': cost.reimbursement_stage === 'aguardando_comprovante',
-                                                            'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200': cost.reimbursement_stage === 'comprovante_recebido',
-                                                            'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 hover:bg-blue-200': cost.reimbursement_stage === 'conferido',
-                                                            'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 hover:bg-green-200': cost.reimbursement_stage === 'reembolsado'
+                                                            'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200': cost.effective_stage === 'aguardando_comprovante',
+                                                            'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 hover:bg-green-200': cost.effective_stage === 'pago'
                                                         }">
-                                                    <template x-if="cost.reimbursement_stage === 'aguardando_comprovante'"><span><i class="fas fa-clock mr-1"></i>Aguard.</span></template>
-                                                    <template x-if="cost.reimbursement_stage === 'comprovante_recebido'"><span><i class="fas fa-file-alt mr-1"></i>Recebido</span></template>
-                                                    <template x-if="cost.reimbursement_stage === 'conferido'"><span><i class="fas fa-check-double mr-1"></i>Conferido</span></template>
-                                                    <template x-if="cost.reimbursement_stage === 'reembolsado'"><span><i class="fas fa-check-circle mr-1"></i>Pago</span></template>
+                                                    <template x-if="cost.effective_stage === 'aguardando_comprovante'"><span><i class="fas fa-clock mr-1"></i>Aguard.</span></template>
+                                                    <template x-if="cost.effective_stage === 'pago'"><span><i class="fas fa-check-circle mr-1"></i>Pago</span></template>
                                                 </button>
                                                 <!-- Número do documento abaixo do badge -->
-                                                <template x-if="cost.reimbursement_notes && ['comprovante_recebido', 'conferido', 'reembolsado'].includes(cost.reimbursement_stage)">
+                                                <template x-if="cost.reimbursement_notes && cost.effective_stage === 'pago'">
                                                     <span class="text-xxs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-[80px]" :title="cost.reimbursement_notes" x-text="cost.reimbursement_notes"></span>
                                                 </template>
                                             </div>
@@ -163,20 +159,16 @@
                     <p class="text-lg font-bold text-primary-600 dark:text-primary-400" x-text="formatCurrency(proofCostData.value)"></p>
                 </div>
 
-                {{-- Status atual --}}
+                {{-- Status atual (Simplificado: 2 estágios) --}}
                 <div class="flex items-center gap-2 text-sm">
                     <span class="text-gray-500 dark:text-gray-400">Status atual:</span>
                     <span class="px-2 py-1 rounded-full text-xs font-semibold"
                           :class="{
                               'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400': proofCostData.stage === 'aguardando_comprovante',
-                              'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400': proofCostData.stage === 'comprovante_recebido',
-                              'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400': proofCostData.stage === 'conferido',
-                              'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400': proofCostData.stage === 'reembolsado'
+                              'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400': proofCostData.stage === 'pago'
                           }">
                         <template x-if="proofCostData.stage === 'aguardando_comprovante'">Aguardando</template>
-                        <template x-if="proofCostData.stage === 'comprovante_recebido'">Recebido</template>
-                        <template x-if="proofCostData.stage === 'conferido'">Conferido</template>
-                        <template x-if="proofCostData.stage === 'reembolsado'">Pago</template>
+                        <template x-if="proofCostData.stage === 'pago'">Pago</template>
                     </span>
                 </div>
 
@@ -201,52 +193,26 @@
                     </div>
                 </template>
 
-                {{-- Ações disponíveis --}}
+                {{-- Ações disponíveis (Simplificado: 2 estágios) --}}
                 <div class="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                     <p class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase">Ações</p>
                     
                     <template x-if="proofCostData.stage === 'aguardando_comprovante'">
-                        <button @click="submitProofAction('comprovante_recebido'); showProofModal = false"
-                                class="w-full px-4 py-2 text-sm rounded-md bg-yellow-500 hover:bg-yellow-600 text-white flex items-center justify-center gap-2">
-                            <i class="fas fa-file-upload"></i>Registrar Recebimento
+                        <button @click="submitProofAction('pago'); showProofModal = false"
+                                class="w-full px-4 py-2 text-sm rounded-md bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2">
+                            <i class="fas fa-check-circle"></i>Marcar como Pago
                         </button>
                     </template>
 
-                    <template x-if="proofCostData.stage === 'comprovante_recebido'">
-                        <div class="space-y-2">
-                            <button @click="submitProofAction('reembolsado'); showProofModal = false"
-                                    class="w-full px-4 py-2 text-sm rounded-md bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2">
-                                <i class="fas fa-check-circle"></i>Marcar como Pago
-                            </button>
-                            <button @click="submitProofAction('aguardando_comprovante'); showProofModal = false"
-                                    class="w-full px-4 py-2 text-sm rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
-                                <i class="fas fa-undo"></i>Reverter p/ Aguardando
-                            </button>
-                        </div>
-                    </template>
-
-                    <template x-if="proofCostData.stage === 'conferido'">
-                        <div class="space-y-2">
-                            <button @click="submitProofAction('reembolsado'); showProofModal = false"
-                                    class="w-full px-4 py-2 text-sm rounded-md bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2">
-                                <i class="fas fa-check-circle"></i>Marcar como Pago
-                            </button>
-                            <button @click="submitProofAction('comprovante_recebido'); showProofModal = false"
-                                    class="w-full px-4 py-2 text-sm rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
-                                <i class="fas fa-undo"></i>Voltar p/ Recebido
-                            </button>
-                        </div>
-                    </template>
-
-                    <template x-if="proofCostData.stage === 'reembolsado'">
+                    <template x-if="proofCostData.stage === 'pago'">
                         <div class="space-y-2">
                             <div class="flex items-center gap-2 text-green-600 dark:text-green-400 py-2">
                                 <i class="fas fa-check-circle text-lg"></i>
-                                <span class="font-medium">Despesa Paga ✓</span>
+                                <span class="font-medium">Comprovante OK ✓</span>
                             </div>
-                            <button @click="submitProofAction('comprovante_recebido'); showProofModal = false"
+                            <button @click="submitProofAction('aguardando_comprovante'); showProofModal = false"
                                     class="w-full px-4 py-2 text-sm rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
-                                <i class="fas fa-undo"></i>Voltar p/ Recebido
+                                <i class="fas fa-undo"></i>Reverter p/ Aguardando
                             </button>
                         </div>
                     </template>
@@ -302,6 +268,14 @@
                     const response = await fetch(`/gigs/${gigId}/costs-json`);
                     if (!response.ok) throw new Error('Falha ao buscar custos');
                     const data = await response.json();
+                    // Adiciona effective_stage normalizado (mapeia estágios legados para 'pago')
+                    data.forEach(group => {
+                        (group.costs || []).forEach(cost => {
+                            const legacyStages = ['comprovante_recebido', 'conferido', 'reembolsado'];
+                            const stage = cost.reimbursement_stage || 'aguardando_comprovante';
+                            cost.effective_stage = legacyStages.includes(stage) ? 'pago' : stage;
+                        });
+                    });
                     this.costsByCenter = data;
                     this.calculateTotals();
                 } catch (error) { 
@@ -408,11 +382,16 @@
 
             // Abre o modal de gerenciamento de comprovante
             openProofModal(cost) {
+                // Normaliza estágio legado para 'pago'
+                const legacyStages = ['comprovante_recebido', 'conferido', 'reembolsado'];
+                const rawStage = cost.reimbursement_stage || 'aguardando_comprovante';
+                const effectiveStage = legacyStages.includes(rawStage) ? 'pago' : rawStage;
+                
                 this.proofCostData = {
                     id: cost.id,
                     description: cost.description || 'Despesa',
                     value: cost.value || 0,
-                    stage: cost.reimbursement_stage || 'aguardando_comprovante',
+                    stage: effectiveStage,
                     proof_type: cost.reimbursement_proof_type || 'recibo',
                     proof_number: cost.reimbursement_notes || ''
                 };

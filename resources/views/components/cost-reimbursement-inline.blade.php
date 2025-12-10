@@ -1,6 +1,7 @@
 {{--
     Componente: x-cost-reimbursement-inline
     Exibe item de despesa com botões inline para ações de reembolso.
+    Workflow simplificado: aguardando_comprovante <-> pago
     
     Props:
     - $cost: Modelo GigCost
@@ -14,25 +15,17 @@
 ])
 
 @php
-    $stage = $cost->reimbursement_stage ?? 'aguardando_comprovante';
+    // Usa o estágio efetivo (normaliza estágios legados)
+    $stage = $cost->effective_reimbursement_stage ?? 'aguardando_comprovante';
     
+    // Configurações simplificadas (2 estágios)
     $stageConfig = [
         'aguardando_comprovante' => [
-            'color' => 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400',
+            'color' => 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300',
             'label' => 'Aguardando',
             'icon' => 'clock',
         ],
-        'comprovante_recebido' => [
-            'color' => 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400',
-            'label' => 'Recebido',
-            'icon' => 'file-alt',
-        ],
-        'conferido' => [
-            'color' => 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400',
-            'label' => 'Conferido',
-            'icon' => 'check-double',
-        ],
-        'reembolsado' => [
+        'pago' => [
             'color' => 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400',
             'label' => 'Pago',
             'icon' => 'check-circle',
@@ -55,7 +48,7 @@
     @endif
     
     <div class="flex items-center gap-1">
-        {{-- Badge de Status (clicável para abrir modal) --}}
+        {{-- Badge de Status (clicável) --}}
         <div class="flex flex-col items-start">
             <button @click="openModal()"
                     class="px-1.5 py-0.5 rounded-full font-medium {{ $config['color'] }} hover:opacity-80 transition-opacity flex items-center gap-1 cursor-pointer"
@@ -63,48 +56,26 @@
                 <i class="fas fa-{{ $config['icon'] }} text-xxs"></i>
                 <span>{{ $config['label'] }}</span>
             </button>
-            {{-- Número do documento (se existir e estágio for >= recebido) --}}
-            @if(in_array($stage, ['comprovante_recebido', 'conferido', 'reembolsado']) && $cost->reimbursement_notes)
+            {{-- Número do documento (se existir e estágio for pago) --}}
+            @if($stage === 'pago' && $cost->reimbursement_notes)
                 <span class="text-xxs text-gray-500 dark:text-gray-400 ml-1 mt-0.5 truncate max-w-[80px]" title="{{ $cost->reimbursement_notes }}">
                     {{ $cost->reimbursement_notes }}
                 </span>
             @endif
         </div>
         
-        {{-- Botões de ação rápida --}}
+        {{-- Botões de ação rápida (simplificado: 2 estágios) --}}
         @if($stage === 'aguardando_comprovante')
-            <button @click="advanceStage('comprovante_recebido')"
-                    class="p-1 rounded text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-colors"
-                    title="Registrar Recebimento">
-                <i class="fas fa-file-upload text-xs"></i>
-            </button>
-        @elseif($stage === 'comprovante_recebido')
-            <button @click="advanceStage('reembolsado')"
+            <button @click="advanceStage('pago')"
                     class="p-1 rounded text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
                     title="Marcar como Pago">
                 <i class="fas fa-check-circle text-xs"></i>
             </button>
-            <button @click="revertStage('aguardando_comprovante')"
-                    class="p-1 rounded text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    title="Reverter">
-                <i class="fas fa-undo text-xs"></i>
-            </button>
-        @elseif($stage === 'conferido')
-            <button @click="advanceStage('reembolsado')"
-                    class="p-1 rounded text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
-                    title="Marcar como Pago">
-                <i class="fas fa-check-circle text-xs"></i>
-            </button>
-            <button @click="revertStage('comprovante_recebido')"
-                    class="p-1 rounded text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    title="Reverter">
-                <i class="fas fa-undo text-xs"></i>
-            </button>
-        @elseif($stage === 'reembolsado')
-            <span class="text-green-500 ml-1" title="Documento em posse">
+        @elseif($stage === 'pago')
+            <span class="text-green-500 ml-1" title="Comprovante OK">
                 <i class="fas fa-check text-xs"></i>
             </span>
-            <button @click="revertStage('comprovante_recebido')"
+            <button @click="revertStage('aguardando_comprovante')"
                     class="p-1 rounded text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     title="Reverter">
                 <i class="fas fa-undo text-xs"></i>
@@ -143,7 +114,7 @@
                     </span>
                 </div>
 
-                {{-- Seletor de tipo e número (só aguardando) --}}
+                {{-- Tipo de comprovante (só mostra se aguardando) --}}
                 @if($stage === 'aguardando_comprovante')
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Comprovante</label>
@@ -162,41 +133,23 @@
                 </div>
                 @endif
 
-                {{-- Ações --}}
+                {{-- Ações (simplificado: 2 estágios) --}}
                 <div class="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                     <p class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase">Ações</p>
                     
                     @if($stage === 'aguardando_comprovante')
-                        <button @click="advanceStageWithType('comprovante_recebido'); showModal = false"
-                                class="w-full px-4 py-2 text-sm rounded-md bg-yellow-500 hover:bg-yellow-600 text-white flex items-center justify-center gap-2">
-                            <i class="fas fa-file-upload"></i>Registrar Recebimento
-                        </button>
-                    @elseif($stage === 'comprovante_recebido')
-                        <button @click="advanceStage('reembolsado'); showModal = false"
+                        <button @click="advanceStageWithType('pago'); showModal = false"
                                 class="w-full px-4 py-2 text-sm rounded-md bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2">
                             <i class="fas fa-check-circle"></i>Marcar como Pago
                         </button>
+                    @elseif($stage === 'pago')
+                        <div class="flex items-center gap-2 text-green-600 dark:text-green-400 py-2">
+                            <i class="fas fa-check-circle text-lg"></i>
+                            <span class="font-medium">Comprovante OK ✓</span>
+                        </div>
                         <button @click="revertStage('aguardando_comprovante'); showModal = false"
                                 class="w-full px-4 py-2 text-sm rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
                             <i class="fas fa-undo"></i>Reverter p/ Aguardando
-                        </button>
-                    @elseif($stage === 'conferido')
-                        <button @click="advanceStage('reembolsado'); showModal = false"
-                                class="w-full px-4 py-2 text-sm rounded-md bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2">
-                            <i class="fas fa-check-circle"></i>Marcar como Pago
-                        </button>
-                        <button @click="revertStage('comprovante_recebido'); showModal = false"
-                                class="w-full px-4 py-2 text-sm rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
-                            <i class="fas fa-undo"></i>Voltar p/ Recebido
-                        </button>
-                    @elseif($stage === 'reembolsado')
-                        <div class="flex items-center gap-2 text-green-600 dark:text-green-400 py-2">
-                            <i class="fas fa-check-circle text-lg"></i>
-                            <span class="font-medium">Despesa Paga ✓</span>
-                        </div>
-                        <button @click="revertStage('comprovante_recebido'); showModal = false"
-                                class="w-full px-4 py-2 text-sm rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
-                            <i class="fas fa-undo"></i>Voltar p/ Recebido
                         </button>
                     @endif
                 </div>
