@@ -327,20 +327,35 @@ class CashFlowProjectionService
     /**
      * Calcula projeção de Contas a Receber (Pendentes).
      * Pagamentos com due_date no período mas confirmed_at = null.
+     * Inclui subdivisão temporal: passado (gig_date < hoje) e futuro (gig_date >= hoje)
      *
-     * @return array Contas a receber
+     * @return array Contas a receber com subdivisão temporal
      */
     public function calculateAccountsReceivable(): array
     {
+        $today = Carbon::today();
+
         $pendingPayments = Payment::query()
             ->whereNull('confirmed_at')
             ->whereBetween('due_date', [$this->startDate, $this->endDate])
             ->whereHas('gig') // Garante que apenas payments com gigs não-deletados sejam incluídos
-            ->with('gig:id,contract_number,artist_id', 'gig.artist:id,name')
+            ->with('gig:id,contract_number,artist_id,gig_date,location_event_details', 'gig.artist:id,name')
             ->orderBy('due_date')
             ->get();
 
         $totalReceivable = $pendingPayments->sum('due_value_brl');
+
+        // Separação temporal baseada em gig_date
+        $pastPayments = $pendingPayments->filter(function ($payment) use ($today) {
+            return $payment->gig && Carbon::parse($payment->gig->gig_date)->lt($today);
+        });
+
+        $futurePayments = $pendingPayments->filter(function ($payment) use ($today) {
+            return !$payment->gig || Carbon::parse($payment->gig->gig_date)->gte($today);
+        });
+
+        $totalPast = $pastPayments->sum('due_value_brl');
+        $totalFuture = $futurePayments->sum('due_value_brl');
 
         $paymentsByMonth = $pendingPayments->groupBy(function ($payment) {
             return Carbon::parse($payment->due_date)->format('Y-m');
@@ -353,23 +368,39 @@ class CashFlowProjectionService
             ];
         })->sortKeys();
 
+        // Função auxiliar para mapear pagamentos
+        $mapPayment = function ($payment) use ($today) {
+            $gigDate = $payment->gig ? Carbon::parse($payment->gig->gig_date) : null;
+            return [
+                'payment_id' => $payment->id,
+                'gig_id' => $payment->gig_id,
+                'gig_contract' => $payment->gig->contract_number ?? 'N/A',
+                'artist_name' => $payment->gig->artist->name ?? 'N/A',
+                'location' => $payment->gig->location_event_details ?? null,
+                'due_date' => Carbon::parse($payment->due_date)->isoFormat('L'),
+                'due_value_brl' => $payment->due_value_brl,
+                'days_until_due' => Carbon::today()->diffInDays(Carbon::parse($payment->due_date), false),
+                'gig_date' => $gigDate ? $gigDate->isoFormat('L') : 'N/A',
+                'gig_date_raw' => $gigDate ? $gigDate->format('Y-m-d') : null,
+                'is_past' => $gigDate ? $gigDate->lt($today) : false,
+                'temporal_group' => $gigDate ? ($gigDate->lt($today) ? 'past' : 'future') : 'future',
+            ];
+        };
+
         return [
             'total_receivable' => $totalReceivable,
+            'total_past' => $totalPast,
+            'total_future' => $totalFuture,
             'payment_count' => $pendingPayments->count(),
+            'past_count' => $pastPayments->count(),
+            'future_count' => $futurePayments->count(),
             'by_month' => $paymentsByMonth->values(),
-            'payments' => $pendingPayments->map(function ($payment) {
-                return [
-                    'payment_id' => $payment->id,
-                    'gig_id' => $payment->gig_id,
-                    'gig_contract' => $payment->gig->contract_number ?? 'N/A',
-                    'artist_name' => $payment->gig->artist->name ?? 'N/A',
-                    'due_date' => Carbon::parse($payment->due_date)->isoFormat('L'),
-                    'due_value_brl' => $payment->due_value_brl,
-                    'days_until_due' => Carbon::today()->diffInDays(Carbon::parse($payment->due_date), false),
-                ];
-            })->values(),
+            'payments' => $pendingPayments->map($mapPayment)->values(),
+            'past_payments' => $pastPayments->map($mapPayment)->sortBy('gig_date_raw')->values(),
+            'future_payments' => $futurePayments->map($mapPayment)->sortBy('gig_date_raw')->values(),
         ];
     }
+
 
     /**
      * Compara DRE (Competência) vs Fluxo de Caixa (Caixa).
@@ -464,6 +495,188 @@ class CashFlowProjectionService
             ],
         ];
     }
+
+    /**
+     * Calcula detalhes dos pagamentos pendentes aos artistas FILTRADO POR PERÍODO.
+     * Baseado em gig_date entre startDate e endDate.
+     * Inclui subdivisão temporal: passado (gig_date < hoje) e futuro (gig_date >= hoje)
+     * IMPORTANTE: Filtra apenas gigs com artist_payment_status != 'pago'
+     *
+     * @return array Detalhes de pagamentos pendentes aos artistas no período
+     */
+    public function calculateArtistPaymentDetailsByPeriod(): array
+    {
+        $today = Carbon::today();
+
+        $gigs = Gig::query()
+            ->whereBetween('gig_date', [$this->startDate, $this->endDate])
+            ->where('artist_payment_status', '!=', 'pago') // Filtra apenas pendentes
+            ->with(['artist:id,name', 'booker:id,name', 'settlement', 'gigCosts'])
+            ->get();
+
+
+        $pendingArtistPayments = [];
+        $totalPending = 0;
+        $totalGigs = 0;
+        $totalPast = 0;
+        $totalFuture = 0;
+        $pastCount = 0;
+        $futureCount = 0;
+
+        foreach ($gigs as $gig) {
+            $artistPayout = $this->gigCalculator->calculateArtistInvoiceValueBrl($gig);
+            $artistSettlements = $gig->settlement?->artist_payment_value ?? 0;
+            $pendingAmount = $artistPayout - $artistSettlements;
+            $isPast = $gig->gig_date->lt($today);
+
+            if ($pendingAmount > 0.01) {
+                $paymentData = [
+                    'gig_id' => $gig->id,
+                    'gig_date' => $gig->gig_date->isoFormat('L'),
+                    'gig_date_raw' => $gig->gig_date->format('Y-m-d'),
+                    'gig_contract' => $gig->contract_number ?? "Gig #{$gig->id}",
+                    'artist_name' => $gig->artist->stage_name ?? $gig->artist->name ?? 'N/A',
+                    'location' => $gig->location_event_details ?? 'N/A',
+                    'booker_name' => $gig->booker->name ?? 'N/A',
+                    'cache_bruto_brl' => $gig->cache_value_brl,
+                    'cachee_liquido' => $this->gigCalculator->calculateGrossCashBrl($gig),
+                    'artist_payout_total' => $artistPayout,
+                    'amount_paid' => $artistSettlements,
+                    'amount_pending' => $pendingAmount,
+                    'days_since_event' => Carbon::today()->diffInDays($gig->gig_date),
+                    'payment_status' => $artistSettlements > 0 ? 'partial' : 'unpaid',
+                    'is_past' => $isPast,
+                    'temporal_group' => $isPast ? 'past' : 'future',
+                ];
+
+                $pendingArtistPayments[] = $paymentData;
+
+                $totalPending += $pendingAmount;
+                $totalGigs++;
+
+                if ($isPast) {
+                    $totalPast += $pendingAmount;
+                    $pastCount++;
+                } else {
+                    $totalFuture += $pendingAmount;
+                    $futureCount++;
+                }
+            }
+        }
+
+        // Ordena por data do gig (mais antigos primeiro)
+        usort($pendingArtistPayments, function ($a, $b) {
+            return $a['gig_date_raw'] <=> $b['gig_date_raw'];
+        });
+
+        $pastPayments = array_values(array_filter($pendingArtistPayments, fn($p) => $p['is_past']));
+        $futurePayments = array_values(array_filter($pendingArtistPayments, fn($p) => !$p['is_past']));
+
+        return [
+            'total_pending' => $totalPending,
+            'total_past' => $totalPast,
+            'total_future' => $totalFuture,
+            'gig_count' => $totalGigs,
+            'past_count' => $pastCount,
+            'future_count' => $futureCount,
+            'payments' => $pendingArtistPayments,
+            'past_payments' => $pastPayments,
+            'future_payments' => $futurePayments,
+        ];
+    }
+
+
+    /**
+     * Calcula detalhes das comissões pendentes aos bookers FILTRADO POR PERÍODO.
+     * Baseado em gig_date entre startDate e endDate.
+     * Inclui subdivisão temporal: passado (gig_date < hoje) e futuro (gig_date >= hoje)
+     * IMPORTANTE: Filtra apenas gigs com booker_payment_status != 'pago'
+     *
+     * @return array Detalhes de comissões pendentes aos bookers no período
+     */
+    public function calculateBookerCommissionDetailsByPeriod(): array
+    {
+        $today = Carbon::today();
+
+        $gigs = Gig::query()
+            ->whereBetween('gig_date', [$this->startDate, $this->endDate])
+            ->whereNotNull('booker_id') // Apenas gigs com booker
+            ->where('booker_payment_status', '!=', 'pago') // Filtra apenas pendentes
+            ->with(['artist:id,name', 'booker:id,name', 'settlement', 'gigCosts'])
+            ->get();
+
+
+        $pendingBookerCommissions = [];
+        $totalPending = 0;
+        $totalGigs = 0;
+        $totalPast = 0;
+        $totalFuture = 0;
+        $pastCount = 0;
+        $futureCount = 0;
+
+        foreach ($gigs as $gig) {
+            $bookerCommission = $this->gigCalculator->calculateBookerCommissionBrl($gig);
+            $bookerSettlements = $gig->settlement?->booker_commission_value_paid ?? 0;
+            $pendingAmount = $bookerCommission - $bookerSettlements;
+            $isPast = $gig->gig_date->lt($today);
+
+            if ($pendingAmount > 0.01) {
+                $commissionData = [
+                    'gig_id' => $gig->id,
+                    'gig_date' => $gig->gig_date->isoFormat('L'),
+                    'gig_date_raw' => $gig->gig_date->format('Y-m-d'),
+                    'gig_contract' => $gig->contract_number ?? "Gig #{$gig->id}",
+                    'artist_name' => $gig->artist->stage_name ?? $gig->artist->name ?? 'N/A',
+                    'location' => $gig->location_event_details ?? 'N/A',
+                    'booker_name' => $gig->booker->name ?? 'N/A',
+                    'booker_id' => $gig->booker_id,
+                    'cache_bruto_brl' => $gig->cache_value_brl,
+                    'commission_rate' => $gig->booker_commission_percentage ?? 0,
+                    'booker_commission_value' => $bookerCommission,
+                    'amount_paid' => $bookerSettlements,
+                    'amount_pending' => $pendingAmount,
+                    'days_since_event' => Carbon::today()->diffInDays($gig->gig_date),
+                    'payment_status' => $bookerSettlements > 0 ? 'partial' : 'unpaid',
+                    'is_past' => $isPast,
+                    'temporal_group' => $isPast ? 'past' : 'future',
+                ];
+
+                $pendingBookerCommissions[] = $commissionData;
+
+                $totalPending += $pendingAmount;
+                $totalGigs++;
+
+                if ($isPast) {
+                    $totalPast += $pendingAmount;
+                    $pastCount++;
+                } else {
+                    $totalFuture += $pendingAmount;
+                    $futureCount++;
+                }
+            }
+        }
+
+        // Ordena por data do gig (mais antigos primeiro)
+        usort($pendingBookerCommissions, function ($a, $b) {
+            return $a['gig_date_raw'] <=> $b['gig_date_raw'];
+        });
+
+        $pastPayments = array_values(array_filter($pendingBookerCommissions, fn($p) => $p['is_past']));
+        $futurePayments = array_values(array_filter($pendingBookerCommissions, fn($p) => !$p['is_past']));
+
+        return [
+            'total_pending' => $totalPending,
+            'total_past' => $totalPast,
+            'total_future' => $totalFuture,
+            'gig_count' => $totalGigs,
+            'past_count' => $pastCount,
+            'future_count' => $futureCount,
+            'payments' => $pendingBookerCommissions,
+            'past_payments' => $pastPayments,
+            'future_payments' => $futurePayments,
+        ];
+    }
+
 
     /**
      * Calcula detalhes das comissões pendentes aos bookers.
