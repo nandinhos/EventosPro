@@ -1161,6 +1161,86 @@ b2e9601 perf: implement performance optimizations and fix backup script paths
 
 ---
 
-**Última Atualização**: 2025-11-15
-**Versão**: 1.3
-**Sessão**: Performance Optimization Sprint
+## 15. Vite HMR e Arquivo `public/hot` - Sessão 2025-12-10
+
+### 🎯 Contexto
+Após alterações de configuração do WSL (networkingMode=mirrored), os estilos CSS/Tailwind da aplicação pararam de funcionar completamente. A página renderizava sem nenhum estilo aplicado.
+
+---
+
+### ❌ Problema Encontrado
+
+**Sintoma**: Página sem estilos (CSS não carrega), mesmo após `npm run build`
+
+**Causa Raiz**: Arquivo `public/hot` existia no projeto
+
+**O que é o arquivo `hot`**:
+- Criado automaticamente pelo `npm run dev` (Vite em modo desenvolvimento)
+- Contém a URL do servidor HMR (Hot Module Replacement)
+- Quando existe, o Laravel tenta carregar assets desse servidor ao invés dos arquivos buildados
+
+**Por que falhou**:
+- O servidor HMR (`npm run dev`) não estava rodando
+- Laravel tentava carregar de `http://localhost:5173` 
+- Assets não eram encontrados → página sem estilos
+
+---
+
+### ✅ Solução
+
+```bash
+# 1. Verificar se o arquivo existe
+ls -la public/hot
+
+# 2. Remover o arquivo
+rm public/hot
+
+# 3. Garantir que o build foi feito
+sail npm run build
+
+# 4. Limpar caches do Laravel
+sail artisan view:clear && sail artisan cache:clear && sail artisan config:clear
+
+# 5. Hard refresh no navegador (Ctrl+F5)
+```
+
+---
+
+### 📋 Regras de Uso do Vite
+
+| Situação | Comando | Arquivo `hot` |
+|----------|---------|---------------|
+| **Desenvolvimento com HMR** | `sail npm run dev` | ✅ Criado automaticamente |
+| **Produção / Build estático** | `sail npm run build` | ❌ Deve ser removido |
+| **Testar build local** | `sail npm run build` + remover `hot` | ❌ Não deve existir |
+
+---
+
+### 🚨 Checklist quando CSS não carrega
+
+1. [ ] Verificar se `public/hot` existe → Se sim, remover
+2. [ ] Verificar se `public/build/manifest.json` existe → Se não, rodar `npm run build`
+3. [ ] Limpar caches: `sail artisan optimize:clear`
+4. [ ] Hard refresh no navegador: `Ctrl+F5`
+5. [ ] Verificar console do navegador para erros de rede (404 em assets)
+
+---
+
+### 💡 Dica de Prevenção
+
+Adicionar ao `.gitignore` (geralmente já está):
+```
+/public/hot
+```
+
+**Comando útil para garantir ambiente limpo**:
+```bash
+# Antes de testar em modo produção
+rm -f public/hot && sail npm run build && sail artisan optimize:clear
+```
+
+---
+
+**Última Atualização**: 2025-12-10
+**Versão**: 1.4
+**Sessão**: Vite HMR Troubleshooting
