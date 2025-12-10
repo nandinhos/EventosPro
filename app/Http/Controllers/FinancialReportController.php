@@ -409,6 +409,169 @@ class FinancialReportController extends Controller
     }
 
     /**
+     * Processa a confirmação em massa de despesas.
+     * Para despesas reembolsáveis (is_invoice=true): também marca reimbursement_stage como 'pago'
+     */
+    public function settleBatchExpenses(Request $request)
+    {
+        $validated = $request->validate([
+            'cost_ids' => 'required|array',
+            'cost_ids.*' => 'integer|exists:gig_costs,id',
+            'payment_date' => 'required|date|before_or_equal:today',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'booker_id' => 'nullable',
+            'artist_id' => 'nullable|integer',
+        ]);
+
+        $costIds = $validated['cost_ids'];
+        $paymentDate = Carbon::parse($validated['payment_date']);
+        $settledCount = 0;
+        $errors = [];
+
+        // Eager load relationships para evitar N+1
+        $costs = \App\Models\GigCost::with(['gig.artist', 'costCenter'])
+            ->whereIn('id', $costIds)
+            ->get();
+
+        $costsById = $costs->keyBy('id');
+
+        DB::beginTransaction();
+        try {
+            foreach ($costIds as $costId) {
+                $cost = $costsById->get($costId);
+
+                if (! $cost) {
+                    $errors[] = "Despesa #{$costId} não encontrada.";
+                    continue;
+                }
+
+                // Se já está confirmada, pular
+                if ($cost->is_confirmed) {
+                    $errors[] = "Despesa #{$costId} já está confirmada.";
+                    continue;
+                }
+
+                // Atualizar dados de confirmação
+                $updateData = [
+                    'is_confirmed' => true,
+                    'confirmed_at' => $paymentDate,
+                    'confirmed_by' => auth()->id(),
+                ];
+
+                // Se for reembolsável, também marca como pago
+                if ($cost->is_invoice) {
+                    $updateData['reimbursement_stage'] = \App\Models\GigCost::STAGE_PAGO;
+                    $updateData['reimbursement_confirmed_at'] = $paymentDate;
+                    $updateData['reimbursement_confirmed_by'] = auth()->id();
+                }
+
+                $cost->update($updateData);
+                $settledCount++;
+            }
+
+            DB::commit();
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao processar confirmação em massa de despesas: '.$e->getMessage(), ['exception' => $e]);
+
+            return redirect()->back()->with('error', 'Ocorreu um erro inesperado ao processar as confirmações.');
+        }
+
+        $redirectParams = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
+        $redirectParams['tab'] = 'expenses';
+
+        $message = "{$settledCount} despesas foram confirmadas.";
+        if (! empty($errors)) {
+            $message .= ' Avisos: '.implode(', ', $errors);
+
+            return Redirect::route('reports.index', $redirectParams)->with('warning', $message);
+        }
+
+        return Redirect::route('reports.index', $redirectParams)->with('success', $message);
+    }
+
+    /**
+     * Reverte a confirmação em massa de despesas.
+     * Para despesas reembolsáveis: volta reimbursement_stage para 'aguardando_comprovante'
+     */
+    public function unsettleBatchExpenses(Request $request)
+    {
+        $validated = $request->validate([
+            'cost_ids' => 'required|array',
+            'cost_ids.*' => 'integer|exists:gig_costs,id',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'booker_id' => 'nullable',
+            'artist_id' => 'nullable|integer',
+        ]);
+
+        $costIds = $validated['cost_ids'];
+        $unsettledCount = 0;
+        $errors = [];
+
+        // Eager load relationships para evitar N+1
+        $costs = \App\Models\GigCost::whereIn('id', $costIds)->get();
+        $costsById = $costs->keyBy('id');
+
+        DB::beginTransaction();
+        try {
+            foreach ($costIds as $costId) {
+                $cost = $costsById->get($costId);
+
+                if (! $cost) {
+                    $errors[] = "Despesa #{$costId} não encontrada.";
+                    continue;
+                }
+
+                // Se não está confirmada, pular
+                if (! $cost->is_confirmed) {
+                    $errors[] = "Despesa #{$costId} não estava confirmada.";
+                    continue;
+                }
+
+                // Reverter dados de confirmação
+                $updateData = [
+                    'is_confirmed' => false,
+                    'confirmed_at' => null,
+                    'confirmed_by' => null,
+                ];
+
+                // Se for reembolsável, também reverte o estágio
+                if ($cost->is_invoice) {
+                    $updateData['reimbursement_stage'] = \App\Models\GigCost::STAGE_AGUARDANDO_COMPROVANTE;
+                    $updateData['reimbursement_confirmed_at'] = null;
+                    $updateData['reimbursement_confirmed_by'] = null;
+                }
+
+                $cost->update($updateData);
+                $unsettledCount++;
+            }
+
+            DB::commit();
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao reverter confirmação em massa de despesas: '.$e->getMessage(), ['exception' => $e]);
+
+            return redirect()->back()->with('error', 'Ocorreu um erro inesperado ao reverter as confirmações.');
+        }
+
+        $redirectParams = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
+        $redirectParams['tab'] = 'expenses';
+
+        $message = "{$unsettledCount} despesas foram revertidas para 'Pendente'.";
+        if (! empty($errors)) {
+            $message .= ' Avisos: '.implode(', ', $errors);
+
+            return Redirect::route('reports.index', $redirectParams)->with('warning', $message);
+        }
+
+        return Redirect::route('reports.index', $redirectParams)->with('success', $message);
+    }
+
+    /**
      * Lida com a exportação da Visão Geral para PDF ou Excel.
      */
     public function exportOverview(Request $request, $format)

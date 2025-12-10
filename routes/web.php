@@ -72,6 +72,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/reports/artist-payments/settle-batch', [App\Http\Controllers\FinancialReportController::class, 'settleBatchArtistPayments'])->name('reports.artist-payments.settleBatch');
     // desfazer pagamentos em massa - artistas
     Route::patch('/reports/artist-payments/unsettle-batch', [App\Http\Controllers\FinancialReportController::class, 'unsettleBatchArtistPayments'])->name('reports.artist-payments.unsettleBatch');
+    // pagamentos em massa - despesas
+    Route::post('/reports/expenses/settle-batch', [App\Http\Controllers\FinancialReportController::class, 'settleBatchExpenses'])->name('reports.expenses.settleBatch');
+    // desfazer pagamentos em massa - despesas
+    Route::patch('/reports/expenses/unsettle-batch', [App\Http\Controllers\FinancialReportController::class, 'unsettleBatchExpenses'])->name('reports.expenses.unsettleBatch');
     // para exportar em excel/pdf
     Route::get('/reports/export/{type}/{format}', [FinancialReportController::class, 'export'])->name('reports.export');
 

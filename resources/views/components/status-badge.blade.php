@@ -78,6 +78,16 @@
               }
               break;
 
+        case 'reimbursement':
+              switch ($processedStatus) {
+                  case 'pago':
+                     $colorClasses = 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'; break;
+                  case 'aguardando_comprovante':
+                     $colorClasses = 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'; break;
+                  default: $colorClasses = 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-400'; break;
+              }
+              break;
+
         default: // Fallback
              $colorClasses = 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-400'; break;
     }
