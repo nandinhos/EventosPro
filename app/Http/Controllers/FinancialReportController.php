@@ -409,8 +409,9 @@ class FinancialReportController extends Controller
     }
 
     /**
-     * Processa a confirmação em massa de despesas.
-     * Para despesas reembolsáveis (is_invoice=true): também marca reimbursement_stage como 'pago'
+     * Processa o pagamento/reembolso em massa de despesas.
+     * Apenas despesas confirmadas E reembolsáveis (is_invoice=true) podem ser pagas.
+     * Atualiza reimbursement_stage para 'pago'.
      */
     public function settleBatchExpenses(Request $request)
     {
@@ -426,7 +427,7 @@ class FinancialReportController extends Controller
 
         $costIds = $validated['cost_ids'];
         $paymentDate = Carbon::parse($validated['payment_date']);
-        $settledCount = 0;
+        $paidCount = 0;
         $errors = [];
 
         // Eager load relationships para evitar N+1
@@ -446,43 +447,46 @@ class FinancialReportController extends Controller
                     continue;
                 }
 
-                // Se já está confirmada, pular
-                if ($cost->is_confirmed) {
-                    $errors[] = "Despesa #{$costId} já está confirmada.";
+                // Verificar se é reembolsável
+                if (! $cost->is_invoice) {
+                    $errors[] = "Despesa #{$costId} não é reembolsável (NF não marcada).";
                     continue;
                 }
 
-                // Atualizar dados de confirmação
-                $updateData = [
-                    'is_confirmed' => true,
-                    'confirmed_at' => $paymentDate,
-                    'confirmed_by' => auth()->id(),
-                ];
-
-                // Se for reembolsável, também marca como pago
-                if ($cost->is_invoice) {
-                    $updateData['reimbursement_stage'] = \App\Models\GigCost::STAGE_PAGO;
-                    $updateData['reimbursement_confirmed_at'] = $paymentDate;
-                    $updateData['reimbursement_confirmed_by'] = auth()->id();
+                // Verificar se está confirmada
+                if (! $cost->is_confirmed) {
+                    $errors[] = "Despesa #{$costId} não está confirmada.";
+                    continue;
                 }
 
-                $cost->update($updateData);
-                $settledCount++;
+                // Verificar se já foi paga
+                if ($cost->effective_reimbursement_stage === 'pago') {
+                    $errors[] = "Despesa #{$costId} já foi paga.";
+                    continue;
+                }
+
+                // Atualizar para pago
+                $cost->update([
+                    'reimbursement_stage' => \App\Models\GigCost::STAGE_PAGO,
+                    'reimbursement_confirmed_at' => $paymentDate,
+                    'reimbursement_confirmed_by' => auth()->id(),
+                ]);
+                $paidCount++;
             }
 
             DB::commit();
 
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Erro ao processar confirmação em massa de despesas: '.$e->getMessage(), ['exception' => $e]);
+            Log::error('Erro ao processar pagamento em massa de despesas: '.$e->getMessage(), ['exception' => $e]);
 
-            return redirect()->back()->with('error', 'Ocorreu um erro inesperado ao processar as confirmações.');
+            return redirect()->back()->with('error', 'Ocorreu um erro inesperado ao processar os pagamentos.');
         }
 
         $redirectParams = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
         $redirectParams['tab'] = 'expenses';
 
-        $message = "{$settledCount} despesas foram confirmadas.";
+        $message = "{$paidCount} despesas foram marcadas como pagas/reembolsadas.";
         if (! empty($errors)) {
             $message .= ' Avisos: '.implode(', ', $errors);
 
@@ -493,8 +497,9 @@ class FinancialReportController extends Controller
     }
 
     /**
-     * Reverte a confirmação em massa de despesas.
-     * Para despesas reembolsáveis: volta reimbursement_stage para 'aguardando_comprovante'
+     * Reverte o pagamento/reembolso em massa de despesas.
+     * Volta reimbursement_stage para 'aguardando_comprovante'.
+     * Não altera is_confirmed.
      */
     public function unsettleBatchExpenses(Request $request)
     {
@@ -508,7 +513,7 @@ class FinancialReportController extends Controller
         ]);
 
         $costIds = $validated['cost_ids'];
-        $unsettledCount = 0;
+        $revertedCount = 0;
         $errors = [];
 
         // Eager load relationships para evitar N+1
@@ -525,43 +530,40 @@ class FinancialReportController extends Controller
                     continue;
                 }
 
-                // Se não está confirmada, pular
-                if (! $cost->is_confirmed) {
-                    $errors[] = "Despesa #{$costId} não estava confirmada.";
+                // Verificar se é reembolsável
+                if (! $cost->is_invoice) {
+                    $errors[] = "Despesa #{$costId} não é reembolsável.";
                     continue;
                 }
 
-                // Reverter dados de confirmação
-                $updateData = [
-                    'is_confirmed' => false,
-                    'confirmed_at' => null,
-                    'confirmed_by' => null,
-                ];
-
-                // Se for reembolsável, também reverte o estágio
-                if ($cost->is_invoice) {
-                    $updateData['reimbursement_stage'] = \App\Models\GigCost::STAGE_AGUARDANDO_COMPROVANTE;
-                    $updateData['reimbursement_confirmed_at'] = null;
-                    $updateData['reimbursement_confirmed_by'] = null;
+                // Verificar se está paga
+                if ($cost->effective_reimbursement_stage !== 'pago') {
+                    $errors[] = "Despesa #{$costId} não estava marcada como paga.";
+                    continue;
                 }
 
-                $cost->update($updateData);
-                $unsettledCount++;
+                // Reverter para aguardando
+                $cost->update([
+                    'reimbursement_stage' => \App\Models\GigCost::STAGE_AGUARDANDO_COMPROVANTE,
+                    'reimbursement_confirmed_at' => null,
+                    'reimbursement_confirmed_by' => null,
+                ]);
+                $revertedCount++;
             }
 
             DB::commit();
 
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Erro ao reverter confirmação em massa de despesas: '.$e->getMessage(), ['exception' => $e]);
+            Log::error('Erro ao reverter pagamento em massa de despesas: '.$e->getMessage(), ['exception' => $e]);
 
-            return redirect()->back()->with('error', 'Ocorreu um erro inesperado ao reverter as confirmações.');
+            return redirect()->back()->with('error', 'Ocorreu um erro inesperado ao reverter os pagamentos.');
         }
 
         $redirectParams = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
         $redirectParams['tab'] = 'expenses';
 
-        $message = "{$unsettledCount} despesas foram revertidas para 'Pendente'.";
+        $message = "{$revertedCount} pagamentos de despesas foram revertidos.";
         if (! empty($errors)) {
             $message .= ' Avisos: '.implode(', ', $errors);
 

@@ -56,11 +56,11 @@
         </div>
     </div>
 
-    {{-- Barra de Ações em Massa --}}
+    {{-- Barra de Ações em Massa (Pagamento/Reembolso) --}}
     <div class="flex flex-wrap items-end gap-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border dark:border-gray-700">
         {{-- Campo de Data --}}
         <div class="flex-shrink-0">
-            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Data da Ação</label>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Data do Pagamento</label>
             <input type="date" x-model="paymentDate" 
                    class="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-primary-500 focus:border-primary-500"
                    :max="new Date().toISOString().split('T')[0]">
@@ -69,24 +69,28 @@
         {{-- Contador de Seleção --}}
         <div class="flex-grow text-sm text-gray-600 dark:text-gray-400">
             <span x-text="selectedCosts.length"></span> de <span>{{ count($allCostIds) }}</span> despesas selecionadas
+            <p class="text-xs text-gray-500">* Apenas despesas confirmadas e com NF marcada podem ser pagas em massa</p>
         </div>
         
         {{-- Botões de Ação --}}
         <div class="flex gap-2">
             <button @click="submitBatchAction('settle')"
                     :disabled="selectedCosts.length === 0 || submitting"
+                    title="Marcar como pagas/reembolsadas as despesas selecionadas (confirmadas + NF)"
                     class="px-4 py-2 text-sm rounded-md bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                <i class="fas fa-check-circle"></i>
-                <span x-text="submitting ? 'Processando...' : 'Confirmar Selecionados'"></span>
+                <i class="fas fa-money-bill-wave"></i>
+                <span x-text="submitting ? 'Processando...' : 'Pagar Selecionados'"></span>
             </button>
             <button @click="submitBatchAction('unsettle')"
                     :disabled="selectedCosts.length === 0 || submitting"
+                    title="Reverter pagamento das despesas selecionadas"
                     class="px-4 py-2 text-sm rounded-md bg-yellow-600 hover:bg-yellow-700 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                 <i class="fas fa-undo"></i>
-                <span x-text="submitting ? 'Processando...' : 'Reverter Selecionados'"></span>
+                <span x-text="submitting ? 'Processando...' : 'Reverter Pagamento'"></span>
             </button>
         </div>
     </div>
+
 
     {{-- Formulários para Ações (hidden) --}}
     <form id="settle-form" method="POST" action="{{ route('reports.expenses.settleBatch') }}" class="hidden">
