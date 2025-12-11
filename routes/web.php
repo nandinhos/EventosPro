@@ -106,6 +106,7 @@ Route::middleware('auth')->group(function () {
     
     // API para atualização de estágio de comprovante (usada por componentes)
     Route::patch('/api/costs/{cost}/reimbursement-stage', [App\Http\Controllers\GigCostController::class, 'updateReimbursementStageApi'])->name('api.costs.reimbursement-stage');
+    Route::delete('/api/costs/{cost}/remove-proof-file', [App\Http\Controllers\GigCostController::class, 'removeProofFile'])->name('api.costs.remove-proof-file');
 
     // Bookers
     Route::resource('bookers', BookerController::class);

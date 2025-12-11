@@ -1241,6 +1241,269 @@ rm -f public/hot && sail npm run build && sail artisan optimize:clear
 
 ---
 
-**Última Atualização**: 2025-12-10
-**Versão**: 1.4
-**Sessão**: Vite HMR Troubleshooting
+**Última Atualização**: 2025-12-11
+**Versão**: 1.5
+**Sessão**: Despesas Reativas e Comprovantes
+
+---
+
+## 12. Padrões de Reatividade com Alpine.js (Despesas)
+
+### 🔄 Arquitetura de Dados Reativos
+
+Para ter uma tabela com cards de resumo que atualizam em tempo real:
+
+#### 12.1. Estrutura do `costsDataMap` (Backend → Frontend)
+
+```php
+// No partial Blade (@php)
+$costsDataMap = [];
+foreach ($costs as $cost) {
+    $costsDataMap[$cost->id] = [
+        'id' => $cost->id,
+        'value' => $cost->value,                    // ⚠️ ESSENCIAL para cálculos
+        'is_confirmed' => $cost->is_confirmed,
+        'is_invoice' => $cost->is_invoice,
+        'effective_stage' => $cost->effective_reimbursement_stage,
+        'has_proof' => !empty($cost->reimbursement_notes),
+        'has_file' => !empty($cost->reimbursement_proof_file),
+        'proof_file_url' => $cost->reimbursement_proof_file ? Storage::url($cost->reimbursement_proof_file) : null,
+        'proof_type' => $cost->reimbursement_proof_type,
+        'proof_number' => $cost->reimbursement_notes,
+    ];
+}
+```
+
+#### 12.2. Computed Properties para Totais
+
+```javascript
+Alpine.data('expenseBatchManager', (initialCostsMap, initialTotals) => ({
+    costsState: initialCostsMap,
+    
+    // Getter reativo - recalcula automaticamente
+    get computedTotals() {
+        let totalGeral = 0, totalConfirmado = 0, totalReembolsado = 0;
+        
+        Object.values(this.costsState).forEach(cost => {
+            const value = parseFloat(cost.value) || 0;
+            totalGeral += value;
+            if (cost.is_confirmed) totalConfirmado += value;
+            if (cost.is_invoice && cost.effective_stage === 'pago') {
+                totalReembolsado += value;
+            }
+        });
+        
+        return { totalGeral, totalConfirmado, totalReembolsado };
+    },
+    
+    formatCurrency(value) {
+        return new Intl.NumberFormat('pt-BR', { 
+            minimumFractionDigits: 2 
+        }).format(value);
+    }
+}));
+```
+
+#### 12.3. Cards HTML Reativos
+
+```blade
+{{-- Card Reativo --}}
+<div class="bg-blue-100 p-4 rounded-lg">
+    <h3>Total Reembolsado</h3>
+    <p>R$ <span x-text="formatCurrency(computedTotals.totalReembolsado)"></span></p>
+</div>
+```
+
+---
+
+### 📡 Comunicação entre Componentes via Eventos
+
+#### 12.4. Componente Filho Dispara Evento
+
+```javascript
+// expense-row-detail.blade.php (componente expandido)
+dispatchUpdate() {
+    window.dispatchEvent(new CustomEvent('cost-updated', {
+        detail: {
+            id: this.cost.id,
+            value: this.cost.value,         // ⚠️ Incluir value!
+            is_confirmed: this.cost.is_confirmed,
+            is_invoice: this.cost.is_invoice,
+            effective_stage: this.cost.effective_stage,
+            has_proof: this.cost.has_proof,
+            proof_number: this.cost.proof_number
+        }
+    }));
+}
+```
+
+#### 12.5. Container Pai Escuta e Atualiza Estado
+
+```blade
+{{-- expenses-table.blade.php --}}
+<div x-data="expenseBatchManager(...)" 
+     @cost-updated.window="updateCostState($event.detail)">
+```
+
+```javascript
+updateCostState(detail) {
+    if (this.costsState[detail.id]) {
+        this.costsState[detail.id] = { ...this.costsState[detail.id], ...detail };
+    }
+    // O computed getter `computedTotals` recalcula automaticamente!
+}
+```
+
+---
+
+### 📎 Upload de Arquivos com Atualização Reativa
+
+#### 12.6. Enviar FormData com PATCH via POST
+
+```javascript
+async saveProofData() {
+    const formData = new FormData();
+    formData.append('_method', 'PATCH');  // Laravel aceita como PATCH
+    formData.append('stage', 'pago');
+    if (this.selectedFile) formData.append('proof_file', this.selectedFile);
+    
+    const response = await fetch(`/api/costs/${this.cost.id}/reimbursement-stage`, {
+        method: 'POST',  // FormData requer POST
+        headers: { 'X-CSRF-TOKEN': ..., 'Accept': 'application/json' },
+        body: formData
+    });
+    
+    if (response.ok) {
+        const data = await response.json();
+        const updatedCost = data.cost;
+        
+        // Atualiza estado local sem reload
+        if (updatedCost.reimbursement_proof_file) {
+            this.cost.has_file = true;
+            this.cost.proof_file_url = `/storage/${updatedCost.reimbursement_proof_file}`;
+        }
+        this.dispatchUpdate();
+    }
+}
+```
+
+#### 12.7. Backend Retorna Dados Atualizados
+
+```php
+// GigCostController.php
+return response()->json([
+    'message' => 'Estágio atualizado!',
+    'cost' => $cost->fresh()->load('costCenter', 'confirmer'),
+]);
+```
+
+---
+
+### 🔄 Reset de Dados ao Reverter
+
+#### 12.8. Limpar Tudo no Frontend
+
+```javascript
+// Ao reverter pagamento
+if (newStage !== 'pago') {
+    this.cost.has_proof = false;
+    this.cost.has_file = false;
+    this.cost.proof_number = null;
+    this.cost.proof_type = null;
+    this.cost.proof_file_url = null;
+    this.editProofNumber = '';        // ⚠️ Limpar campo de edição!
+    this.selectedFile = null;
+    this.selectedFileName = null;
+}
+```
+
+#### 12.9. Backend Limpa e Deleta Arquivo
+
+```php
+// Ao reverter para 'aguardando_comprovante'
+if ($cost->reimbursement_proof_file) {
+    Storage::disk('public')->delete($cost->reimbursement_proof_file);
+}
+$cost->update([
+    'reimbursement_notes' => null,
+    'reimbursement_proof_type' => null,
+    'reimbursement_proof_file' => null,
+    'reimbursement_confirmed_at' => null,
+    'reimbursement_confirmed_by' => null,
+]);
+```
+
+---
+
+### 📌 Persistência de Abas na URL
+
+#### 12.10. Atualizar URL ao Mudar de Aba
+
+```javascript
+// dashboard.blade.php
+x-data="{ 
+    activeTab: '{{ $initialTab }}',
+    setTab(tab) {
+        this.activeTab = tab;
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        history.replaceState(null, '', url.toString());
+    }
+}"
+```
+
+```blade
+<button @click="setTab('expenses')">Despesas</button>
+```
+
+#### 12.11. Filtros Preservam Aba
+
+```blade
+{{-- filters.blade.php --}}
+<div x-data="{ currentTab: new URLSearchParams(window.location.search).get('tab') || 'overview' }">
+    <form>
+        <input type="hidden" name="tab" x-bind:value="currentTab">
+        ...
+    </form>
+    <button @click="window.location.href = '{{ route('reports.index') }}?tab=' + currentTab">
+        Limpar
+    </button>
+</div>
+```
+
+---
+
+### ✅ Checklist para Replicar em Outros Módulos
+
+- [ ] Incluir `value` no mapa de dados inicial
+- [ ] Criar `computed` getter para totais
+- [ ] Cards usam `x-text="formatCurrency(computedTotals.xxx)"`
+- [ ] Componente filho dispara `cost-updated` com `value`
+- [ ] Container pai escuta `@cost-updated.window`
+- [ ] Ao reverter, limpar TODOS os campos (incluindo editáveis)
+- [ ] Backend retorna `cost->fresh()` na resposta
+- [ ] Upload via FormData com `_method=PATCH`
+- [ ] Persistir aba na URL com `history.replaceState`
+
+---
+
+### 🎯 Componentes Reutilizáveis Criados
+
+| Componente | Uso | Arquivo |
+|------------|-----|---------|
+| `x-expense-row-detail` | Linha expandida com edição de comprovante | `components/expense-row-detail.blade.php` |
+| `x-cost-reimbursement-inline` | Modal inline para gigs.show | `components/cost-reimbursement-inline.blade.php` |
+| `x-status-badge type="reimbursement"` | Badge de status de reembolso | `components/status-badge.blade.php` |
+
+---
+
+### 🐛 Bugs Comuns e Soluções
+
+| Problema | Causa | Solução |
+|----------|-------|---------|
+| Cards não atualizam | `value` não incluído no evento | Adicionar `value` ao `dispatchUpdate()` |
+| Campo mostra valor antigo após reverter | `editProofNumber` não limpo | Limpar na lógica de reversão |
+| 403 ao ver arquivo | Symlink não existe | `sail artisan storage:link` |
+| Arquivo mostra como anexado mas não está | Blade usa dados estáticos | Usar Alpine com `x-if="cost.has_file"` |
+| Vai para aba errada após filtrar | Aba não persiste | Usar hidden field com `x-bind:value` |
+

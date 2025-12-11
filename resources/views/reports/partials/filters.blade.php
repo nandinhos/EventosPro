@@ -1,5 +1,9 @@
-<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md ">
-    <form method="GET" action="{{ route('reports.index', ['tab' => request()->input('tab', 'overview')]) }}">
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md"
+     x-data="{ currentTab: new URLSearchParams(window.location.search).get('tab') || 'overview' }"
+     x-init="$watch('currentTab', () => { currentTab = new URLSearchParams(window.location.search).get('tab') || 'overview' })">
+    <form method="GET" action="{{ route('reports.index') }}">
+        {{-- Campo hidden para preservar a aba atual --}}
+        <input type="hidden" name="tab" x-bind:value="currentTab">
         {{-- 
             Ajuste principal: 
             - Aumentamos o número de colunas no grid principal para acomodar os botões.
@@ -61,11 +65,12 @@
 
             {{-- Botão Limpar - agora como um item do grid --}}
             <div>                
-            <a href="{{ route('reports.index', ['tab' => request()->input('tab', 'overview')]) }}" 
+            <button type="button" 
+                   @click="window.location.href = '{{ route('reports.index') }}?tab=' + currentTab"
                    class="flex items-center justify-center px-3 py-2 rounded-md text-sm border border-gray-300 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 w-full h-full">
                    {{-- h-full para tentar igualar altura com inputs, pode precisar de ajuste fino --}}
                     <i class="fas fa-broom mr-2"></i>Limpar
-                </a>
+                </button>
             </div>
         </div>
     </form>

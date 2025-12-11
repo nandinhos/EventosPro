@@ -361,30 +361,57 @@ class GigCostController extends Controller
             'proof_type' => ['nullable', 'in:recibo,nf,transferencia,outro'],
             'proof_number' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:500'],
+            'proof_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'], // 5MB max
         ]);
 
         try {
             $updateData = ['reimbursement_stage' => $validated['stage']];
             
-            // Se estiver marcando como pago, registra data e usuário
+            // Se estiver marcando como pago OU se já está pago (atualizando dados)
             if ($validated['stage'] === GigCost::STAGE_PAGO) {
-                $updateData['reimbursement_confirmed_at'] = now();
-                $updateData['reimbursement_confirmed_by'] = Auth::id();
+                // Só atualiza data/usuário se estiver mudando para pago
+                if ($cost->reimbursement_stage !== GigCost::STAGE_PAGO) {
+                    $updateData['reimbursement_confirmed_at'] = now();
+                    $updateData['reimbursement_confirmed_by'] = Auth::id();
+                }
+                
+                // Atualiza tipo de comprovante se fornecido
                 if (!empty($validated['proof_type'])) {
                     $updateData['reimbursement_proof_type'] = $validated['proof_type'];
                 }
+                
                 // Salva o número do documento em reimbursement_notes
                 if (!empty($validated['proof_number'])) {
                     $updateData['reimbursement_notes'] = $validated['proof_number'];
                 } elseif (!empty($validated['notes'])) {
                     $updateData['reimbursement_notes'] = $validated['notes'];
                 }
+                
+                // Upload de arquivo se fornecido
+                if ($request->hasFile('proof_file')) {
+                    // Remove arquivo anterior se existir
+                    if ($cost->reimbursement_proof_file) {
+                        \Storage::disk('public')->delete($cost->reimbursement_proof_file);
+                    }
+                    
+                    $file = $request->file('proof_file');
+                    $path = $file->store('reimbursement_proofs', 'public');
+                    $updateData['reimbursement_proof_file'] = $path;
+                }
             }
             
-            // Se reverter para aguardando, limpa dados de confirmação
+            // Se reverter para aguardando, limpa TODOS os dados de reembolso
             if ($validated['stage'] === GigCost::STAGE_AGUARDANDO_COMPROVANTE) {
                 $updateData['reimbursement_confirmed_at'] = null;
                 $updateData['reimbursement_confirmed_by'] = null;
+                $updateData['reimbursement_proof_type'] = null;
+                $updateData['reimbursement_notes'] = null;
+                
+                // Exclui arquivo anexado se existir
+                if ($cost->reimbursement_proof_file) {
+                    \Storage::disk('public')->delete($cost->reimbursement_proof_file);
+                    $updateData['reimbursement_proof_file'] = null;
+                }
             }
 
             $cost->update($updateData);
@@ -396,6 +423,32 @@ class GigCostController extends Controller
         } catch (Exception $e) {
             Log::error("Erro ao atualizar estágio de reembolso da despesa {$cost->id}: " . $e->getMessage());
             return response()->json(['message' => 'Erro ao atualizar estágio.'], 500);
+        }
+    }
+
+    /**
+     * Remove o arquivo de comprovante de uma despesa.
+     */
+    public function removeProofFile(GigCost $cost): JsonResponse
+    {
+        if (!$cost->reimbursement_proof_file) {
+            return response()->json(['message' => 'Nenhum arquivo para remover.'], 422);
+        }
+
+        try {
+            // Exclui o arquivo do storage
+            \Storage::disk('public')->delete($cost->reimbursement_proof_file);
+            
+            // Limpa o campo no banco
+            $cost->update(['reimbursement_proof_file' => null]);
+
+            return response()->json([
+                'message' => 'Arquivo removido com sucesso!',
+                'cost' => $cost->fresh()->load('costCenter', 'confirmer'),
+            ]);
+        } catch (Exception $e) {
+            Log::error("Erro ao remover arquivo de comprovante da despesa {$cost->id}: " . $e->getMessage());
+            return response()->json(['message' => 'Erro ao remover arquivo.'], 500);
         }
     }
 }

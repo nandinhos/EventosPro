@@ -25,13 +25,22 @@
 
     {{-- Abas e Conteúdo com a Lógica Alpine Centralizada --}}
     <div class="container mx-auto px-4 py-6">
-        <div x-data="{ activeTab: '{{ $initialTab }}' }"
+        <div x-data="{ 
+                activeTab: '{{ $initialTab }}',
+                setTab(tab) {
+                    this.activeTab = tab;
+                    // Atualiza a URL para persistir a aba
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('tab', tab);
+                    history.replaceState(null, '', url.toString());
+                }
+             }"
              class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
 
             {{-- Navegação das Abas --}}
             <nav class="flex space-x-4 border-b border-gray-200 dark:border-gray-700 mb-4 px-4">
                 @foreach ($tabs as $tab)
-                    <button @click="activeTab = '{{ $tab['id'] }}'"
+                    <button @click="setTab('{{ $tab['id'] }}')"
                        class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap focus:outline-none"
                        :class="activeTab === '{{ $tab['id'] }}' ? 'border-b-2 border-primary-500 text-primary-600 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'">
                         {{ $tab['label'] }}
