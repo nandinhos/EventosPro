@@ -459,15 +459,21 @@ class FinancialReportController extends Controller
                     continue;
                 }
 
-                // Verificar se já foi paga
-                if ($cost->effective_reimbursement_stage === 'pago') {
-                    $errors[] = "Despesa #{$costId} já foi paga.";
+                // Verificar se já foi paga (inclui anexo_pendente como estado pago)
+                if (in_array($cost->reimbursement_stage, [\App\Models\GigCost::STAGE_PAGO, \App\Models\GigCost::STAGE_ANEXO_PENDENTE])) {
+                    $errors[] = "Despesa #{$costId} já foi paga/processada.";
                     continue;
                 }
 
-                // Atualizar para pago
+                // Determina o estágio correto: Se tiver notas ou arquivo = PAGO, senão = ANEXO_PENDENTE
+                // Em batch puro, geralmente não tem arquivo novo, mas pode ter notas antigas salvas
+                $newStage = (!empty($cost->reimbursement_notes) || $cost->reimbursement_proof_file)
+                    ? \App\Models\GigCost::STAGE_PAGO
+                    : \App\Models\GigCost::STAGE_ANEXO_PENDENTE;
+
+                // Atualizar para o estágio correto
                 $cost->update([
-                    'reimbursement_stage' => \App\Models\GigCost::STAGE_PAGO,
+                    'reimbursement_stage' => $newStage,
                     'reimbursement_confirmed_at' => $paymentDate,
                     'reimbursement_confirmed_by' => auth()->id(),
                 ]);
@@ -486,7 +492,7 @@ class FinancialReportController extends Controller
         $redirectParams = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id']);
         $redirectParams['tab'] = 'expenses';
 
-        $message = "{$paidCount} despesas foram marcadas como pagas/reembolsadas.";
+        $message = "{$paidCount} despesas foram processadas.";
         if (! empty($errors)) {
             $message .= ' Avisos: '.implode(', ', $errors);
 
@@ -536,8 +542,8 @@ class FinancialReportController extends Controller
                     continue;
                 }
 
-                // Verificar se está paga
-                if ($cost->effective_reimbursement_stage !== 'pago') {
+                // Verificar se está paga (ou pendente anexo) para poder reverter
+                if (!in_array($cost->reimbursement_stage, [\App\Models\GigCost::STAGE_PAGO, \App\Models\GigCost::STAGE_ANEXO_PENDENTE])) {
                     $errors[] = "Despesa #{$costId} não estava marcada como paga.";
                     continue;
                 }

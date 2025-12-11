@@ -12,7 +12,7 @@
         foreach ($group['costs'] as $cost) {
             if ($cost->is_invoice) {
                 $totalReembolsavel += $cost->value;
-                if ($cost->effective_reimbursement_stage === 'pago') {
+                if ($cost->effective_reimbursement_stage === 'pago' || $cost->effective_reimbursement_stage === 'anexo_pendente') {
                     $totalReembolsado += $cost->value;
                 }
             }
@@ -383,18 +383,18 @@ document.addEventListener('alpine:init', () => {
                     } else if (!state.is_invoice) {
                         costInfo.reason = 'NF não marcada';
                         ineligible.push(costInfo);
-                    } else if (state.effective_stage === 'pago') {
+                    } else if (state.effective_stage === 'pago' || state.effective_stage === 'anexo_pendente') {
                         costInfo.reason = 'Já pago';
                         ineligible.push(costInfo);
                     } else {
                         eligible.push(costInfo);
                     }
                 } else {
-                    // Para reverter: precisa estar pago
+                    // Para reverter: precisa estar pago (ou com anexo pendente)
                     if (!state.is_invoice) {
                         costInfo.reason = 'Não é reembolsável';
                         ineligible.push(costInfo);
-                    } else if (state.effective_stage !== 'pago') {
+                    } else if (state.effective_stage !== 'pago' && state.effective_stage !== 'anexo_pendente') {
                         costInfo.reason = 'Não está pago';
                         ineligible.push(costInfo);
                     } else {
