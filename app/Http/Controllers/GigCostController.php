@@ -357,7 +357,7 @@ class GigCostController extends Controller
         }
 
         $validated = $request->validate([
-            'stage' => ['required', 'in:aguardando_comprovante,pago'],
+            'stage' => ['required', 'in:aguardando_comprovante,anexo_pendente,pago'],
             'proof_type' => ['nullable', 'in:recibo,nf,transferencia,outro'],
             'proof_number' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:500'],
@@ -367,10 +367,10 @@ class GigCostController extends Controller
         try {
             $updateData = ['reimbursement_stage' => $validated['stage']];
             
-            // Se estiver marcando como pago OU se já está pago (atualizando dados)
-            if ($validated['stage'] === GigCost::STAGE_PAGO) {
-                // Só atualiza data/usuário se estiver mudando para pago
-                if ($cost->reimbursement_stage !== GigCost::STAGE_PAGO) {
+            // Se estiver marcando como pago OU anexo_pendente, salva os dados
+            if (in_array($validated['stage'], [GigCost::STAGE_PAGO, GigCost::STAGE_ANEXO_PENDENTE])) {
+                // Só atualiza data/usuário se estiver mudando para pago/pendente pela primeira vez
+                if (!in_array($cost->reimbursement_stage, [GigCost::STAGE_PAGO, GigCost::STAGE_ANEXO_PENDENTE])) {
                     $updateData['reimbursement_confirmed_at'] = now();
                     $updateData['reimbursement_confirmed_by'] = Auth::id();
                 }
@@ -398,6 +398,19 @@ class GigCostController extends Controller
                     $path = $file->store('reimbursement_proofs', 'public');
                     $updateData['reimbursement_proof_file'] = $path;
                 }
+
+                // REGRA DE NEGÓCIO: Determina o estágio final baseado nos dados
+                // Se tem número (reimbursement_notes) OU arquivo -> PAGO
+                // Senão -> ANEXO_PENDENTE
+                
+                $finalProofNumber = $updateData['reimbursement_notes'] ?? $cost->reimbursement_notes;
+                $finalProofFile = $updateData['reimbursement_proof_file'] ?? $cost->reimbursement_proof_file;
+                
+                if (!empty($finalProofNumber) || !empty($finalProofFile)) {
+                    $updateData['reimbursement_stage'] = GigCost::STAGE_PAGO;
+                } else {
+                    $updateData['reimbursement_stage'] = GigCost::STAGE_ANEXO_PENDENTE;
+                }
             }
             
             // Se reverter para aguardando, limpa TODOS os dados de reembolso
@@ -406,6 +419,7 @@ class GigCostController extends Controller
                 $updateData['reimbursement_confirmed_by'] = null;
                 $updateData['reimbursement_proof_type'] = null;
                 $updateData['reimbursement_notes'] = null;
+                $updateData['reimbursement_stage'] = GigCost::STAGE_AGUARDANDO_COMPROVANTE;
                 
                 // Exclui arquivo anexado se existir
                 if ($cost->reimbursement_proof_file) {
@@ -428,6 +442,7 @@ class GigCostController extends Controller
 
     /**
      * Remove o arquivo de comprovante de uma despesa.
+     * Muda o estágio para anexo_pendente se não tiver número de documento.
      */
     public function removeProofFile(GigCost $cost): JsonResponse
     {
@@ -439,8 +454,14 @@ class GigCostController extends Controller
             // Exclui o arquivo do storage
             \Storage::disk('public')->delete($cost->reimbursement_proof_file);
             
-            // Limpa o campo no banco
-            $cost->update(['reimbursement_proof_file' => null]);
+            // Regra: Se ainda tiver notas (número), continua pago. Se não, vira anexo_pendente.
+            $newStage = !empty($cost->reimbursement_notes) ? GigCost::STAGE_PAGO : GigCost::STAGE_ANEXO_PENDENTE;
+            
+            // Limpa o campo e atualiza estágio
+            $cost->update([
+                'reimbursement_proof_file' => null,
+                'reimbursement_stage' => $newStage,
+            ]);
 
             return response()->json([
                 'message' => 'Arquivo removido com sucesso!',

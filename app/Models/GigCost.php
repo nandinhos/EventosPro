@@ -96,15 +96,17 @@ class GigCost extends Model
     }
 
     // ====================================================
-    // CONSTANTES DE ESTÁGIO DE REEMBOLSO (Simplificado: 2 estágios)
+    // CONSTANTES DE ESTÁGIO DE REEMBOLSO (3 estágios)
     // ====================================================
     
     public const STAGE_AGUARDANDO_COMPROVANTE = 'aguardando_comprovante';
+    public const STAGE_ANEXO_PENDENTE = 'anexo_pendente';
     public const STAGE_PAGO = 'pago';
     
-    // Estágios válidos (novo workflow simplificado)
+    // Estágios válidos (workflow de 3 estágios)
     public const REIMBURSEMENT_STAGES = [
         self::STAGE_AGUARDANDO_COMPROVANTE => 'Aguardando Comprovante',
+        self::STAGE_ANEXO_PENDENTE => 'Anexo Pendente',
         self::STAGE_PAGO => 'Pago',
     ];
     

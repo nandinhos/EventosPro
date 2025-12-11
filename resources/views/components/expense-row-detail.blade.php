@@ -140,10 +140,10 @@
                     <div class="flex items-center justify-between">
                         <span class="text-sm text-gray-600 dark:text-gray-400">Status:</span>
                         <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                              :class="cost.effective_stage === 'pago' 
+                              :class="(cost.effective_stage === 'pago' || cost.effective_stage === 'anexo_pendente') 
                                   ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
                                   : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'">
-                            <span x-text="cost.effective_stage === 'pago' ? 'Pago' : 'Aguardando'"></span>
+                            <span x-text="(cost.effective_stage === 'pago' || cost.effective_stage === 'anexo_pendente') ? 'Pago' : 'Aguardando'"></span>
                         </span>
                     </div>
                     
@@ -156,7 +156,7 @@
                             <span x-text="loading ? 'Salvando...' : 'Marcar como Pago'"></span>
                         </button>
                     </template>
-                    <template x-if="cost.effective_stage === 'pago'">
+                    <template x-if="cost.effective_stage === 'pago' || cost.effective_stage === 'anexo_pendente'">
                         <div class="space-y-3">
                             {{-- Badge Pago com número --}}
                             <div class="flex flex-col items-start gap-1 text-green-600 dark:text-green-400 py-1">
@@ -164,6 +164,14 @@
                                     <i class="fas fa-check-circle"></i>
                                     <span class="font-medium text-sm">Reembolsado ✓</span>
                                 </div>
+                                
+                                {{-- Aviso de Anexo Pendente --}}
+                                <template x-if="cost.effective_stage === 'anexo_pendente' && !cost.proof_number">
+                                    <div class="flex items-center gap-1 text-orange-600 dark:text-orange-400 text-xs font-medium px-2 py-0.5 bg-orange-50 dark:bg-orange-900/20 rounded border border-orange-100 dark:border-orange-800/30">
+                                        <i class="fas fa-paperclip"></i> Anexo Pendente
+                                    </div>
+                                </template>
+
                                 {{-- Número do documento formatado: Nº [Tipo]: número --}}
                                 <template x-if="cost.proof_number">
                                     <span class="text-sm text-gray-500 dark:text-gray-400 ml-5">
@@ -291,7 +299,7 @@ document.addEventListener('alpine:init', () => {
         },
         
         isPaid() {
-            return this.cost.is_invoice && this.cost.effective_stage === 'pago';
+            return this.cost.is_invoice && (this.cost.effective_stage === 'pago' || this.cost.effective_stage === 'anexo_pendente');
         },
         
         getProofTypeLabel() {
@@ -586,24 +594,22 @@ document.addEventListener('alpine:init', () => {
                 });
                 
                 if (response.ok) {
-                    this.cost.effective_stage = newStage;
-                    if (newStage === 'pago') {
-                        this.cost.has_proof = !!proofNumber;
-                        this.cost.proof_number = proofNumber;
-                        this.cost.proof_type = proofType;
-                    } else {
-                        // Limpa todos os dados ao reverter
-                        this.cost.has_proof = false;
-                        this.cost.has_file = false;
-                        this.cost.proof_number = null;
-                        this.cost.proof_type = null;
-                        this.cost.proof_file_url = null;
-                        this.editProofNumber = ''; // Limpa o campo de edição
-                        this.selectedFile = null;
-                        this.selectedFileName = null;
+                    const data = await response.json();
+                    const updatedCost = data.cost;
+
+                    // Atualiza dados reativamente com a resposta do backend
+                    this.cost.effective_stage = updatedCost.reimbursement_stage; // Backend retorna o estágio correto
+                    this.cost.has_proof = !!updatedCost.reimbursement_notes || !!updatedCost.reimbursement_proof_file;
+                    this.cost.proof_number = updatedCost.reimbursement_notes;
+                    this.cost.proof_type = updatedCost.reimbursement_proof_type;
+                    
+                    if (!this.cost.has_proof && newStage === 'aguardando_comprovante') {
+                         this.cost.proof_file_url = null;
+                         this.cost.has_file = false;
                     }
+
                     this.dispatchUpdate();
-                    this.showSuccess(newStage === 'pago' ? 'Pagamento registrado!' : 'Pagamento revertido!');
+                    this.showSuccess(this.cost.effective_stage === 'pago' ? 'Pagamento registrado!' : 'Status atualizado!');
                 } else {
                     this.showError('Erro ao atualizar reembolso');
                 }
@@ -639,15 +645,15 @@ document.addEventListener('alpine:init', () => {
                     const data = await response.json();
                     const updatedCost = data.cost;
                     
-                    // Atualiza dados reativamente
-                    this.cost.effective_stage = newStage;
-                    this.cost.has_proof = !!proofNumber || !!proofFile;
-                    this.cost.proof_number = proofNumber;
-                    this.cost.proof_type = proofType;
-                    this.editProofNumber = proofNumber || '';
+                    // Atualiza dados reativamente com a resposta do backend
+                    this.cost.effective_stage = updatedCost.reimbursement_stage; // Pode ser 'pago' ou 'anexo_pendente'
+                    this.cost.has_proof = !!updatedCost.reimbursement_notes || !!updatedCost.reimbursement_proof_file;
+                    this.cost.proof_number = updatedCost.reimbursement_notes;
+                    this.cost.proof_type = updatedCost.reimbursement_proof_type;
+                    this.editProofNumber = updatedCost.reimbursement_notes || '';
                     
                     // Atualiza dados do arquivo se foi anexado
-                    if (proofFile && updatedCost.reimbursement_proof_file) {
+                    if (updatedCost.reimbursement_proof_file) {
                         this.cost.has_file = true;
                         this.cost.proof_file_url = `/storage/${updatedCost.reimbursement_proof_file}`;
                     }
@@ -708,18 +714,23 @@ document.addEventListener('alpine:init', () => {
                     const updatedCost = data.cost;
                     const hadFile = !!this.selectedFile;
                     
-                    // Atualiza dados reativamente
-                    this.cost.proof_number = this.editProofNumber;
-                    this.cost.has_proof = true;
+                    // Atualiza dados reativamente com a resposta do backend
+                    this.cost.effective_stage = updatedCost.reimbursement_stage;
+                    this.cost.proof_number = updatedCost.reimbursement_notes;
+                    this.cost.has_proof = !!updatedCost.reimbursement_notes || !!updatedCost.reimbursement_proof_file;
+                    this.cost.proof_type = updatedCost.reimbursement_proof_type;
                     
                     // Atualiza dados do arquivo se foi anexado
-                    if (hadFile && updatedCost.reimbursement_proof_file) {
+                    if (updatedCost.reimbursement_proof_file) {
                         this.cost.has_file = true;
                         this.cost.proof_file_url = `/storage/${updatedCost.reimbursement_proof_file}`;
                     }
                     
                     this.selectedFileName = null;
                     this.selectedFile = null;
+                    if (this.$refs.proofFileInput) {
+                         this.$refs.proofFileInput.value = '';
+                    }
                     this.dispatchUpdate();
                     this.showSuccess('Comprovante salvo com sucesso!');
                 } else {

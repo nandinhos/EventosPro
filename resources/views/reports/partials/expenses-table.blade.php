@@ -232,13 +232,13 @@
                                             <template x-if="getCostState({{ $cost->id }}).is_invoice">
                                                 <div class="flex flex-col items-center gap-1">
                                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                                                          :class="getCostState({{ $cost->id }}).effective_stage === 'pago' 
+                                                          :class="(getCostState({{ $cost->id }}).effective_stage === 'pago' || getCostState({{ $cost->id }}).effective_stage === 'anexo_pendente')
                                                               ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
                                                               : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'"
-                                                          x-text="getCostState({{ $cost->id }}).effective_stage === 'pago' ? 'Pago' : 'Aguardando'">
+                                                          x-text="(getCostState({{ $cost->id }}).effective_stage === 'pago' || getCostState({{ $cost->id }}).effective_stage === 'anexo_pendente') ? 'Pago' : 'Aguardando'">
                                                     </span>
                                                     {{-- Badge Anexar Comprovante --}}
-                                                    <template x-if="getCostState({{ $cost->id }}).effective_stage === 'pago' && !getCostState({{ $cost->id }}).has_proof">
+                                                    <template x-if="getCostState({{ $cost->id }}).effective_stage === 'anexo_pendente' && !getCostState({{ $cost->id }}).proof_number">
                                                         <span class="px-1.5 py-0.5 text-xxs rounded bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400"
                                                               title="Comprovante não anexado">
                                                             <i class="fas fa-paperclip mr-0.5"></i>Pendente
@@ -309,7 +309,7 @@ document.addEventListener('alpine:init', () => {
                 
                 if (cost.is_invoice) {
                     totalReembolsavel += value;
-                    if (cost.effective_stage === 'pago') {
+                    if (cost.effective_stage === 'pago' || cost.effective_stage === 'anexo_pendente') {
                         totalReembolsado += value;
                     }
                 }

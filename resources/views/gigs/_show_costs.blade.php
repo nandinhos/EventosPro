@@ -72,20 +72,32 @@
                                     </td>
                                     <td class="py-2 px-1 whitespace-nowrap text-center">
                                         <template x-if="cost.is_invoice">
-                                            <!-- Badge clicável + número do documento (Simplificado: 2 estágios) -->
-                                            <div class="flex flex-col items-center">
+                                            <!-- Badge clicável + número do documento (3 estágios) -->
+                                            <!-- Badge clicável + número do documento (3 estágios) -->
+                                            <div class="flex flex-col items-center gap-1">
                                                 <button @click="openProofModal(cost)"
                                                         class="inline-flex items-center px-2 py-0.5 rounded-full text-xs transition-colors cursor-pointer"
                                                         :class="{
                                                             'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200': cost.effective_stage === 'aguardando_comprovante',
-                                                            'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 hover:bg-green-200': cost.effective_stage === 'pago'
+                                                            'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 hover:bg-green-200': cost.effective_stage === 'pago' || cost.effective_stage === 'anexo_pendente'
                                                         }">
-                                                    <template x-if="cost.effective_stage === 'aguardando_comprovante'"><span><i class="fas fa-clock mr-1"></i>Aguard.</span></template>
-                                                    <template x-if="cost.effective_stage === 'pago'"><span><i class="fas fa-check-circle mr-1"></i>Pago</span></template>
+                                                    <span x-show="cost.effective_stage === 'aguardando_comprovante'"><i class="fas fa-clock mr-1"></i>Aguard.</span>
+                                                    <span x-show="cost.effective_stage === 'pago' || cost.effective_stage === 'anexo_pendente'"><i class="fas fa-check-circle mr-1"></i>Pago</span>
                                                 </button>
-                                                <!-- Número do documento abaixo do badge -->
-                                                <template x-if="cost.reimbursement_notes && cost.effective_stage === 'pago'">
-                                                    <span class="text-xxs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-[80px]" :title="cost.reimbursement_notes" x-text="cost.reimbursement_notes"></span>
+                                                
+                                                <!-- Badge secundário para Anexo Pendente -->
+                                                <div x-show="cost.effective_stage === 'anexo_pendente' && !cost.reimbursement_notes" 
+                                                     class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-200 dark:border-orange-800/50 cursor-pointer"
+                                                     @click="openProofModal(cost)"
+                                                     title="Clique para anexar comprovante">
+                                                    <i class="fas fa-paperclip mr-1"></i> Pendente
+                                                </div>
+
+                                                <!-- Número do documento em itálico com prefixo -->
+                                                <template x-if="cost.reimbursement_notes && (cost.effective_stage === 'pago' || cost.effective_stage === 'anexo_pendente')">
+                                                    <span class="text-xxs text-gray-500 dark:text-gray-400 mt-0 truncate max-w-[100px] italic" 
+                                                          :title="cost.reimbursement_notes" 
+                                                          x-text="getProofTypeLabel(cost.reimbursement_proof_type) + ' ' + cost.reimbursement_notes"></span>
                                                 </template>
                                             </div>
                                         </template>
@@ -159,63 +171,127 @@
                     <p class="text-lg font-bold text-primary-600 dark:text-primary-400" x-text="formatCurrency(proofCostData.value)"></p>
                 </div>
 
-                {{-- Status atual (Simplificado: 2 estágios) --}}
+                {{-- Status atual (dinâmico - 3 estágios) --}}
                 <div class="flex items-center gap-2 text-sm">
                     <span class="text-gray-500 dark:text-gray-400">Status atual:</span>
-                    <span class="px-2 py-1 rounded-full text-xs font-semibold"
-                          :class="{
-                              'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400': proofCostData.stage === 'aguardando_comprovante',
-                              'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400': proofCostData.stage === 'pago'
-                          }">
-                        <template x-if="proofCostData.stage === 'aguardando_comprovante'">Aguardando</template>
-                        <template x-if="proofCostData.stage === 'pago'">Pago</template>
+                    <span x-show="proofCostData.stage === 'aguardando_comprovante'"
+                          class="px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                        <i class="fas fa-clock mr-1"></i>Aguardando
+                    </span>
+                    <span x-show="proofCostData.stage === 'anexo_pendente'"
+                          class="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400">
+                        <i class="fas fa-paperclip mr-1"></i>Anexo Pendente
+                    </span>
+                    <span x-show="proofCostData.stage === 'pago'"
+                          class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400">
+                        <i class="fas fa-check-circle mr-1"></i>Pago
                     </span>
                 </div>
 
-                {{-- Tipo de comprovante e número (só mostra se aguardando) --}}
-                <template x-if="proofCostData.stage === 'aguardando_comprovante'">
-                    <div class="space-y-3">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Comprovante</label>
-                            <select x-model="proofCostData.proof_type" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
-                                <option value="recibo">Recibo</option>
-                                <option value="nf">Nota Fiscal</option>
-                                <option value="transferencia">Comprovante de Transferência</option>
-                                <option value="outro">Outro</option>
-                            </select>
+                {{-- Campos de Comprovante (sempre visíveis, editáveis quando aguardando) --}}
+                <div class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase">Dados do Comprovante</p>
+                    
+                    {{-- Tipo de Comprovante --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Comprovante</label>
+                        <select x-model="proofCostData.proof_type" 
+                                :disabled="proofCostData.stage === 'pago'"
+                                class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm disabled:opacity-50">
+                            <option value="">-- Selecione (opcional) --</option>
+                            <option value="nf">Nota Fiscal</option>
+                            <option value="recibo">Recibo</option>
+                            <option value="transferencia">Comprovante de Transferência</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                    
+                    {{-- Número do Documento --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Número do Documento (opcional)</label>
+                        <input type="text" x-model="proofCostData.proof_number" 
+                               :disabled="proofCostData.stage === 'pago'"
+                               class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm disabled:opacity-50"
+                               placeholder="Ex: NF-e 123456 ou Recibo #001">
+                    </div>
+                    
+                    {{-- Arquivo do Comprovante --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Arquivo do Comprovante</label>
+                        
+                        {{-- Se TEM arquivo: mostrar link + botão remover --}}
+                        <div x-show="proofCostData.has_file" x-cloak class="flex items-center justify-between gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800 mb-2">
+                            <a :href="proofCostData.proof_file_url" 
+                               target="_blank"
+                               class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 flex items-center gap-1 hover:underline">
+                                <i class="fas fa-file-alt"></i> Ver comprovante
+                            </a>
+                            <button type="button" @click="removeProofFile()" 
+                                    class="text-sm text-red-500 hover:text-red-700 dark:text-red-400 flex items-center gap-1"
+                                    title="Remover arquivo">
+                                <i class="fas fa-trash-alt"></i> Remover
+                            </button>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Número do Documento (opcional)</label>
-                            <input type="text" x-model="proofCostData.proof_number" 
-                                   class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm"
-                                   placeholder="Ex: NF-e 123456 ou Recibo #001">
+                        
+                        {{-- Se NÃO TEM arquivo: mostrar input de upload --}}
+                        <div x-show="!proofCostData.has_file" x-cloak>
+                            <input type="file" x-ref="proofFile"
+                                   accept=".pdf,.jpg,.jpeg,.png"
+                                   class="w-full text-sm text-gray-500 dark:text-gray-400 
+                                          file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 
+                                          file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 
+                                          dark:file:bg-primary-900/30 dark:file:text-primary-400
+                                          hover:file:bg-primary-100 dark:hover:file:bg-primary-900/50
+                                          cursor-pointer">
+                            <p class="text-xs text-gray-400 mt-1">PDF, JPG ou PNG (opcional)</p>
                         </div>
                     </div>
-                </template>
+                </div>
 
-                {{-- Ações disponíveis (Simplificado: 2 estágios) --}}
+                {{-- Ações disponíveis --}}
                 <div class="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                     <p class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase">Ações</p>
                     
-                    <template x-if="proofCostData.stage === 'aguardando_comprovante'">
-                        <button @click="submitProofAction('pago'); showProofModal = false"
+                    {{-- Estado: AGUARDANDO --}}
+                    <div x-show="proofCostData.stage === 'aguardando_comprovante'" x-cloak>
+                        <button @click="marcarComoPago()"
                                 class="w-full px-4 py-2 text-sm rounded-md bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2">
                             <i class="fas fa-check-circle"></i>Marcar como Pago
                         </button>
-                    </template>
-
-                    <template x-if="proofCostData.stage === 'pago'">
-                        <div class="space-y-2">
-                            <div class="flex items-center gap-2 text-green-600 dark:text-green-400 py-2">
-                                <i class="fas fa-check-circle text-lg"></i>
-                                <span class="font-medium">Comprovante OK ✓</span>
-                            </div>
-                            <button @click="submitProofAction('aguardando_comprovante'); showProofModal = false"
-                                    class="w-full px-4 py-2 text-sm rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
-                                <i class="fas fa-undo"></i>Reverter p/ Aguardando
-                            </button>
+                    </div>
+                    
+                    {{-- Estado: ANEXO PENDENTE --}}
+                    <div x-show="proofCostData.stage === 'anexo_pendente'" x-cloak class="space-y-2">
+                        <div class="flex items-center gap-2 text-yellow-600 dark:text-yellow-400 py-2">
+                            <i class="fas fa-exclamation-triangle text-lg"></i>
+                            <span class="font-medium">Aguardando anexo do comprovante</span>
                         </div>
-                    </template>
+                        <button @click="anexarComprovante()"
+                                class="w-full px-4 py-2 text-sm rounded-md bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center gap-2">
+                            <i class="fas fa-paperclip"></i>Anexar Comprovante
+                        </button>
+                        <button @click="revertToAguardando()"
+                                class="w-full px-4 py-2 text-sm rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
+                            <i class="fas fa-undo"></i>Reverter p/ Aguardando
+                        </button>
+                    </div>
+
+                    {{-- Estado: PAGO --}}
+                    <div x-show="proofCostData.stage === 'pago'" x-cloak class="space-y-2">
+                        <div class="flex items-center gap-2 text-green-600 dark:text-green-400 py-2">
+                            <i class="fas fa-check-circle text-lg"></i>
+                            <span class="font-medium">Reembolsado ✓</span>
+                        </div>
+                        {{-- Botão para salvar alterações (anexar arquivo posterior) --}}
+                        <button @click="salvarAlteracoes()"
+                                class="w-full px-4 py-2 text-sm rounded-md bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center gap-2">
+                            <i class="fas fa-save"></i>Salvar Alterações
+                        </button>
+                        <button @click="revertToAguardando()"
+                                class="w-full px-4 py-2 text-sm rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2">
+                            <i class="fas fa-undo"></i>Reverter p/ Aguardando
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -253,7 +329,7 @@
             
             // Modal de Comprovante
             showProofModal: false,
-            proofCostData: { id: null, description: '', value: 0, stage: '', proof_type: 'recibo' },
+            proofCostData: { id: null, description: '', value: 0, stage: '', proof_type: '', proof_number: '', has_file: false, proof_file_url: null },
             
             formatCurrency(value, withSymbol = true) {
                 const num = parseFloat(value);
@@ -392,17 +468,342 @@
                     description: cost.description || 'Despesa',
                     value: cost.value || 0,
                     stage: effectiveStage,
-                    proof_type: cost.reimbursement_proof_type || 'recibo',
-                    proof_number: cost.reimbursement_notes || ''
+                    proof_type: cost.reimbursement_proof_type || '',
+                    proof_number: cost.reimbursement_notes || '',
+                    has_file: !!cost.reimbursement_proof_file,
+                    proof_file_url: cost.reimbursement_proof_file ? `/storage/${cost.reimbursement_proof_file}` : null
                 };
                 this.showProofModal = true;
             },
+            
+            // Label dinâmico para tipo de documento
+            getProofTypeLabel(proofType) {
+                const types = {
+                    'nf': 'Nº NF:',
+                    'recibo': 'Nº Recibo:',
+                    'transferencia': 'Nº Transf.:',
+                    'outro': 'Nº Doc.:'
+                };
+                return types[proofType] || 'Nº Doc.:';
+            },
+            
+            // Marca como pago - determina estágio baseado em ter comprovante (número OU arquivo)
+            async marcarComoPago() {
+                const fileInput = this.$refs.proofFile;
+                const hasNewFile = fileInput && fileInput.files && fileInput.files[0];
+                const hasProofNumber = !!this.proofCostData.proof_number && this.proofCostData.proof_number.trim() !== '';
+                
+                // Se tem número OU arquivo, vai para 'pago'; senão vai para 'anexo_pendente'
+                const hasComprovante = hasNewFile || hasProofNumber;
+                const newStage = hasComprovante ? 'pago' : 'anexo_pendente';
+                
+                const formData = new FormData();
+                formData.append('stage', newStage);
+                formData.append('_method', 'PATCH');
+                
+                if (this.proofCostData.proof_type) formData.append('proof_type', this.proofCostData.proof_type);
+                if (this.proofCostData.proof_number) formData.append('proof_number', this.proofCostData.proof_number);
+                
+                if (hasNewFile) {
+                    formData.append('proof_file', fileInput.files[0]);
+                }
+                
+                try {
+                    const response = await fetch(`/api/costs/${this.proofCostData.id}/reimbursement-stage`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        if (typeof Swal !== 'undefined') {
+                            const msg = hasComprovante ? 'Comprovante registrado!' : 'Pago! Preencha o comprovante depois.';
+                            await Swal.fire({ icon: 'success', title: 'Sucesso!', text: msg, timer: 1500, showConfirmButton: false });
+                        }
+                        
+                        // Fecha modal e atualiza tabela
+                        this.showProofModal = false;
+                        await this.fetchCosts();
+                    } else {
+                        const data = await response.json();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Erro', data.message || 'Erro ao salvar', 'error');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Erro', 'Erro ao salvar', 'error');
+                    }
+                }
+            },
+            
+            // Anexar comprovante (quando já está em anexo_pendente)
+            async anexarComprovante() {
+                const fileInput = this.$refs.proofFile;
+                const hasNewFile = fileInput && fileInput.files && fileInput.files[0];
+                const hasProofNumber = !!this.proofCostData.proof_number && this.proofCostData.proof_number.trim() !== '';
+                
+                // Precisa ter pelo menos um: número OU arquivo
+                if (!hasNewFile && !hasProofNumber) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Atenção', 'Preencha o número do documento ou anexe um arquivo.', 'warning');
+                    }
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('stage', 'pago');
+                formData.append('_method', 'PATCH');
+                
+                if (hasNewFile) {
+                    formData.append('proof_file', fileInput.files[0]);
+                }
+                
+                if (this.proofCostData.proof_type) formData.append('proof_type', this.proofCostData.proof_type);
+                if (this.proofCostData.proof_number) formData.append('proof_number', this.proofCostData.proof_number);
+                
+                try {
+                    const response = await fetch(`/api/costs/${this.proofCostData.id}/reimbursement-stage`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        if (typeof Swal !== 'undefined') {
+                            await Swal.fire({ icon: 'success', title: 'Comprovante anexado!', timer: 1500, showConfirmButton: false });
+                        }
+                        
+                        // Fecha modal e atualiza tabela
+                        this.showProofModal = false;
+                        await this.fetchCosts();
+                    } else {
+                        const data = await response.json();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Erro', data.message || 'Erro ao anexar', 'error');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Erro', 'Erro ao anexar', 'error');
+                    }
+                }
+            },
+            
+            // Salvar alterações no estado Pago (para anexar arquivo posteriormente)
+            async salvarAlteracoes() {
+                const fileInput = this.$refs.proofFile;
+                const hasNewFile = fileInput && fileInput.files && fileInput.files[0];
+                
+                const formData = new FormData();
+                formData.append('stage', 'pago'); // Mantém pago
+                formData.append('_method', 'PATCH');
+                
+                if (hasNewFile) {
+                    formData.append('proof_file', fileInput.files[0]);
+                }
+                
+                if (this.proofCostData.proof_type) formData.append('proof_type', this.proofCostData.proof_type);
+                if (this.proofCostData.proof_number) formData.append('proof_number', this.proofCostData.proof_number);
+                
+                try {
+                    const response = await fetch(`/api/costs/${this.proofCostData.id}/reimbursement-stage`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        if (typeof Swal !== 'undefined') {
+                            await Swal.fire({ icon: 'success', title: 'Alterações salvas!', timer: 1500, showConfirmButton: false });
+                        }
+                        
+                        // Fecha modal e atualiza tabela
+                        this.showProofModal = false;
+                        await this.fetchCosts();
+                    } else {
+                        const data = await response.json();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Erro', data.message || 'Erro ao salvar', 'error');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Erro', 'Erro ao salvar', 'error');
+                    }
+                }
+            },
 
-            // Submete a ação selecionada no modal
+            // Submete a ação selecionada no modal (sem arquivo)
             async submitProofAction(newStage) {
                 const proofType = this.proofCostData.stage === 'aguardando_comprovante' ? this.proofCostData.proof_type : null;
                 const proofNumber = this.proofCostData.stage === 'aguardando_comprovante' ? this.proofCostData.proof_number : null;
                 await this.updateReimbursementStage(this.proofCostData.id, newStage, proofType, proofNumber);
+            },
+            
+            // Submete com arquivo anexo
+            async submitProofActionWithFile(newStage) {
+                const formData = new FormData();
+                formData.append('stage', newStage);
+                formData.append('_method', 'PATCH');
+                
+                if (this.proofCostData.proof_type) formData.append('proof_type', this.proofCostData.proof_type);
+                if (this.proofCostData.proof_number) formData.append('proof_number', this.proofCostData.proof_number);
+                
+                // Verifica se há arquivo para upload
+                const fileInput = this.$refs.proofFile;
+                const hasNewFile = fileInput && fileInput.files && fileInput.files[0];
+                if (hasNewFile) {
+                    formData.append('proof_file', fileInput.files[0]);
+                }
+                
+                try {
+                    const response = await fetch(`/api/costs/${this.proofCostData.id}/reimbursement-stage`, {
+                        method: 'POST', // POST com _method=PATCH para suportar FormData
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const updatedCost = data.cost;
+                        
+                        // Atualiza estado local reativamente
+                        this.proofCostData.stage = newStage;
+                        if (hasNewFile && updatedCost.reimbursement_proof_file) {
+                            this.proofCostData.has_file = true;
+                            this.proofCostData.proof_file_url = `/storage/${updatedCost.reimbursement_proof_file}`;
+                        }
+                        
+                        if (typeof Swal !== 'undefined') {
+                            await Swal.fire({ icon: 'success', title: 'Sucesso!', text: 'Comprovante salvo!', timer: 1500, showConfirmButton: false });
+                        }
+                        
+                        // Atualiza tabela também (para badge externo)
+                        await this.fetchCosts();
+                    } else {
+                        const data = await response.json();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Erro', data.message || 'Erro ao salvar comprovante', 'error');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Erro', 'Erro ao salvar comprovante', 'error');
+                    }
+                }
+            },
+            
+            // Remove arquivo de comprovante
+            async removeProofFile() {
+                if (typeof Swal !== 'undefined') {
+                    const result = await Swal.fire({
+                        title: 'Remover Comprovante',
+                        text: 'Deseja remover o arquivo anexado? O status voltará para "Anexo Pendente".',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonText: 'Sim, remover'
+                    });
+                    if (!result.isConfirmed) return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/costs/${this.proofCostData.id}/remove-proof-file`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        if (typeof Swal !== 'undefined') {
+                            await Swal.fire({ icon: 'success', title: 'Arquivo removido!', timer: 1500, showConfirmButton: false });
+                        }
+                        
+                        // Fecha modal e atualiza tabela
+                        this.showProofModal = false;
+                        await this.fetchCosts();
+                    } else {
+                        const data = await response.json();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Erro', data.message || 'Erro ao remover arquivo', 'error');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Erro', 'Erro ao remover arquivo', 'error');
+                    }
+                }
+            },
+            
+            // Reverte para Aguardando e limpa todos os dados
+            async revertToAguardando() {
+                if (typeof Swal !== 'undefined') {
+                    const result = await Swal.fire({
+                        title: 'Reverter Pagamento',
+                        text: 'Deseja reverter? Todos os dados do comprovante serão limpos.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonText: 'Sim, reverter'
+                    });
+                    if (!result.isConfirmed) return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/costs/${this.proofCostData.id}/reimbursement-stage`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ stage: 'aguardando_comprovante' })
+                    });
+                    
+                    if (response.ok) {
+                        if (typeof Swal !== 'undefined') {
+                            await Swal.fire({ icon: 'success', title: 'Pagamento revertido!', timer: 1500, showConfirmButton: false });
+                        }
+                        
+                        // Fecha modal e atualiza tabela
+                        this.showProofModal = false;
+                        await this.fetchCosts();
+                    } else {
+                        const data = await response.json();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire('Erro', data.message || 'Erro ao reverter', 'error');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro:', error);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire('Erro', 'Erro ao reverter', 'error');
+                    }
+                }
             }
         };
     }
