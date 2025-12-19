@@ -1,11 +1,15 @@
 {
     "mcpServers": {
         "laravel-boost": {
-            "command": "php",
+            "command": "vendor/bin/sail",
             "args": [
                 "artisan",
                 "boost:mcp"
             ]
+        },
+        "playwright": {
+            "command": "npx",
+            "args": ["-y", "@playwright/mcp@latest"]
         }
     }
 }
