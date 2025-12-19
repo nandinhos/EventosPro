@@ -3,6 +3,9 @@ import Alpine from 'alpinejs';
 import focus from '@alpinejs/focus';
 import collapse from '@alpinejs/collapse';
 
+// Importar componentes Alpine
+import expenseRowDetail from './components/expense-row-detail';
+
 // Importar o Chart.js da pasta node_modules
 import { Chart, registerables } from 'chart.js';
 
@@ -26,6 +29,9 @@ Alpine.start();
 // Ou diretamente em <canvas x-init="...">                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
 
 document.addEventListener('alpine:init', () => {
+    // Registrar componente de despesa
+    Alpine.data('expenseRowDetail', expenseRowDetail);
+
     Alpine.data('tabs', () => ({
         tabsOrder: ['contract', 'event', 'costs', 'commissions', 'tags'],
         activeTab: 'contract',
