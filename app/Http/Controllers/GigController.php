@@ -46,6 +46,7 @@ class GigController extends Controller
         }
 
         $query = Gig::query()
+            ->with(['artist', 'booker', 'settlement']) // Eager loading para evitar N+1
             ->select(['gigs.*', 'artists.name as artist_name', 'bookers.name as booker_name'])
             ->leftJoin('artists', 'gigs.artist_id', '=', 'artists.id')
             ->leftJoin('bookers', 'gigs.booker_id', '=', 'bookers.id');
