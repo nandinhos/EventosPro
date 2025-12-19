@@ -19,7 +19,7 @@ $colorClass = $colorClasses[$color] ?? $colorClasses['primary'];
 <div {{ $attributes->merge(['class' => 'bg-white dark:bg-gray-800 rounded-lg shadow p-4']) }}>
     <div class="flex items-center">
         @if($icon)
-            <div class="{{ $colorClass }} text-2xl me-3">
+            <div class="{{ $colorClass }} text-2xl mr-3">
                 <i class="{{ $icon }}"></i>
             </div>
         @endif
