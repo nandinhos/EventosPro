@@ -60,13 +60,23 @@
     @endif
     
     <div class="flex items-center gap-1">
-        {{-- Badge de Status (clicável) --}}
+        {{-- Badge de Status (dinâmico via Alpine) --}}
         <div class="flex flex-col items-start">
-            <button @click="openModal()"
-                    class="px-1.5 py-0.5 rounded-full font-medium {{ $config['color'] }} hover:opacity-80 transition-opacity flex items-center gap-1 cursor-pointer"
+            {{-- Badge Aguardando --}}
+            <button x-show="currentStage === 'aguardando_comprovante'"
+                    @click="openModal()"
+                    class="px-1.5 py-0.5 rounded-full font-medium bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:opacity-80 transition-opacity flex items-center gap-1 cursor-pointer"
                     title="Clique para gerenciar">
-                <i class="fas fa-{{ $config['icon'] }} text-xxs"></i>
-                <span>{{ $config['label'] }}</span>
+                <i class="fas fa-clock text-xxs"></i>
+                <span>Aguardando</span>
+            </button>
+            {{-- Badge Pago --}}
+            <button x-show="currentStage === 'pago'"
+                    @click="openModal()"
+                    class="px-1.5 py-0.5 rounded-full font-medium bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 hover:opacity-80 transition-opacity flex items-center gap-1 cursor-pointer"
+                    title="Clique para gerenciar">
+                <i class="fas fa-check-circle text-xxs"></i>
+                <span>Pago</span>
             </button>
             {{-- Número do documento com label dinâmico --}}
             <template x-if="currentStage === 'pago' && proofNumber">
@@ -76,23 +86,25 @@
             </template>
         </div>
         
-        {{-- Botões de ação rápida (simplificado: 2 estágios) --}}
-        @if($stage === 'aguardando_comprovante')
-            <button @click="advanceStage('pago')"
-                    class="p-1 rounded text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
-                    title="Marcar como Pago">
-                <i class="fas fa-check-circle text-xs"></i>
-            </button>
-        @elseif($stage === 'pago')
-            <span class="text-green-500 ml-1" title="Comprovante OK">
-                <i class="fas fa-check text-xs"></i>
-            </span>
-            <button @click="revertStage('aguardando_comprovante')"
-                    class="p-1 rounded text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    title="Reverter">
-                <i class="fas fa-undo text-xs"></i>
-            </button>
-        @endif
+        {{-- Botões de ação rápida (dinâmicos via Alpine) --}}
+        <button x-show="currentStage === 'aguardando_comprovante'"
+                @click="advanceStage('pago')"
+                class="p-1 rounded text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
+                title="Marcar como Pago">
+            <i class="fas fa-check-circle text-xs"></i>
+        </button>
+        <template x-if="currentStage === 'pago'">
+            <div class="flex items-center gap-1">
+                <span class="text-green-500" title="Comprovante OK">
+                    <i class="fas fa-check text-xs"></i>
+                </span>
+                <button @click="revertStage('aguardando_comprovante')"
+                        class="p-1 rounded text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        title="Reverter">
+                    <i class="fas fa-undo text-xs"></i>
+                </button>
+            </div>
+        </template>
     </div>
 
     {{-- Modal de Detalhes/Ações --}}
@@ -398,11 +410,13 @@ function costReimbursementInline(config) {
                     const data = await response.json();
                     const updatedCost = data.cost;
                     
+                    console.log('[cost-reimbursement-inline] State changed from', this.currentStage, 'to', newStage);
+                    
                     // Atualiza estado local reativamente
                     this.currentStage = newStage;
                     
                     // Atualiza dados do arquivo se foi anexado
-                    if (hasNewFile && updatedCost.reimbursement_proof_file) {
+                    if (hasNewFile && updatedCost && updatedCost.reimbursement_proof_file) {
                         this.hasFile = true;
                         this.proofFileUrl = `/storage/${updatedCost.reimbursement_proof_file}`;
                     }
@@ -411,10 +425,11 @@ function costReimbursementInline(config) {
                     this.showModal = false;
                 } else {
                     const data = await response.json();
+                    console.error('[cost-reimbursement-inline] API error:', data);
                     this.showError(data.message || 'Erro ao salvar comprovante');
                 }
             } catch (error) {
-                console.error('Erro:', error);
+                console.error('[cost-reimbursement-inline] Error:', error);
                 this.showError('Erro ao salvar comprovante');
             } finally {
                 this.loading = false;

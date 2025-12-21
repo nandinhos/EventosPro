@@ -24,7 +24,7 @@ class ArtistSettlementsController extends Controller
                 'artist',
                 'booker',
                 'settlement',
-                'gigCosts' => fn ($q) => $q->where('is_invoice', true),
+                'gigCosts.costCenter', // Carregar todas as despesas com centro de custo para cálculos financeiros
             ])
             ->whereNotNull('artist_id')
             ->where('gig_date', '<=', now());

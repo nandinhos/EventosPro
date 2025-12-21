@@ -150,51 +150,38 @@
     <div class="page-sheet">
 
         <!-- HEADER -->
-        <header class="flex justify-between items-start border-b border-gray-200 pb-4 mb-4">
-            <div class="flex flex-col w-2/3 pr-8">
-                <!-- LOGO AREA -->
-                <div class="flex items-center gap-2 mb-2">
-                    <div class="logo-text text-gray-900">
-                        <img src="{{ asset('img/logo.png') }}" alt="Logo" class="h-32 mb-1" onerror="this.style.display='none'">
+        <header class="border-b border-gray-200 pb-4 mb-4">
+            <!-- Linha 1: Logo + Título + Número -->
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center gap-4">
+                    <img src="{{ asset('img/coral_360_logo.png') }}" alt="Logo" class="h-32" onerror="this.style.display='none'">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 uppercase tracking-tight">Nota de Débito</h1>
+                        <p class="text-xs text-gray-500">Fatura Nº: <span class="font-bold text-gray-900">{{ $debitNote->number }}</span></p>
                     </div>
                 </div>
-
-                <!-- Company Info Compacto -->
-                <div class="text-[11px] text-gray-600 space-y-0.5 leading-tight">
-                    <p class="font-bold text-gray-900 uppercase text-xs">{{ config('app.company_name', 'CORAL 360 LTDA - EPP') }}</p>
-                    <p>{{ config('app.company_address', 'Rod. D. Pedro I, S/N, SL 02 - Santana dos Cuiaban') }}</p>
-                    <p>{{ config('app.company_city', 'Valinhos - SP') }} | CEP: {{ config('app.company_postal', '13273-310') }}</p>
-                    <p>CNPJ: {{ config('app.company_cnpj', '52.507.002/0001-75') }}</p>
-                    <p class="text-gray-700 font-medium pt-0.5">Gestão de Feiras, Congressos e Eventos Corporativos</p>
+                <div class="text-right">
+                    <table class="text-xs ml-auto">
+                        <tr>
+                            <td class="font-medium text-gray-500 py-0.5 pr-3 text-right">Emissão:</td>
+                            <td class="py-0.5 w-28"><input type="date" class="editable text-right text-gray-900 w-full" value="{{ $debitNote->issued_at->format('Y-m-d') }}" readonly></td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium text-gray-500 py-0.5 pr-3 text-right">Vencimento:</td>
+                            <td class="py-0.5 w-28"><input type="date" class="editable text-right text-gray-900 font-semibold w-full" value="{{ date('Y-m-d', strtotime('+3 days')) }}"></td>
+                        </tr>
+                        <tr>
+                            <td class="font-medium text-gray-500 py-0.5 pr-3 text-right">Competência:</td>
+                            <td class="py-0.5 w-28"><input type="text" class="editable text-right text-gray-700 w-full pr-6" value="{{ $gig->gig_date?->format('m/Y') }}"></td>
+                        </tr>
+                    </table>
                 </div>
             </div>
 
-            <div class="w-1/3 text-right flex flex-col items-end">
-                <h1 class="text-[24px] font-bold text-gray-900 uppercase tracking-tight mb-2">Nota de Débito</h1>
-
-                <!-- Invoice Info Compacto -->
-                <table class="text-xs w-full">
-                    <tr>
-                        <td class="font-medium text-gray-500 py-0.5">Fatura Nº:</td>
-                        <td class="py-0.5"><input type="text" class="editable text-right font-bold text-gray-900"
-                                value="{{ $debitNote->number }}" readonly></td>
-                    </tr>
-                    <tr>
-                        <td class="font-medium text-gray-500 py-0.5">Data Emissão:</td>
-                        <td class="py-0.5"><input type="date" id="dateEmit" class="editable text-right text-gray-900" value="{{ $debitNote->issued_at->format('Y-m-d') }}" readonly>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="font-medium text-gray-500 py-0.5">Vencimento:</td>
-                        <td class="py-0.5"><input type="date" class="editable text-right text-gray-900 font-semibold" value="{{ date('Y-m-d', strtotime('+3 days')) }}">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="font-medium text-gray-500 py-0.5">Competência:</td>
-                        <td class="py-0.5"><input type="text" class="editable text-right text-gray-700"
-                                value="{{ $gig->gig_date?->format('m/Y') }}"></td>
-                    </tr>
-                </table>
+            <!-- Linha 2: Dados da Empresa -->
+            <div class="text-[11px] text-gray-600 leading-tight">
+                <p class="font-bold text-gray-900 uppercase text-xs">{{ config('app.company_name', 'CORAL 360 LTDA - EPP') }}</p>
+                <p>{{ config('app.company_address', 'Rod. D. Pedro I, S/N, SL 02 - Santana dos Cuiaban') }} - {{ config('app.company_city', 'Valinhos - SP') }} | CEP: {{ config('app.company_postal', '13273-310') }} | CNPJ: {{ config('app.company_cnpj', '52.507.002/0001-75') }}</p>
             </div>
         </header>
 
@@ -203,23 +190,23 @@
             <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <i data-lucide="user" class="w-3 h-3"></i> Tomador dos Serviços (Cliente)
             </h3>
-            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                <div class="col-span-2 flex gap-2 items-center">
-                    <span class="font-medium w-16 text-gray-500">Razão:</span>
-                    <input type="text" class="editable font-bold text-gray-900"
-                        value="{{ $serviceTaker->organization ?? '' }}">
+            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                <div class="flex items-center">
+                    <span class="font-medium text-gray-500 mr-1">Razão:</span>
+                    <span class="font-bold text-gray-900">{{ $serviceTaker->organization ?? '' }}</span>
+                    <span class="mx-2 text-gray-400">-</span>
+                    <span class="font-medium text-gray-500 mr-1">Ref/Evento:</span>
+                    <span class="text-gray-700">{{ $gig->location_event_details ?? $gig->event_name ?? "Gig #{$gig->id}" }}</span>
                 </div>
-                <div class="flex gap-2 items-center">
-                    <span class="font-medium w-16 text-gray-500">{{ strlen($serviceTaker->document ?? '') > 14 ? 'CNPJ' : 'CPF' }}:</span>
-                    <input type="text" class="editable text-gray-700" value="{{ $serviceTaker->document ?? '' }}">
-                </div>
-                <div class="flex gap-2 items-center">
-                    <span class="font-medium w-20 text-gray-500">Ref/Evento:</span>
-                    <input type="text" class="editable text-gray-700" value="{{ $gig->location_event_details ?? $gig->event_name ?? "Gig #{$gig->id}" }}">
-                </div>
-                <div class="col-span-2 flex gap-2 items-center">
-                    <span class="font-medium w-16 text-gray-500">Endereço:</span>
-                    <input type="text" class="editable text-gray-700" value="{{ $serviceTaker->full_address }}">
+                <div class="w-full flex gap-x-6 mt-1">
+                    <div class="flex items-center">
+                        <span class="font-medium text-gray-500 mr-1">DOC:</span>
+                        <span class="text-gray-700">{{ $serviceTaker->document ?? '' }}</span>
+                    </div>
+                    <div class="flex items-center flex-1">
+                        <span class="font-medium text-gray-500 mr-1">Endereço:</span>
+                        <span class="text-gray-700">{{ $serviceTaker->full_address }}</span>
+                    </div>
                 </div>
             </div>
         </section>
@@ -233,41 +220,50 @@
                         <tr class="bg-gray-50 text-gray-700 text-[10px] uppercase tracking-wider border-b border-gray-200">
                             <th class="py-2 px-3 text-left font-semibold">Descrição / Histórico</th>
                             <th class="py-2 px-3 text-center w-20 font-semibold">Qtd/Ref.</th>
-                            <th class="py-2 px-3 text-right w-24 font-semibold">Honorários (R$)</th>
+                            <th class="py-2 px-3 text-right w-24 font-semibold">Cachê Artista (R$)</th>
                             <th class="py-2 px-3 text-right w-24 font-semibold">Despesas (R$)</th>
                         </tr>
                     </thead>
                     <tbody id="invoiceItems" class="divide-y divide-gray-200">
-                        <!-- Row 1 - Honorários -->
+                        <!-- Row 1 - Cachê do Artista -->
                         <tr class="group hover:bg-gray-50 transition-colors">
                             <td class="p-2 align-top">
                                 <div class="flex flex-col gap-1">
                                     <input type="text" class="editable font-semibold text-gray-900 w-full"
-                                        value="Organização de Evento - {{ $gig->artist->name ?? 'Artista' }}">
-                                    <textarea class="editable text-[10px] text-gray-500 w-full h-8 resize-none leading-relaxed">Coordenação técnica e operacional conforme contrato. Evento: {{ $gig->location_event_details ?? '' }}</textarea>
+                                        value="Cachê Artista - {{ $gig->artist->name ?? 'Artista' }}">
+                                    <textarea class="editable text-[10px] text-gray-500 w-full h-20 resize-none leading-relaxed">Pagamento de cachê artístico conforme contrato.
+Evento: {{ $gig->location_event_details ?? '' }}
+Data: {{ $gig->gig_date?->format('d/m/Y') }}</textarea>
                                 </div>
                             </td>
                             <td class="p-2 align-top"><input type="text" class="editable text-center text-gray-700 w-full" value="1.0"></td>
                             <td class="p-2 align-top"><input type="text" class="editable text-right fees-col text-gray-900 w-full font-medium"
-                                    value="{{ number_format($honorarios, 2, ',', '.') }}" oninput="formatAndCalc(this)"></td>
+                                    value="{{ number_format($settlement?->artist_payment_value ?? $honorarios, 2, ',', '.') }}" oninput="formatAndCalc(this)"></td>
                             <td class="p-2 align-top"><input type="text" class="editable text-right exp-col bg-gray-50 text-gray-400 w-full"
                                     value="0,00" disabled></td>
                         </tr>
                         
                         @if($despesasItens->count() > 0)
+                        @php
+                            // Agrupar despesas por centro de custo e calcular total
+                            $despesasPorCentro = $despesasItens->groupBy(fn($d) => $d->costCenter->name ?? 'Outros');
+                            $totalDespesasReembolsaveis = $despesasItens->sum('value');
+                        @endphp
                         <!-- Row 2 - Despesas Reembolsáveis -->
                         <tr class="group hover:bg-gray-50 transition-colors">
                             <td class="p-2 align-top">
                                 <div class="flex flex-col gap-1">
                                     <input type="text" class="editable font-semibold text-gray-900 w-full"
                                         value="Reembolso: Despesas do Evento">
-                                    <textarea class="editable text-[10px] text-gray-500 w-full h-8 resize-none leading-relaxed">@foreach($despesasItens as $d){{ $d->description }} ({{ $d->costCenter->name ?? 'Custo' }}); @endforeach</textarea>
+                                    <textarea class="editable text-[10px] text-gray-500 w-full h-20 resize-none leading-relaxed">@foreach($despesasPorCentro as $centro => $itens)
+{{ $centro }}: @foreach($itens as $d){{ $d->description }} (R$ {{ number_format($d->value, 2, ',', '.') }})@if(!$loop->last), @endif @endforeach
+@endforeach</textarea>
                                 </div>
                             </td>
-                            <td class="p-2 align-top"><input type="text" class="editable text-center text-gray-700 w-full" value="-"></td>
+                            <td class="p-2 align-top"><input type="text" class="editable text-center text-gray-700 w-full" value="{{ $despesasItens->count() }}"></td>
                             <td class="p-2 align-top"><input type="text" class="editable text-right fees-col bg-gray-50 text-gray-400 w-full" value="0,00" disabled></td>
                             <td class="p-2 align-top"><input type="text" class="editable text-right exp-col text-gray-900 w-full font-medium" 
-                                    value="{{ number_format($despesas, 2, ',', '.') }}" oninput="formatAndCalc(this)"></td>
+                                    value="{{ number_format($totalDespesasReembolsaveis, 2, ',', '.') }}" oninput="formatAndCalc(this)"></td>
                         </tr>
                         @endif
                     </tbody>
@@ -316,14 +312,19 @@
             </div>
 
             <!-- TOTALS BLOCK (Direita) -->
+            @php
+                $cacheArtista = $settlement->artist_payment_value ?? $honorarios;
+                $totalReembolsos = $despesasItens->sum('value');
+                $valorLiquido = $cacheArtista + $totalReembolsos;
+            @endphp
             <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 flex flex-col justify-center">
                 <div class="flex justify-between text-xs mb-1">
-                    <span class="text-gray-600">(+) Total Serviços/Honorários</span>
-                    <span class="font-semibold text-gray-900" id="total_fees">{{ number_format($honorarios, 2, ',', '.') }}</span>
+                    <span class="text-gray-600">(+) Total Cachê Artista</span>
+                    <span class="font-semibold text-gray-900" id="total_fees">{{ number_format($cacheArtista, 2, ',', '.') }}</span>
                 </div>
                 <div class="flex justify-between text-xs mb-1">
                     <span class="text-gray-600">(+) Total Reembolsos</span>
-                    <span class="font-semibold text-gray-900" id="total_exp">{{ number_format($despesas, 2, ',', '.') }}</span>
+                    <span class="font-semibold text-gray-900" id="total_exp">{{ number_format($totalReembolsos, 2, ',', '.') }}</span>
                 </div>
                 <div class="flex justify-between text-xs mb-2 text-gray-600">
                     <span>(-) Total Retenções</span>
@@ -331,7 +332,7 @@
                 </div>
                 <div class="border-t border-gray-300 pt-2 flex justify-between items-center">
                     <span class="font-bold text-gray-800 uppercase text-[10px] tracking-wide">Valor Líquido a Pagar</span>
-                    <span class="font-bold text-xl text-gray-900">R$ <span id="net_total">{{ number_format($honorarios + $despesas, 2, ',', '.') }}</span></span>
+                    <span class="font-bold text-xl text-gray-900">R$ <span id="net_total">{{ number_format($valorLiquido, 2, ',', '.') }}</span></span>
                 </div>
             </div>
         </div>
