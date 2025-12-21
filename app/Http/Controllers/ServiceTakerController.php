@@ -167,10 +167,22 @@ class ServiceTakerController extends Controller
         ]);
 
         $file = $request->file('file');
-        $rows = array_map('str_getcsv', file($file->path()));
 
-        // Remove header
-        $header = array_map('trim', array_shift($rows));
+        // Read file content and handle BOM
+        $content = file_get_contents($file->path());
+        $content = preg_replace('/^\xEF\xBB\xBF/', '', $content); // Remove BOM
+        $content = str_replace("\r\n", "\n", $content); // Normalize line endings
+
+        $lines = explode("\n", $content);
+        $headerLine = array_shift($lines);
+
+        // Auto-detect delimiter (semicolon or comma)
+        $delimiter = str_contains($headerLine, ';') ? ';' : ',';
+
+        $header = array_map('trim', str_getcsv($headerLine, $delimiter));
+
+        // Parse all rows with detected delimiter
+        $rows = array_map(fn ($line) => str_getcsv($line, $delimiter), $lines);
 
         // Expected columns
         $expectedColumns = [
