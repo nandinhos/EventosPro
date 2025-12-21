@@ -29,6 +29,7 @@ class StoreGigRequest extends FormRequest
         return [
             'artist_id' => ['required', 'integer', 'exists:artists,id'],
             'booker_id' => ['nullable', 'integer', 'exists:bookers,id'],
+            'service_taker_id' => ['nullable', 'integer', 'exists:service_takers,id'],
             'gig_date' => ['required', 'date'],
             'location_event_details' => ['required', 'string', 'max:65535'],
             'cache_value' => ['required', 'numeric', 'min:0'], // Valor original

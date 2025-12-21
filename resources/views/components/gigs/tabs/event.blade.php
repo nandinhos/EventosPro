@@ -27,6 +27,25 @@
         @enderror
     </div>
 
+    <!-- Tomador de Serviço (para Nota de Débito) -->
+    <div>
+        <label for="service_taker_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Tomador de Serviço 
+            <span class="text-xs text-gray-400 font-normal">(para Nota de Débito)</span>
+        </label>
+        <select name="service_taker_id" id="service_taker_id" class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500">
+            <option value="">Selecione...</option>
+            @if(isset($serviceTakers))
+                @foreach ($serviceTakers as $id => $name)
+                    <option value="{{ $id }}" {{ old('service_taker_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
+                @endforeach
+            @endif
+        </select>
+        @error('service_taker_id')
+        <span class="text-xs text-red-500">{{ $message }}</span>
+        @enderror
+    </div>
+
     <!-- Data do Evento -->
     <div>
         <label for="gig_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data do Evento <span class="text-red-500">*</span></label>

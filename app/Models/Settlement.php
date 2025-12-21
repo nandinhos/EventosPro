@@ -14,8 +14,11 @@ class Settlement extends Model
 
     // Constantes para os estágios do workflow de fechamento
     public const STAGE_AGUARDANDO_CONFERENCIA = 'aguardando_conferencia';
+
     public const STAGE_FECHAMENTO_ENVIADO = 'fechamento_enviado';
+
     public const STAGE_DOCUMENTACAO_RECEBIDA = 'documentacao_recebida';
+
     public const STAGE_PAGO = 'pago';
 
     // Labels amigáveis para exibição
@@ -65,6 +68,7 @@ class Settlement extends Model
         'documentation_number',
         'documentation_file_path',
         'communication_notes',
+        'requires_debit_note',
     ];
 
     /**
@@ -81,6 +85,7 @@ class Settlement extends Model
         // Novos casts
         'settlement_sent_at' => 'datetime',
         'documentation_received_at' => 'datetime',
+        'requires_debit_note' => 'boolean',
     ];
 
     // --- Relacionamentos ---

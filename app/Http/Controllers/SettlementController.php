@@ -207,4 +207,67 @@ class SettlementController extends Controller
             return back()->with('error', 'Erro ao reverter comissão do booker.');
         }
     }
+
+    /**
+     * Toggle the requires_debit_note flag for a gig's settlement.
+     */
+    public function toggleRequiresDebitNote(Request $request, Gig $gig): RedirectResponse|\Illuminate\Http\JsonResponse
+    {
+        $settlement = $gig->settlement;
+
+        if (! $settlement) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Este gig não possui um registro de fechamento.'], 404);
+            }
+
+            return back()->with('error', 'Este gig não possui um registro de fechamento.');
+        }
+
+        $settlement->update([
+            'requires_debit_note' => ! $settlement->requires_debit_note,
+        ]);
+
+        $message = $settlement->requires_debit_note
+            ? 'Nota de Débito agora é obrigatória para concluir o fechamento.'
+            : 'Nota de Débito dispensada. Fechamento concluído.';
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'requires_debit_note' => $settlement->requires_debit_note,
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Link a service taker to a gig (for inline selection in workflow).
+     */
+    public function linkServiceTaker(Request $request, Gig $gig): \Illuminate\Http\JsonResponse|RedirectResponse
+    {
+        $request->validate([
+            'service_taker_id' => 'required|exists:service_takers,id',
+        ]);
+
+        $gig->update([
+            'service_taker_id' => $request->input('service_taker_id'),
+        ]);
+
+        $serviceTaker = $gig->fresh()->serviceTaker;
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tomador de serviço vinculado com sucesso.',
+                'service_taker' => [
+                    'id' => $serviceTaker->id,
+                    'organization' => $serviceTaker->organization,
+                ],
+            ]);
+        }
+
+        return back()->with('success', 'Tomador de serviço vinculado com sucesso.');
+    }
 }

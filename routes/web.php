@@ -1,7 +1,8 @@
 <?php
-    // (Optional API route) Restore via POST when using JS modal
-    Route::post('/cost-centers/restore', [\App\Http\Controllers\CostCenterController::class, 'restoreGhost'])
-        ->name('cost-centers.restore');
+
+// (Optional API route) Restore via POST when using JS modal
+Route::post('/cost-centers/restore', [\App\Http\Controllers\CostCenterController::class, 'restoreGhost'])
+    ->name('cost-centers.restore');
 use App\Http\Controllers\ArtistController;
 use App\Http\Controllers\ArtistPerformanceController;
 use App\Http\Controllers\AuditController;
@@ -103,10 +104,27 @@ Route::middleware('auth')->group(function () {
     Route::post('/expense-reimbursements/{cost}/confirm', [App\Http\Controllers\ExpenseReimbursementController::class, 'confirmReimbursement'])->name('expenses.reimbursements.confirm');
     Route::post('/expense-reimbursements/{cost}/reimburse', [App\Http\Controllers\ExpenseReimbursementController::class, 'markReimbursed'])->name('expenses.reimbursements.reimburse');
     Route::patch('/expense-reimbursements/{cost}/revert', [App\Http\Controllers\ExpenseReimbursementController::class, 'revertStage'])->name('expenses.reimbursements.revert');
-    
+
     // API para atualização de estágio de comprovante (usada por componentes)
     Route::patch('/api/costs/{cost}/reimbursement-stage', [App\Http\Controllers\GigCostController::class, 'updateReimbursementStageApi'])->name('api.costs.reimbursement-stage');
     Route::delete('/api/costs/{cost}/remove-proof-file', [App\Http\Controllers\GigCostController::class, 'removeProofFile'])->name('api.costs.remove-proof-file');
+
+    // Service Takers (Tomadores de Serviço)
+    Route::resource('service-takers', App\Http\Controllers\ServiceTakerController::class);
+    Route::get('/service-takers-list', [App\Http\Controllers\ServiceTakerController::class, 'list'])->name('service-takers.list');
+    Route::get('/service-takers-import', [App\Http\Controllers\ServiceTakerController::class, 'showImportForm'])->name('service-takers.import');
+    Route::post('/service-takers-import', [App\Http\Controllers\ServiceTakerController::class, 'importCsv'])->name('service-takers.import.process');
+
+    // Debit Notes (Notas de Débito)
+    Route::get('/debit-notes/{gig}', [App\Http\Controllers\DebitNoteController::class, 'show'])->name('debit-notes.show');
+    Route::post('/debit-notes/{gig}/generate', [App\Http\Controllers\DebitNoteController::class, 'generate'])->name('debit-notes.generate');
+    Route::post('/debit-notes/{gig}/cancel', [App\Http\Controllers\DebitNoteController::class, 'cancel'])->name('debit-notes.cancel');
+    Route::post('/debit-notes/{debitNote}/activate', [App\Http\Controllers\DebitNoteController::class, 'activate'])->name('debit-notes.activate');
+    Route::get('/debit-notes/{gig}/history', [App\Http\Controllers\DebitNoteController::class, 'history'])->name('debit-notes.history');
+
+    // Settlement - Toggle ND requirement
+    Route::patch('/gigs/{gig}/toggle-requires-nd', [App\Http\Controllers\SettlementController::class, 'toggleRequiresDebitNote'])->name('settlements.toggle-requires-nd');
+    Route::post('/gigs/{gig}/link-service-taker', [App\Http\Controllers\SettlementController::class, 'linkServiceTaker'])->name('settlements.link-service-taker');
 
     // Bookers
     Route::resource('bookers', BookerController::class);
@@ -182,7 +200,7 @@ Route::middleware('auth')->group(function () {
         // Use artists.settlements.settle e artists.settlements.revert em vez destas
         // Route::post('settle-artist', [SettlementController::class, 'settleArtistPayment'])->name('settlements.artist');
         // Route::patch('unsettle-artist', [SettlementController::class, 'unsettleArtistPayment'])->name('settlements.artist.unsettle');
-        
+
         // Rotas de booker continuam ativas
         Route::post('settle-booker', [SettlementController::class, 'settleBookerCommission'])->name('settlements.booker');
         Route::patch('unsettle-booker', [SettlementController::class, 'unsettleBookerCommission'])->name('settlements.booker.unsettle');

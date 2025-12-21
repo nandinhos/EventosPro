@@ -7,7 +7,6 @@ use App\Models\Gig;
 use App\Models\Settlement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class ArtistSettlementsController extends Controller
 {
@@ -22,10 +21,10 @@ class ArtistSettlementsController extends Controller
         // Query base: gigs realizadas com artista
         $query = Gig::query()
             ->with([
-                'artist', 
-                'booker', 
+                'artist',
+                'booker',
                 'settlement',
-                'gigCosts' => fn($q) => $q->where('is_invoice', true),
+                'gigCosts' => fn ($q) => $q->where('is_invoice', true),
             ])
             ->whereNotNull('artist_id')
             ->where('gig_date', '<=', now());
@@ -109,14 +108,10 @@ class ArtistSettlementsController extends Controller
             ->toArray();
 
         return [
-            Settlement::STAGE_AGUARDANDO_CONFERENCIA => 
-                $withoutSettlement + ($stageCounts[Settlement::STAGE_AGUARDANDO_CONFERENCIA] ?? 0),
-            Settlement::STAGE_FECHAMENTO_ENVIADO => 
-                $stageCounts[Settlement::STAGE_FECHAMENTO_ENVIADO] ?? 0,
-            Settlement::STAGE_DOCUMENTACAO_RECEBIDA => 
-                $stageCounts[Settlement::STAGE_DOCUMENTACAO_RECEBIDA] ?? 0,
-            Settlement::STAGE_PAGO => 
-                $stageCounts[Settlement::STAGE_PAGO] ?? 0,
+            Settlement::STAGE_AGUARDANDO_CONFERENCIA => $withoutSettlement + ($stageCounts[Settlement::STAGE_AGUARDANDO_CONFERENCIA] ?? 0),
+            Settlement::STAGE_FECHAMENTO_ENVIADO => $stageCounts[Settlement::STAGE_FECHAMENTO_ENVIADO] ?? 0,
+            Settlement::STAGE_DOCUMENTACAO_RECEBIDA => $stageCounts[Settlement::STAGE_DOCUMENTACAO_RECEBIDA] ?? 0,
+            Settlement::STAGE_PAGO => $stageCounts[Settlement::STAGE_PAGO] ?? 0,
         ];
     }
 
@@ -161,7 +156,7 @@ class ArtistSettlementsController extends Controller
 
         // Redireciona de volta para a página de origem
         $redirectTo = $request->input('redirect_to');
-        
+
         if ($redirectTo === 'gig') {
             return redirect()
                 ->route('gigs.request-nf', $gig)
@@ -203,15 +198,15 @@ class ArtistSettlementsController extends Controller
 
         if (! $settlement || ! $settlement->canReceiveDocumentation()) {
             $redirectTo = $request->input('redirect_to');
-            $errorRedirect = match($redirectTo) {
+            $errorRedirect = match ($redirectTo) {
                 'gig' => redirect()->route('gigs.request-nf', $gig),
                 'show' => redirect()->route('gigs.show', $gig),
-                'artist' => $request->input('artist_id') 
+                'artist' => $request->input('artist_id')
                     ? redirect()->route('artists.show', $request->input('artist_id'))
                     : redirect()->route('artists.settlements.index', $request->query()),
                 default => redirect()->route('artists.settlements.index', $request->query()),
             };
-            
+
             return $errorRedirect->with('error', 'Este fechamento não está no estágio correto para registrar documentação.');
         }
 
@@ -244,7 +239,7 @@ class ArtistSettlementsController extends Controller
 
         // Redireciona de volta para a página de origem
         $redirectTo = $request->input('redirect_to');
-        
+
         if ($redirectTo === 'gig') {
             return redirect()
                 ->route('gigs.request-nf', $gig)
@@ -323,6 +318,7 @@ class ArtistSettlementsController extends Controller
                 'artist_payment_value' => $paymentValue,
                 'artist_payment_paid_at' => $paymentDate,
                 'artist_payment_proof' => $proofPath,
+                'requires_debit_note' => true, // Novo pagamento vai para Ag. ND primeiro
             ]);
         });
 
@@ -333,7 +329,7 @@ class ArtistSettlementsController extends Controller
 
         // Redireciona de volta para a página de origem
         $redirectTo = $request->input('redirect_to');
-        
+
         if ($redirectTo === 'gig') {
             return redirect()
                 ->route('gigs.request-nf', $gig)
@@ -397,7 +393,6 @@ class ArtistSettlementsController extends Controller
             ],
         ];
 
-
         if (! isset($revertMap[$currentStage])) {
             return $this->redirectWithMessage($request, $gig, 'error', 'Este estágio não pode ser revertido.');
         }
@@ -430,6 +425,7 @@ class ArtistSettlementsController extends Controller
             if ($type === 'error') {
                 return response()->json(['success' => false, 'message' => $message], 400);
             }
+
             return response()->json(['success' => true, 'message' => $message]);
         }
 
@@ -489,6 +485,7 @@ class ArtistSettlementsController extends Controller
                 if ($currentStage === Settlement::STAGE_AGUARDANDO_CONFERENCIA) {
                     $skippedCount++;
                     $skippedGigs[] = $gig->artist?->name ?? "Gig #{$gig->id}";
+
                     continue;
                 }
 
@@ -502,6 +499,7 @@ class ArtistSettlementsController extends Controller
                         'settlement_stage' => Settlement::STAGE_PAGO,
                         'artist_payment_value' => $gig->calculated_artist_invoice_value_brl,
                         'artist_payment_paid_at' => $paymentDate,
+                        'requires_debit_note' => true, // Vai para Ag. ND primeiro
                     ]
                 );
 
@@ -543,7 +541,7 @@ class ArtistSettlementsController extends Controller
                 // Reverte o settlement para documentação recebida (se tiver doc) ou aguardando conferência
                 if ($gig->settlement) {
                     $currentStage = $gig->settlement->settlement_stage;
-                    
+
                     // Se está no estágio PAGO, reverte para documentacao_recebida
                     // Se não tem estágio definido (legado), verifica se tem documentação
                     if ($currentStage === Settlement::STAGE_PAGO) {
@@ -652,6 +650,7 @@ class ArtistSettlementsController extends Controller
 
                 if (! $settlement) {
                     $skippedCount++;
+
                     continue;
                 }
 
@@ -660,6 +659,7 @@ class ArtistSettlementsController extends Controller
                 if (! isset($revertMap[$currentStage])) {
                     // Não tem estágio anterior (aguardando_conferencia)
                     $skippedCount++;
+
                     continue;
                 }
 

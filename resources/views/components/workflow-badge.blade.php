@@ -32,6 +32,19 @@
     
     $current = $config[$stage] ?? $config['aguardando_conferencia'];
     
+    // Override for "Ag. ND" state: pago but requires ND and doesn't have one
+    if ($stage === 'pago') {
+        $requiresNd = $gig->settlement?->requires_debit_note ?? false;
+        if ($requiresNd && !$gig->hasDebitNote()) {
+            $current = [
+                'label' => 'Ag. ND',
+                'bg' => 'bg-orange-100 dark:bg-orange-900/30',
+                'text' => 'text-orange-700 dark:text-orange-400',
+                'icon' => 'fa-file-invoice-dollar',
+            ];
+        }
+    }
+    
     $sizeClasses = match($size) {
         'xs' => 'px-1.5 py-0.5 text-xs',
         'sm' => 'px-2 py-1 text-xs',

@@ -98,6 +98,24 @@
                 </select>
                  @error('booker_id') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
             </div>
+            {{-- Tomador de Serviço (para Nota de Débito) --}}
+            <div>
+                <label for="service_taker_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Tomador de Serviço <span class="text-xs text-gray-400 font-normal">(para Nota de Débito)</span>
+                </label>
+                <select id="service_taker_id" name="service_taker_id"
+                        class="w-full text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('service_taker_id') border-red-500 dark:border-red-600 @enderror">
+                    <option value="">Selecione...</option>
+                    @if(isset($serviceTakers))
+                        @foreach($serviceTakers as $id => $name)
+                            <option value="{{ $id }}" @selected(old('service_taker_id', $gig->service_taker_id) == $id)>
+                                {{ $name }}
+                            </option>
+                        @endforeach
+                    @endif
+                </select>
+                @error('service_taker_id') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+            </div>
             {{-- Data Evento --}}
             <div>
                 <label for="gig_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data Evento <span class="text-red-500">*</span></label>

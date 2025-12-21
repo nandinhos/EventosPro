@@ -56,6 +56,7 @@ class Gig extends Model
     protected $fillable = [
         'artist_id',
         'booker_id',
+        'service_taker_id',
         'contract_number',
         'contract_date',
         'gig_date',
@@ -134,6 +135,62 @@ class Gig extends Model
     public function costs(): HasMany
     {
         return $this->gigCosts();
+    }
+
+    public function serviceTaker(): BelongsTo
+    {
+        return $this->belongsTo(ServiceTaker::class);
+    }
+
+    /**
+     * Get all debit notes for this gig (history).
+     */
+    public function debitNotes(): HasMany
+    {
+        return $this->hasMany(DebitNote::class)->orderByDesc('issued_at');
+    }
+
+    /**
+     * Get the active (non-cancelled) debit note.
+     */
+    public function debitNote(): HasOne
+    {
+        return $this->hasOne(DebitNote::class)->whereNull('cancelled_at');
+    }
+
+    /**
+     * Check if gig has an active debit note.
+     */
+    public function hasDebitNote(): bool
+    {
+        return $this->debitNote()->exists();
+    }
+
+    /**
+     * Check if gig has any debit notes (including cancelled).
+     */
+    public function hasAnyDebitNotes(): bool
+    {
+        return $this->debitNotes()->exists();
+    }
+
+    /**
+     * Check if workflow is fully complete (pago + ND resolved).
+     * Complete if: stage is 'pago' AND (ND not required OR ND exists)
+     */
+    public function isWorkflowCompleted(): bool
+    {
+        if ($this->settlement?->settlement_stage !== 'pago') {
+            return false;
+        }
+
+        // If ND not required, workflow is complete
+        if (! $this->settlement->requires_debit_note) {
+            return true;
+        }
+
+        // If ND required, need active debit note
+        return $this->hasDebitNote();
     }
 
     // --- Instância do Service ---

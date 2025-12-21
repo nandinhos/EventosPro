@@ -182,23 +182,34 @@
                         @forelse ($gigs as $gig)
                             @php
                                 $stage = $gig->settlement?->settlement_stage ?? 'aguardando_conferencia';
+                                $requiresNd = $gig->settlement?->requires_debit_note ?? false;
+                                
+                                // Override stage for "Ag. ND" state
+                                $displayStage = $stage;
+                                if ($stage === 'pago' && $requiresNd && !$gig->hasDebitNote()) {
+                                    $displayStage = 'aguardando_nd';
+                                }
+                                
                                 $stageColors = [
                                     'aguardando_conferencia' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
                                     'fechamento_enviado' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
                                     'documentacao_recebida' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
                                     'pago' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+                                    'aguardando_nd' => 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
                                 ];
                                 $stageIcons = [
                                     'aguardando_conferencia' => 'clipboard-check',
                                     'fechamento_enviado' => 'paper-plane',
                                     'documentacao_recebida' => 'file-invoice',
                                     'pago' => 'check-circle',
+                                    'aguardando_nd' => 'file-invoice-dollar',
                                 ];
                                 $stageLabels = [
                                     'aguardando_conferencia' => 'Conferir',
                                     'fechamento_enviado' => 'Ag. NF',
                                     'documentacao_recebida' => 'Pronto',
                                     'pago' => 'Pago',
+                                    'aguardando_nd' => 'Ag. ND',
                                 ];
                                 $reimbursableCosts = $gig->gigCosts ?? collect();
                                 $totalCosts = $reimbursableCosts->count();
@@ -270,9 +281,9 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-2 text-center">
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $stageColors[$stage] }}" 
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $stageColors[$displayStage] }}" 
                                           title="{{ $gig->settlement?->settlement_sent_at ? 'Enviado: ' . $gig->settlement->settlement_sent_at->format('d/m/Y H:i') : '' }}">
-                                        <i class="fas fa-{{ $stageIcons[$stage] }} mr-1"></i>{{ $stageLabels[$stage] }}
+                                        <i class="fas fa-{{ $stageIcons[$displayStage] }} mr-1"></i>{{ $stageLabels[$displayStage] }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-2 text-center" @click.stop>

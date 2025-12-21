@@ -10,6 +10,7 @@ use App\Models\Booker;
 use App\Models\CostCenter;
 use App\Models\Gig; // Adicionado para manipulação direta
 use App\Models\GigCost;
+use App\Models\ServiceTaker;
 use App\Models\Tag;
 use App\Services\GigFinancialCalculatorService;
 use Exception;
@@ -239,6 +240,7 @@ class GigController extends Controller
         $bookersData = $bookers->keyBy('id')->toArray();
         $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type');
         $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
+        $serviceTakers = ServiceTaker::orderBy('organization')->pluck('organization', 'id');
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
         $gig = new Gig; // Para o formulário
 
@@ -261,6 +263,7 @@ class GigController extends Controller
             'bookersData',
             'tags',
             'costCenters',
+            'serviceTakers',
             'expensesDataForView',
             'initialCommissionData', // <<-- ADICIONADO
             'backUrlParams'
@@ -279,6 +282,7 @@ class GigController extends Controller
         $tags = Tag::orderBy('type')->orderBy('name')->get()->groupBy('type');
         $selectedTags = $gig->tags()->pluck('id')->toArray();
         $costCenters = CostCenter::orderBy('name')->pluck('name', 'id');
+        $serviceTakers = ServiceTaker::orderBy('organization')->pluck('organization', 'id');
         $backUrlParams = $request->session()->get('gig_index_url_params', []);
 
         $gig->load('gigCosts');
@@ -350,6 +354,7 @@ class GigController extends Controller
             'tags',
             'selectedTags',
             'costCenters',
+            'serviceTakers',
             'expensesDataForView',
             'initialCommissionData', // <<-- ADICIONADO
             'backUrlParams'
