@@ -68,9 +68,17 @@ install_npm() {
     print_success "NPM dependencies installed"
 }
 
+# Clean build directory to prevent permission issues
+clean_build_dir() {
+    print_status "Cleaning build directory..."
+    ./vendor/bin/sail exec laravel.test rm -rf /var/www/html/public/build 2>/dev/null || true
+    print_success "Build directory cleaned"
+}
+
 # Build assets
 build_assets() {
     print_status "Building assets..."
+    clean_build_dir
     ./vendor/bin/sail npm run build
     print_success "Assets built"
 }
@@ -98,6 +106,22 @@ migrate_production() {
     print_status "Running database migrations (production mode - preserving data)..."
     ./vendor/bin/sail artisan migrate --force
     print_success "Database migrated successfully (data preserved)"
+}
+
+# Seed initial data if tables are empty (PRODUCTION)
+seed_initial_data() {
+    print_status "Checking for empty lookup tables..."
+    
+    # Check if service_takers table is empty and seed if needed
+    SERVICE_TAKERS_COUNT=$(./vendor/bin/sail artisan tinker --execute="echo App\\Models\\ServiceTaker::count();" 2>/dev/null | tail -1)
+    
+    if [ "$SERVICE_TAKERS_COUNT" = "0" ]; then
+        print_status "🌱 Seeding service_takers (table is empty)..."
+        ./vendor/bin/sail artisan db:seed --class=ServiceTakerSeeder --force
+        print_success "ServiceTaker seeder executed"
+    else
+        print_success "service_takers already has data ($SERVICE_TAKERS_COUNT records)"
+    fi
 }
 
 # Create backup before deployment
@@ -215,6 +239,7 @@ case "$1" in
         generate_key
         create_backup  # Create backup before migrations
         migrate_production  # Use production migration (no seed, no fresh)
+        seed_initial_data  # Seed lookup tables if empty
         cache_configs
         check_health
         print_success "✅ Production deployment completed successfully!"
