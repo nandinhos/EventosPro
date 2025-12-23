@@ -7,6 +7,7 @@ use App\Models\Booker;
 use App\Models\CostCenter;
 use App\Models\Gig;
 use App\Models\GigCost;
+use App\Models\Payment;
 use App\Models\ServiceTaker;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -20,6 +21,11 @@ class GigImportService
      * Número máximo de despesas por linha na planilha.
      */
     public const MAX_EXPENSES_PER_ROW = 5;
+
+    /**
+     * Número máximo de parcelas por linha na planilha.
+     */
+    public const MAX_PAYMENTS_PER_ROW = 5;
 
     /**
      * Cache de lookup para evitar queries repetidas.
@@ -63,6 +69,13 @@ class GigImportService
             $baseColumns["despesa_{$i}_confirmada"] = 'Confirmada? (sim/nao)';
             $baseColumns["despesa_{$i}_reembolsavel"] = 'Reembolsável via NF? (sim/nao)';
             $baseColumns["despesa_{$i}_notas"] = "Notas da Despesa {$i}";
+        }
+
+        // Adicionar colunas de parcelas (até MAX_PAYMENTS_PER_ROW)
+        for ($i = 1; $i <= self::MAX_PAYMENTS_PER_ROW; $i++) {
+            $baseColumns["parcela_{$i}_descricao"] = "Descrição da Parcela {$i} (ex: Entrada, 1/3)";
+            $baseColumns["parcela_{$i}_valor"] = "Valor da Parcela {$i}";
+            $baseColumns["parcela_{$i}_vencimento"] = "Data de Vencimento da Parcela {$i} (DD/MM/AAAA)";
         }
 
         return $baseColumns;
@@ -150,6 +163,7 @@ class GigImportService
                 DB::transaction(function () use ($row) {
                     $gig = $this->createGig($row['data']);
                     $this->createExpenses($gig, $row['data']);
+                    $this->createPayments($gig, $row['data']);
                 });
                 $successCount++;
             } catch (\Exception $e) {
@@ -262,6 +276,21 @@ class GigImportService
             }
         }
 
+        // Validar parcelas
+        for ($i = 1; $i <= self::MAX_PAYMENTS_PER_ROW; $i++) {
+            $valor = $data["parcela_{$i}_valor"] ?? null;
+            $vencimento = $data["parcela_{$i}_vencimento"] ?? null;
+
+            // Se tem valor, vencimento é obrigatório
+            if (! empty($valor)) {
+                if (empty($vencimento)) {
+                    $errors[] = "{$prefix} Data de Vencimento da Parcela {$i} é obrigatória quando Valor é informado.";
+                } elseif (! $this->parseDate($vencimento)) {
+                    $errors[] = "{$prefix} Data de Vencimento da Parcela {$i} inválida: '{$vencimento}'.";
+                }
+            }
+        }
+
         return $errors;
     }
 
@@ -327,6 +356,29 @@ class GigImportService
                 'is_confirmed' => $this->parseBoolean($data["despesa_{$i}_confirmada"] ?? 'nao'),
                 'is_invoice' => $this->parseBoolean($data["despesa_{$i}_reembolsavel"] ?? 'nao'),
                 'notes' => $data["despesa_{$i}_notas"] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Cria as parcelas de pagamento da Gig.
+     */
+    protected function createPayments(Gig $gig, array $data): void
+    {
+        for ($i = 1; $i <= self::MAX_PAYMENTS_PER_ROW; $i++) {
+            $valor = $data["parcela_{$i}_valor"] ?? null;
+            $vencimento = $data["parcela_{$i}_vencimento"] ?? null;
+
+            if (empty($valor) || empty($vencimento)) {
+                continue;
+            }
+
+            Payment::create([
+                'gig_id' => $gig->id,
+                'description' => $data["parcela_{$i}_descricao"] ?? "Parcela {$i}",
+                'due_value' => $this->parseNumber($valor),
+                'due_date' => $this->parseDate($vencimento),
+                'currency' => $gig->currency, // Herda a moeda da Gig
             ]);
         }
     }

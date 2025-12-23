@@ -38,31 +38,34 @@ class GigImportController extends Controller
 
         // Cabeçalhos
         $columns = array_keys($this->importService->getExpectedColumns());
-        $col = 'A';
+        $colIndex = 1;
         foreach ($columns as $column) {
-            $sheet->setCellValue($col.'1', $column);
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-            $col++;
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex);
+            $sheet->setCellValue($colLetter.'1', $column);
+            $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+            $colIndex++;
         }
 
         // Linha de exemplo
         $exampleData = $this->getExampleData();
-        $col = 'A';
+        $colIndex = 1;
         foreach ($exampleData as $value) {
-            $sheet->setCellValue($col.'2', $value);
-            $col++;
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex);
+            $sheet->setCellValue($colLetter.'2', $value);
+            $colIndex++;
         }
 
         // Segunda linha de exemplo
         $exampleData2 = $this->getExampleData2();
-        $col = 'A';
+        $colIndex = 1;
         foreach ($exampleData2 as $value) {
-            $sheet->setCellValue($col.'3', $value);
-            $col++;
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex);
+            $sheet->setCellValue($colLetter.'3', $value);
+            $colIndex++;
         }
 
         // Estilizar cabeçalho
-        $lastCol = chr(ord('A') + count($columns) - 1);
+        $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($columns));
         $sheet->getStyle("A1:{$lastCol}1")->applyFromArray([
             'font' => ['bold' => true],
             'fill' => [
@@ -176,6 +179,25 @@ class GigImportController extends Controller
             }
         }
 
+        // Adicionar parcelas de exemplo (3 parcelas)
+        for ($i = 1; $i <= GigImportService::MAX_PAYMENTS_PER_ROW; $i++) {
+            if ($i === 1) {
+                $data[] = 'Entrada';        // descricao
+                $data[] = '25000';          // valor
+                $data[] = '15/01/2025';     // vencimento
+            } elseif ($i === 2) {
+                $data[] = '2/3';            // descricao
+                $data[] = '15000';          // valor
+                $data[] = '15/02/2025';     // vencimento
+            } elseif ($i === 3) {
+                $data[] = '3/3';            // descricao
+                $data[] = '10000';          // valor
+                $data[] = '15/03/2025';     // vencimento
+            } else {
+                $data = array_merge($data, array_fill(0, 3, ''));
+            }
+        }
+
         return $data;
     }
 
@@ -219,6 +241,21 @@ class GigImportController extends Controller
                 $data[] = '';                   // notas
             } else {
                 $data = array_merge($data, array_fill(0, 8, ''));
+            }
+        }
+
+        // Adicionar parcelas de exemplo (2 parcelas - pagamento em 2x)
+        for ($i = 1; $i <= GigImportService::MAX_PAYMENTS_PER_ROW; $i++) {
+            if ($i === 1) {
+                $data[] = '1/2';            // descricao
+                $data[] = '5000';           // valor
+                $data[] = '20/02/2025';     // vencimento
+            } elseif ($i === 2) {
+                $data[] = '2/2';            // descricao
+                $data[] = '5000';           // valor
+                $data[] = '20/03/2025';     // vencimento
+            } else {
+                $data = array_merge($data, array_fill(0, 3, ''));
             }
         }
 

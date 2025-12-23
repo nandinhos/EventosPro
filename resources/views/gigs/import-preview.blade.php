@@ -70,6 +70,7 @@
                         <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Valor</th>
                         <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Moeda</th>
                         <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Despesas</th>
+                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Parcelas</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -124,11 +125,28 @@
                                     <span class="text-gray-400">-</span>
                                 @endif
                             </td>
+                            <td class="px-3 py-2 text-center">
+                                @php
+                                    $paymentCount = 0;
+                                    for ($i = 1; $i <= 5; $i++) {
+                                        if (!empty($row['data']["parcela_{$i}_valor"])) {
+                                            $paymentCount++;
+                                        }
+                                    }
+                                @endphp
+                                @if($paymentCount > 0)
+                                    <span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-xs font-medium">
+                                        {{ $paymentCount }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
                         </tr>
                         {{-- Linha de erros se houver --}}
                         @if(!$row['is_valid'])
                             <tr class="bg-red-50 dark:bg-red-900/10">
-                                <td colspan="9" class="px-6 py-2 text-red-600 dark:text-red-400 text-xs">
+                                <td colspan="10" class="px-6 py-2 text-red-600 dark:text-red-400 text-xs">
                                     <i class="fas fa-exclamation-circle mr-1"></i>
                                     {{ implode(' | ', $row['errors']) }}
                                 </td>
@@ -136,7 +154,7 @@
                         @endif
                     @empty
                         <tr>
-                            <td colspan="9" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                            <td colspan="10" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                                 Nenhum dado encontrado no arquivo.
                             </td>
                         </tr>
