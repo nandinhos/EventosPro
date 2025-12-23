@@ -88,7 +88,7 @@ class GigImportController extends Controller
     {
         $file = $request->file('file');
         $path = $file->store('imports');
-        $fullPath = storage_path('app/'.$path);
+        $fullPath = \Illuminate\Support\Facades\Storage::path($path);
 
         $result = $this->importService->parseFile($fullPath);
 
