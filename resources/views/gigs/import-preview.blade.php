@@ -97,7 +97,25 @@
                                 {{ $row['data']['booker'] ?? 'Agência' }}
                             </td>
                             <td class="px-3 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                                {{ $row['data']['data_evento'] ?? '-' }}
+                                @php
+                                    $rawDate = $row['data']['data_evento'] ?? null;
+                                    if ($rawDate) {
+                                        if (is_numeric($rawDate)) {
+                                            // Converte número do Excel para data
+                                            $formattedDate = \Carbon\Carbon::createFromTimestamp(($rawDate - 25569) * 86400)->format('d/m/Y');
+                                        } else {
+                                            // Tenta parsear como data
+                                            try {
+                                                $formattedDate = \Carbon\Carbon::parse($rawDate)->format('d/m/Y');
+                                            } catch (\Exception $e) {
+                                                $formattedDate = $rawDate;
+                                            }
+                                        }
+                                    } else {
+                                        $formattedDate = '-';
+                                    }
+                                @endphp
+                                {{ $formattedDate }}
                             </td>
                             <td class="px-3 py-2 text-gray-600 dark:text-gray-400 max-w-xs truncate" title="{{ $row['data']['local_evento'] ?? '' }}">
                                 {{ $row['data']['local_evento'] ?? '-' }}
