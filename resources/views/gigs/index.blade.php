@@ -6,6 +6,9 @@
             <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Gerenciamento de Gigs (Datas)</h2>
             <p class="text-sm text-gray-500 dark:text-gray-400">Visualize e gerencie as datas agendadas e seus status</p>
         </div>
+        <a href="{{ route('gigs.import.form') }}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center text-sm shrink-0">
+            <i class="fas fa-file-import mr-2"></i> Importar
+        </a>
         <a href="{{ route('gigs.create', request()->query()) }}" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md flex items-center text-sm shrink-0">
             <i class="fas fa-plus mr-2"></i> Nova Gig
         </a>

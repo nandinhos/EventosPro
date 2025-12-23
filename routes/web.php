@@ -13,6 +13,7 @@ use App\Http\Controllers\FinancialProjectionController;
 use App\Http\Controllers\FinancialReportController;
 use App\Http\Controllers\GigController;
 use App\Http\Controllers\GigCostController;
+use App\Http\Controllers\GigImportController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PerformanceReportController;
 use App\Http\Controllers\ProfileController;
@@ -171,6 +172,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/financeiro/fechamento-mensal', [App\Http\Controllers\MonthlyClosingController::class, 'index'])->name('finance.monthly-closing');
     Route::get('/financeiro/fechamento-mensal/exportar/pdf', [App\Http\Controllers\MonthlyClosingController::class, 'exportPdf'])->name('finance.monthly-closing.exportPdf');
     Route::get('/financeiro/fechamento-mensal/exportar', [App\Http\Controllers\MonthlyClosingController::class, 'export'])->name('finance.monthly-closing.export');
+
+    // Gigs Import (deve vir antes do resource para não conflitar)
+    Route::get('gigs/import', [GigImportController::class, 'showForm'])->name('gigs.import.form');
+    Route::get('gigs/import/template', [GigImportController::class, 'downloadTemplate'])->name('gigs.import.template');
+    Route::post('gigs/import/preview', [GigImportController::class, 'preview'])->name('gigs.import.preview');
+    Route::post('gigs/import', [GigImportController::class, 'import'])->name('gigs.import');
 
     // Gigs
     Route::resource('gigs', GigController::class);
