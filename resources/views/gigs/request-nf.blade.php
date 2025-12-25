@@ -16,102 +16,157 @@
 
     {{-- Alertas de Sucesso/Erro --}}
     @if (session('success'))
-        <div class="mb-4 p-4 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 rounded-lg max-w-lg mx-auto">
+        <div class="mb-4 p-4 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 rounded-lg">
             <i class="fas fa-check-circle mr-2"></i>{{ session('success') }}
         </div>
     @endif
     @if (session('error'))
-        <div class="mb-4 p-4 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 rounded-lg max-w-lg mx-auto">
+        <div class="mb-4 p-4 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 rounded-lg">
             <i class="fas fa-exclamation-circle mr-2"></i>{{ session('error') }}
         </div>
     @endif
 
-    <div>
-        {{-- Card com Detalhes para NF --}}
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden max-w-lg mx-auto">
-            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-base font-semibold text-gray-800 dark:text-white">FECHAMENTO</h3>
-                Artista: <span class="font-medium">{{ $gig->artist->name ?? 'N/A' }}</span> <br>
-                Evento: {{ $gig->gig_date->isoFormat('L') }} - {{ $gig->location_event_details }}
-            </div>
-
-            <div class="p-4 space-y-3 text-xs sm:text-sm">
-                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Cálculo do Valor da NF:</h4>
-
-                {{-- Valor do Contrato (Original BRL) --}}
-                <div class="flex justify-between">
-                    <span class="text-gray-600 dark:text-gray-400">Valor Contrato ({{ $gig->currency }}):</span>
-                    <span class="font-medium text-gray-800 dark:text-white">
-                        {{ $gig->currency }} {{ number_format($gig->cache_value, 2, ',', '.') }}
-                        @if($gig->currency !== 'BRL')
-                            (aprox. R$ {{ number_format($gigCacheValueBrl, 2, ',', '.') }})
-                        @endif
-                    </span>
+    {{-- Layout em 2 colunas --}}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {{-- Coluna Esquerda: Card Principal de Fechamento (2/3) --}}
+        <div class="lg:col-span-2">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                {{-- Cabeçalho do Card --}}
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-white">FECHAMENTO</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Artista: <span class="font-medium">{{ $gig->artist->name ?? 'N/A' }}</span>
+                    </p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Evento: {{ $gig->gig_date->isoFormat('L') }} - {{ $gig->location_event_details }}
+                    </p>
                 </div>
 
-                {{-- Total de TODAS as Despesas Confirmadas --}}
-                <div class="pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50">
-                    <span class="text-gray-600 dark:text-gray-400 block mb-1">(-) Total Despesas Confirmadas (Deduzidas da Base):</span>
-                    <div class="pl-2 space-y-1">
-                        @forelse($gig->gigCosts->where('is_confirmed', true) as $cost)
-                            <div class="flex justify-between text-[11px] sm:text-xs">
-                                <span class="text-gray-500 dark:text-gray-400">- {{ $cost->costCenter->name ?? 'N/A' }}: {{ $cost->description }}</span>
-                                <span class="font-medium text-red-500 dark:text-red-400">R$ {{ number_format($cost->value, 2, ',', '.') }}</span>
+                {{-- Seção: Tomador de Serviço --}}
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                        <i class="fas fa-building text-primary-500"></i>
+                        Tomador de Serviço
+                    </h4>
+                    
+                    @if($gig->serviceTaker)
+                        <div class="text-sm space-y-1">
+                            <p class="text-gray-800 dark:text-gray-200">
+                                <span class="font-medium">{{ $gig->serviceTaker->organization ?? 'N/A' }}</span>
+                            </p>
+                            @if($gig->serviceTaker->cnpj)
+                                <p class="text-gray-600 dark:text-gray-400 text-xs">
+                                    <i class="fas fa-id-card mr-1"></i>
+                                    CNPJ: {{ $gig->serviceTaker->cnpj }}
+                                </p>
+                            @endif
+                            @if($gig->serviceTaker->address || $gig->serviceTaker->city)
+                                <p class="text-gray-600 dark:text-gray-400 text-xs">
+                                    <i class="fas fa-map-marker-alt mr-1"></i>
+                                    {{ collect([$gig->serviceTaker->address, $gig->serviceTaker->city, $gig->serviceTaker->state])->filter()->implode(', ') }}
+                                </p>
+                            @endif
+                            <div class="pt-2">
+                                <a href="{{ route('gigs.edit', ['gig' => $gig, 'active_tab' => 1]) }}" 
+                                   class="text-xs text-primary-600 dark:text-primary-400 hover:underline">
+                                    <i class="fas fa-edit mr-1"></i> Alterar Tomador
+                                </a>
                             </div>
-                        @empty
-                            <div class="text-gray-500 dark:text-gray-400 text-[11px] sm:text-xs">- Nenhuma despesa confirmada.</div>
-                        @endforelse
-                        <div class="flex justify-between text-xs font-semibold pt-1 border-t border-dashed border-gray-200 dark:border-gray-600 mt-1">
-                            <span class="text-gray-500 dark:text-gray-400">Total Geral Despesas Confirmadas:</span>
-                            <span class="text-red-500 dark:text-red-400">R$ {{ number_format($totalConfirmedExpensesBrl, 2, ',', '.') }}</span>
                         </div>
+                    @else
+                        <div class="text-sm">
+                            <p class="text-yellow-600 dark:text-yellow-400 mb-2">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                Nenhum tomador de serviço definido para esta gig.
+                            </p>
+                            <a href="{{ route('gigs.edit', ['gig' => $gig, 'active_tab' => 1]) }}" 
+                               class="inline-flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium rounded-md transition-colors">
+                                <i class="fas fa-plus-circle mr-1"></i> Definir Tomador de Serviço
+                            </a>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Seção: Cálculo do Valor da NF --}}
+                <div class="p-4 space-y-3 text-xs sm:text-sm">
+                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Cálculo do Valor da NF:</h4>
+
+                    {{-- Valor do Contrato (Original BRL) --}}
+                    <div class="flex justify-between">
+                        <span class="text-gray-600 dark:text-gray-400">Valor Contrato ({{ $gig->currency }}):</span>
+                        <span class="font-medium text-gray-800 dark:text-white">
+                            {{ $gig->currency }} {{ number_format($gig->cache_value, 2, ',', '.') }}
+                            @if($gig->currency !== 'BRL')
+                                (aprox. R$ {{ number_format($gigCacheValueBrl, 2, ',', '.') }})
+                            @endif
+                        </span>
                     </div>
-                </div>
 
-                {{-- Cachê Bruto (Base para Comissões) --}}
-                <div class="flex justify-between pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50">
-                    <span class="text-gray-600 dark:text-gray-400">= Cachê Bruto (Base para Comissões):</span>
-                    <span class="font-medium text-gray-800 dark:text-white">R$ {{ number_format($calculatedGrossCashBrl, 2, ',', '.') }}</span>
-                </div>
-
-                {{-- Cachê Líquido do Artista (antes do reembolso) --}}
-                <div class="flex justify-between pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-700/30 px-3 -mx-3 rounded-t-md">
-                    <span class="text-gray-600 dark:text-gray-400 font-semibold">= Cachê Líquido do Artista (para NF):</span>
-                    <span class="font-semibold text-gray-800 dark:text-white">R$ {{ number_format($artistNetPayoutBeforeReimbursement, 2, ',', '.') }}</span>
-                </div>
-
-                {{-- Despesas Pagas pelo Artista (Reembolsáveis, is_invoice = true) --}}
-                @if($totalReimbursableExpensesBrl > 0)
-                    <div class="pt-2 mt-0 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-700/30 px-3 -mx-3">
-                        <span class="text-gray-600 dark:text-gray-400 block mb-1 font-semibold">(+) Reembolso Despesas Pagas pelo Artista:</span>
+                    {{-- Total de TODAS as Despesas Confirmadas --}}
+                    <div class="pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50">
+                        <span class="text-gray-600 dark:text-gray-400 block mb-1">(-) Total Despesas Confirmadas (Deduzidas da Base):</span>
                         <div class="pl-2 space-y-1">
-                            @foreach($gig->gigCosts->where('is_confirmed', true)->where('is_invoice', true) as $cost)
+                            @forelse($gig->gigCosts->where('is_confirmed', true) as $cost)
                                 <div class="flex justify-between text-[11px] sm:text-xs">
                                     <span class="text-gray-500 dark:text-gray-400">- {{ $cost->costCenter->name ?? 'N/A' }}: {{ $cost->description }}</span>
-                                    <span class="font-medium text-green-600 dark:text-green-400">R$ {{ number_format($cost->value, 2, ',', '.') }}</span>
+                                    <span class="font-medium text-red-500 dark:text-red-400">R$ {{ number_format($cost->value, 2, ',', '.') }}</span>
                                 </div>
-                            @endforeach
+                            @empty
+                                <div class="text-gray-500 dark:text-gray-400 text-[11px] sm:text-xs">- Nenhuma despesa confirmada.</div>
+                            @endforelse
                             <div class="flex justify-between text-xs font-semibold pt-1 border-t border-dashed border-gray-200 dark:border-gray-600 mt-1">
-                                <span class="text-gray-500 dark:text-gray-400">Total Reembolsável ao Artista:</span>
-                                <span class="text-green-600 dark:text-green-400">R$ {{ number_format($totalReimbursableExpensesBrl, 2, ',', '.') }}</span>
+                                <span class="text-gray-500 dark:text-gray-400">Total Geral Despesas Confirmadas:</span>
+                                <span class="text-red-500 dark:text-red-400">R$ {{ number_format($totalConfirmedExpensesBrl, 2, ',', '.') }}</span>
                             </div>
                         </div>
                     </div>
-                @endif
 
-                {{-- VALOR FINAL DA NOTA FISCAL --}}
-                <div class="flex justify-between items-center py-3 mt-0 border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700/50 px-3 -mx-3 rounded-b-md">
-                    <span class="text-md font-semibold text-gray-700 dark:text-gray-200">VALOR NOTA FISCAL:</span>
-                    <span class="text-xl font-bold text-primary-600 dark:text-primary-400">
-                        R$ {{ number_format($finalArtistInvoiceValueBrl, 2, ',', '.') }}
-                    </span>
+                    {{-- Cachê Bruto (Base para Comissões) --}}
+                    <div class="flex justify-between pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50">
+                        <span class="text-gray-600 dark:text-gray-400">= Cachê Bruto (Base para Comissões):</span>
+                        <span class="font-medium text-gray-800 dark:text-white">R$ {{ number_format($calculatedGrossCashBrl, 2, ',', '.') }}</span>
+                    </div>
+
+                    {{-- Cachê Líquido do Artista (antes do reembolso) --}}
+                    <div class="flex justify-between pt-2 mt-2 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-700/30 px-3 -mx-3 rounded-t-md">
+                        <span class="text-gray-600 dark:text-gray-400 font-semibold">= Cachê Líquido do Artista (para NF):</span>
+                        <span class="font-semibold text-gray-800 dark:text-white">R$ {{ number_format($artistNetPayoutBeforeReimbursement, 2, ',', '.') }}</span>
+                    </div>
+
+                    {{-- Despesas Pagas pelo Artista (Reembolsáveis, is_invoice = true) --}}
+                    @if($totalReimbursableExpensesBrl > 0)
+                        <div class="pt-2 mt-0 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-700/30 px-3 -mx-3">
+                            <span class="text-gray-600 dark:text-gray-400 block mb-1 font-semibold">(+) Reembolso Despesas Pagas pelo Artista:</span>
+                            <div class="pl-2 space-y-1">
+                                @foreach($gig->gigCosts->where('is_confirmed', true)->where('is_invoice', true) as $cost)
+                                    <div class="flex justify-between text-[11px] sm:text-xs">
+                                        <span class="text-gray-500 dark:text-gray-400">- {{ $cost->costCenter->name ?? 'N/A' }}: {{ $cost->description }}</span>
+                                        <span class="font-medium text-green-600 dark:text-green-400">R$ {{ number_format($cost->value, 2, ',', '.') }}</span>
+                                    </div>
+                                @endforeach
+                                <div class="flex justify-between text-xs font-semibold pt-1 border-t border-dashed border-gray-200 dark:border-gray-600 mt-1">
+                                    <span class="text-gray-500 dark:text-gray-400">Total Reembolsável ao Artista:</span>
+                                    <span class="text-green-600 dark:text-green-400">R$ {{ number_format($totalReimbursableExpensesBrl, 2, ',', '.') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- VALOR FINAL DA NOTA FISCAL --}}
+                    <div class="flex justify-between items-center py-3 mt-0 border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700/50 px-3 -mx-3 rounded-b-md">
+                        <span class="text-md font-semibold text-gray-700 dark:text-gray-200">VALOR NOTA FISCAL:</span>
+                        <span class="text-xl font-bold text-primary-600 dark:text-primary-400">
+                            R$ {{ number_format($finalArtistInvoiceValueBrl, 2, ',', '.') }}
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        {{-- Histórico do Workflow --}}
-        <div class="mt-6 max-w-lg mx-auto">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 mb-4">
+        {{-- Coluna Direita: Histórico e Ações (1/3) --}}
+        <div class="lg:col-span-1 space-y-6">
+            {{-- Card: Histórico do Workflow --}}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
                 <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Histórico do Fechamento</h4>
                 
                 {{-- Timeline Visual - Agora com 5 passos --}}
@@ -171,7 +226,7 @@
                                 <strong>Documentação Recebida em:</strong> {{ $settlement->documentation_received_at->format('d/m/Y H:i') }}
                             </p>
                             @if($settlement->documentation_type)
-                                <p class="text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                <p class="text-gray-700 dark:text-gray-300 flex items-center gap-2 flex-wrap">
                                     <strong>Tipo Doc:</strong> 
                                     {{ $settlement->documentation_type === 'nf' ? 'NOTA FISCAL' : 'RECIBO' }}
                                     @if($settlement->documentation_number)
@@ -181,7 +236,7 @@
                                         - <a href="{{ Storage::url($settlement->documentation_file_path) }}" 
                                              target="_blank" 
                                              class="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center">
-                                            <i class="fas fa-paperclip mr-1"></i> Ver Arquivo
+                                            <i class="fas fa-paperclip mr-1"></i>Ver Arquivo
                                         </a>
                                     @endif
                                 </p>
@@ -202,16 +257,19 @@
                                 <i class="fas fa-comment-dots mr-1"></i> {{ $settlement->communication_notes }}
                             </p>
                         @endif
-                </div>
-            @else
-                <p class="text-gray-500 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
-                    Nenhuma ação registrada ainda.
-                </p>
-            @endif
-        </div>
+                    </div>
+                @else
+                    <p class="text-gray-500 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-gray-700 pt-3">
+                        Nenhuma ação registrada ainda.
+                    </p>
+                @endif
+            </div>
 
-        {{-- Componente de Workflow - Single Source of Truth --}}
-        <x-settlement-workflow-actions :gig="$gig" />
+            {{-- Card: Ações do Workflow --}}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Ações</h4>
+                <x-settlement-workflow-actions :gig="$gig" />
+            </div>
+        </div>
     </div>
-</div>
 </x-app-layout>

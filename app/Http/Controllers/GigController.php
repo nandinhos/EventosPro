@@ -475,7 +475,7 @@ class GigController extends Controller
      */
     public function showRequestNfForm(Gig $gig, Request $request): View
     {
-        $gig->loadMissing(['artist', 'gigCosts.costCenter', 'settlement']);
+        $gig->loadMissing(['artist', 'gigCosts.costCenter', 'settlement', 'serviceTaker']);
 
         // Instanciar o service para fazer os cálculos
         $financialCalculator = App::make(GigFinancialCalculatorService::class);
