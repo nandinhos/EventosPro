@@ -115,9 +115,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/service-takers-list', [App\Http\Controllers\ServiceTakerController::class, 'list'])->name('service-takers.list');
     Route::get('/service-takers-import', [App\Http\Controllers\ServiceTakerController::class, 'showImportForm'])->name('service-takers.import');
     Route::post('/service-takers-import', [App\Http\Controllers\ServiceTakerController::class, 'importCsv'])->name('service-takers.import.process');
+    Route::patch('/service-takers/{serviceTaker}/toggle-international', [App\Http\Controllers\ServiceTakerController::class, 'toggleInternational'])->name('service-takers.toggle-international');
 
     // Debit Notes (Notas de Débito)
     Route::get('/debit-notes/{gig}', [App\Http\Controllers\DebitNoteController::class, 'show'])->name('debit-notes.show');
+    Route::get('/debit-notes/{gig}/preview', [App\Http\Controllers\DebitNoteController::class, 'preview'])->name('debit-notes.preview');
     Route::post('/debit-notes/{gig}/generate', [App\Http\Controllers\DebitNoteController::class, 'generate'])->name('debit-notes.generate');
     Route::post('/debit-notes/{gig}/cancel', [App\Http\Controllers\DebitNoteController::class, 'cancel'])->name('debit-notes.cancel');
     Route::post('/debit-notes/{debitNote}/activate', [App\Http\Controllers\DebitNoteController::class, 'activate'])->name('debit-notes.activate');

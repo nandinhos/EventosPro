@@ -50,10 +50,19 @@
                         }
                      }">
                     <!-- Filters -->
-                    <form method="GET" action="{{ route('service-takers.index') }}" class="mb-6 flex gap-4">
+                    <form method="GET" action="{{ route('service-takers.index') }}" class="mb-6 flex flex-wrap gap-4">
                         <input type="text" name="search" placeholder="Buscar por organização, documento ou contato..."
                                value="{{ request('search') }}"
-                               class="flex-1 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                               class="flex-1 min-w-[200px] rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                        
+                        <select name="document_status" 
+                                class="rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                            <option value="">Status do Documento</option>
+                            <option value="sem_documento" {{ request('document_status') === 'sem_documento' ? 'selected' : '' }}>Sem Doc</option>
+                            <option value="invalido" {{ request('document_status') === 'invalido' ? 'selected' : '' }}>Inválido</option>
+                            <option value="internacional" {{ request('document_status') === 'internacional' ? 'selected' : '' }}>Internacional</option>
+                            <option value="ok" {{ request('document_status') === 'ok' ? 'selected' : '' }}>OK</option>
+                        </select>
 
                         <button type="submit" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">Filtrar</button>
                         <a href="{{ route('service-takers.index') }}" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">Limpar</a>
@@ -71,6 +80,8 @@
                                 <tr>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase w-8"></th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Organização</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase w-28">Status Doc</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase w-28">Estrangeiro?</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Cidade</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Email</th>
                                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Ações</th>
@@ -78,8 +89,31 @@
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 @forelse($serviceTakers as $serviceTaker)
-                                    {{-- Linha Principal --}}
+                                    {{-- Linha Principal com estado Alpine.js --}}
                                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+                                        x-data="{
+                                            isInternational: {{ $serviceTaker->is_international ? 'true' : 'false' }},
+                                            badgeLabel: '{{ $serviceTaker->document_status_badge['label'] }}',
+                                            badgeColor: '{{ $serviceTaker->document_status_badge['color'] }}',
+                                            loading: false,
+                                            async toggle() {
+                                                this.loading = true;
+                                                try {
+                                                    const res = await fetch('/service-takers/{{ $serviceTaker->id }}/toggle-international', {
+                                                        method: 'PATCH',
+                                                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                                                    });
+                                                    const data = await res.json();
+                                                    if (data.success) {
+                                                        this.isInternational = data.is_international;
+                                                        this.badgeLabel = data.badge.label;
+                                                        this.badgeColor = data.badge.color;
+                                                    }
+                                                } finally {
+                                                    this.loading = false;
+                                                }
+                                            }
+                                        }"
                                         @click="toggleExpand({{ $serviceTaker->id }})">
                                         <td class="px-4 py-3 text-sm">
                                             <i class="fas fa-chevron-right text-gray-400 transition-transform duration-200" 
@@ -94,6 +128,41 @@
                                                     {{ $serviceTaker->formatted_document }}
                                                 </div>
                                             @endif
+                                        </td>
+                                        {{-- Badge Reativo --}}
+                                        <td class="px-4 py-3 text-center">
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-colors"
+                                                :class="{
+                                                    'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300': badgeColor === 'green',
+                                                    'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300': badgeColor === 'red',
+                                                    'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300': badgeColor === 'blue',
+                                                    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300': badgeColor === 'gray'
+                                                }"
+                                                x-text="badgeLabel">
+                                            </span>
+                                        </td>
+                                        {{-- Toggle Estrangeiro --}}
+                                        <td class="px-4 py-3 text-center" @click.stop>
+                                            <button type="button" @click="toggle()"
+                                                :disabled="loading"
+                                                :title="isInternational ? 'Documento Internacional (clique para desmarcar)' : 'Marcar como Internacional'"
+                                                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                                :class="isInternational ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'">
+                                                <span class="sr-only" x-text="isInternational ? 'Ativado' : 'Desativado'"></span>
+                                                <span class="pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                                    :class="isInternational ? 'translate-x-5' : 'translate-x-0'">
+                                                    {{-- Ícone X quando desativado --}}
+                                                    <span class="absolute inset-0 flex h-full w-full items-center justify-center transition-opacity"
+                                                        :class="isInternational ? 'opacity-0 duration-100 ease-out' : 'opacity-100 duration-200 ease-in'">
+                                                        <i class="fas fa-times text-[8px] text-gray-400"></i>
+                                                    </span>
+                                                    {{-- Ícone Check quando ativado --}}
+                                                    <span class="absolute inset-0 flex h-full w-full items-center justify-center transition-opacity"
+                                                        :class="isInternational ? 'opacity-100 duration-200 ease-in' : 'opacity-0 duration-100 ease-out'">
+                                                        <i class="fas fa-check text-[8px] text-blue-600"></i>
+                                                    </span>
+                                                </span>
+                                            </button>
                                         </td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                                             {{ $serviceTaker->city ?? '-' }}
@@ -135,7 +204,7 @@
                                         x-transition:enter-end="opacity-100"
                                         x-cloak
                                         class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-750">
-                                        <td colspan="5" class="p-0">
+                                        <td colspan="7" class="p-0">
                                             <div class="p-4 border-t border-gray-200 dark:border-gray-600">
                                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                     {{-- Card Endereço --}}
@@ -189,7 +258,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">Nenhum tomador de serviço encontrado.</td>
+                                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">Nenhum tomador de serviço encontrado.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

@@ -38,6 +38,36 @@
                             @enderror
                         </div>
 
+                        <!-- IE e IM -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="state_registration" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Inscrição Estadual (IE)</label>
+                                <input type="text" name="state_registration" id="state_registration" value="{{ old('state_registration') }}"
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary-500 focus:ring-primary-500">
+                                @error('state_registration')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label for="municipal_registration" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Inscrição Municipal (IM)</label>
+                                <input type="text" name="municipal_registration" id="municipal_registration" value="{{ old('municipal_registration') }}"
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary-500 focus:ring-primary-500">
+                                @error('municipal_registration')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Documento Internacional -->
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" name="is_international" id="is_international" value="1"
+                                   {{ old('is_international') ? 'checked' : '' }}
+                                   class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700">
+                            <label for="is_international" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Documento Internacional (estrangeiro)
+                            </label>
+                        </div>
+
                         <!-- Endereço -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>

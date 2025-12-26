@@ -63,14 +63,78 @@ class DebitNoteController extends Controller
             },
         ]);
 
+        // Calculate values using the financial calculator (mesmo cálculo do preview)
+        $financialCalculator = app(\App\Services\GigFinancialCalculatorService::class);
+        $honorarios = $financialCalculator->calculateArtistNetPayoutBrl($gig); // Cachê Líquido
+        $comissaoAgencia = $financialCalculator->calculateAgencyGrossCommissionBrl($gig);
+        $custosDespesas = $financialCalculator->calculateTotalConfirmedExpensesBrl($gig);
+        $valorContrato = $gig->cache_value_brl ?? $gig->cache_value;
+
         return view('debit-notes.show', [
             'gig' => $gig,
             'debitNote' => $debitNote,
             'serviceTaker' => $gig->serviceTaker,
-            'honorarios' => $debitNote->honorarios,
-            'despesas' => $debitNote->despesas,
-            'despesasItens' => $gig->gigCosts->where('is_invoice', true),
+            'honorarios' => $honorarios,
+            'comissaoAgencia' => $comissaoAgencia,
+            'custosDespesas' => $custosDespesas,
+            'valorContrato' => $valorContrato,
+            'despesasItens' => $gig->gigCosts->where('is_confirmed', true),
             'settlement' => $gig->settlement,
+            'isPreview' => false,
+        ]);
+    }
+
+    /**
+     * Display a preview of the debit note (without generating/saving).
+     * This allows operators to review the data before the settlement flow is complete.
+     */
+    public function preview(Gig $gig)
+    {
+        // Must have a service taker
+        if (! $gig->serviceTaker) {
+            return back()->withErrors([
+                'error' => 'Esta gig não possui um tomador de serviço vinculado.',
+            ]);
+        }
+
+        // Load relationships for template
+        $gig->load([
+            'serviceTaker',
+            'artist',
+            'settlement',
+            'gigCosts' => function ($query) {
+                $query->where('is_confirmed', true)->with('costCenter');
+            },
+        ]);
+
+        // Calculate values using the financial calculator
+        $financialCalculator = app(\App\Services\GigFinancialCalculatorService::class);
+
+        $honorarios = $financialCalculator->calculateArtistNetPayoutBrl($gig); // Cachê Líquido
+        $comissaoAgencia = $financialCalculator->calculateAgencyGrossCommissionBrl($gig);
+        $custosDespesas = $financialCalculator->calculateTotalConfirmedExpensesBrl($gig);
+        $valorContrato = $gig->cache_value_brl ?? $gig->cache_value;
+
+        // Create a temporary preview object (not saved)
+        $previewNote = new \stdClass;
+        $previewNote->number = 'PRÉVIA';
+        $previewNote->issued_at = now();
+        $previewNote->honorarios = $honorarios;
+        $previewNote->comissao_agencia = $comissaoAgencia;
+        $previewNote->despesas = $custosDespesas;
+        $previewNote->total = $valorContrato;
+
+        return view('debit-notes.show', [
+            'gig' => $gig,
+            'debitNote' => $previewNote,
+            'serviceTaker' => $gig->serviceTaker,
+            'honorarios' => $honorarios,
+            'comissaoAgencia' => $comissaoAgencia,
+            'custosDespesas' => $custosDespesas,
+            'valorContrato' => $valorContrato,
+            'despesasItens' => $gig->gigCosts->where('is_confirmed', true),
+            'settlement' => $gig->settlement,
+            'isPreview' => true,
         ]);
     }
 

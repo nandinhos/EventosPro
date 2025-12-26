@@ -191,22 +191,31 @@
                 <i data-lucide="user" class="w-3 h-3"></i> Tomador dos Serviços (Cliente)
             </h3>
             <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                <div class="flex items-center">
+                <div class="flex items-center w-full">
                     <span class="font-medium text-gray-500 mr-1">Razão:</span>
                     <span class="font-bold text-gray-900">{{ $serviceTaker->organization ?? '' }}</span>
-                    <span class="mx-2 text-gray-400">-</span>
-                    <span class="font-medium text-gray-500 mr-1">Ref/Evento:</span>
-                    <span class="text-gray-700">{{ $gig->location_event_details ?? $gig->event_name ?? "Gig #{$gig->id}" }}</span>
                 </div>
-                <div class="w-full flex gap-x-6 mt-1">
+                <div class="w-full flex flex-wrap gap-x-6 gap-y-1 mt-1">
                     <div class="flex items-center">
-                        <span class="font-medium text-gray-500 mr-1">DOC:</span>
+                        <span class="font-medium text-gray-500 mr-1">CNPJ/CPF:</span>
                         <span class="text-gray-700">{{ $serviceTaker->document ?? '' }}</span>
                     </div>
-                    <div class="flex items-center flex-1">
-                        <span class="font-medium text-gray-500 mr-1">Endereço:</span>
-                        <span class="text-gray-700">{{ $serviceTaker->full_address }}</span>
+                    @if($serviceTaker->state_registration)
+                    <div class="flex items-center">
+                        <span class="font-medium text-gray-500 mr-1">IE:</span>
+                        <span class="text-gray-700">{{ $serviceTaker->state_registration }}</span>
                     </div>
+                    @endif
+                    @if($serviceTaker->municipal_registration)
+                    <div class="flex items-center">
+                        <span class="font-medium text-gray-500 mr-1">IM:</span>
+                        <span class="text-gray-700">{{ $serviceTaker->municipal_registration }}</span>
+                    </div>
+                    @endif
+                </div>
+                <div class="w-full flex items-center mt-1">
+                    <span class="font-medium text-gray-500 mr-1">Endereço:</span>
+                    <span class="text-gray-700">{{ $serviceTaker->full_address }}</span>
                 </div>
             </div>
         </section>
@@ -219,53 +228,67 @@
                     <thead>
                         <tr class="bg-gray-50 text-gray-700 text-[10px] uppercase tracking-wider border-b border-gray-200">
                             <th class="py-2 px-3 text-left font-semibold">Descrição / Histórico</th>
-                            <th class="py-2 px-3 text-center w-20 font-semibold">Qtd/Ref.</th>
-                            <th class="py-2 px-3 text-right w-24 font-semibold">Cachê Artista (R$)</th>
-                            <th class="py-2 px-3 text-right w-24 font-semibold">Despesas (R$)</th>
+                            <th class="py-2 px-3 text-right w-32 font-semibold">VALOR (R$)</th>
                         </tr>
                     </thead>
                     <tbody id="invoiceItems" class="divide-y divide-gray-200">
-                        <!-- Row 1 - Cachê do Artista -->
+                        <!-- Row 1 - Apresentação Artística (Cachê Líquido) -->
                         <tr class="group hover:bg-gray-50 transition-colors">
                             <td class="p-2 align-top">
                                 <div class="flex flex-col gap-1">
                                     <input type="text" class="editable font-semibold text-gray-900 w-full"
-                                        value="Cachê Artista - {{ $gig->artist->name ?? 'Artista' }}">
-                                    <textarea class="editable text-[10px] text-gray-500 w-full h-20 resize-none leading-relaxed">Pagamento de cachê artístico conforme contrato.
-Evento: {{ $gig->location_event_details ?? '' }}
+                                        value="Apresentação Artística - {{ $gig->artist->name ?? 'Artista' }}">
+                                    <textarea class="editable text-[10px] text-gray-500 w-full h-12 resize-none leading-relaxed">Evento: {{ $gig->location_event_details ?? '' }}
 Data: {{ $gig->gig_date?->format('d/m/Y') }}</textarea>
                                 </div>
                             </td>
-                            <td class="p-2 align-top"><input type="text" class="editable text-center text-gray-700 w-full" value="1.0"></td>
-                            <td class="p-2 align-top"><input type="text" class="editable text-right fees-col text-gray-900 w-full font-medium"
-                                    value="{{ number_format($settlement?->artist_payment_value ?? $honorarios, 2, ',', '.') }}" oninput="formatAndCalc(this)"></td>
-                            <td class="p-2 align-top"><input type="text" class="editable text-right exp-col bg-gray-50 text-gray-400 w-full"
-                                    value="0,00" disabled></td>
+                            <td class="p-2 align-top"><input type="text" class="editable text-right value-col text-gray-900 w-full font-medium"
+                                    value="{{ number_format($honorarios ?? 0, 2, ',', '.') }}" oninput="formatAndCalc(this)"></td>
                         </tr>
                         
-                        @if($despesasItens->count() > 0)
-                        @php
-                            // Agrupar despesas por centro de custo e calcular total
-                            $despesasPorCentro = $despesasItens->groupBy(fn($d) => $d->costCenter->name ?? 'Outros');
-                            $totalDespesasReembolsaveis = $despesasItens->sum('value');
-                        @endphp
-                        <!-- Row 2 - Despesas Reembolsáveis -->
+                        <!-- Row 2 - Comissão Agência -->
                         <tr class="group hover:bg-gray-50 transition-colors">
                             <td class="p-2 align-top">
                                 <div class="flex flex-col gap-1">
                                     <input type="text" class="editable font-semibold text-gray-900 w-full"
-                                        value="Reembolso: Despesas do Evento">
-                                    <textarea class="editable text-[10px] text-gray-500 w-full h-20 resize-none leading-relaxed">@foreach($despesasPorCentro as $centro => $itens)
-{{ $centro }}: @foreach($itens as $d){{ $d->description }} (R$ {{ number_format($d->value, 2, ',', '.') }})@if(!$loop->last), @endif @endforeach
-@endforeach</textarea>
+                                        value="Comissão Agência">
                                 </div>
                             </td>
-                            <td class="p-2 align-top"><input type="text" class="editable text-center text-gray-700 w-full" value="{{ $despesasItens->count() }}"></td>
-                            <td class="p-2 align-top"><input type="text" class="editable text-right fees-col bg-gray-50 text-gray-400 w-full" value="0,00" disabled></td>
-                            <td class="p-2 align-top"><input type="text" class="editable text-right exp-col text-gray-900 w-full font-medium" 
-                                    value="{{ number_format($totalDespesasReembolsaveis, 2, ',', '.') }}" oninput="formatAndCalc(this)"></td>
+                            <td class="p-2 align-top"><input type="text" class="editable text-right value-col text-gray-900 w-full font-medium"
+                                    value="{{ number_format($comissaoAgencia ?? 0, 2, ',', '.') }}" oninput="formatAndCalc(this)"></td>
                         </tr>
-                        @endif
+                        
+                        <!-- Row 3 - Custos/Despesas da Apresentação -->
+                        <tr class="group hover:bg-gray-50 transition-colors">
+                            <td class="p-2 align-top">
+                                <div class="flex flex-col gap-1">
+                                    <input type="text" class="editable font-semibold text-gray-900 w-full"
+                                        value="Custos/Despesas da Apresentação">
+                                    @php
+                                        $despesasPorCentro = ($despesasItens ?? collect())->groupBy(fn($d) => $d->costCenter->name ?? 'Outros');
+                                    @endphp
+                                    <div class="text-[10px] text-gray-500 leading-relaxed space-y-1">
+                                        @if($despesasPorCentro->count() > 0)
+                                            @foreach($despesasPorCentro as $centro => $itens)
+                                                <div class="flex justify-between">
+                                                    <span class="font-medium">{{ $centro }}:</span>
+                                                    <span>R$ {{ number_format($itens->sum('value_brl'), 2, ',', '.') }}</span>
+                                                </div>
+                                                @foreach($itens as $d)
+                                                    <div class="pl-3 text-gray-400">
+                                                        • {{ $d->description }} (R$ {{ number_format($d->value_brl ?? $d->value, 2, ',', '.') }})
+                                                    </div>
+                                                @endforeach
+                                            @endforeach
+                                        @else
+                                            <span class="italic">Sem despesas registradas.</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-2 align-top"><input type="text" class="editable text-right value-col text-gray-900 w-full font-medium" 
+                                    value="{{ number_format($custosDespesas ?? 0, 2, ',', '.') }}" oninput="formatAndCalc(this)"></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -312,27 +335,26 @@ Data: {{ $gig->gig_date?->format('d/m/Y') }}</textarea>
             </div>
 
             <!-- TOTALS BLOCK (Direita) -->
-            @php
-                $cacheArtista = $settlement->artist_payment_value ?? $honorarios;
-                $totalReembolsos = $despesasItens->sum('value');
-                $valorLiquido = $cacheArtista + $totalReembolsos;
-            @endphp
             <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 flex flex-col justify-center">
                 <div class="flex justify-between text-xs mb-1">
-                    <span class="text-gray-600">(+) Total Cachê Artista</span>
-                    <span class="font-semibold text-gray-900" id="total_fees">{{ number_format($cacheArtista, 2, ',', '.') }}</span>
+                    <span class="text-gray-600">(+) Apresentação Artística</span>
+                    <span class="font-semibold text-gray-900" id="total_apresentacao">{{ number_format($honorarios ?? 0, 2, ',', '.') }}</span>
                 </div>
                 <div class="flex justify-between text-xs mb-1">
-                    <span class="text-gray-600">(+) Total Reembolsos</span>
-                    <span class="font-semibold text-gray-900" id="total_exp">{{ number_format($totalReembolsos, 2, ',', '.') }}</span>
+                    <span class="text-gray-600">(+) Comissão Agência</span>
+                    <span class="font-semibold text-gray-900" id="total_comissao">{{ number_format($comissaoAgencia ?? 0, 2, ',', '.') }}</span>
+                </div>
+                <div class="flex justify-between text-xs mb-1">
+                    <span class="text-gray-600">(+) Custos/Despesas</span>
+                    <span class="font-semibold text-gray-900" id="total_custos">{{ number_format($custosDespesas ?? 0, 2, ',', '.') }}</span>
                 </div>
                 <div class="flex justify-between text-xs mb-2 text-gray-600">
                     <span>(-) Total Retenções</span>
                     <span class="font-semibold text-gray-900" id="total_tax">0,00</span>
                 </div>
                 <div class="border-t border-gray-300 pt-2 flex justify-between items-center">
-                    <span class="font-bold text-gray-800 uppercase text-[10px] tracking-wide">Valor Líquido a Pagar</span>
-                    <span class="font-bold text-xl text-gray-900">R$ <span id="net_total">{{ number_format($valorLiquido, 2, ',', '.') }}</span></span>
+                    <span class="font-bold text-gray-800 uppercase text-[10px] tracking-wide">= VALOR TOTAL</span>
+                    <span class="font-bold text-xl text-gray-900">R$ <span id="net_total">{{ number_format(($valorContrato ?? 0), 2, ',', '.') }}</span></span>
                 </div>
             </div>
         </div>
@@ -343,29 +365,34 @@ Data: {{ $gig->gig_date?->format('d/m/Y') }}</textarea>
                 <div class="w-1/2">
                     <h4 class="font-bold text-[10px] uppercase mb-1 text-gray-500 tracking-wider">Dados Bancários</h4>
                     <div class="text-[10px] space-y-0.5 bg-gray-50 p-2 rounded border border-gray-200 text-gray-700">
-                        <div class="flex items-center"><span class="w-16 font-semibold text-gray-900">Banco:</span>
-                            <input type="text" class="editable bg-transparent p-0 h-auto w-full" value="{{ config('app.bank_name', 'Banco do Brasil') }}">
+                        <div class="flex items-center"><span class="w-20 font-semibold text-gray-900">Favorecido:</span>
+                            <input type="text" class="editable bg-transparent p-0 h-auto w-full" value="Coral 360 Ltda">
                         </div>
-                        <div class="flex items-center"><span class="w-16 font-semibold text-gray-900">Agência:</span>
-                            <input type="text" class="editable bg-transparent p-0 h-auto w-full" value="{{ config('app.bank_agency', '0001') }}">
+                        <div class="flex items-center"><span class="w-20 font-semibold text-gray-900">CNPJ:</span>
+                            <input type="text" class="editable bg-transparent p-0 h-auto w-full" value="52.507.002/0001-75">
                         </div>
-                        <div class="flex items-center"><span class="w-16 font-semibold text-gray-900">C/C:</span>
-                            <input type="text" class="editable bg-transparent p-0 h-auto w-full" value="{{ config('app.bank_account', '69349-7') }}">
+                        <div class="flex items-center"><span class="w-20 font-semibold text-gray-900">Banco:</span>
+                            <input type="text" class="editable bg-transparent p-0 h-auto w-full" value="Itaú (341)">
                         </div>
-                        <div class="flex items-center"><span class="w-16 font-semibold text-gray-900">PIX:</span>
-                            <input type="text" class="editable bg-transparent p-0 h-auto w-full" value="{{ config('app.company_cnpj', '52.507.002/0001-75') }}">
+                        <div class="flex items-center"><span class="w-20 font-semibold text-gray-900">Agência:</span>
+                            <input type="text" class="editable bg-transparent p-0 h-auto w-full" value="1565">
+                        </div>
+                        <div class="flex items-center"><span class="w-20 font-semibold text-gray-900">C/C:</span>
+                            <input type="text" class="editable bg-transparent p-0 h-auto w-full" value="99398-5">
+                        </div>
+                        <div class="flex items-center"><span class="w-20 font-semibold text-gray-900">PIX (CNPJ):</span>
+                            <input type="text" class="editable bg-transparent p-0 h-auto w-full" value="52.507.002/0001-75">
                         </div>
                     </div>
                 </div>
                 <div class="w-1/2 flex flex-col justify-end">
                     <div class="text-center pb-1">
                         <div class="border-b border-gray-900 w-3/4 mx-auto mb-1"></div>
-                        <p class="font-bold text-[10px] uppercase text-gray-900">{{ config('app.company_name', 'CORAL 360 LTDA - EPP') }}</p>
+                        <p class="font-bold text-[10px] uppercase text-gray-900">{{ config('app.company_name', 'CORAL 360 LTDA') }}</p>
                         <p class="text-[9px] text-gray-500 uppercase tracking-wide">Departamento Financeiro</p>
                     </div>
                 </div>
             </div>
-            <p class="text-[9px] text-center text-gray-400 mt-2">Atividade: Serviços de organização de feiras, congressos, exposições e festas (CNAE 8230-0/01)</p>
         </div>
 
     </div>
@@ -398,44 +425,55 @@ Data: {{ $gig->gig_date?->format('d/m/Y') }}</textarea>
         }
 
         function calcTaxes() {
-            let totalFees = 0;
-            let totalExp = 0;
+            // Para cálculos separados, pegamos linhas individuais (3 linhas fixas)
+            const rows = document.querySelectorAll('#invoiceItems tr');
+            let valorApresentacao = 0;
+            let valorComissao = 0;
+            let valorCustos = 0;
+            
+            rows.forEach((row, index) => {
+                const input = row.querySelector('.value-col');
+                if (input) {
+                    if (index === 0) valorApresentacao = parseBRL(input.value);
+                    else if (index === 1) valorComissao = parseBRL(input.value);
+                    else valorCustos += parseBRL(input.value);
+                }
+            });
 
-            // Soma colunas
-            document.querySelectorAll('.fees-col').forEach(el => totalFees += parseBRL(el.value));
-            document.querySelectorAll('.exp-col').forEach(el => totalExp += parseBRL(el.value));
+            // Atualiza Totais no card
+            document.getElementById('total_apresentacao').innerText = toBRL(valorApresentacao);
+            document.getElementById('total_comissao').innerText = toBRL(valorComissao);
+            document.getElementById('total_custos').innerText = toBRL(valorCustos);
 
-            // Atualiza Totais Brutos
-            document.getElementById('total_fees').innerText = toBRL(totalFees);
-            document.getElementById('total_exp').innerText = toBRL(totalExp);
-
-            // Calcula Impostos (Base é geralmente apenas Honorários, não Despesas)
+            // Calcula Impostos (Base é a soma de tudo, ou apenas apresentação - configurável)
             const inputs = document.querySelectorAll('table input[value*="%"]');
             let taxTotal = 0;
+            const baseCalculo = valorApresentacao + valorComissao + valorCustos; // Base = Valor do Contrato
 
             // IRRF
-            let irrfRate = parseFloat(inputs[0].value.replace('%', '').replace(',', '.')) || 0;
-            let irrfVal = (totalFees * (irrfRate / 100));
+            let irrfRate = parseFloat(inputs[0]?.value.replace('%', '').replace(',', '.')) || 0;
+            let irrfVal = (baseCalculo * (irrfRate / 100));
             document.getElementById('val_irrf').value = toBRL(irrfVal);
             taxTotal += irrfVal;
 
             // PIS/COFINS/CSLL (PCC)
-            let pccRate = parseFloat(inputs[1].value.replace('%', '').replace(',', '.')) || 0;
-            let pccVal = (totalFees * (pccRate / 100));
+            let pccRate = parseFloat(inputs[1]?.value.replace('%', '').replace(',', '.')) || 0;
+            let pccVal = (baseCalculo * (pccRate / 100));
             document.getElementById('val_pcc').value = toBRL(pccVal);
             taxTotal += pccVal;
 
             // ISS
-            let issRate = parseFloat(inputs[2].value.replace('%', '').replace(',', '.')) || 0;
-            let issVal = (totalFees * (issRate / 100));
+            let issRate = parseFloat(inputs[2]?.value.replace('%', '').replace(',', '.')) || 0;
+            let issVal = (baseCalculo * (issRate / 100));
             document.getElementById('val_iss').value = toBRL(issVal);
             taxTotal += issVal;
 
-            // Atualiza Total Retenções e Líquido
+            // Atualiza Total Retenções e Valor do Contrato
             document.getElementById('total_tax').innerText = toBRL(taxTotal);
 
-            let net = (totalFees + totalExp) - taxTotal;
-            document.getElementById('net_total').innerText = toBRL(net);
+            // Valor Total = Apresentação + Comissão + Custos - Retenções
+            let valorTotal = valorApresentacao + valorComissao + valorCustos - taxTotal;
+            document.getElementById('net_total').innerText = toBRL(valorTotal);
         }
 
         function addItem() {

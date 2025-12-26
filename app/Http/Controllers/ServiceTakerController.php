@@ -23,7 +23,19 @@ class ServiceTakerController extends Controller
             });
         }
 
+        // Filtro por status do documento
+        if ($status = $request->get('document_status')) {
+            $query->get()->filter(fn ($st) => $st->document_status === $status);
+        }
+
         $serviceTakers = $query->orderBy('organization')->paginate(20);
+
+        // Se filtro por status, filtrar após paginação
+        if ($status = $request->get('document_status')) {
+            // Re-query com filtro em PHP (necessário pois document_status é accessor)
+            $allFiltered = ServiceTaker::all()->filter(fn ($st) => $st->document_status === $status)->pluck('id');
+            $serviceTakers = ServiceTaker::whereIn('id', $allFiltered)->orderBy('organization')->paginate(20);
+        }
 
         return view('service-takers.index', compact('serviceTakers'));
     }
@@ -68,6 +80,9 @@ class ServiceTakerController extends Controller
         $validated = $request->validate([
             'organization' => 'nullable|string|max:255',
             'document' => 'nullable|string|max:255',
+            'state_registration' => 'nullable|string|max:50',
+            'municipal_registration' => 'nullable|string|max:50',
+            'is_international' => 'nullable|boolean',
             'street' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'city' => 'nullable|string|max:100',
@@ -77,6 +92,9 @@ class ServiceTakerController extends Controller
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:50',
         ]);
+
+        // Handle checkbox (convert to boolean)
+        $validated['is_international'] = $request->has('is_international');
 
         $serviceTaker = ServiceTaker::create($validated);
 
@@ -115,6 +133,9 @@ class ServiceTakerController extends Controller
         $validated = $request->validate([
             'organization' => 'nullable|string|max:255',
             'document' => 'nullable|string|max:255',
+            'state_registration' => 'nullable|string|max:50',
+            'municipal_registration' => 'nullable|string|max:50',
+            'is_international' => 'nullable|boolean',
             'street' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'city' => 'nullable|string|max:100',
@@ -124,6 +145,9 @@ class ServiceTakerController extends Controller
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:50',
         ]);
+
+        // Handle checkbox (convert to boolean)
+        $validated['is_international'] = $request->has('is_international');
 
         $serviceTaker->update($validated);
 
@@ -146,6 +170,23 @@ class ServiceTakerController extends Controller
         return redirect()
             ->route('service-takers.index')
             ->with('success', 'Tomador de serviço removido com sucesso.');
+    }
+
+    /**
+     * Toggle is_international flag via AJAX.
+     */
+    public function toggleInternational(ServiceTaker $serviceTaker)
+    {
+        $serviceTaker->update([
+            'is_international' => ! $serviceTaker->is_international,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'is_international' => $serviceTaker->is_international,
+            'document_status' => $serviceTaker->document_status,
+            'badge' => $serviceTaker->document_status_badge,
+        ]);
     }
 
     /**

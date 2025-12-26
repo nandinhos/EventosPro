@@ -26,6 +26,21 @@
         </div>
     @endif
 
+    {{-- Botão Visualizar ND (Prévia) --}}
+    @if($gig->serviceTaker)
+        <div class="mb-4">
+            <a href="{{ route('debit-notes.preview', $gig) }}" 
+               target="_blank"
+               class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors">
+                <i class="fas fa-file-invoice-dollar mr-2"></i>
+                Visualizar ND (Prévia)
+            </a>
+            <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                <i class="fas fa-info-circle mr-1"></i>Abre em nova aba sem gerar numeração
+            </span>
+        </div>
+    @endif
+
     {{-- Layout em 2 colunas --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {{-- Coluna Esquerda: Card Principal de Fechamento (2/3) --}}
@@ -54,16 +69,39 @@
                             <p class="text-gray-800 dark:text-gray-200">
                                 <span class="font-medium">{{ $gig->serviceTaker->organization ?? 'N/A' }}</span>
                             </p>
-                            @if($gig->serviceTaker->cnpj)
+                            @if($gig->serviceTaker->document)
                                 <p class="text-gray-600 dark:text-gray-400 text-xs">
                                     <i class="fas fa-id-card mr-1"></i>
-                                    CNPJ: {{ $gig->serviceTaker->cnpj }}
+                                    {{ $gig->serviceTaker->formatted_document }}
                                 </p>
                             @endif
-                            @if($gig->serviceTaker->address || $gig->serviceTaker->city)
+                            @if($gig->serviceTaker->state_registration || $gig->serviceTaker->municipal_registration)
+                                <p class="text-gray-600 dark:text-gray-400 text-xs">
+                                    @if($gig->serviceTaker->state_registration)
+                                        <span class="mr-3"><i class="fas fa-file-alt mr-1"></i>IE: {{ $gig->serviceTaker->state_registration }}</span>
+                                    @endif
+                                    @if($gig->serviceTaker->municipal_registration)
+                                        <span><i class="fas fa-file-alt mr-1"></i>IM: {{ $gig->serviceTaker->municipal_registration }}</span>
+                                    @endif
+                                </p>
+                            @endif
+                            @if($gig->serviceTaker->street || $gig->serviceTaker->city)
                                 <p class="text-gray-600 dark:text-gray-400 text-xs">
                                     <i class="fas fa-map-marker-alt mr-1"></i>
-                                    {{ collect([$gig->serviceTaker->address, $gig->serviceTaker->city, $gig->serviceTaker->state])->filter()->implode(', ') }}
+                                    {{ $gig->serviceTaker->full_address }}
+                                </p>
+                            @endif
+                            @if($gig->serviceTaker->contact || $gig->serviceTaker->email || $gig->serviceTaker->phone)
+                                <p class="text-gray-600 dark:text-gray-400 text-xs">
+                                    @if($gig->serviceTaker->contact)
+                                        <span class="mr-3"><i class="fas fa-user mr-1"></i>{{ $gig->serviceTaker->contact }}</span>
+                                    @endif
+                                    @if($gig->serviceTaker->email)
+                                        <span class="mr-3"><i class="fas fa-envelope mr-1"></i>{{ $gig->serviceTaker->email }}</span>
+                                    @endif
+                                    @if($gig->serviceTaker->phone)
+                                        <span><i class="fas fa-phone mr-1"></i>{{ $gig->serviceTaker->phone }}</span>
+                                    @endif
                                 </p>
                             @endif
                             <div class="pt-2">
