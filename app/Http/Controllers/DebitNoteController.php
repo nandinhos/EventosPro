@@ -90,12 +90,8 @@ class DebitNoteController extends Controller
      */
     public function preview(Gig $gig)
     {
-        // Must have a service taker
-        if (! $gig->serviceTaker) {
-            return back()->withErrors([
-                'error' => 'Esta gig não possui um tomador de serviço vinculado.',
-            ]);
-        }
+        // Check if service taker exists (but don't block - it's just a preview)
+        $missingServiceTaker = ! $gig->serviceTaker;
 
         // Load relationships for template
         $gig->load([
@@ -135,6 +131,7 @@ class DebitNoteController extends Controller
             'despesasItens' => $gig->gigCosts->where('is_confirmed', true),
             'settlement' => $gig->settlement,
             'isPreview' => true,
+            'missingServiceTaker' => $missingServiceTaker,
         ]);
     }
 

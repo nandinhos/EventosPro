@@ -230,23 +230,11 @@
 {{-- Cache Busting: Atualiza página ao voltar via browser back --}}
 <script>
 (function() {
-    const pageKey = 'gigs_index_timestamp';
-    const lastVisit = sessionStorage.getItem(pageKey);
-    const now = Date.now();
-    
-    // Se a página foi visitada recentemente (menos de 500ms), é um reload normal
-    // Se foi visitada há mais de 500ms e menos de 5min, é navegação back - refresh
-    if (lastVisit && (now - parseInt(lastVisit)) > 500 && (now - parseInt(lastVisit)) < 300000) {
-        sessionStorage.setItem(pageKey, now.toString());
-        window.location.reload();
-        return;
-    }
-    
-    sessionStorage.setItem(pageKey, now.toString());
-    
-    // Também detecta o evento pageshow para bfcache
+    // Usa pageshow para detectar navegação back (bfcache)
+    // Isso é mais confiável que timestamp e não causa loops de reload
     window.addEventListener('pageshow', (event) => {
         if (event.persisted) {
+            // Página veio do bfcache (navegação back) - recarrega para dados frescos
             window.location.reload();
         }
     });

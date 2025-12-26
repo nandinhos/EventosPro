@@ -26,20 +26,23 @@
         </div>
     @endif
 
-    {{-- Botão Visualizar ND (Prévia) --}}
-    @if($gig->serviceTaker)
-        <div class="mb-4">
-            <a href="{{ route('debit-notes.preview', $gig) }}" 
-               target="_blank"
-               class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors">
-                <i class="fas fa-file-invoice-dollar mr-2"></i>
-                Visualizar ND (Prévia)
-            </a>
-            <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">
-                <i class="fas fa-info-circle mr-1"></i>Abre em nova aba sem gerar numeração
+    {{-- Botão Visualizar ND (Prévia) - Sempre visível --}}
+    <div class="mb-4 flex items-center gap-3">
+        <a href="{{ route('debit-notes.preview', $gig) }}" 
+           target="_blank"
+           class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors">
+            <i class="fas fa-file-invoice-dollar mr-2"></i>
+            Visualizar ND (Prévia)
+        </a>
+        <span class="text-xs text-gray-500 dark:text-gray-400">
+            <i class="fas fa-info-circle mr-1"></i>Abre em nova aba sem gerar numeração
+        </span>
+        @if(!$gig->serviceTaker)
+            <span class="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded">
+                <i class="fas fa-exclamation-triangle mr-1"></i>Sem tomador definido
             </span>
-        </div>
-    @endif
+        @endif
+    </div>
 
     {{-- Layout em 2 colunas --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

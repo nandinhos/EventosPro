@@ -190,34 +190,53 @@
             <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <i data-lucide="user" class="w-3 h-3"></i> Tomador dos Serviços (Cliente)
             </h3>
-            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                <div class="flex items-center w-full">
-                    <span class="font-medium text-gray-500 mr-1">Razão:</span>
-                    <span class="font-bold text-gray-900">{{ $serviceTaker->organization ?? '' }}</span>
-                </div>
-                <div class="w-full flex flex-wrap gap-x-6 gap-y-1 mt-1">
-                    <div class="flex items-center">
-                        <span class="font-medium text-gray-500 mr-1">CNPJ/CPF:</span>
-                        <span class="text-gray-700">{{ $serviceTaker->document ?? '' }}</span>
+            
+            @if(($missingServiceTaker ?? false) || !$serviceTaker)
+                {{-- Aviso de Tomador Não Definido --}}
+                <div class="bg-amber-50 border border-amber-300 rounded-lg p-3 text-amber-800">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600"></i>
+                        <div>
+                            <p class="font-bold text-sm">Tomador de Serviço não definido</p>
+                            <p class="text-xs">Para gerar a nota de débito oficial, é necessário vincular um tomador de serviço.</p>
+                            @if(isset($isPreview) && $isPreview)
+                            <a href="{{ route('gigs.edit', $gig) }}" class="text-xs text-amber-700 hover:text-amber-900 underline no-print">
+                                Clique aqui para editar a Gig e vincular o tomador →
+                            </a>
+                            @endif
+                        </div>
                     </div>
-                    @if($serviceTaker->state_registration)
-                    <div class="flex items-center">
-                        <span class="font-medium text-gray-500 mr-1">IE:</span>
-                        <span class="text-gray-700">{{ $serviceTaker->state_registration }}</span>
-                    </div>
-                    @endif
-                    @if($serviceTaker->municipal_registration)
-                    <div class="flex items-center">
-                        <span class="font-medium text-gray-500 mr-1">IM:</span>
-                        <span class="text-gray-700">{{ $serviceTaker->municipal_registration }}</span>
-                    </div>
-                    @endif
                 </div>
-                <div class="w-full flex items-center mt-1">
-                    <span class="font-medium text-gray-500 mr-1">Endereço:</span>
-                    <span class="text-gray-700">{{ $serviceTaker->full_address }}</span>
+            @else
+                <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                    <div class="flex items-center w-full">
+                        <span class="font-medium text-gray-500 mr-1">Razão:</span>
+                        <span class="font-bold text-gray-900">{{ $serviceTaker->organization ?? '' }}</span>
+                    </div>
+                    <div class="w-full flex flex-wrap gap-x-6 gap-y-1 mt-1">
+                        <div class="flex items-center">
+                            <span class="font-medium text-gray-500 mr-1">CNPJ/CPF:</span>
+                            <span class="text-gray-700">{{ $serviceTaker->document ?? '' }}</span>
+                        </div>
+                        @if($serviceTaker->state_registration)
+                        <div class="flex items-center">
+                            <span class="font-medium text-gray-500 mr-1">IE:</span>
+                            <span class="text-gray-700">{{ $serviceTaker->state_registration }}</span>
+                        </div>
+                        @endif
+                        @if($serviceTaker->municipal_registration)
+                        <div class="flex items-center">
+                            <span class="font-medium text-gray-500 mr-1">IM:</span>
+                            <span class="text-gray-700">{{ $serviceTaker->municipal_registration }}</span>
+                        </div>
+                        @endif
+                    </div>
+                    <div class="w-full flex items-center mt-1">
+                        <span class="font-medium text-gray-500 mr-1">Endereço:</span>
+                        <span class="text-gray-700">{{ $serviceTaker->full_address }}</span>
+                    </div>
                 </div>
-            </div>
+            @endif
         </section>
 
         <!-- DETAILED ITEMS -->
