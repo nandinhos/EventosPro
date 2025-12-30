@@ -167,7 +167,7 @@
                                                             'rascunho' => ['title' => 'Rascunho', 'color' => 'gray', 'bg' => 'bg-gray-50', 'text' => 'text-gray-800', 'dark:bg' => 'dark:bg-gray-900/20', 'dark:text' => 'dark:text-gray-300'],
                                                         ];
 
-                                                        $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray'];
+                                                        $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray', 'bg' => 'bg-gray-50', 'text' => 'text-gray-800', 'dark:bg' => 'dark:bg-gray-900/20', 'dark:text' => 'dark:text-gray-300'];
                                                         $rowClass = 'bg-red-50 dark:bg-red-900/10';
                                                     @endphp
 
@@ -253,7 +253,7 @@
                                                             'rascunho' => ['title' => 'Rascunho', 'color' => 'gray', 'bg' => 'bg-gray-50', 'text' => 'text-gray-800', 'dark:bg' => 'dark:bg-gray-900/20', 'dark:text' => 'dark:text-gray-300'],
                                                         ];
 
-                                                        $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray'];
+                                                        $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray', 'bg' => 'bg-gray-50', 'text' => 'text-gray-800', 'dark:bg' => 'dark:bg-gray-900/20', 'dark:text' => 'dark:text-gray-300'];
                                                         $rowClass = 'bg-yellow-50 dark:bg-yellow-900/10';
                                                     @endphp
 
@@ -340,7 +340,7 @@
                                         'rascunho' => ['title' => 'Rascunho', 'color' => 'gray', 'bg' => 'bg-gray-50', 'text' => 'text-gray-800', 'dark:bg' => 'dark:bg-gray-900/20', 'dark:text' => 'dark:text-gray-300'],
                                     ];
                                     
-                                    $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray'];
+                                    $statusInfo = $statusMap[strtolower($contractStatus)] ?? ['title' => 'Desconhecido', 'color' => 'gray', 'bg' => 'bg-gray-50', 'text' => 'text-gray-800', 'dark:bg' => 'dark:bg-gray-900/20', 'dark:text' => 'dark:text-gray-300'];
                                     
                                     $rowClass = [
                                         'vencido' => 'bg-red-50 dark:bg-red-900/10',
