@@ -180,8 +180,8 @@
 
             <!-- Linha 2: Dados da Empresa -->
             <div class="text-[11px] text-gray-600 leading-tight">
-                <p class="font-bold text-gray-900 uppercase text-xs">{{ config('app.company_name', 'CORAL 360 LTDA - EPP') }}</p>
-                <p>{{ config('app.company_address', 'Rod. D. Pedro I, S/N, SL 02 - Santana dos Cuiaban') }} - {{ config('app.company_city', 'Valinhos - SP') }} | CEP: {{ config('app.company_postal', '13273-310') }} | CNPJ: {{ config('app.company_cnpj', '52.507.002/0001-75') }}</p>
+                <p class="font-bold text-gray-900 uppercase text-xs">{{ config('app.company_name', 'CORAL 360 LTDA - CNPJ 52.507.002/0001-75') }}</p>
+                <p>{{ config('app.company_address', 'Rod. D. Pedro I, S/N, SL 02 - Santana dos Cuiabanos') }} - {{ config('app.company_city', 'Valinhos - SP') }} | CEP: {{ config('app.company_postal', '13273-310') }}</p>
             </div>
         </header>
 
