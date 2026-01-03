@@ -58,6 +58,9 @@ class DebitNoteController extends Controller
             'serviceTaker',
             'artist',
             'debitNote',
+            'payments' => function ($query) {
+                $query->orderBy('due_date', 'asc');
+            },
             'gigCosts' => function ($query) {
                 $query->where('is_confirmed', true)->with('costCenter');
             },
@@ -98,6 +101,9 @@ class DebitNoteController extends Controller
             'serviceTaker',
             'artist',
             'settlement',
+            'payments' => function ($query) {
+                $query->orderBy('due_date', 'asc');
+            },
             'gigCosts' => function ($query) {
                 $query->where('is_confirmed', true)->with('costCenter');
             },

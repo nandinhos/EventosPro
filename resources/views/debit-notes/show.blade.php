@@ -150,94 +150,120 @@
     <div class="page-sheet">
 
         <!-- HEADER -->
-        <header class="border-b border-gray-200 pb-4 mb-4">
-            <!-- Linha 1: Logo + Título + Número -->
-            <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center gap-4">
-                    <img src="{{ asset('img/coral_360_logo.png') }}" alt="Logo" class="h-32" onerror="this.style.display='none'">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900 uppercase tracking-tight">Nota de Débito</h1>
-                        <p class="text-xs text-gray-500">Fatura Nº: <span class="font-bold text-gray-900">{{ $debitNote->number }}</span></p>
-                    </div>
-                </div>
+        <header class="border-b border-gray-200 pb-3 mb-3">
+            <!-- Linha 1: Logo (esquerda) + Título (direita) -->
+            <div class="flex justify-between items-center mb-3">
+                <img src="{{ asset('img/coral_360_logo.png') }}" alt="Logo" class="h-40 " onerror="this.style.display='none'">
                 <div class="text-right">
-                    <table class="text-xs ml-auto">
-                        <tr>
-                            <td class="font-medium text-gray-500 py-0.5 pr-3 text-right">Emissão:</td>
-                            <td class="py-0.5 w-28"><input type="date" class="editable text-right text-gray-900 w-full" value="{{ $debitNote->issued_at->format('Y-m-d') }}" readonly></td>
-                        </tr>
-                        <tr>
-                            <td class="font-medium text-gray-500 py-0.5 pr-3 text-right">Vencimento:</td>
-                            <td class="py-0.5 w-28"><input type="date" class="editable text-right text-gray-900 font-semibold w-full" value="{{ date('Y-m-d', strtotime('+3 days')) }}"></td>
-                        </tr>
-                        <tr>
-                            <td class="font-medium text-gray-500 py-0.5 pr-3 text-right">Competência:</td>
-                            <td class="py-0.5 w-28"><input type="text" class="editable text-right text-gray-700 w-full pr-6" value="{{ $gig->gig_date?->format('m/Y') }}"></td>
-                        </tr>
-                    </table>
+                    <h1 class="text-2xl font-bold text-gray-900 uppercase tracking-tight">Nota de Débito</h1>
+                    <p class="text-xs text-gray-500">Fatura Nº: <span class="font-bold text-gray-900">{{ $debitNote->number }}</span></p>
                 </div>
             </div>
-
+            
             <!-- Linha 2: Dados da Empresa -->
-            <div class="text-[11px] text-gray-600 leading-tight">
+            <div class="text-[10px] text-gray-600 leading-tight">
                 <p class="font-bold text-gray-900 uppercase text-xs">{{ config('app.company_name', 'CORAL 360 LTDA - CNPJ 52.507.002/0001-75') }}</p>
                 <p>{{ config('app.company_address', 'Rod. D. Pedro I, S/N, SL 02 - Santana dos Cuiabanos') }} - {{ config('app.company_city', 'Valinhos - SP') }} | CEP: {{ config('app.company_postal', '13273-310') }}</p>
             </div>
         </header>
 
-        <!-- CLIENTE (BILL TO) Compacto -->
-        <section class="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-4">
-            <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                <i data-lucide="user" class="w-3 h-3"></i> Tomador dos Serviços (Cliente)
-            </h3>
+        <!-- ÁREA DE CARDS: Tomador (esquerda) + Emissão/Parcelas (direita) -->
+        <div class="grid grid-cols-5 gap-4 mb-4">
             
-            @if(($missingServiceTaker ?? false) || !$serviceTaker)
-                {{-- Aviso de Tomador Não Definido --}}
-                <div class="bg-amber-50 border border-amber-300 rounded-lg p-3 text-amber-800">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600"></i>
-                        <div>
-                            <p class="font-bold text-sm">Tomador de Serviço não definido</p>
-                            <p class="text-xs">Para gerar a nota de débito oficial, é necessário vincular um tomador de serviço.</p>
-                            @if(isset($isPreview) && $isPreview)
-                            <a href="{{ route('gigs.edit', $gig) }}" class="text-xs text-amber-700 hover:text-amber-900 underline no-print">
-                                Clique aqui para editar a Gig e vincular o tomador →
-                            </a>
-                            @endif
+            <!-- CARD TOMADOR DOS SERVIÇOS (3 colunas) -->
+            <section class="col-span-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <i data-lucide="user" class="w-3 h-3"></i> Tomador dos Serviços (Cliente)
+                </h3>
+                
+                @if(($missingServiceTaker ?? false) || !$serviceTaker)
+                    <div class="bg-amber-50 border border-amber-300 rounded p-2 text-amber-800">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i>
+                            <div>
+                                <p class="font-bold text-xs">Tomador não definido</p>
+                                @if(isset($isPreview) && $isPreview)
+                                <a href="{{ route('gigs.edit', $gig) }}" class="text-[10px] text-amber-700 hover:text-amber-900 underline no-print">
+                                    Vincular tomador →
+                                </a>
+                                @endif
+                            </div>
                         </div>
                     </div>
-                </div>
-            @else
-                <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                    <div class="flex items-center w-full">
-                        <span class="font-medium text-gray-500 mr-1">Razão:</span>
-                        <span class="font-bold text-gray-900">{{ $serviceTaker->organization ?? '' }}</span>
-                    </div>
-                    <div class="w-full flex flex-wrap gap-x-6 gap-y-1 mt-1">
+                @else
+                    <div class="text-xs space-y-0.5">
+                        <div class="flex items-center">
+                            <span class="font-medium text-gray-500 mr-1">Razão:</span>
+                            <span class="font-bold text-gray-900">{{ $serviceTaker->organization ?? '' }}</span>
+                        </div>
                         <div class="flex items-center">
                             <span class="font-medium text-gray-500 mr-1">CNPJ/CPF:</span>
-                            <span class="text-gray-700">{{ $serviceTaker->document ?? '' }}</span>
+                            @php
+                                $doc = $serviceTaker->document ?? '';
+                                // Formata CNPJ (14 dígitos) ou CPF (11 dígitos)
+                                $docClean = preg_replace('/\D/', '', $doc);
+                                if (strlen($docClean) === 14) {
+                                    $doc = preg_replace('/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/', '$1.$2.$3/$4-$5', $docClean);
+                                } elseif (strlen($docClean) === 11) {
+                                    $doc = preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $docClean);
+                                }
+                            @endphp
+                            <span class="text-gray-700">{{ $doc }}</span>
                         </div>
-                        @if($serviceTaker->state_registration)
                         <div class="flex items-center">
-                            <span class="font-medium text-gray-500 mr-1">IE:</span>
-                            <span class="text-gray-700">{{ $serviceTaker->state_registration }}</span>
+                            <span class="font-medium text-gray-500 mr-1">Endereço:</span>
+                            <span class="text-gray-700">{{ ucwords(strtolower($serviceTaker->full_address)) }}</span>
                         </div>
-                        @endif
-                        @if($serviceTaker->municipal_registration)
-                        <div class="flex items-center">
-                            <span class="font-medium text-gray-500 mr-1">IM:</span>
-                            <span class="text-gray-700">{{ $serviceTaker->municipal_registration }}</span>
-                        </div>
-                        @endif
                     </div>
-                    <div class="w-full flex items-center mt-1">
-                        <span class="font-medium text-gray-500 mr-1">Endereço:</span>
-                        <span class="text-gray-700">{{ $serviceTaker->full_address }}</span>
+                @endif
+            </section>
+
+            <!-- CARD EMISSÃO + PARCELAS (2 colunas) -->
+            <section class="col-span-2 bg-white border border-gray-200 rounded-lg p-3">
+                <!-- Datas -->
+                <div class="space-y-1 text-xs border-b border-gray-100 pb-2 mb-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium text-gray-500">Emissão:</span>
+                        <span class="text-gray-900">{{ $debitNote->issued_at->format('d/m/Y') }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium text-gray-500">Vencimento:</span>
+                        <input type="text" class="editable text-right text-gray-900 font-semibold w-24 text-xs" value="{{ date('d/m/Y', strtotime('+3 days')) }}">
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium text-gray-500">Competência:</span>
+                        <span class="text-gray-700">{{ $gig->gig_date?->format('m/Y') }}</span>
                     </div>
                 </div>
-            @endif
-        </section>
+                
+                <!-- Parcelas -->
+                <div class="space-y-1 text-[10px]">
+                    @php
+                        $payments = $gig->payments ?? collect();
+                        $totalParcelas = $payments->sum('due_value_brl');
+                    @endphp
+                    
+                    @if($payments->count() > 0)
+                        @foreach($payments->sortBy('due_date') as $payment)
+                            <div class="flex justify-between items-center py-0.5">
+                                <span class="text-gray-600">
+                                    {{ $loop->iteration }}ª Parcela - {{ $payment->due_date?->format('d/m/Y') }}
+                                </span>
+                                <span class="font-medium text-gray-700">R$ {{ number_format($payment->due_value_brl, 2, ',', '.') }}</span>
+                            </div>
+                        @endforeach
+                        
+                        <!-- Total -->
+                        <div class="flex justify-between items-center pt-1 border-t border-gray-200 mt-1">
+                            <span class="font-bold text-gray-800">Total</span>
+                            <span class="font-bold text-gray-900">R$ {{ number_format($totalParcelas, 2, ',', '.') }}</span>
+                        </div>
+                    @else
+                        <p class="text-gray-400 italic">Nenhuma parcela registrada.</p>
+                    @endif
+                </div>
+            </section>
+        </div>
 
         <!-- DETAILED ITEMS -->
         <section class="mb-4 flex-grow overflow-hidden flex flex-col">
@@ -257,8 +283,8 @@
                                 <div class="flex flex-col gap-1">
                                     <input type="text" class="editable font-semibold text-gray-900 w-full"
                                         value="Apresentação Artística - {{ $gig->artist->name ?? 'Artista' }}">
-                                    <textarea class="editable text-[10px] text-gray-500 w-full h-12 resize-none leading-relaxed">Evento: {{ $gig->location_event_details ?? '' }}
-Data: {{ $gig->gig_date?->format('d/m/Y') }}</textarea>
+                                    <input type="text" class="editable text-[10px] text-gray-500 w-full"
+                                        value="{{ $gig->location_event_details ?? '' }} - {{ $gig->gig_date?->format('d/m/Y') }}">
                                 </div>
                             </td>
                             <td class="p-2 align-top"><input type="text" class="editable text-right value-col text-gray-900 w-full font-medium"
@@ -286,17 +312,12 @@ Data: {{ $gig->gig_date?->format('d/m/Y') }}</textarea>
                                     @php
                                         $despesasPorCentro = ($despesasItens ?? collect())->groupBy(fn($d) => $d->costCenter->name ?? 'Outros');
                                     @endphp
-                                    <div class="text-[10px] text-gray-500 leading-relaxed space-y-1">
+                                    <div class="text-[10px] text-gray-500 leading-relaxed space-y-0.5">
                                         @if($despesasPorCentro->count() > 0)
                                             @foreach($despesasPorCentro as $centro => $itens)
-                                                <div class="flex justify-between">
-                                                    <span class="font-medium">{{ $centro }}:</span>
-                                                    <span>R$ {{ number_format($itens->sum('value_brl'), 2, ',', '.') }}</span>
-                                                </div>
+                                                <div class="font-medium">{{ $centro }}:</div>
                                                 @foreach($itens as $d)
-                                                    <div class="pl-3 text-gray-400">
-                                                        • {{ $d->description }} (R$ {{ number_format($d->value_brl ?? $d->value, 2, ',', '.') }})
-                                                    </div>
+                                                    <div class="pl-3 text-gray-400">• {{ $d->description }} - R$ {{ number_format($d->value_brl ?? $d->value, 2, ',', '.') }}</div>
                                                 @endforeach
                                             @endforeach
                                         @else
