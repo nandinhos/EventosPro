@@ -86,6 +86,7 @@ class ServiceTakerController extends Controller
             'street' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'city' => 'nullable|string|max:100',
+            'state' => 'nullable|string|max:50',
             'country' => 'nullable|string|max:100',
             'company_phone' => 'nullable|string|max:50',
             'contact' => 'nullable|string|max:255',
@@ -139,6 +140,7 @@ class ServiceTakerController extends Controller
             'street' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'city' => 'nullable|string|max:100',
+            'state' => 'nullable|string|max:50',
             'country' => 'nullable|string|max:100',
             'company_phone' => 'nullable|string|max:50',
             'contact' => 'nullable|string|max:255',
@@ -228,7 +230,7 @@ class ServiceTakerController extends Controller
         // Expected columns
         $expectedColumns = [
             'organization', 'document', 'street', 'postal_code',
-            'city', 'country', 'company_phone', 'contact', 'email', 'phone',
+            'city', 'state', 'country', 'company_phone', 'contact', 'email', 'phone',
         ];
 
         // Validate header
@@ -241,6 +243,17 @@ class ServiceTakerController extends Controller
 
         $created = 0;
         $errors = [];
+
+        // Brazilian state name to abbreviation mapping
+        $stateMapping = [
+            'Acre' => 'AC', 'Alagoas' => 'AL', 'Amapá' => 'AP', 'Amazonas' => 'AM',
+            'Bahia' => 'BA', 'Ceará' => 'CE', 'Distrito Federal' => 'DF', 'Espírito Santo' => 'ES',
+            'Goiás' => 'GO', 'Maranhão' => 'MA', 'Mato Grosso' => 'MT', 'Mato Grosso do Sul' => 'MS',
+            'Minas Gerais' => 'MG', 'Pará' => 'PA', 'Paraíba' => 'PB', 'Paraná' => 'PR',
+            'Pernambuco' => 'PE', 'Piauí' => 'PI', 'Rio de Janeiro' => 'RJ', 'Rio Grande do Norte' => 'RN',
+            'Rio Grande do Sul' => 'RS', 'Rondônia' => 'RO', 'Roraima' => 'RR', 'Santa Catarina' => 'SC',
+            'São Paulo' => 'SP', 'Sergipe' => 'SE', 'Tocantins' => 'TO',
+        ];
 
         foreach ($rows as $index => $row) {
             // Skip empty rows
@@ -261,6 +274,11 @@ class ServiceTakerController extends Controller
 
             // Filter only expected columns
             $data = array_intersect_key($data, array_flip($expectedColumns));
+
+            // Convert state name to abbreviation if needed
+            if (! empty($data['state']) && isset($stateMapping[$data['state']])) {
+                $data['state'] = $stateMapping[$data['state']];
+            }
 
             try {
                 ServiceTaker::create($data);

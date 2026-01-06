@@ -83,10 +83,15 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label for="city" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cidade</label>
                                 <input type="text" name="city" id="city" value="{{ old('city', $serviceTaker->city) }}"
+                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary-500 focus:ring-primary-500">
+                            </div>
+                            <div>
+                                <label for="state" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Estado (UF)</label>
+                                <input type="text" name="state" id="state" value="{{ old('state', $serviceTaker->state) }}"
                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary-500 focus:ring-primary-500">
                             </div>
                             <div>

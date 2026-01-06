@@ -34,7 +34,7 @@
                             O arquivo CSV deve conter as seguintes colunas:
                         </p>
                         <code class="text-xs bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded">
-                            organization, document, street, postal_code, city, country, company_phone, contact, email, phone
+                            organization, document, street, postal_code, city, state, country, company_phone, contact, email, phone
                         </code>
                     </div>
 

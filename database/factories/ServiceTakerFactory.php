@@ -22,6 +22,7 @@ class ServiceTakerFactory extends Factory
             'street' => fake()->streetAddress(),
             'postal_code' => fake()->numerify('#####-###'),
             'city' => fake()->city(),
+            'state' => fake()->stateAbbr(),
             'country' => 'Brasil',
             'company_phone' => fake()->phoneNumber(),
             'contact' => fake()->name(),

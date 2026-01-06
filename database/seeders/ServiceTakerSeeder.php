@@ -73,6 +73,7 @@ class ServiceTakerSeeder extends Seeder
                 'street' => $record['street'],
                 'postal_code' => $record['postal_code'],
                 'city' => $record['city'],
+                'state' => $record['state'] ?? null,
                 'country' => $record['country'],
                 'company_phone' => $record['company_phone'],
                 'contact' => $record['contact'],

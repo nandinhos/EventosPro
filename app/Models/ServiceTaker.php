@@ -20,6 +20,7 @@ class ServiceTaker extends Model
         'street',
         'postal_code',
         'city',
+        'state',
         'country',
         'company_phone',
         'contact',
@@ -48,6 +49,7 @@ class ServiceTaker extends Model
             $this->street,
             $this->postal_code,
             $this->city,
+            $this->state,
             $this->country,
         ])->filter()->implode(', ');
     }

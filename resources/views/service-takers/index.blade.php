@@ -82,7 +82,7 @@
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Organização</th>
                                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase w-28">Status Doc</th>
                                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase w-28">Estrangeiro?</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Cidade</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Cidade/UF</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Email</th>
                                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Ações</th>
                                 </tr>
@@ -165,7 +165,7 @@
                                             </button>
                                         </td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                                            {{ $serviceTaker->city ?? '-' }}
+                                            {{ collect([$serviceTaker->city, $serviceTaker->state])->filter()->implode('/') ?: '-' }}
                                         </td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                                             @if($serviceTaker->email)
@@ -217,7 +217,7 @@
                                                                 <p class="text-gray-700 dark:text-gray-300">{{ $serviceTaker->street }}</p>
                                                             @endif
                                                             <p class="text-gray-600 dark:text-gray-400">
-                                                                {{ collect([$serviceTaker->city, $serviceTaker->postal_code, $serviceTaker->country])->filter()->implode(', ') ?: '-' }}
+                                                                {{ collect([$serviceTaker->city, $serviceTaker->state, $serviceTaker->postal_code, $serviceTaker->country])->filter()->implode(', ') ?: '-' }}
                                                             </p>
                                                         </div>
                                                     </div>
