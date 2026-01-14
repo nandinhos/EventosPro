@@ -36,8 +36,18 @@ class FinancialReportController extends Controller
 
     public function index(Request $request)
     {
-        $filters = $request->only(['start_date', 'end_date', 'booker_id', 'artist_id', 'contract_status']);
+        $filters = $request->only(['start_date', 'end_date', 'booker_ids', 'artist_ids', 'contract_status']);
         $activeTab = $request->input('tab', 'overview');
+
+        // Filtrar valores vazios do array de artistas
+        if (! empty($filters['artist_ids'])) {
+            $filters['artist_ids'] = array_filter($filters['artist_ids']);
+        }
+
+        // Filtrar valores vazios do array de bookers
+        if (! empty($filters['booker_ids'])) {
+            $filters['booker_ids'] = array_filter($filters['booker_ids']);
+        }
 
         $this->reportService->setFilters($filters);
 
@@ -444,30 +454,34 @@ class FinancialReportController extends Controller
 
                 if (! $cost) {
                     $errors[] = "Despesa #{$costId} não encontrada.";
+
                     continue;
                 }
 
                 // Verificar se é reembolsável
                 if (! $cost->is_invoice) {
                     $errors[] = "Despesa #{$costId} não é reembolsável (NF não marcada).";
+
                     continue;
                 }
 
                 // Verificar se está confirmada
                 if (! $cost->is_confirmed) {
                     $errors[] = "Despesa #{$costId} não está confirmada.";
+
                     continue;
                 }
 
                 // Verificar se já foi paga (inclui anexo_pendente como estado pago)
                 if (in_array($cost->reimbursement_stage, [\App\Models\GigCost::STAGE_PAGO, \App\Models\GigCost::STAGE_ANEXO_PENDENTE])) {
                     $errors[] = "Despesa #{$costId} já foi paga/processada.";
+
                     continue;
                 }
 
                 // Determina o estágio correto: Se tiver notas ou arquivo = PAGO, senão = ANEXO_PENDENTE
                 // Em batch puro, geralmente não tem arquivo novo, mas pode ter notas antigas salvas
-                $newStage = (!empty($cost->reimbursement_notes) || $cost->reimbursement_proof_file)
+                $newStage = (! empty($cost->reimbursement_notes) || $cost->reimbursement_proof_file)
                     ? \App\Models\GigCost::STAGE_PAGO
                     : \App\Models\GigCost::STAGE_ANEXO_PENDENTE;
 
@@ -533,18 +547,21 @@ class FinancialReportController extends Controller
 
                 if (! $cost) {
                     $errors[] = "Despesa #{$costId} não encontrada.";
+
                     continue;
                 }
 
                 // Verificar se é reembolsável
                 if (! $cost->is_invoice) {
                     $errors[] = "Despesa #{$costId} não é reembolsável.";
+
                     continue;
                 }
 
                 // Verificar se está paga (ou pendente anexo) para poder reverter
-                if (!in_array($cost->reimbursement_stage, [\App\Models\GigCost::STAGE_PAGO, \App\Models\GigCost::STAGE_ANEXO_PENDENTE])) {
+                if (! in_array($cost->reimbursement_stage, [\App\Models\GigCost::STAGE_PAGO, \App\Models\GigCost::STAGE_ANEXO_PENDENTE])) {
                     $errors[] = "Despesa #{$costId} não estava marcada como paga.";
+
                     continue;
                 }
 

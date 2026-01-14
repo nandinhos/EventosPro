@@ -247,7 +247,7 @@ class FinancialReportServiceIntegrationTest extends TestCase
 
         // Act & Assert: Testar filtros por artista
         $this->reportService->setFilters([
-            'artist_id' => $this->artist->id,
+            'artist_ids' => [$this->artist->id],
             'start_date' => Carbon::now()->subDays(10)->format('Y-m-d'),
             'end_date' => Carbon::now()->format('Y-m-d'),
         ]);
@@ -260,7 +260,7 @@ class FinancialReportServiceIntegrationTest extends TestCase
 
         // Act & Assert: Testar filtros por booker
         $this->reportService->setFilters([
-            'booker_id' => $this->booker->id,
+            'booker_ids' => [$this->booker->id],
             'start_date' => Carbon::now()->subDays(10)->format('Y-m-d'),
             'end_date' => Carbon::now()->format('Y-m-d'),
         ]);
@@ -270,6 +270,46 @@ class FinancialReportServiceIntegrationTest extends TestCase
 
         $this->assertEquals(70000, $bookerSummary['total_inflow']); // gig1 + gig2
         $this->assertCount(2, $bookerTable);
+    }
+
+    #[Test]
+    public function it_filters_by_multiple_bookers()
+    {
+        // Arrange: Create multiple bookers and gigs
+        $booker1 = $this->booker;
+        $booker2 = Booker::factory()->create(['name' => 'Booker Two']);
+        $booker3 = Booker::factory()->create(['name' => 'Booker Three']);
+
+        $gig1 = $this->createCompleteGig([
+            'booker_id' => $booker1->id,
+            'cache_value' => 10000,
+        ]);
+        $gig2 = $this->createCompleteGig([
+            'booker_id' => $booker2->id,
+            'cache_value' => 20000,
+        ]);
+        $gig3 = $this->createCompleteGig([
+            'booker_id' => $booker3->id,
+            'cache_value' => 30000,
+        ]);
+
+        $this->createConfirmedPayment($gig1, 10000);
+        $this->createConfirmedPayment($gig2, 20000);
+        $this->createConfirmedPayment($gig3, 30000);
+
+        // Act: Filter by booker1 and booker2 only
+        $this->reportService->setFilters([
+            'booker_ids' => [$booker1->id, $booker2->id],
+            'start_date' => Carbon::now()->subDays(10)->format('Y-m-d'),
+            'end_date' => Carbon::now()->format('Y-m-d'),
+        ]);
+
+        $summary = $this->reportService->getOverviewSummary();
+        $tableData = $this->reportService->getOverviewTableData();
+
+        // Assert: Only gig1 and gig2 should be included
+        $this->assertEquals(30000, $summary['total_inflow']); // 10k + 20k
+        $this->assertCount(2, $tableData);
     }
 
     #[Test]

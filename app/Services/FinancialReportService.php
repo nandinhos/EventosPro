@@ -48,11 +48,14 @@ class FinancialReportService
     {
         $query->whereBetween('gig_date', [$this->startDate, $this->endDate]);
 
-        if (isset($this->filters['booker_id'])) {
-            $query->where('booker_id', $this->filters['booker_id']);
+        // Multi-select de bookers
+        if (! empty($this->filters['booker_ids'])) {
+            $query->whereIn('booker_id', $this->filters['booker_ids']);
         }
-        if (isset($this->filters['artist_id'])) {
-            $query->where('artist_id', $this->filters['artist_id']);
+
+        // Multi-select de artistas
+        if (! empty($this->filters['artist_ids'])) {
+            $query->whereIn('artist_id', $this->filters['artist_ids']);
         }
 
         return $query;
@@ -62,8 +65,8 @@ class FinancialReportService
     {
         $gigs = Gig::with(['payments', 'costs'])
             ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn ($q) => $q->where('booker_id', $this->filters['booker_id']))
-            ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
+            ->when(! empty($this->filters['booker_ids']), fn ($q) => $q->whereIn('booker_id', $this->filters['booker_ids']))
+            ->when(! empty($this->filters['artist_ids']), fn ($q) => $q->whereIn('artist_id', $this->filters['artist_ids']))
             ->get();
 
         $totalInflow = $gigs->sum('cache_value_brl');
@@ -83,8 +86,8 @@ class FinancialReportService
     {
         $gigs = Gig::with(['artist', 'booker', 'payments', 'costs'])
             ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn ($q) => $q->where('booker_id', $this->filters['booker_id']))
-            ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
+            ->when(! empty($this->filters['booker_ids']), fn ($q) => $q->whereIn('booker_id', $this->filters['booker_ids']))
+            ->when(! empty($this->filters['artist_ids']), fn ($q) => $q->whereIn('artist_id', $this->filters['artist_ids']))
             ->get();
 
         return $gigs->map(function ($gig) {
@@ -124,8 +127,8 @@ class FinancialReportService
     {
         $gigs = Gig::with(['payments', 'costs'])
             ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn ($q) => $q->where('booker_id', $this->filters['booker_id']))
-            ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
+            ->when(! empty($this->filters['booker_ids']), fn ($q) => $q->whereIn('booker_id', $this->filters['booker_ids']))
+            ->when(! empty($this->filters['artist_ids']), fn ($q) => $q->whereIn('artist_id', $this->filters['artist_ids']))
             ->get();
 
         $totalProfit = 0;
@@ -162,8 +165,8 @@ class FinancialReportService
     {
         return Gig::with(['payments', 'costs', 'artist'])
             ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn ($q) => $q->where('booker_id', $this->filters['booker_id']))
-            ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
+            ->when(! empty($this->filters['booker_ids']), fn ($q) => $q->whereIn('booker_id', $this->filters['booker_ids']))
+            ->when(! empty($this->filters['artist_ids']), fn ($q) => $q->whereIn('artist_id', $this->filters['artist_ids']))
             ->get()
             ->map(function ($gig) {
                 try {
@@ -315,8 +318,8 @@ class FinancialReportService
     {
         $gigs = Gig::with(['booker'])
             ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn ($q) => $q->where('booker_id', $this->filters['booker_id']))
-            ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
+            ->when(! empty($this->filters['booker_ids']), fn ($q) => $q->whereIn('booker_id', $this->filters['booker_ids']))
+            ->when(! empty($this->filters['artist_ids']), fn ($q) => $q->whereIn('artist_id', $this->filters['artist_ids']))
             ->get();
 
         $totalCommissions = 0;
@@ -347,8 +350,8 @@ class FinancialReportService
     {
         $gigs = Gig::with(['booker', 'artist'])
             ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn ($q) => $q->where('booker_id', $this->filters['booker_id']))
-            ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
+            ->when(! empty($this->filters['booker_ids']), fn ($q) => $q->whereIn('booker_id', $this->filters['booker_ids']))
+            ->when(! empty($this->filters['artist_ids']), fn ($q) => $q->whereIn('artist_id', $this->filters['artist_ids']))
             ->get();
 
         return $gigs->map(function ($gig) {
@@ -385,8 +388,8 @@ class FinancialReportService
         $expenses = GigCost::with(['gig', 'costCenter'])
             ->whereBetween('expense_date', [$this->startDate, $this->endDate])
             ->whereHas('gig')
-            ->when(isset($this->filters['booker_id']), fn ($q) => $q->whereHas('gig', fn ($q) => $q->where('booker_id', $this->filters['booker_id'])))
-            ->when(isset($this->filters['artist_id']), fn ($q) => $q->whereHas('gig', fn ($q) => $q->where('artist_id', $this->filters['artist_id'])))
+            ->when(! empty($this->filters['booker_ids']), fn ($q) => $q->whereHas('gig', fn ($q) => $q->whereIn('booker_id', $this->filters['booker_ids'])))
+            ->when(! empty($this->filters['artist_ids']), fn ($q) => $q->whereHas('gig', fn ($q) => $q->whereIn('artist_id', $this->filters['artist_ids'])))
             ->get()
             ->groupBy(function ($cost) {
                 return $cost->cost_center_id ? $cost->costCenter->name : 'Sem Centro de Custo';
@@ -425,8 +428,8 @@ class FinancialReportService
     {
         $gigs = Gig::with(['payments', 'costs', 'booker', 'artist'])
             ->whereBetween('gig_date', [$this->startDate, $this->endDate])
-            ->when(isset($this->filters['booker_id']), fn ($q) => $q->where('booker_id', $this->filters['booker_id']))
-            ->when(isset($this->filters['artist_id']), fn ($q) => $q->where('artist_id', $this->filters['artist_id']))
+            ->when(! empty($this->filters['booker_ids']), fn ($q) => $q->whereIn('booker_id', $this->filters['booker_ids']))
+            ->when(! empty($this->filters['artist_ids']), fn ($q) => $q->whereIn('artist_id', $this->filters['artist_ids']))
             ->get();
 
         $totalRevenue = 0;
@@ -715,17 +718,17 @@ class FinancialReportService
             ->latest('expense_date'); // Ordena pelas mais recentes por padrão
 
         // Aplica os filtros gerais (do formulário principal de relatórios)
-        // Filtrando despesas de gigs de um artista específico
-        if (! empty($this->filters['artist_id'])) {
+        // Filtrando despesas de gigs de artistas específicos
+        if (! empty($this->filters['artist_ids'])) {
             $query->whereHas('gig', function ($q) {
-                $q->where('artist_id', $this->filters['artist_id']);
+                $q->whereIn('artist_id', $this->filters['artist_ids']);
             });
         }
 
-        // Filtrando despesas de gigs de um booker específico
-        if (! empty($this->filters['booker_id'])) {
+        // Filtrando despesas de gigs de bookers específicos
+        if (! empty($this->filters['booker_ids'])) {
             $query->whereHas('gig', function ($q) {
-                $q->where('booker_id', $this->filters['booker_id']);
+                $q->whereIn('booker_id', $this->filters['booker_ids']);
             });
         }
 
