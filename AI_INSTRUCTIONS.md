@@ -1,0 +1,69 @@
+# laravel - Instrucoes para IA
+
+## AI Dev Superpowers
+
+Este projeto usa **AI Dev Superpowers** para governanca de desenvolvimento com IA.
+
+### Ativacao do Modo Agente
+
+**Opcao 1 - Comando direto (recomendado):**
+```bash
+aidev agent
+```
+Copie o prompt gerado e cole aqui.
+
+**Opcao 2 - Ativacao por trigger:**
+O usuario dira um dos seguintes:
+- **"modo agente"**
+- **"aidev"**
+- **"superpowers"**
+- **"ativar agentes"**
+
+### O que fazer ao ativar
+
+1. Leia o arquivo `.aidev/agents/orchestrator.md`
+2. Siga as diretrizes do orquestrador
+3. Aplique as regras em `.aidev/rules/`
+4. Use TDD obrigatorio (RED -> GREEN -> REFACTOR)
+
+### Agentes Disponiveis (9)
+
+| Agente | Responsabilidade |
+|--------|------------------|
+| orchestrator | Coordenacao geral e classificacao de intent |
+| architect | Design e planejamento |
+| backend | Implementacao server-side (TDD) |
+| frontend | Implementacao client-side (TDD) |
+| code-reviewer | Revisao de qualidade e padroes |
+| qa | Testes e validacao |
+| security-guardian | Seguranca e OWASP |
+| devops | Deploy e infra |
+| legacy-analyzer | Codigo legado |
+
+### Skills Disponiveis (6)
+
+| Skill | Quando usar |
+|-------|-------------|
+| brainstorming | Nova feature ou projeto |
+| writing-plans | Criar plano de implementacao |
+| test-driven-development | Implementar codigo |
+| code-review | Revisar PR ou codigo |
+| systematic-debugging | Corrigir bugs |
+| learned-lesson | Documentar aprendizados |
+
+### Comandos CLI
+
+| Comando | Descricao |
+|---------|-----------|
+| `aidev agent` | Gera prompt de ativacao |
+| `aidev start` | Mostra instrucoes de ativacao |
+| `aidev status` | Mostra status da instalacao |
+| `aidev doctor` | Diagnostico do ambiente |
+
+### Informacoes do Projeto
+
+- **Nome**: laravel
+- **Stack**: filament
+
+---
+*Gerado por AI Dev Superpowers v3*
