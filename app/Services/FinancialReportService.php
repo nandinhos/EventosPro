@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\Settlement;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -16,13 +17,13 @@ use Illuminate\Support\Str;
 
 class FinancialReportService
 {
-    protected $startDate;
+    protected Carbon $startDate;
 
-    protected $endDate;
+    protected Carbon $endDate;
 
-    protected $filters;
+    protected array $filters;
 
-    protected $calculator;
+    protected GigFinancialCalculatorService $calculator;
 
     public function __construct(GigFinancialCalculatorService $calculator)
     {
@@ -31,20 +32,20 @@ class FinancialReportService
         $this->filters = [];
     }
 
-    public function setFilters(array $filters)
+    public function setFilters(array $filters): void
     {
         $this->filters = $filters;
         $this->startDate = isset($filters['start_date']) ? Carbon::parse($filters['start_date']) : Carbon::now()->startOfMonth();
         $this->endDate = isset($filters['end_date']) ? Carbon::parse($filters['end_date']) : Carbon::now()->endOfMonth();
     }
 
-    protected function setDefaultPeriod()
+    protected function setDefaultPeriod(): void
     {
         $this->startDate = Carbon::now()->startOfMonth();
         $this->endDate = Carbon::now()->endOfMonth();
     }
 
-    protected function applyFilters($query)
+    protected function applyFilters(Builder $query): Builder
     {
         $query->whereBetween('gig_date', [$this->startDate, $this->endDate]);
 

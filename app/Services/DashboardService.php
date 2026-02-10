@@ -8,13 +8,13 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardService
 {
-    protected $gigCalculator;
+    protected GigFinancialCalculatorService $gigCalculator;
 
-    protected $startDate;
+    protected Carbon $startDate;
 
-    protected $endDate;
+    protected Carbon $endDate;
 
-    protected $filters = [];
+    protected array $filters = [];
 
     public function __construct(GigFinancialCalculatorService $gigCalculator)
     {
@@ -22,7 +22,7 @@ class DashboardService
         $this->setDefaultPeriod();
     }
 
-    public function setFilters(array $filters = [])
+    public function setFilters(array $filters = []): self
     {
         $this->filters = $filters;
         $this->startDate = isset($filters['start_date'])
@@ -36,7 +36,7 @@ class DashboardService
         return $this;
     }
 
-    protected function setDefaultPeriod()
+    protected function setDefaultPeriod(): void
     {
         $this->startDate = Carbon::now()->startOfMonth();
         $this->endDate = Carbon::now()->endOfMonth();
@@ -44,10 +44,8 @@ class DashboardService
 
     /**
      * Obtém o primeiro e o último mês com dados de gigs
-     *
-     * @return array
      */
-    public function getFirstAndLastMonth()
+    public function getFirstAndLastMonth(): array
     {
         // Obtém a data da primeira e última gig cadastrada
         $firstGig = Gig::orderBy('gig_date', 'asc')->first();
@@ -69,7 +67,7 @@ class DashboardService
         ];
     }
 
-    public function getDashboardData()
+    public function getDashboardData(): array
     {
         $today = Carbon::today();
         $startOfMonth = $this->startDate->copy()->startOfMonth();
@@ -149,7 +147,7 @@ class DashboardService
         return $data;
     }
 
-    protected function prepareMonthlyRevenueChartData(&$data)
+    protected function prepareMonthlyRevenueChartData(array &$data): void
     {
         $endDateForChart = Carbon::now()->endOfYear();
         $startDateForChart = Carbon::now()->subMonths(11)->startOfMonth();
