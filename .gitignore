@@ -36,3 +36,8 @@ yarn-error.log
 .gemini/
 .junie/mcp/
 .playwright-mcp/
+
+# AI Dev State (dynamic session data)
+.aidev/state/
+.env
+debug_*.php
