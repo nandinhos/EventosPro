@@ -9,7 +9,10 @@
         },
         "playwright": {
             "command": "npx",
-            "args": ["-y", "@playwright/mcp@latest"]
+            "args": [
+                "-y",
+                "@playwright/mcp@latest"
+            ]
         },
         "serena": {
             "command": "uvx",
