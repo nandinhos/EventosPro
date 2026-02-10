@@ -1,12 +1,10 @@
 <?php
 
-// (Optional API route) Restore via POST when using JS modal
-Route::post('/cost-centers/restore', [\App\Http\Controllers\CostCenterController::class, 'restoreGhost'])
-    ->name('cost-centers.restore');
 use App\Http\Controllers\ArtistController;
 use App\Http\Controllers\ArtistPerformanceController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\BookerController;
+use App\Http\Controllers\CostCenterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DelinquencyReportController;
 use App\Http\Controllers\FinancialProjectionController;
@@ -136,7 +134,11 @@ Route::middleware('auth')->group(function () {
     Route::resource('agency-costs', \App\Http\Controllers\AgencyCostController::class);
 
     // Cost Centers
-    Route::resource('cost-centers', \App\Http\Controllers\CostCenterController::class)->except(['show']);
+    Route::resource('cost-centers', CostCenterController::class)->except(['show']);
+
+    // (Optional API route) Restore via POST when using JS modal
+    Route::post('/cost-centers/restore', [CostCenterController::class, 'restoreGhost'])
+        ->name('cost-centers.restore');
 
     // Rota para atualizar comissão de eventos
     Route::post('/bookers/events/{eventId}/commission', [BookerController::class, 'updateEventCommission'])->name('bookers.events.commission.update');
