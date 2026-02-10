@@ -1,8 +1,18 @@
 {
   "mcpServers": {
     "laravel-boost": {
-      "command": "/home/gacpac/projects/EventosPro/vendor/bin/sail",
-      "args": ["artisan", "boost:mcp"]
+      "command": "docker",
+      "args": [
+        "compose",
+        "exec",
+        "-T",
+        "-u",
+        "1000:1000",
+        "laravel.test",
+        "php",
+        "artisan",
+        "boost:mcp"
+      ]
     }
   }
 }
