@@ -1,0 +1,56 @@
+version: "1.0"
+triggers:
+  # Trigger 1: Padrões de erro crítico
+  - id: error-pattern-critical
+    type: error_pattern
+    enabled: true
+    patterns:
+      - "SQLSTATE\\[.*\\]"           # Erros SQL
+      - "Exception|Error|Failed"     # Exceções
+      - "TypeError.*undefined"       # Erros JS
+      - "Connection refused"         # Problemas de rede
+    severity: high
+    action: suggest_learned_lesson
+    message: "Detectei um erro crítico. Deseja documentar esta lição?"
+    cooldown: 300  # segundos entre sugestões
+
+  # Trigger 2: Palavras-chave de sucesso (User Intent)
+  - id: debug-success-keywords
+    type: user_intent
+    enabled: true
+    keywords:
+      - "corrigimos"
+      - "funciona agora"
+      - "resolvido"
+      - "bug fix"
+      - "aprendi"
+      - "lição"
+      - "memorizar"
+      - "documentar"
+    action: activate_learned_lesson_skill
+    message: "Detectado intenção de documentar aprendizado. Ativando skill..."
+    auto_suggest: true
+    confidence_threshold: 0.8
+    cooldown: 60
+
+  # Trigger 3: Feature complexa completada
+  - id: complex-feature-complete
+    type: workflow_state
+    enabled: true
+    state: "feature_complete"
+    conditions:
+      - "steps > 3"
+      - "duration > 30"
+    action: suggest_learned_lesson
+    message: "Feature complexa completada. Deseja documentar aprendizados?"
+    cooldown: 3600
+
+  # Trigger 4: Testes falhando → passando
+  - id: tests-fixed
+    type: test_state
+    enabled: true
+    from: "failing"
+    to: "passing"
+    action: suggest_learned_lesson
+    message: "Os testes agora estão passando! Deseja documentar o que foi corrigido?"
+    cooldown: 600
