@@ -21,6 +21,7 @@ class RolesAndPermissionsSeeder extends Seeder
         Permission::firstOrCreate(['name' => 'view all gigs']);
         Permission::firstOrCreate(['name' => 'view own gigs']);
         Permission::firstOrCreate(['name' => 'view booker dashboard']);
+        Permission::firstOrCreate(['name' => 'manage backups']); // Permissão para gerenciar backups do sistema
 
         // Criar Papéis e Atribuir Permissões
         $roleAdmin = Role::firstOrCreate(['name' => 'ADMIN']);

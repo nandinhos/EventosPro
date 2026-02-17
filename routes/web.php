@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\Configuracoes\BackupController;
 use App\Http\Controllers\ArtistController;
 use App\Http\Controllers\ArtistPerformanceController;
 use App\Http\Controllers\AuditController;
@@ -235,6 +236,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/audit/dashboard', [AuditController::class, 'getDashboard'])->name('audit.dashboard');
     Route::post('/audit/run-specific-audit', [AuditController::class, 'runSpecificAudit'])->name('audit.run-specific-audit');
     Route::post('/audit/run-all-audits', [AuditController::class, 'runAllAudits'])->name('audit.run-all-audits');
+
+    // Admin Configuracoes - Gerenciador de Backups
+    Route::middleware('can:manage backups')
+        ->prefix('admin/configuracoes/backup')
+        ->name('admin.backup.')
+        ->group(function () {
+            Route::get('/', [BackupController::class, 'index'])->name('index');
+            Route::post('/', [BackupController::class, 'store'])->name('store');
+            Route::get('/{filename}/download', [BackupController::class, 'download'])->name('download');
+            Route::post('/{filename}/restore', [BackupController::class, 'restore'])->name('restore');
+            Route::delete('/{filename}', [BackupController::class, 'destroy'])->name('destroy');
+        });
 
 });
 
