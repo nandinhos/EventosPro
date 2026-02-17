@@ -39,5 +39,6 @@ yarn-error.log
 
 # AI Dev State (dynamic session data)
 .aidev/state/
+.aidev/backups/
 .env
 debug_*.php
