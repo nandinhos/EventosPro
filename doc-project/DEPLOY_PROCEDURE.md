@@ -507,6 +507,14 @@ Após deploy, verificar:
 - [ ] Menu mostra todas funcionalidades esperadas
 - [ ] phpMyAdmin acessível (se necessário): http://IP:9090
 
+### Problema: Link de funcionalidade não aparece na sidebar (mesmo com permissão)
+
+**Sintoma**: O usuário tem a permissão, o código está lá, mas o link não é renderizado.
+
+**Causa**: Provavelmente o link está "aninhado" dentro de outro bloco de permissão no arquivo `resources/views/components/sidebar.blade.php`.
+
+**Solução**: Verifique se o link não está dentro de um `@can` de outro módulo. Consulte [VPS_DEVELOPMENT_STANDARDS.md](file:///home/nandodev/projects/EventosPro/doc-project/VPS_DEVELOPMENT_STANDARDS.md) para o padrão de implementação correto.
+
 ---
 
 **Data de criação**: 2025-10-22

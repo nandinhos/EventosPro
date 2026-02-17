@@ -170,8 +170,10 @@
                 </li>
 
                 <!-- Configurações -->
-                @can('manage cost-centers')
+                @if(auth()->user()->can('manage cost-centers') || auth()->user()->can('manage backups') || auth()->user()->can('manage service-takers'))
                     <li class="px-4 pt-4 pb-2 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase" x-show="sidebarOpen">Configurações</li>
+
+                    @can('manage cost-centers')
 
                     <li>
                         <a href="{{ route('cost-centers.index') }}"
@@ -189,7 +191,7 @@
                             <i class="fas fa-building fa-fw w-6 text-center text-lg"></i>
                             <span x-show="sidebarOpen" class="ml-3">Tomadores de Serviço</span>
                         </a>
-                    </li>
+                    @endcan
 
                     @can('manage backups')
                     <li>
@@ -201,7 +203,7 @@
                         </a>
                     </li>
                     @endcan
-                @endcan
+                @endif
             </ul>
         </nav>
     </div>
