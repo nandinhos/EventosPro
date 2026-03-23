@@ -244,6 +244,7 @@ Route::middleware('auth')->group(function () {
         ->group(function () {
             Route::get('/', [BackupController::class, 'index'])->name('index');
             Route::post('/', [BackupController::class, 'store'])->name('store');
+            Route::post('/upload', [BackupController::class, 'upload'])->name('upload');
             Route::get('/{filename}/download', [BackupController::class, 'download'])->name('download');
             Route::post('/{filename}/restore', [BackupController::class, 'restore'])->name('restore');
             Route::delete('/{filename}', [BackupController::class, 'destroy'])->name('destroy');

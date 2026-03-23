@@ -49,6 +49,33 @@ class BackupController extends Controller
     }
 
     /**
+     * Importa um backup externo (upload)
+     *
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function upload(Request $request)
+    {
+        $request->validate([
+            'backup_file' => ['required', 'file'],
+        ], [
+            'backup_file.required' => 'Por favor, selecione um arquivo de backup para enviar.',
+            'backup_file.file' => 'O arquivo enviado é inválido.',
+        ]);
+
+        $result = $this->backupService->uploadBackup($request->file('backup_file'));
+
+        if ($result['success']) {
+            return redirect()
+                ->route('admin.backup.index')
+                ->with('success', 'Backup importado com sucesso: '.$result['filename']);
+        }
+
+        return redirect()
+            ->route('admin.backup.index')
+            ->with('error', 'Erro ao importar backup: '.$result['message']);
+    }
+
+    /**
      * Faz o download de um arquivo de backup
      *
      * @return \Symfony\Component\HttpFoundation\StreamedResponse|\Illuminate\Http\RedirectResponse

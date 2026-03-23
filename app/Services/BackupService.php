@@ -158,6 +158,54 @@ class BackupService
     }
 
     /**
+     * Faz upload de um arquivo de backup externo
+     *
+     * @param  \Illuminate\Http\UploadedFile  $file
+     * @return array{success: bool, filename: string|null, message: string}
+     */
+    public function uploadBackup($file): array
+    {
+        try {
+            $this->ensureBackupDirectoryExists();
+
+            $originalName = $file->getClientOriginalName();
+
+            if (! $this->isValidFilename($originalName)) {
+                return [
+                    'success' => false,
+                    'filename' => null,
+                    'message' => 'O arquivo deve ter a extensão .sql e um nome válido contendo apenas letras, números, pontos, hífens ou sublinhados.',
+                ];
+            }
+
+            // Para evitar sobrescrever, anexamos um timestamp se o arquivo já existir
+            $filename = $originalName;
+            if (File::exists($this->backupPath.'/'.$filename)) {
+                $nameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
+                $filename = $nameWithoutExt.'-'.time().'.sql';
+            }
+
+            $file->move($this->backupPath, $filename);
+
+            Log::info("[BackupService] Backup externo uploaded com sucesso: {$filename}");
+
+            return [
+                'success' => true,
+                'filename' => $filename,
+                'message' => 'Backup enviado com sucesso',
+            ];
+        } catch (Exception $e) {
+            Log::error('[BackupService] Erro ao fazer upload de backup: '.$e->getMessage());
+
+            return [
+                'success' => false,
+                'filename' => null,
+                'message' => 'Erro ao salvar o arquivo: '.$e->getMessage(),
+            ];
+        }
+    }
+
+    /**
      * Restaura backup do MySQL
      *
      * @throws Exception
