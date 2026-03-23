@@ -53,17 +53,15 @@ class DatabaseSeeder extends Seeder
             // Seeders de entidades principais
             ArtistSeeder::class,
             BookerSeeder::class,
-
-            // Seeders que dependem das entidades acima
-            GigSeeder::class,
-            PaymentSeeder::class,
-
-            // Outros seeders
-            // SettlementSeeder::class,
-
-            // Seeder de testes de auditoria (opcional)
-            // AuditTestSeeder::class,
         ]);
+
+        if (! app()->environment('production')) {
+            $this->call([
+                // Seeders que dependem das entidades acima e geram dados falsos (Faker)
+                GigSeeder::class,
+                PaymentSeeder::class,
+            ]);
+        }
 
         $this->command->info('\n=== SEEDS DE MÚSICA ELETRÔNICA CRIADOS COM SUCESSO! ===');
         $this->command->info('✓ Artistas brasileiros de música eletrônica');
