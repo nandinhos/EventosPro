@@ -49,14 +49,13 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             CostCenterSeeder::class,
             TagSeeder::class,
-
-            // Seeders de entidades principais
-            ArtistSeeder::class,
-            BookerSeeder::class,
         ]);
 
         if (! app()->environment('production')) {
             $this->call([
+                // Seeders de entidades principais
+                ArtistSeeder::class,
+                BookerSeeder::class,
                 // Seeders que dependem das entidades acima e geram dados falsos (Faker)
                 GigSeeder::class,
                 PaymentSeeder::class,
