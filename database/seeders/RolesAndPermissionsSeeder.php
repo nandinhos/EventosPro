@@ -34,7 +34,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $roleBooker->givePermissionTo(['view own gigs', 'view booker dashboard']);
 
         // Atribuir roles aos usuários existentes
-        $adminUser = User::where('email', 'admin@eventospro.com')->first();
+        $adminUser = User::where('email', 'angelica.domingos@hotmail.com')->first();
         if ($adminUser && ! $adminUser->hasRole('ADMIN')) {
             $adminUser->assignRole($roleAdmin);
         }

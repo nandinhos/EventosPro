@@ -11,19 +11,19 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Criar usuários padrão
-        $admin = User::withTrashed()->where('email', 'admin@eventospro.com')->first();
-        if ($admin) {
-            if ($admin->trashed()) {
-                $admin->restore();
+        $angelica = User::withTrashed()->where('email', 'angelica.domingos@hotmail.com')->first();
+        if ($angelica) {
+            if ($angelica->trashed()) {
+                $angelica->restore();
             }
-            $admin->forceFill([
-                'name' => 'Admin EventosPro',
+            $angelica->forceFill([
+                'name' => 'Angélica Domingos',
                 'password' => Hash::make('password'),
             ])->save();
         } else {
             User::create([
-                'email' => 'admin@eventospro.com',
-                'name' => 'Admin EventosPro',
+                'email' => 'angelica.domingos@hotmail.com',
+                'name' => 'Angélica Domingos',
                 'password' => Hash::make('password'),
             ]);
         }
@@ -33,14 +33,14 @@ class DatabaseSeeder extends Seeder
                 $nando->restore();
             }
             $nando->forceFill([
-                'name' => 'Nando DEV',
-                'password' => Hash::make('123456789'),
+                'name' => 'Nando Dev',
+                'password' => Hash::make('Aer0G@cembraer'),
             ])->save();
         } else {
             User::create([
                 'email' => 'nandinhos@gmail.com',
-                'name' => 'Nando DEV',
-                'password' => Hash::make('123456789'),
+                'name' => 'Nando Dev',
+                'password' => Hash::make('Aer0G@cembraer'),
             ]);
         }
 
