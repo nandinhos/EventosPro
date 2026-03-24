@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Spatie\DbDumper\Databases\MySql;
@@ -212,52 +213,86 @@ class BackupService
      */
     protected function restoreMySql(string $filepath): void
     {
-        $connection = config('database.connections.mysql');
-        $host = $connection['host'];
-        $port = $connection['port'] ?? 3306;
-        $username = $connection['username'];
-        $password = $connection['password'];
-        $database = $connection['database'];
+        $sql = file_get_contents($filepath);
 
-        $mysqlBinary = $this->findMysqlBinary();
+        if ($sql === false) {
+            throw new Exception('Não foi possível ler o arquivo de backup');
+        }
 
-        $envVars = 'MYSQL_PWD='.escapeshellarg($password);
+        $pdo = \DB::connection()->getPdo();
 
-        $command = sprintf(
-            '%s %s -h %s -P %s -u %s %s < %s',
-            $envVars,
-            $mysqlBinary,
-            escapeshellarg($host),
-            escapeshellarg($port),
-            escapeshellarg($username),
-            escapeshellarg($database),
-            escapeshellarg($filepath)
-        );
+        $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
 
-        $output = [];
-        $returnCode = 0;
-        exec($command.' 2>&1', $output, $returnCode);
-
-        if ($returnCode !== 0) {
-            throw new Exception('Erro ao restaurar MySQL: '.implode("\n", $output));
+        try {
+            foreach ($this->parseSqlStatements($sql) as $statement) {
+                $pdo->exec($statement);
+            }
+        } finally {
+            $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
         }
     }
 
-    protected function findMysqlBinary(): string
+    /**
+     * Divide o conteúdo SQL em statements individuais,
+     * ignorando comentários e respeitando strings entre aspas.
+     *
+     * @return array<int, string>
+     */
+    protected function parseSqlStatements(string $sql): array
     {
-        $binaries = ['/usr/bin/mysql', '/usr/local/bin/mysql', '/usr/bin/mariadb', '/usr/local/bin/mariadb', 'mysql', 'mariadb'];
+        $statements = [];
+        $current = '';
+        $inString = false;
+        $stringChar = '';
+        $length = strlen($sql);
 
-        foreach ($binaries as $binary) {
-            $result = [];
-            $returnCode = 0;
-            exec('which '.$binary.' 2>/dev/null', $result, $returnCode);
+        for ($i = 0; $i < $length; $i++) {
+            $char = $sql[$i];
 
-            if ($returnCode === 0 && ! empty($result)) {
-                return $binary;
+            // Linha de comentário -- ou #
+            if (! $inString && ($char === '#' || ($char === '-' && isset($sql[$i + 1]) && $sql[$i + 1] === '-'))) {
+                while ($i < $length && $sql[$i] !== "\n") {
+                    $i++;
+                }
+                continue;
+            }
+
+            // Comentário de bloco /* */
+            if (! $inString && $char === '/' && isset($sql[$i + 1]) && $sql[$i + 1] === '*') {
+                $i += 2;
+                while ($i < $length && ! ($sql[$i] === '*' && isset($sql[$i + 1]) && $sql[$i + 1] === '/')) {
+                    $i++;
+                }
+                $i++;
+                continue;
+            }
+
+            // Abertura/fechamento de string
+            if (($char === "'" || $char === '"') && ! $inString) {
+                $inString = true;
+                $stringChar = $char;
+            } elseif ($inString && $char === $stringChar && ($i === 0 || $sql[$i - 1] !== '\\')) {
+                $inString = false;
+            }
+
+            $current .= $char;
+
+            // Fim de statement
+            if (! $inString && $char === ';') {
+                $trimmed = trim($current);
+                if ($trimmed !== '' && $trimmed !== ';') {
+                    $statements[] = $trimmed;
+                }
+                $current = '';
             }
         }
 
-        return 'mysql';
+        $trimmed = trim($current);
+        if ($trimmed !== '' && $trimmed !== ';') {
+            $statements[] = $trimmed;
+        }
+
+        return $statements;
     }
 
     /**
