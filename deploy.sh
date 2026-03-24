@@ -195,7 +195,7 @@ deploy() {
     install_npm
     build_assets
     generate_key
-    migrate_database
+    migrate_production
     cache_configs
     check_health
 }
@@ -257,7 +257,7 @@ case "$1" in
         check_docker
         start_containers
         generate_key
-        migrate_database
+        migrate_production
         cache_configs
         check_health
         ;;
@@ -274,7 +274,7 @@ case "$1" in
         check_docker
         start_containers
         generate_key
-        migrate_database
+        migrate_production
         print_success "Database migrated successfully!"
         ;;
     *)

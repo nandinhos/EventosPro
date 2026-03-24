@@ -33,8 +33,11 @@ class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
-        if (class_exists(FilamentDeveloperLoginsPlugin::class)) {
-            $panel->plugin(
+        return $panel
+            ->default()
+            ->id('admin')
+            ->path('admin')
+            ->when(class_exists(FilamentDeveloperLoginsPlugin::class), fn (Panel $panel) => $panel->plugin(
                 FilamentDeveloperLoginsPlugin::make()
                     ->enabled(app()->environment('local'))
                     ->switchable(true)
@@ -44,13 +47,7 @@ class AdminPanelProvider extends PanelProvider
                         'Diretor' => 'diretor@eventospro.com',
                         'Booker' => 'booker@eventospro.com',
                     ])
-            );
-        }
-
-        return $panel
-            ->default()
-            ->id('admin')
-            ->path('admin')
+            ))
             ->login()
             ->colors(['primary' => Color::Purple])
             ->pages([
