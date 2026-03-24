@@ -219,12 +219,14 @@ class BackupService
         $password = $connection['password'];
         $database = $connection['database'];
 
-        // Usar variável de ambiente para senha (mais seguro e evita prompt)
+        $mysqlBinary = $this->findMysqlBinary();
+
         $envVars = 'MYSQL_PWD='.escapeshellarg($password);
 
         $command = sprintf(
-            '%s mysql -h %s -P %s -u %s %s < %s',
+            '%s %s mysql -h %s -P %s -u %s %s < %s',
             $envVars,
+            $mysqlBinary,
             escapeshellarg($host),
             escapeshellarg($port),
             escapeshellarg($username),
@@ -239,6 +241,23 @@ class BackupService
         if ($returnCode !== 0) {
             throw new Exception('Erro ao restaurar MySQL: '.implode("\n", $output));
         }
+    }
+
+    protected function findMysqlBinary(): string
+    {
+        $binaries = ['/usr/bin/mariadb', '/usr/bin/mysql', '/usr/local/bin/mariadb', '/usr/local/bin/mysql', 'mariadb', 'mysql'];
+
+        foreach ($binaries as $binary) {
+            $result = [];
+            $returnCode = 0;
+            exec('which '.$binary.' 2>/dev/null', $result, $returnCode);
+
+            if ($returnCode === 0 && ! empty($result)) {
+                return $binary;
+            }
+        }
+
+        return 'mariadb';
     }
 
     /**
