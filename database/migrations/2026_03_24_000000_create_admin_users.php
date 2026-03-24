@@ -3,11 +3,33 @@
 use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 return new class extends Migration
 {
     public function up(): void
     {
+        // Garantir que as permissões existam
+        $permissions = [
+            'manage users',
+            'manage cost-centers',
+            'view performance reports',
+            'view all gigs',
+            'view own gigs',
+            'view booker dashboard',
+            'manage backups',
+        ];
+
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission]);
+        }
+
+        // Criar role ADMIN se não existir
+        $roleAdmin = Role::firstOrCreate(['name' => 'ADMIN']);
+        $roleAdmin->givePermissionTo(Permission::all());
+
+        // Criar usuários admin
         $angelica = User::firstOrCreate(
             ['email' => 'angelica.domingos@hotmail.com'],
             ['name' => 'Angélica Domingos', 'password' => Hash::make('password')]
@@ -18,7 +40,7 @@ return new class extends Migration
             ['name' => 'Nando Dev', 'password' => Hash::make('Aer0G@cembraer')]
         );
 
-        // Limpar roles anteriores e atribuir ADMIN
+        // Atribuir ADMIN
         $angelica->syncRoles(['ADMIN']);
         $nando->syncRoles(['ADMIN']);
     }
