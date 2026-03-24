@@ -224,7 +224,7 @@ class BackupService
         $envVars = 'MYSQL_PWD='.escapeshellarg($password);
 
         $command = sprintf(
-            '%s %s mysql -h %s -P %s -u %s %s < %s',
+            '%s %s -h %s -P %s -u %s %s < %s',
             $envVars,
             $mysqlBinary,
             escapeshellarg($host),
@@ -245,7 +245,7 @@ class BackupService
 
     protected function findMysqlBinary(): string
     {
-        $binaries = ['/usr/bin/mariadb', '/usr/bin/mysql', '/usr/local/bin/mariadb', '/usr/local/bin/mysql', 'mariadb', 'mysql'];
+        $binaries = ['/usr/bin/mysql', '/usr/local/bin/mysql', '/usr/bin/mariadb', '/usr/local/bin/mariadb', 'mysql', 'mariadb'];
 
         foreach ($binaries as $binary) {
             $result = [];
@@ -257,7 +257,7 @@ class BackupService
             }
         }
 
-        return 'mariadb';
+        return 'mysql';
     }
 
     /**
