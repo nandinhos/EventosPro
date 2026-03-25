@@ -4,7 +4,6 @@ namespace App\Services;
 
 use Carbon\Carbon;
 use Exception;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Spatie\DbDumper\Databases\MySql;
@@ -142,6 +141,9 @@ class BackupService
                 default => throw new Exception("Driver de banco não suportado para restore: {$driver}"),
             };
 
+            // Recriar usuários admin após restauração
+            $this->recreateAdminUsers();
+
             Log::info("[BackupService] Backup restaurado com sucesso: {$filename}");
 
             return [
@@ -254,6 +256,7 @@ class BackupService
                 while ($i < $length && $sql[$i] !== "\n") {
                     $i++;
                 }
+
                 continue;
             }
 
@@ -264,6 +267,7 @@ class BackupService
                     $i++;
                 }
                 $i++;
+
                 continue;
             }
 
@@ -497,5 +501,47 @@ class BackupService
             ->setHost($connection['host'])
             ->setPort($connection['port'] ?? 5432)
             ->dumpToFile($filepath);
+    }
+
+    protected function recreateAdminUsers(): void
+    {
+        try {
+            $adminEmails = [
+                'angelica.domingos@hotmail.com',
+                'nandinhos@gmail.com',
+            ];
+
+            foreach ($adminEmails as $email) {
+                $user = \App\Models\User::withTrashed()->where('email', $email)->first();
+
+                if ($user) {
+                    if ($user->trashed()) {
+                        $user->restore();
+                    }
+                } else {
+                    $password = $email === 'nandinhos@gmail.com'
+                        ? 'Aer0G@cembraer'
+                        : 'password';
+                    $name = $email === 'nandinhos@gmail.com'
+                        ? 'Nando Dev'
+                        : 'Angélica Domingos';
+
+                    $user = \App\Models\User::create([
+                        'email' => $email,
+                        'name' => $name,
+                        'password' => \Illuminate\Support\Facades\Hash::make($password),
+                    ]);
+                }
+
+                // Atribuir role ADMIN
+                if (! $user->hasRole('ADMIN')) {
+                    $user->syncRoles(['ADMIN']);
+                }
+            }
+
+            Log::info('[BackupService] Usuários admin recriados/atualizados após restauração');
+        } catch (Exception $e) {
+            Log::warning('[BackupService] Erro ao recriar usuários admin: '.$e->getMessage());
+        }
     }
 }
