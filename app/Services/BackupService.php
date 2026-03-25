@@ -562,11 +562,9 @@ class BackupService
             $adminUsers = [
                 'angelica.domingos@hotmail.com' => [
                     'name' => 'Angélica Domingos',
-                    'password' => 'password',
                 ],
                 'nandinhos@gmail.com' => [
                     'name' => 'Nando Dev',
-                    'password' => 'Aer0G@cembraer',
                 ],
             ];
 
@@ -577,16 +575,11 @@ class BackupService
                     if ($user->trashed()) {
                         $user->restore();
                     }
-                    // Atualiza senha e nome para garantir acesso
-                    $user->update([
-                        'name' => $data['name'],
-                        'password' => \Illuminate\Support\Facades\Hash::make($data['password']),
-                    ]);
                 } else {
                     $user = \App\Models\User::create([
                         'email' => $email,
                         'name' => $data['name'],
-                        'password' => \Illuminate\Support\Facades\Hash::make($data['password']),
+                        'password' => \Illuminate\Support\Facades\Hash::make('password'),
                     ]);
                 }
 
@@ -596,9 +589,9 @@ class BackupService
                 }
             }
 
-            Log::info('[BackupService] Usuários admin recriados/atualizados após restauração');
+            Log::info('[BackupService] Usuários admin garantidos após restauração (senhas preservadas)');
         } catch (Exception $e) {
-            Log::warning('[BackupService] Erro ao recriar usuários admin: '.$e->getMessage());
+            Log::warning('[BackupService] Erro ao garantir usuários admin: '.$e->getMessage());
         }
     }
 }
