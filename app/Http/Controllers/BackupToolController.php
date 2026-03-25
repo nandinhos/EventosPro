@@ -106,4 +106,34 @@ class BackupToolController extends Controller
 
         return response()->json(['success' => $result]);
     }
+
+    public function diagnose()
+    {
+        try {
+            $pdo = \DB::connection()->getPdo();
+            $tables = $pdo->query('SHOW TABLES')->fetchAll(\PDO::FETCH_COLUMN);
+
+            $tableCounts = [];
+            foreach ($tables as $table) {
+                try {
+                    $count = $pdo->query("SELECT COUNT(*) FROM `{$table}`")->fetchColumn();
+                    $tableCounts[$table] = $count;
+                } catch (\Exception $e) {
+                    $tableCounts[$table] = 'erro: '.$e->getMessage();
+                }
+            }
+
+            return response()->json([
+                'status' => 'ok',
+                'database' => config('database.connections.mysql.database'),
+                'tables_count' => count($tables),
+                'tables' => $tableCounts,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

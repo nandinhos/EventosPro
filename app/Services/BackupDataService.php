@@ -72,7 +72,7 @@ class BackupDataService
             throw new Exception('Não foi possível criar o arquivo de backup');
         }
 
-        fwrite($output, "-- Data Only Backup\n");
+        fwrite($output, "-- Data Only Backup (with DELETE before INSERT)\n");
         fwrite($output, "-- Database: {$database}\n");
         fwrite($output, '-- Generated: '.now()->toDateTimeString()."\n\n");
         fwrite($output, "SET FOREIGN_KEY_CHECKS=0;\n\n");
@@ -97,11 +97,14 @@ class BackupDataService
 
         $rows = $pdo->query("SELECT * FROM `{$table}`")->fetchAll(\PDO::FETCH_ASSOC);
 
+        fwrite($output, "-- Data from `{$table}`\n");
+        fwrite($output, "DELETE FROM `{$table}`;\n");
+
         if (empty($rows)) {
+            fwrite($output, "\n");
+
             return;
         }
-
-        fwrite($output, "-- Data from `{$table}`\n");
 
         $columns = array_keys($rows[0]);
         $columnList = implode('`, `', $columns);
@@ -167,13 +170,69 @@ class BackupDataService
         $pdo = \DB::connection()->getPdo();
 
         $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+        $pdo->exec('SET SQL_MODE=\'\'');
+        $pdo->exec('SET unique_checks=0');
+
+        $errors = [];
+        $successCount = 0;
+
+        try {
+            $pdo->beginTransaction();
+
+            foreach ($this->parseSqlStatements($sql) as $statement) {
+                try {
+                    $pdo->exec($statement);
+                    $successCount++;
+                } catch (\Exception $e) {
+                    $errors[] = 'Erro: '.substr($statement, 0, 80).' - '.$e->getMessage();
+                    Log::warning('[BackupDataService] Erro statement: '.$e->getMessage());
+                }
+            }
+
+            $pdo->commit();
+        } catch (\Exception $e) {
+            $pdo->rollBack();
+            Log::error('[BackupDataService] Transaction falhou: '.$e->getMessage());
+            throw $e;
+        } finally {
+            $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+            $pdo->exec('SET SQL_MODE=\'NO_AUTO_VALUE_ON_ZERO\'');
+            $pdo->exec('SET unique_checks=1');
+        }
+
+        Log::info("[BackupDataService] Restauração: {$successCount} statementsOK");
+
+        if (! empty($errors)) {
+            Log::warning('[BackupDataService] Alguns erros: '.implode('; ', array_slice($errors, 0, 3)));
+        }
+
+        $pdo = \DB::connection()->getPdo();
+
+        $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+        $pdo->exec('SET SQL_MODE=\'\'');
+
+        $errors = [];
+        $successCount = 0;
 
         try {
             foreach ($this->parseSqlStatements($sql) as $statement) {
-                $pdo->exec($statement);
+                try {
+                    $pdo->exec($statement);
+                    $successCount++;
+                } catch (\Exception $e) {
+                    $errors[] = 'Erro na语句: '.substr($statement, 0, 100).' - '.$e->getMessage();
+                    Log::warning('[BackupDataService] Erro ao executar statement: '.$e->getMessage());
+                }
             }
         } finally {
             $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+            $pdo->exec('SET SQL_MODE=\'NO_AUTO_VALUE_ON_ZERO\'');
+        }
+
+        Log::info("[BackupDataService] Restauração concluída: {$successCount} statements executados");
+
+        if (! empty($errors)) {
+            Log::warning('[BackupDataService] Erros durante restauração: '.implode('; ', array_slice($errors, 0, 5)));
         }
     }
 

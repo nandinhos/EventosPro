@@ -267,6 +267,7 @@ Route::middleware('auth')
         Route::get('/{filename}/download', [BackupToolController::class, 'download'])->name('download');
         Route::post('/{filename}/restore', [BackupToolController::class, 'restore'])->name('restore');
         Route::delete('/{filename}', [BackupToolController::class, 'destroy'])->name('destroy');
+        Route::get('/diagnose', [BackupToolController::class, 'diagnose'])->name('diagnose');
     });
 
 // Rota de diagnóstico temporária - REMOVER APÓS DEBUG
