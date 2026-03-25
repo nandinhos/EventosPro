@@ -254,3 +254,23 @@ Route::middleware('auth')->group(function () {
 
 // Rotas de autenticação (geradas pelo Breeze)
 require __DIR__.'/auth.php';
+
+// Rota de diagnóstico temporária - REMOVER APÓS DEBUG
+Route::get('/debug-db', function () {
+    try {
+        $users = \App\Models\User::all();
+        $dbConnection = config('database.default');
+        $dbConfig = config("database.connections.$dbConnection");
+        $pdo = \DB::connection()->getPdo();
+
+        return response()->json([
+            'database' => $dbConfig['database'] ?? 'unknown',
+            'connection' => $dbConnection,
+            'users_count' => $users->count(),
+            'users' => $users->map(fn ($u) => ['id' => $u->id, 'email' => $u->email, 'name' => $u->name]),
+            'tables' => \DB::select('SHOW TABLES'),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()]);
+    }
+});
