@@ -20,7 +20,11 @@ class BackupDataService
         'service_takers',
         'cost_centers',
         'agency_costs',
-        'performance_reports',
+        'settlements',
+        'debit_notes',
+        'contracts',
+        'tags',
+        'taggables',
     ];
 
     public function __construct()
@@ -39,15 +43,15 @@ class BackupDataService
             $filename = $this->generateBackupFilename();
             $filepath = $this->backupPath.'/'.$filename;
 
-            $this->dumpDataOnly($filepath);
+            $this->dumpFullBackup($filepath);
 
-            Log::info("[BackupDataService] Backup de dados criado: {$filename}");
+            Log::info("[BackupDataService] Backup completo criado: {$filename}");
 
             return [
                 'success' => true,
                 'filename' => $filename,
                 'path' => $filepath,
-                'message' => 'Backup de dados criado com sucesso',
+                'message' => 'Backup criado com sucesso',
             ];
         } catch (Exception $e) {
             Log::error('[BackupDataService] Erro ao criar backup: '.$e->getMessage());
@@ -61,7 +65,7 @@ class BackupDataService
         }
     }
 
-    protected function dumpDataOnly(string $filepath): void
+    protected function dumpFullBackup(string $filepath): void
     {
         $pdo = \DB::connection()->getPdo();
         $database = config('database.connections.mysql.database');
@@ -72,20 +76,20 @@ class BackupDataService
             throw new Exception('Não foi possível criar o arquivo de backup');
         }
 
-        fwrite($output, "-- Data Only Backup (with DELETE before INSERT)\n");
+        fwrite($output, "-- Complete Backup (Structure + Data)\n");
         fwrite($output, "-- Database: {$database}\n");
         fwrite($output, '-- Generated: '.now()->toDateTimeString()."\n\n");
         fwrite($output, "SET FOREIGN_KEY_CHECKS=0;\n\n");
 
         foreach ($this->tables as $table) {
-            $this->dumpTableData($output, $pdo, $table);
+            $this->dumpTableWithStructure($output, $pdo, $table);
         }
 
         fwrite($output, "SET FOREIGN_KEY_CHECKS=1;\n");
         fclose($output);
     }
 
-    protected function dumpTableData($output, $pdo, string $table): void
+    protected function dumpTableWithStructure($output, $pdo, string $table): void
     {
         try {
             $pdo->query("SELECT 1 FROM `{$table}` LIMIT 1");
@@ -95,16 +99,25 @@ class BackupDataService
             return;
         }
 
-        $rows = $pdo->query("SELECT * FROM `{$table}`")->fetchAll(\PDO::FETCH_ASSOC);
+        fwrite($output, "-- Table: `{$table}`\n");
 
-        fwrite($output, "-- Data from `{$table}`\n");
-        fwrite($output, "DELETE FROM `{$table}`;\n");
-
-        if (empty($rows)) {
-            fwrite($output, "\n");
+        try {
+            $createTable = $pdo->query("SHOW CREATE TABLE `{$table}`")->fetch(\PDO::FETCH_ASSOC);
+            fwrite($output, "DROP TABLE IF EXISTS `{$table}`;\n");
+            fwrite($output, $createTable['Create Table'].";\n\n");
+        } catch (\Exception $e) {
+            Log::warning("[BackupDataService] Não foi possível obter estrutura de {$table}");
 
             return;
         }
+
+        $rows = $pdo->query("SELECT * FROM `{$table}`")->fetchAll(\PDO::FETCH_ASSOC);
+
+        if (empty($rows)) {
+            return;
+        }
+
+        fwrite($output, "-- Data from `{$table}`\n");
 
         $columns = array_keys($rows[0]);
         $columnList = implode('`, `', $columns);
@@ -141,13 +154,13 @@ class BackupDataService
         }
 
         try {
-            $this->restoreDataOnly($filepath);
+            $this->restoreFullBackup($filepath);
 
             Log::info("[BackupDataService] Backup restaurado: {$filename}");
 
             return [
                 'success' => true,
-                'message' => 'Backup restaurado com sucesso (dados apenas)',
+                'message' => 'Backup restaurado com sucesso',
             ];
         } catch (Exception $e) {
             Log::error('[BackupDataService] Erro ao restaurar: '.$e->getMessage());
@@ -159,7 +172,7 @@ class BackupDataService
         }
     }
 
-    protected function restoreDataOnly(string $filepath): void
+    protected function restoreFullBackup(string $filepath): void
     {
         $sql = file_get_contents($filepath);
 
@@ -180,12 +193,18 @@ class BackupDataService
             $pdo->beginTransaction();
 
             foreach ($this->parseSqlStatements($sql) as $statement) {
+                $trimmed = trim($statement);
+                if (empty($trimmed)) {
+                    continue;
+                }
+
                 try {
                     $pdo->exec($statement);
                     $successCount++;
                 } catch (\Exception $e) {
-                    $errors[] = 'Erro: '.substr($statement, 0, 80).' - '.$e->getMessage();
-                    Log::warning('[BackupDataService] Erro statement: '.$e->getMessage());
+                    $shortStmt = substr($trimmed, 0, 60);
+                    $errors[] = "{$shortStmt}... -> {$e->getMessage()}";
+                    Log::warning("[BackupDataService] Statement error: {$shortStmt}: {$e->getMessage()}");
                 }
             }
 
@@ -193,47 +212,14 @@ class BackupDataService
         } catch (\Exception $e) {
             $pdo->rollBack();
             Log::error('[BackupDataService] Transaction falhou: '.$e->getMessage());
-            throw $e;
+            throw new Exception('Restauração falhou: '.$e->getMessage());
         } finally {
             $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
             $pdo->exec('SET SQL_MODE=\'NO_AUTO_VALUE_ON_ZERO\'');
             $pdo->exec('SET unique_checks=1');
         }
 
-        Log::info("[BackupDataService] Restauração: {$successCount} statementsOK");
-
-        if (! empty($errors)) {
-            Log::warning('[BackupDataService] Alguns erros: '.implode('; ', array_slice($errors, 0, 3)));
-        }
-
-        $pdo = \DB::connection()->getPdo();
-
-        $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
-        $pdo->exec('SET SQL_MODE=\'\'');
-
-        $errors = [];
-        $successCount = 0;
-
-        try {
-            foreach ($this->parseSqlStatements($sql) as $statement) {
-                try {
-                    $pdo->exec($statement);
-                    $successCount++;
-                } catch (\Exception $e) {
-                    $errors[] = 'Erro na语句: '.substr($statement, 0, 100).' - '.$e->getMessage();
-                    Log::warning('[BackupDataService] Erro ao executar statement: '.$e->getMessage());
-                }
-            }
-        } finally {
-            $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
-            $pdo->exec('SET SQL_MODE=\'NO_AUTO_VALUE_ON_ZERO\'');
-        }
-
-        Log::info("[BackupDataService] Restauração concluída: {$successCount} statements executados");
-
-        if (! empty($errors)) {
-            Log::warning('[BackupDataService] Erros durante restauração: '.implode('; ', array_slice($errors, 0, 5)));
-        }
+        Log::info("[BackupDataService] Restauração: {$successCount} statements OK, ".count($errors).' erros');
     }
 
     protected function parseSqlStatements(string $sql): array
@@ -301,7 +287,7 @@ class BackupDataService
         $backups = [];
 
         foreach ($files as $file) {
-            if ($file->getExtension() === 'sql' && str_starts_with($file->getFilename(), 'data-')) {
+            if ($file->getExtension() === 'sql' && str_starts_with($file->getFilename(), 'backup-')) {
                 $backups[] = [
                     'filename' => $file->getFilename(),
                     'size' => $file->getSize(),
@@ -328,33 +314,33 @@ class BackupDataService
                 return [
                     'success' => false,
                     'filename' => null,
-                    'message' => 'O arquivo deve ter extensão .sql e nome válido',
+                    'message' => 'Arquivo inválido',
                 ];
             }
 
-            $filename = 'data-'.$originalName;
+            $filename = 'backup-'.$originalName;
 
             if (File::exists($this->backupPath.'/'.$filename)) {
                 $nameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
-                $filename = 'data-'.$nameWithoutExt.'-'.time().'.sql';
+                $filename = 'backup-'.$nameWithoutExt.'-'.time().'.sql';
             }
 
             $file->move($this->backupPath, $filename);
 
-            Log::info("[BackupDataService] Upload realizado: {$filename}");
+            Log::info("[BackupDataService] Upload: {$filename}");
 
             return [
                 'success' => true,
                 'filename' => $filename,
-                'message' => 'Upload realizado com sucesso',
+                'message' => 'Upload realizado',
             ];
         } catch (Exception $e) {
-            Log::error('[BackupDataService] Erro no upload: '.$e->getMessage());
+            Log::error('[BackupDataService] Upload erro: '.$e->getMessage());
 
             return [
                 'success' => false,
                 'filename' => null,
-                'message' => 'Erro ao salvar arquivo: '.$e->getMessage(),
+                'message' => 'Erro: '.$e->getMessage(),
             ];
         }
     }
@@ -376,7 +362,7 @@ class BackupDataService
 
             return true;
         } catch (Exception $e) {
-            Log::error('[BackupDataService] Erro ao deletar: '.$e->getMessage());
+            Log::error('[BackupDataService] Delete erro: '.$e->getMessage());
 
             return false;
         }
@@ -411,7 +397,7 @@ class BackupDataService
         $database = config('database.connections.mysql.database', 'database');
         $timestamp = now()->format('Y-m-d-His');
 
-        return "data-{$database}-{$timestamp}.sql";
+        return "backup-{$database}-{$timestamp}.sql";
     }
 
     protected function ensureBackupDirectoryExists(): void
