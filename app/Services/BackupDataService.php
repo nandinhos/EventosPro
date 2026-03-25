@@ -188,9 +188,11 @@ class BackupDataService
 
         $errors = [];
         $successCount = 0;
+        $inTransaction = false;
 
         try {
             $pdo->beginTransaction();
+            $inTransaction = true;
 
             foreach ($this->parseSqlStatements($sql) as $statement) {
                 $trimmed = trim($statement);
@@ -209,8 +211,11 @@ class BackupDataService
             }
 
             $pdo->commit();
+            $inTransaction = false;
         } catch (\Exception $e) {
-            $pdo->rollBack();
+            if ($inTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             Log::error('[BackupDataService] Transaction falhou: '.$e->getMessage());
             throw new Exception('Restauração falhou: '.$e->getMessage());
         } finally {
