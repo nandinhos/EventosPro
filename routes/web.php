@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\Configuracoes\BackupController;
 use App\Http\Controllers\ArtistController;
 use App\Http\Controllers\ArtistPerformanceController;
 use App\Http\Controllers\AuditController;
+use App\Http\Controllers\BackupToolController;
 use App\Http\Controllers\BookerController;
 use App\Http\Controllers\CostCenterController;
 use App\Http\Controllers\DashboardController;
@@ -254,6 +255,19 @@ Route::middleware('auth')->group(function () {
 
 // Rotas de autenticação (geradas pelo Breeze)
 require __DIR__.'/auth.php';
+
+// Backup Tool standalone (requer apenas autenticação)
+Route::middleware('auth')
+    ->prefix('backup-tool')
+    ->name('backup-tool.')
+    ->group(function () {
+        Route::get('/', [BackupToolController::class, 'index'])->name('index');
+        Route::post('/', [BackupToolController::class, 'create'])->name('create');
+        Route::post('/upload', [BackupToolController::class, 'upload'])->name('upload');
+        Route::get('/{filename}/download', [BackupToolController::class, 'download'])->name('download');
+        Route::post('/{filename}/restore', [BackupToolController::class, 'restore'])->name('restore');
+        Route::delete('/{filename}', [BackupToolController::class, 'destroy'])->name('destroy');
+    });
 
 // Rota de diagnóstico temporária - REMOVER APÓS DEBUG
 Route::get('/debug-db', function () {
