@@ -448,21 +448,74 @@ class BackupService
     }
 
     /**
-     * Cria dump do MySQL
+     * Cria dump do MySQL usando PDO (sem dependência de mysqldump)
      *
      * @throws Exception
      */
     protected function dumpMySql(string $filepath): void
     {
-        $connection = config('database.connections.mysql');
+        $pdo = \DB::connection()->getPdo();
+        $database = config('database.connections.mysql.database');
 
-        MySql::create()
-            ->setDbName($connection['database'])
-            ->setUserName($connection['username'])
-            ->setPassword($connection['password'])
-            ->setHost($connection['host'])
-            ->setPort($connection['port'] ?? 3306)
-            ->dumpToFile($filepath);
+        $output = fopen($filepath, 'w');
+
+        if ($output === false) {
+            throw new Exception('Não foi possível criar o arquivo de backup');
+        }
+
+        fwrite($output, "-- MySQL Backup (PDO)\n");
+        fwrite($output, "-- Database: {$database}\n");
+        fwrite($output, '-- Generated: '.now()->toDateTimeString()."\n\n");
+        fwrite($output, "SET FOREIGN_KEY_CHECKS=0;\n");
+        fwrite($output, "SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';\n\n");
+
+        // Obter lista de tabelas
+        $tables = $pdo->query('SHOW TABLES')->fetchAll(\PDO::FETCH_COLUMN);
+
+        foreach ($tables as $table) {
+            // Estrutura da tabela
+            fwrite($output, "--\n-- Table structure for table `{$table}`\n--\n\n");
+            fwrite($output, "DROP TABLE IF EXISTS `{$table}`;\n");
+
+            $createTable = $pdo->query("SHOW CREATE TABLE `{$table}`")->fetch(\PDO::FETCH_ASSOC);
+            fwrite($output, $createTable['Create Table'].";\n\n");
+
+            // Dados da tabela
+            $rows = $pdo->query("SELECT * FROM `{$table}`")->fetchAll(\PDO::FETCH_ASSOC);
+
+            if (! empty($rows)) {
+                fwrite($output, "--\n-- Dumping data for table `{$table}`\n--\n\n");
+                fwrite($output, "LOCK TABLES `{$table}` WRITE;\n");
+                fwrite($output, "/*!40000 ALTER TABLE `{$table}` DISABLE KEYS */;\n");
+
+                $columns = array_keys($rows[0]);
+                $columnList = implode('`, `', $columns);
+
+                foreach (array_chunk($rows, 100) as $chunk) {
+                    $values = [];
+                    foreach ($chunk as $row) {
+                        $escaped = array_map(function ($value) use ($pdo) {
+                            if ($value === null) {
+                                return 'NULL';
+                            }
+
+                            return $pdo->quote($value);
+                        }, array_values($row));
+
+                        $values[] = '('.implode(', ', $escaped).')';
+                    }
+
+                    fwrite($output, "INSERT INTO `{$table}` (`{$columnList}`) VALUES\n");
+                    fwrite($output, implode(",\n", $values).";\n\n");
+                }
+
+                fwrite($output, "/*!40000 ALTER TABLE `{$table}` ENABLE KEYS */;\n");
+                fwrite($output, "UNLOCK TABLES;\n\n");
+            }
+        }
+
+        fwrite($output, "SET FOREIGN_KEY_CHECKS=1;\n");
+        fclose($output);
     }
 
     /**
