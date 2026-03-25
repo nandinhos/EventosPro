@@ -287,7 +287,7 @@ class BackupDataService
         $backups = [];
 
         foreach ($files as $file) {
-            if ($file->getExtension() === 'sql' && str_starts_with($file->getFilename(), 'backup-')) {
+            if ($file->getExtension() === 'sql' && (str_starts_with($file->getFilename(), 'backup-') || str_starts_with($file->getFilename(), 'backup-db-'))) {
                 $backups[] = [
                     'filename' => $file->getFilename(),
                     'size' => $file->getSize(),
@@ -394,10 +394,9 @@ class BackupDataService
 
     protected function generateBackupFilename(): string
     {
-        $database = config('database.connections.mysql.database', 'database');
         $timestamp = now()->format('Y-m-d-His');
 
-        return "backup-{$database}-{$timestamp}.sql";
+        return "backup-db-{$timestamp}.sql";
     }
 
     protected function ensureBackupDirectoryExists(): void
