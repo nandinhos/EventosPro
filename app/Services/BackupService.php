@@ -559,30 +559,34 @@ class BackupService
     protected function recreateAdminUsers(): void
     {
         try {
-            $adminEmails = [
-                'angelica.domingos@hotmail.com',
-                'nandinhos@gmail.com',
+            $adminUsers = [
+                'angelica.domingos@hotmail.com' => [
+                    'name' => 'Angélica Domingos',
+                    'password' => 'password',
+                ],
+                'nandinhos@gmail.com' => [
+                    'name' => 'Nando Dev',
+                    'password' => 'Aer0G@cembraer',
+                ],
             ];
 
-            foreach ($adminEmails as $email) {
+            foreach ($adminUsers as $email => $data) {
                 $user = \App\Models\User::withTrashed()->where('email', $email)->first();
 
                 if ($user) {
                     if ($user->trashed()) {
                         $user->restore();
                     }
+                    // Atualiza senha e nome para garantir acesso
+                    $user->update([
+                        'name' => $data['name'],
+                        'password' => \Illuminate\Support\Facades\Hash::make($data['password']),
+                    ]);
                 } else {
-                    $password = $email === 'nandinhos@gmail.com'
-                        ? 'Aer0G@cembraer'
-                        : 'password';
-                    $name = $email === 'nandinhos@gmail.com'
-                        ? 'Nando Dev'
-                        : 'Angélica Domingos';
-
                     $user = \App\Models\User::create([
                         'email' => $email,
-                        'name' => $name,
-                        'password' => \Illuminate\Support\Facades\Hash::make($password),
+                        'name' => $data['name'],
+                        'password' => \Illuminate\Support\Facades\Hash::make($data['password']),
                     ]);
                 }
 
