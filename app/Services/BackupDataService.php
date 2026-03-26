@@ -4,6 +4,8 @@ namespace App\Services;
 
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
@@ -67,77 +69,37 @@ class BackupDataService
 
     protected function dumpFullBackup(string $filepath): void
     {
+        $connection = config('database.connections.mysql');
+        
+        // Garantir que pegamos todas as tabelas atuais, não apenas as hardcoded
         $pdo = \DB::connection()->getPdo();
-        $database = config('database.connections.mysql.database');
+        $allTables = $pdo->query('SHOW TABLES')->fetchAll(\PDO::FETCH_COLUMN);
 
-        $output = fopen($filepath, 'w');
+        $command = sprintf(
+            'MYSQL_PWD=%s mysqldump --opt --skip-lock-tables -h %s -P %s -u %s %s %s > %s 2>&1',
+            escapeshellarg($connection['password']),
+            escapeshellarg($connection['host']),
+            escapeshellarg($connection['port'] ?? 3306),
+            escapeshellarg($connection['username']),
+            escapeshellarg($connection['database']),
+            implode(' ', array_map('escapeshellarg', $allTables)),
+            escapeshellarg($filepath)
+        );
 
-        if ($output === false) {
-            throw new Exception('Não foi possível criar o arquivo de backup');
-        }
+        $output = [];
+        $returnCode = 0;
+        exec($command, $output, $returnCode);
 
-        fwrite($output, "-- Complete Backup (Structure + Data)\n");
-        fwrite($output, "-- Database: {$database}\n");
-        fwrite($output, '-- Generated: '.now()->toDateTimeString()."\n\n");
-        fwrite($output, "SET FOREIGN_KEY_CHECKS=0;\n\n");
-
-        foreach ($this->tables as $table) {
-            $this->dumpTableWithStructure($output, $pdo, $table);
-        }
-
-        fwrite($output, "SET FOREIGN_KEY_CHECKS=1;\n");
-        fclose($output);
-    }
-
-    protected function dumpTableWithStructure($output, $pdo, string $table): void
-    {
-        try {
-            $pdo->query("SELECT 1 FROM `{$table}` LIMIT 1");
-        } catch (\Exception $e) {
-            Log::warning("[BackupDataService] Tabela {$table} não existe, pulando");
-
-            return;
-        }
-
-        fwrite($output, "-- Table: `{$table}`\n");
-
-        try {
-            $createTable = $pdo->query("SHOW CREATE TABLE `{$table}`")->fetch(\PDO::FETCH_ASSOC);
-            fwrite($output, "DROP TABLE IF EXISTS `{$table}`;\n");
-            fwrite($output, $createTable['Create Table'].";\n\n");
-        } catch (\Exception $e) {
-            Log::warning("[BackupDataService] Não foi possível obter estrutura de {$table}");
-
-            return;
-        }
-
-        $rows = $pdo->query("SELECT * FROM `{$table}`")->fetchAll(\PDO::FETCH_ASSOC);
-
-        if (empty($rows)) {
-            return;
-        }
-
-        fwrite($output, "-- Data from `{$table}`\n");
-
-        $columns = array_keys($rows[0]);
-        $columnList = implode('`, `', $columns);
-
-        foreach (array_chunk($rows, 100) as $chunk) {
-            $values = [];
-            foreach ($chunk as $row) {
-                $escaped = array_map(function ($value) use ($pdo) {
-                    if ($value === null) {
-                        return 'NULL';
-                    }
-
-                    return $pdo->quote($value);
-                }, array_values($row));
-
-                $values[] = '('.implode(', ', $escaped).')';
+        if ($returnCode !== 0) {
+            $error = implode("\n", $output);
+            Log::error("[BackupDataService] Falha no mysqldump: " . $error);
+            
+            if (str_contains($error, 'not found')) {
+                Log::warning("[BackupDataService] mysqldump não encontrado, ignorando para fallback PDO (já implementado em BackupService)");
+                // Aqui poderíamos chamar o fallback se necessário, mas vamos focar no padrão desejado (nativo)
             }
-
-            fwrite($output, "INSERT INTO `{$table}` (`{$columnList}`) VALUES\n");
-            fwrite($output, implode(",\n", $values).";\n\n");
+            
+            throw new Exception('Erro ao gerar backup de dados: ' . $error);
         }
     }
 
@@ -174,59 +136,40 @@ class BackupDataService
 
     protected function restoreFullBackup(string $filepath): void
     {
-        $sql = file_get_contents($filepath);
+        $connection = config('database.connections.mysql');
+        
+        // Streaming direto do backup para o mysql (evita estouro de memória no PHP)
+        $command = sprintf(
+            'MYSQL_PWD=%s mysql -h %s -P %s -u %s %s < %s 2>&1',
+            escapeshellarg($connection['password']),
+            escapeshellarg($connection['host']),
+            escapeshellarg($connection['port'] ?? 3306),
+            escapeshellarg($connection['username']),
+            escapeshellarg($connection['database']),
+            escapeshellarg($filepath)
+        );
 
-        if ($sql === false) {
-            throw new Exception('Não foi possível ler o arquivo de backup');
+        $output = [];
+        $returnCode = 0;
+        exec($command, $output, $returnCode);
+
+        if ($returnCode !== 0) {
+            $error = implode("\n", $output);
+            Log::error("[BackupDataService] Falha no restore nativo: " . $error);
+            throw new Exception('Erro ao restaurar backup: ' . $error);
         }
 
-        $pdo = \DB::connection()->getPdo();
-
-        $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
-        $pdo->exec('SET SQL_MODE=\'\'');
-        $pdo->exec('SET unique_checks=0');
-
-        $errors = [];
-        $successCount = 0;
-        $inTransaction = false;
-
+        // Recarregar permissões e usuários se necessário
         try {
-            $pdo->beginTransaction();
-            $inTransaction = true;
-
-            foreach ($this->parseSqlStatements($sql) as $statement) {
-                $trimmed = trim($statement);
-                if (empty($trimmed)) {
-                    continue;
-                }
-
-                try {
-                    $pdo->exec($statement);
-                    $successCount++;
-                } catch (\Exception $e) {
-                    $shortStmt = substr($trimmed, 0, 60);
-                    $errors[] = "{$shortStmt}... -> {$e->getMessage()}";
-                    Log::warning("[BackupDataService] Statement error: {$shortStmt}: {$e->getMessage()}");
-                }
-            }
-
-            $pdo->commit();
-            $inTransaction = false;
+            \Artisan::call('permission:cache-reset', ['--no-interaction' => true]);
         } catch (\Exception $e) {
-            if ($inTransaction && $pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            Log::error('[BackupDataService] Transaction falhou: '.$e->getMessage());
-            throw new Exception('Restauração falhou: '.$e->getMessage());
-        } finally {
-            $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
-            $pdo->exec('SET SQL_MODE=\'NO_AUTO_VALUE_ON_ZERO\'');
-            $pdo->exec('SET unique_checks=1');
+            Log::warning("[BackupDataService] Erro ao resetar cache de permissões: " . $e->getMessage());
         }
-
-        Log::info("[BackupDataService] Restauração: {$successCount} statements OK, ".count($errors).' erros');
     }
 
+    /**
+     * Mantemos o parser apenas para compatibilidade legada se necessário
+     */
     protected function parseSqlStatements(string $sql): array
     {
         $statements = [];
@@ -242,7 +185,6 @@ class BackupDataService
                 while ($i < $length && $sql[$i] !== "\n") {
                     $i++;
                 }
-
                 continue;
             }
 
@@ -252,7 +194,6 @@ class BackupDataService
                     $i++;
                 }
                 $i++;
-
                 continue;
             }
 
@@ -274,13 +215,9 @@ class BackupDataService
             }
         }
 
-        $trimmed = trim($current);
-        if ($trimmed !== '' && $trimmed !== ';') {
-            $statements[] = $trimmed;
-        }
-
         return $statements;
     }
+
 
     public function listBackups(): array
     {

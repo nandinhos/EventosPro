@@ -98,6 +98,14 @@
                             <p class="mt-1 text-sm text-gray-500">Gere um backup manual ou envie um arquivo de backup externo (.sql)</p>
                         </div>
                         <div class="flex space-x-3">
+                            <a href="{{ route('admin.backup.integracao') }}"
+                               class="inline-flex items-center px-4 py-2 bg-amber-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-amber-700 transition ease-in-out duration-150">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.001 0 0120.488 9z"/>
+                                </svg>
+                                API Integração
+                            </a>
                             <button type="button" 
                                     @click="openUploadModal('upload-backup-form')"
                                     class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">

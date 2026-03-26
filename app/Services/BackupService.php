@@ -213,21 +213,63 @@ class BackupService
      *
      * @throws Exception
      */
+    /**
+     * Restaura backup do MySQL usando comando nativo (streaming)
+     *
+     * @throws Exception
+     */
     protected function restoreMySql(string $filepath): void
     {
-        $sql = file_get_contents($filepath);
+        $connection = config('database.connections.mysql');
+        
+        // Comando mysql para restaurar (usa streaming, evita estouro de memória)
+        $command = sprintf(
+            'MYSQL_PWD=%s mysql -h %s -P %s -u %s %s < %s 2>&1',
+            escapeshellarg($connection['password']),
+            escapeshellarg($connection['host']),
+            escapeshellarg($connection['port'] ?? 3306),
+            escapeshellarg($connection['username']),
+            escapeshellarg($connection['database']),
+            escapeshellarg($filepath)
+        );
 
+        $output = [];
+        $returnCode = 0;
+        exec($command, $output, $returnCode);
+
+        if ($returnCode !== 0) {
+            $error = implode("\n", $output);
+            Log::error("[BackupService] Falha no restore nativo: " . $error);
+            
+            // Fallback para PDO se o binário falhar (por exemplo, PATH não configurado)
+            if (str_contains($error, 'not found')) {
+                Log::warning("[BackupService] mysql não encontrado, tentando fallback PDO");
+                $this->restoreMySqlFallback($filepath);
+                return;
+            }
+            
+            throw new Exception('Erro ao restaurar MySQL: ' . $error);
+        }
+    }
+
+    /**
+     * Fallback de restauração via PDO (mais lento, propenso a erros de memória)
+     */
+    protected function restoreMySqlFallback(string $filepath): void
+    {
+        $sql = file_get_contents($filepath);
         if ($sql === false) {
             throw new Exception('Não foi possível ler o arquivo de backup');
         }
 
         $pdo = \DB::connection()->getPdo();
-
         $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
 
         try {
             foreach ($this->parseSqlStatements($sql) as $statement) {
-                $pdo->exec($statement);
+                if (trim($statement)) {
+                    $pdo->exec($statement);
+                }
             }
         } finally {
             $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
@@ -235,10 +277,7 @@ class BackupService
     }
 
     /**
-     * Divide o conteúdo SQL em statements individuais,
-     * ignorando comentários e respeitando strings entre aspas.
-     *
-     * @return array<int, string>
+     * Divide o conteúdo SQL em statements individuais
      */
     protected function parseSqlStatements(string $sql): array
     {
@@ -251,27 +290,22 @@ class BackupService
         for ($i = 0; $i < $length; $i++) {
             $char = $sql[$i];
 
-            // Linha de comentário -- ou #
             if (! $inString && ($char === '#' || ($char === '-' && isset($sql[$i + 1]) && $sql[$i + 1] === '-'))) {
                 while ($i < $length && $sql[$i] !== "\n") {
                     $i++;
                 }
-
                 continue;
             }
 
-            // Comentário de bloco /* */
             if (! $inString && $char === '/' && isset($sql[$i + 1]) && $sql[$i + 1] === '*') {
                 $i += 2;
                 while ($i < $length && ! ($sql[$i] === '*' && isset($sql[$i + 1]) && $sql[$i + 1] === '/')) {
                     $i++;
                 }
                 $i++;
-
                 continue;
             }
 
-            // Abertura/fechamento de string
             if (($char === "'" || $char === '"') && ! $inString) {
                 $inString = true;
                 $stringChar = $char;
@@ -281,7 +315,6 @@ class BackupService
 
             $current .= $char;
 
-            // Fim de statement
             if (! $inString && $char === ';') {
                 $trimmed = trim($current);
                 if ($trimmed !== '' && $trimmed !== ';') {
@@ -448,75 +481,82 @@ class BackupService
     }
 
     /**
-     * Cria dump do MySQL usando PDO (sem dependência de mysqldump)
+     * Cria dump do MySQL usando mysqldump (nativo)
      *
      * @throws Exception
      */
     protected function dumpMySql(string $filepath): void
     {
+        $connection = config('database.connections.mysql');
+        
+        // mysqldump --opt garante triggers, views, drop table, etc.
+        $command = sprintf(
+            'MYSQL_PWD=%s mysqldump --opt --skip-lock-tables -h %s -P %s -u %s %s > %s 2>&1',
+            escapeshellarg($connection['password']),
+            escapeshellarg($connection['host']),
+            escapeshellarg($connection['port'] ?? 3306),
+            escapeshellarg($connection['username']),
+            escapeshellarg($connection['database']),
+            escapeshellarg($filepath)
+        );
+
+        $output = [];
+        $returnCode = 0;
+        exec($command, $output, $returnCode);
+
+        if ($returnCode !== 0) {
+            $error = implode("\n", $output);
+            Log::error("[BackupService] Falha no mysqldump: " . $error);
+            
+            if (str_contains($error, 'not found')) {
+                Log::warning("[BackupService] mysqldump não encontrado, tentando fallback PDO");
+                $this->dumpMySqlFallback($filepath);
+                return;
+            }
+            
+            throw new Exception('Erro ao gerar backup: ' . $error);
+        }
+    }
+
+    /**
+     * Fallback de dump via PDO
+     */
+    protected function dumpMySqlFallback(string $filepath): void
+    {
         $pdo = \DB::connection()->getPdo();
         $database = config('database.connections.mysql.database');
-
         $output = fopen($filepath, 'w');
 
         if ($output === false) {
             throw new Exception('Não foi possível criar o arquivo de backup');
         }
 
-        fwrite($output, "-- MySQL Backup (PDO)\n");
-        fwrite($output, "-- Database: {$database}\n");
-        fwrite($output, '-- Generated: '.now()->toDateTimeString()."\n\n");
-        fwrite($output, "SET FOREIGN_KEY_CHECKS=0;\n");
-        fwrite($output, "SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';\n\n");
+        fwrite($output, "-- MySQL Backup (PDO Fallback)\nSET FOREIGN_KEY_CHECKS=0;\n\n");
 
-        // Obter lista de tabelas
         $tables = $pdo->query('SHOW TABLES')->fetchAll(\PDO::FETCH_COLUMN);
 
         foreach ($tables as $table) {
-            // Estrutura da tabela
-            fwrite($output, "--\n-- Table structure for table `{$table}`\n--\n\n");
-            fwrite($output, "DROP TABLE IF EXISTS `{$table}`;\n");
-
             $createTable = $pdo->query("SHOW CREATE TABLE `{$table}`")->fetch(\PDO::FETCH_ASSOC);
-            fwrite($output, $createTable['Create Table'].";\n\n");
+            fwrite($output, "DROP TABLE IF EXISTS `{$table}`;\n" . $createTable['Create Table'] . ";\n\n");
 
-            // Dados da tabela
             $rows = $pdo->query("SELECT * FROM `{$table}`")->fetchAll(\PDO::FETCH_ASSOC);
-
-            if (! empty($rows)) {
-                fwrite($output, "--\n-- Dumping data for table `{$table}`\n--\n\n");
-                fwrite($output, "LOCK TABLES `{$table}` WRITE;\n");
-                fwrite($output, "/*!40000 ALTER TABLE `{$table}` DISABLE KEYS */;\n");
-
+            if (!empty($rows)) {
                 $columns = array_keys($rows[0]);
                 $columnList = implode('`, `', $columns);
-
                 foreach (array_chunk($rows, 100) as $chunk) {
                     $values = [];
                     foreach ($chunk as $row) {
-                        $escaped = array_map(function ($value) use ($pdo) {
-                            if ($value === null) {
-                                return 'NULL';
-                            }
-
-                            return $pdo->quote($value);
-                        }, array_values($row));
-
-                        $values[] = '('.implode(', ', $escaped).')';
+                        $values[] = "(" . implode(", ", array_map(fn($v) => $v === null ? "NULL" : $pdo->quote($v), array_values($row))) . ")";
                     }
-
-                    fwrite($output, "INSERT INTO `{$table}` (`{$columnList}`) VALUES\n");
-                    fwrite($output, implode(",\n", $values).";\n\n");
+                    fwrite($output, "INSERT INTO `{$table}` (`{$columnList}`) VALUES " . implode(", ", $values) . ";\n");
                 }
-
-                fwrite($output, "/*!40000 ALTER TABLE `{$table}` ENABLE KEYS */;\n");
-                fwrite($output, "UNLOCK TABLES;\n\n");
             }
         }
 
         fwrite($output, "SET FOREIGN_KEY_CHECKS=1;\n");
         fclose($output);
     }
+
 
     /**
      * Cria dump do SQLite

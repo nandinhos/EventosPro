@@ -12,13 +12,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\MorphToMany; // Importar o novo Service
-use Illuminate\Database\Eloquent\SoftDeletes; // Para resolver o Service
-use Illuminate\Support\Facades\App; // Para logs
-use Illuminate\Support\Facades\Log; // Importar para nova sintaxe de Accessor
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Log;
 
 /**
  * @property int $id
+ * @property int|null $legal_entity_id
+ * @property string $contract_data_status
  * @property int $artist_id
  * @property int|null $booker_id
  * @property string|null $contract_number
@@ -42,6 +44,7 @@ use Illuminate\Support\Facades\Log; // Importar para nova sintaxe de Accessor
  * @property \Carbon\Carbon|null $created_at
  * @property \Carbon\Carbon|null $updated_at
  * @property \Carbon\Carbon|null $deleted_at
+ * @property-read \App\Models\LegalEntity|null $legalEntity
  * @property-read \App\Models\Artist $artist
  * @property-read \App\Models\Booker $booker
  * @property-read Collection<int, \App\Models\Payment> $payments
@@ -54,6 +57,8 @@ class Gig extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'legal_entity_id',
+        'contract_data_status',
         'artist_id',
         'booker_id',
         'service_taker_id',
@@ -63,20 +68,13 @@ class Gig extends Model
         'location_event_details',
         'cache_value', // Valor original do contrato/cachê
         'currency',    // Moeda original do contrato/cachê
-        // 'exchange_rate', // Removido da tabela 'gigs'
-        // 'cache_value_brl', // Removido da tabela 'gigs', será um accessor
-        // 'expenses_value_brl', // Removido da tabela 'gigs'
-
         'agency_commission_type', // 'percent' ou 'fixed'
         'agency_commission_rate', // Taxa percentual (ex: 20 para 20%)
         'agency_commission_value', // Valor fixo em BRL OU valor calculado em BRL (se tipo 'percent') - Armazenado no DB
-
         'booker_commission_type', // 'percent' ou 'fixed'
         'booker_commission_rate', // Taxa percentual
         'booker_commission_value', // Valor fixo em BRL OU valor calculado em BRL (se tipo 'percent') - Armazenado no DB
-
         'liquid_commission_value', // Comissão líquida da agência (Agência Bruta - Booker) em BRL - Armazenado no DB
-
         'payment_status',         // Status do pagamento PELO CLIENTE (a_vencer, vencido, pago)
         'artist_payment_status',  // Status do pagamento AO ARTISTA (pendente, pago)
         'booker_payment_status',  // Status do pagamento AO BOOKER (pendente, pago)
@@ -87,16 +85,22 @@ class Gig extends Model
     protected $casts = [
         'contract_date' => 'date',
         'gig_date' => 'date',
-        'cache_value' => 'decimal:2', // Valor original na moeda da Gig
-        // Não há cast para exchange_rate ou cache_value_brl pois não são colunas diretas
+        'cache_value' => 'decimal:2',
         'agency_commission_rate' => 'decimal:2',
-        'agency_commission_value' => 'decimal:2', // Valor em BRL
+        'agency_commission_value' => 'decimal:2',
         'booker_commission_rate' => 'decimal:2',
-        'booker_commission_value' => 'decimal:2', // Valor em BRL
-        'liquid_commission_value' => 'decimal:2', // Valor em BRL
+        'booker_commission_value' => 'decimal:2',
+        'liquid_commission_value' => 'decimal:2',
+        'contract_data_status' => 'string',
     ];
 
     // --- Relacionamentos ---
+
+    public function legalEntity(): BelongsTo
+    {
+        return $this->belongsTo(LegalEntity::class);
+    }
+
     public function artist(): BelongsTo
     {
         return $this->belongsTo(Artist::class);
@@ -194,7 +198,6 @@ class Gig extends Model
     }
 
     // --- Instância do Service ---
-    // Para evitar múltiplas instanciações do service para o mesmo objeto Gig
     protected ?GigFinancialCalculatorService $financialCalculator = null;
 
     protected function getFinancialCalculator(): GigFinancialCalculatorService
@@ -208,20 +211,14 @@ class Gig extends Model
 
     // --- Accessors (Atributos Calculados Dinamicamente) ---
 
-    /**
-     * Função para buscar taxa de câmbio usando ExchangeRateService.
-     * Prioriza taxas de pagamentos confirmados, depois usa o service para obter taxas atualizadas.
-     */
     public function getExchangeRateForCurrency(string $currencyCode, Carbon $date): ?float
     {
         $currencyCode = strtoupper($currencyCode);
 
-        // BRL sempre retorna 1.0
         if ($currencyCode === 'BRL') {
             return 1.0;
         }
 
-        // Prioridade 1: Tentar pegar a taxa de câmbio do primeiro pagamento confirmado na mesma moeda
         $firstConfirmedPaymentWithRate = $this->payments()
             ->whereNotNull('confirmed_at')
             ->where('currency', $currencyCode)
@@ -231,116 +228,65 @@ class Gig extends Model
             ->first();
 
         if ($firstConfirmedPaymentWithRate) {
-            // Log::info("[Gig ID {$this->id}] Usando taxa de câmbio do pagamento confirmado {$firstConfirmedPaymentWithRate->id} para {$currencyCode}: {$firstConfirmedPaymentWithRate->exchange_rate}");
-
             return (float) $firstConfirmedPaymentWithRate->exchange_rate;
         }
 
-        // Prioridade 2: Usar ExchangeRateService para obter taxa atualizada
         $exchangeRateService = app(ExchangeRateService::class);
         $rate = $exchangeRateService->getExchangeRate($currencyCode, $date);
 
         if ($rate !== null) {
-            // Log::info("[Gig ID {$this->id}] Usando taxa de câmbio do ExchangeRateService para {$currencyCode}: {$rate}");
-
             return $rate;
         }
-
-        // Log::warning("[Gig ID {$this->id}] Não foi possível obter taxa de câmbio para {$currencyCode} na data {$date->format('Y-m-d')}");
 
         return null;
     }
 
-    /**
-     * Retorna o "Cachê Bruto" da Gig em BRL (Base de Comissão).
-     * Fórmula: Valor do Contrato em BRL - Despesas Pagas pela Agência.
-     * Utiliza o GigFinancialCalculatorService.
-     */
-    public function getGrossCashBrlAttribute(): float // Novo nome sugerido, ou manter getCommissionBaseBrlAttribute
+    public function getGrossCashBrlAttribute(): float
     {
         return $this->getFinancialCalculator()->calculateGrossCashBrl($this);
     }
 
-    /**
-     * Retorna o valor total das despesas confirmadas em BRL.
-     * Utiliza o GigFinancialCalculatorService.
-     */
     public function getTotalConfirmedExpensesBrlAttribute(): float
     {
         return $this->getFinancialCalculator()->calculateTotalConfirmedExpensesBrl($this);
     }
 
-    /**
-     * Retorna o valor total das despesas confirmadas e marcadas como reembolsáveis (NF Artista) em BRL.
-     * Utiliza o GigFinancialCalculatorService.
-     */
     public function getTotalReimbursableExpensesBrlAttribute(): float
     {
         return $this->getFinancialCalculator()->calculateTotalReimbursableExpensesBrl($this);
     }
 
-    /**
-     * Accessor para obter o valor da "Comissão Bruta da Agência" em BRL.
-     * Delega o cálculo para o GigFinancialCalculatorService.
-     * Este accessor APENAS LÊ. O valor é persistido no banco pelo GigObserver.
-     */
     public function getCalculatedAgencyGrossCommissionBrlAttribute(): float
     {
         return $this->getFinancialCalculator()->calculateAgencyGrossCommissionBrl($this);
     }
 
-    /**
-     * Accessor para obter o valor da "Comissão do Booker" em BRL.
-     * Delega o cálculo para o GigFinancialCalculatorService.
-     * Este accessor APENAS LÊ. O valor é persistido no banco pelo GigObserver.
-     */
     public function getCalculatedBookerCommissionBrlAttribute(): float
     {
         return $this->getFinancialCalculator()->calculateBookerCommissionBrl($this);
     }
 
-    /**
-     * Accessor para obter o valor da "Comissão Líquida da Agência" em BRL.
-     * Delega o cálculo para o GigFinancialCalculatorService.
-     * Este accessor APENAS LÊ. O valor é persistido no banco pelo GigObserver.
-     */
     public function getCalculatedAgencyNetCommissionBrlAttribute(): float
     {
         return $this->getFinancialCalculator()->calculateAgencyNetCommissionBrl($this);
     }
 
-    /**
-     * Accessor para obter o "Cachê Líquido do Artista" em BRL.
-     * Delega o cálculo para o GigFinancialCalculatorService.
-     */
     public function getCalculatedArtistNetPayoutBrlAttribute(): float
     {
         return $this->getFinancialCalculator()->calculateArtistNetPayoutBrl($this);
     }
 
-    /**
-     * Accessor para obter o valor final da Nota Fiscal do Artista em BRL.
-     * Delega o cálculo para o GigFinancialCalculatorService.
-     */
     public function getCalculatedArtistInvoiceValueBrlAttribute(): float
     {
         return $this->getFinancialCalculator()->calculateArtistInvoiceValueBrl($this);
     }
 
-    /**
-     * Retorna a taxa de câmbio a ser usada para a Gig.
-     * Prioriza a taxa do primeiro pagamento confirmado.
-     * Se não houver, usa uma taxa de projeção configurada.
-     *
-     * @return array contendo 'rate' e 'type' ('confirmed' ou 'projected')
-     */
     public function getExchangeRateDetails(): array
     {
         if (strtoupper($this->currency ?? 'BRL') === 'BRL') {
             return ['rate' => 1.0, 'type' => 'confirmed'];
         }
 
-        // Tenta encontrar a taxa de um pagamento já confirmado
         $firstConfirmedPayment = $this->payments()
             ->whereNotNull('confirmed_at')
             ->whereNotNull('exchange_rate')
@@ -350,25 +296,19 @@ class Gig extends Model
         if ($firstConfirmedPayment && $firstConfirmedPayment->exchange_rate > 0) {
             return [
                 'rate' => (float) $firstConfirmedPayment->exchange_rate,
-                'type' => 'confirmed', // A taxa é de um pagamento real
+                'type' => 'confirmed',
             ];
         }
 
-        // Se não encontrou, usa uma taxa de projeção do arquivo de configuração
         $defaultRates = config('exchange_rates.default_rates', []);
         $rate = $defaultRates[strtoupper($this->currency)] ?? null;
 
         return [
             'rate' => $rate,
-            'type' => 'projected', // A taxa é uma estimativa
+            'type' => 'projected',
         ];
     }
 
-    /**
-     * Calcula o valor total efetivamente recebido em BRL.
-     * Este método é a "fonte da verdade" para o valor real em BRL,
-     * pois soma cada pagamento confirmado usando sua própria taxa de câmbio.
-     */
     public function getTotalReceivedBrlAttribute(): float
     {
         $this->loadMissing('payments');
@@ -376,25 +316,16 @@ class Gig extends Model
         return (float) $this->payments
             ->whereNotNull('confirmed_at')
             ->sum(function ($payment) {
-                // Se o pagamento confirmado foi em BRL, usa o valor recebido.
                 if (strtoupper($payment->currency) === 'BRL') {
                     return $payment->received_value_actual;
                 }
-                // Se foi em outra moeda, converte usando a taxa de câmbio registrada NAQUELE pagamento.
                 if ($payment->exchange_rate) {
                     return $payment->received_value_actual * $payment->exchange_rate;
                 }
-
-                // Retorna 0 se um pagamento confirmado em moeda estrangeira não tiver taxa (cenário de erro de dados).
                 return 0;
             });
     }
 
-    /**
-     * Accessor INTELIGENTE para o Valor do Contrato em BRL.
-     * Usa lógica HÍBRIDA: pagamentos confirmados com taxa real + pendentes com taxa projetada.
-     * Retorna array com valor, tipo ('confirmed', 'hybrid', 'projected', 'unavailable'), taxa usada e detalhes.
-     */
     protected function cacheValueBrlDetails(): Attribute
     {
         return Attribute::make(
@@ -402,7 +333,6 @@ class Gig extends Model
                 $originalValue = (float) $this->cache_value;
                 $gigCurrency = strtoupper($this->currency ?? 'BRL');
 
-                // Se a moeda já é BRL, o valor é sempre "confirmado" e a taxa é 1.
                 if ($gigCurrency === 'BRL') {
                     return [
                         'value' => $originalValue,
@@ -411,19 +341,15 @@ class Gig extends Model
                     ];
                 }
 
-                // Carregar pagamentos para análise híbrida
                 $this->loadMissing('payments');
 
                 $confirmedPayments = $this->payments->whereNotNull('confirmed_at');
                 $pendingPayments = $this->payments->whereNull('confirmed_at');
 
-                // 1. Soma real dos pagamentos confirmados (já convertidos em BRL)
                 $confirmedBrlValue = $this->total_received_brl;
 
-                // 2. Determinar taxa para projetar parte pendente
                 $rateForPending = null;
                 if ($confirmedPayments->isNotEmpty()) {
-                    // Usar taxa do último pagamento confirmado na mesma moeda
                     $lastConfirmed = $confirmedPayments
                         ->where('currency', $gigCurrency)
                         ->sortByDesc('confirmed_at')
@@ -433,18 +359,14 @@ class Gig extends Model
                     }
                 }
                 if (! $rateForPending) {
-                    // Fallback: usar taxa de projeção do config
                     $defaultRates = config('exchange_rates.default_rates', []);
                     $rateForPending = $defaultRates[$gigCurrency] ?? null;
                 }
 
-                // 3. Calcular valor a projetar
-                // Se houver pagamentos, usa a soma dos pendentes; senão, usa valor original do contrato
                 $pendingOriginalValue = $pendingPayments->isNotEmpty()
                     ? $pendingPayments->sum('due_value')
                     : ($confirmedPayments->isEmpty() ? $originalValue : 0);
 
-                // Se não temos taxa e precisamos projetar, retornar unavailable
                 if ($pendingOriginalValue > 0 && ! $rateForPending) {
                     return [
                         'value' => null,
@@ -454,11 +376,8 @@ class Gig extends Model
                 }
 
                 $projectedPendingBrl = $rateForPending ? $pendingOriginalValue * $rateForPending : 0;
-
-                // 4. Calcular valor total híbrido
                 $totalBrlValue = $confirmedBrlValue + $projectedPendingBrl;
 
-                // 5. Determinar o tipo baseado no estado
                 $type = 'projected';
                 if ($confirmedPayments->isNotEmpty() && $pendingPayments->isEmpty() && $pendingOriginalValue == 0) {
                     $type = 'confirmed';
@@ -466,10 +385,7 @@ class Gig extends Model
                     $type = 'hybrid';
                 }
 
-                // 6. Calcular taxa média efetiva (para display)
                 $effectiveRate = $originalValue > 0 ? $totalBrlValue / $originalValue : null;
-
-                // Log::debug("[Accessor] Gig #{$this->id} - Tipo: {$type}, Confirmado BRL: {$confirmedBrlValue}, Pendente BRL: {$projectedPendingBrl}, Total: {$totalBrlValue}");
 
                 return [
                     'value' => $totalBrlValue,
@@ -483,33 +399,17 @@ class Gig extends Model
         );
     }
 
-    // Accessor antigo, agora DEPRECADO em favor de cacheValueBrlDetails['value'].
-    // Mantemos por retrocompatibilidade se outras partes ainda o usarem, mas ele usará a nova lógica.
     public function getCacheValueBrlAttribute(): ?float
     {
         return $this->cacheValueBrlDetails['value'];
     }
 
-    /**
-     * Accessor para verificar se todas as despesas da gig foram confirmadas.
-     */
     public function getAreAllCostsConfirmedAttribute(): bool
     {
-        // Se não houver custos, consideramos que "todos" estão confirmados.
         if ($this->gigCosts->isEmpty()) {
             return true;
         }
 
-        // Retorna true apenas se NÃO EXISTIR nenhum custo com is_confirmed = false.
         return $this->gigCosts()->where('is_confirmed', false)->doesntExist();
     }
-
-    // Manteremos os campos `agency_commission_value`, `booker_commission_value`,
-    // e `liquid_commission_value` como colunas no banco que serão preenchidas
-    // pelo GigObserver (que usará o Service).
-    // Os accessors acima com `Calculated` no nome servem para obter o valor
-    // "em tempo real" via service, útil para verificação ou se não quisermos
-    // depender 100% do valor armazenado. Para exibição geral, usaremos os campos
-    // da tabela que o Observer preencheu.
-
 }

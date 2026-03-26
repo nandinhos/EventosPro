@@ -46,6 +46,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             // Seeders de dados básicos (executar primeiro)
+            LegalEntitySeeder::class,
             RolesAndPermissionsSeeder::class,
             CostCenterSeeder::class,
             TagSeeder::class,

@@ -249,6 +249,12 @@ Route::middleware('auth')->group(function () {
             Route::get('/{filename}/download', [BackupController::class, 'download'])->name('download');
             Route::post('/{filename}/restore', [BackupController::class, 'restore'])->name('restore');
             Route::delete('/{filename}', [BackupController::class, 'destroy'])->name('destroy');
+            
+            // Nova Rota: Integração Legada
+            Route::get('/integracao', [\App\Http\Controllers\Admin\Configuracoes\LegacyIntegrationController::class, 'index'])->name('integracao');
+            Route::post('/integracao/preview', [\App\Http\Controllers\Admin\Configuracoes\LegacyIntegrationController::class, 'preview'])->name('integracao.preview');
+            Route::post('/integracao/import', [\App\Http\Controllers\Admin\Configuracoes\LegacyIntegrationController::class, 'import'])->name('integracao.import');
+            Route::get('/integracao/export-mock', [\App\Http\Controllers\Admin\Configuracoes\LegacyIntegrationController::class, 'exportMock'])->name('integracao.export-mock');
         });
 
 });
