@@ -49,14 +49,14 @@ class EnsureAdminUsers extends Command
         ];
 
         foreach ($admins as $data) {
-            $user = User::firstOrCreate(
+            $user = User::updateOrCreate(
                 ['email' => $data['email']],
                 ['name' => $data['name'], 'password' => Hash::make($data['password'])]
             );
 
             $user->syncRoles(['ADMIN']);
 
-            $status = $user->wasRecentlyCreated ? 'criado' : 'já existe';
+            $status = $user->wasRecentlyCreated ? 'criado' : 'senha/dados sincronizados';
             $this->line("  → {$data['name']} ({$data['email']}): {$status}");
         }
 
