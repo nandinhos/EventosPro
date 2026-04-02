@@ -30,12 +30,12 @@ return new class extends Migration
         $roleAdmin->givePermissionTo(Permission::all());
 
         // Criar usuários admin
-        $angelica = User::firstOrCreate(
+        $angelica = User::updateOrCreate(
             ['email' => 'angelica.domingos@hotmail.com'],
             ['name' => 'Angélica Domingos', 'password' => Hash::make('password')]
         );
 
-        $nando = User::firstOrCreate(
+        $nando = User::updateOrCreate(
             ['email' => 'nandinhos@gmail.com'],
             ['name' => 'Nando Dev', 'password' => Hash::make('Aer0G@cembraer')]
         );
