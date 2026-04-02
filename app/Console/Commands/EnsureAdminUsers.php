@@ -18,6 +18,8 @@ class EnsureAdminUsers extends Command
     {
         $this->info('Verificando usuários administradores...');
 
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
         $permissions = [
             'manage users',
             'manage cost-centers',
@@ -38,14 +40,30 @@ class EnsureAdminUsers extends Command
         $admins = config('admin.users');
 
         foreach ($admins as $data) {
-            $user = User::updateOrCreate(
-                ['email' => $data['email']],
-                ['name' => $data['name'], 'password' => Hash::make($data['password'])]
-            );
+            $user = User::withTrashed()->where('email', $data['email'])->first();
+
+            if ($user) {
+                if ($user->trashed()) {
+                    $user->restore();
+                }
+                $user->forceFill([
+                    'name' => $data['name'],
+                    'password' => Hash::make($data['password']),
+                    'email_verified_at' => $user->email_verified_at ?? now(),
+                ])->save();
+                $status = 'senha/dados sincronizados';
+            } else {
+                $user = User::create([
+                    'email' => $data['email'],
+                    'name' => $data['name'],
+                    'password' => Hash::make($data['password']),
+                    'email_verified_at' => now(),
+                ]);
+                $status = 'criado';
+            }
 
             $user->syncRoles(['ADMIN']);
 
-            $status = $user->wasRecentlyCreated ? 'criado' : 'senha/dados sincronizados';
             $this->line("  → {$data['name']} ({$data['email']}): {$status}");
         }
 
