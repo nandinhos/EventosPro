@@ -35,18 +35,7 @@ class EnsureAdminUsers extends Command
         $roleAdmin = Role::firstOrCreate(['name' => 'ADMIN']);
         $roleAdmin->syncPermissions(Permission::all());
 
-        $admins = [
-            [
-                'email' => 'angelica.domingos@hotmail.com',
-                'name' => 'Angélica Domingos',
-                'password' => 'password',
-            ],
-            [
-                'email' => 'nandinhos@gmail.com',
-                'name' => 'Nando Dev',
-                'password' => config('app.admin_password', 'Aer0G@cembraer'),
-            ],
-        ];
+        $admins = config('admin.users');
 
         foreach ($admins as $data) {
             $user = User::updateOrCreate(
