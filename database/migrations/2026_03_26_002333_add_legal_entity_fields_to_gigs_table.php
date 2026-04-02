@@ -12,10 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('gigs', function (Blueprint $table) {
-            $table->unsignedBigInteger('legal_entity_id')->nullable()->after('id');
-            $table->enum('contract_data_status', ['New', 'Legacy'])->default('New')->after('contract_status');
+            if (!Schema::hasColumn('gigs', 'legal_entity_id')) {
+                $table->unsignedBigInteger('legal_entity_id')->nullable()->after('id');
+                $table->foreign('legal_entity_id')->references('id')->on('legal_entities')->onDelete('set null');
+            }
 
-            $table->foreign('legal_entity_id')->references('id')->on('legal_entities')->onDelete('set null');
+            if (!Schema::hasColumn('gigs', 'contract_data_status')) {
+                $table->enum('contract_data_status', ['New', 'Legacy'])->default('New')->after('contract_status');
+            }
         });
     }
 
